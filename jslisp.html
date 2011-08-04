@@ -1,0 +1,249 @@
+<!DOCTYPE HTML>
+<html>
+  <body>
+    <div id="log" style="font-family:Courier New; font-size:18px">
+    </div>
+    <textarea type=text id="cmdline" style="width:100%; background-color:#EEEEEE; border:none; outline:none; padding:0px; margin:0px; font-family:Courier New; font-size:18px"
+           onkeydown = "keyDown(event)"
+           onkeypress = "keyPress(event)"></textarea>
+    <div id="clpar" style="font-family:Courier New; font-size:18px; color:#C0C0C0"></div>
+    <div id="lastscroll">&nbsp;</div>
+    <script src="jslisp.js">
+    </script>
+    <script>
+
+var cmdline = document.getElementById("cmdline");
+var log = document.getElementById("log");
+var clpar = document.getElementById("clpar");
+var lastscroll = document.getElementById("lastscroll");
+var cmdhist = [];
+var cmdptr = 0;
+var cmdfresh = true;
+
+function fixCmdline()
+{
+    var nrows = 1 + cmdline.value.replace(/[^\n]/g,"").length;
+    if (cmdline.rows != nrows)
+        cmdline.rows = nrows;
+}
+
+setInterval(fixCmdline, 10);
+
+function updateClpar(text)
+{
+    if (text == undefined)
+        text = cmdline.value.substr(0, cmdline.selectionStart);
+    var i = 0, n = text.length;
+    var op = [];
+    while (i < n)
+    {
+        if (text[i] == '(')
+        {
+            op.push(i++);
+        }
+        else if (text[i] == ')')
+        {
+            ++i;
+            if (op.length)
+            {
+                if (i == n)
+                {
+                    var s = op.pop();
+                    clpar.innerHTML = "closes " + text.substr(s, Math.min(i, s+20)-s) + ((i>s+20)?" ...":"");
+                    return op.length * 4;
+                }
+                op.pop();
+            }
+            else
+            {
+                clpar.innerHTML = "** NO MATCH **";
+                return 0;
+            }
+        }
+        else if (text[i] == '#')
+        {
+            i++;
+            if (text[i] == '\\')
+            {
+                i += 2;
+            }
+            else if (text[i] == '|')
+            {
+                while (i < n && (text[i] != '|' || text[i+1] != '#'))
+                    ++i;
+                if (i < n)  i += 2;
+            }
+        }
+        else if (text[i] == ';')
+        {
+            while (i < n && text[i] != '\n')
+                i++;
+        }
+        else if (text[i] == '|' || text[i] == '"')
+        {
+            var qq = text[i++];
+            while (i < n && text[i] != qq)
+            {
+                if (text[i] == '\\')
+                    ++i;
+                ++i;
+            }
+            if (i < n) i++;
+        }
+        else
+        {
+            i++;
+        }
+    }
+    clpar.innerHTML = "&nbsp;";
+    return op.length * 4;
+}
+
+setInterval(function(){updateClpar();}, 100);
+
+function htmlesc(x)
+{
+    return (x
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/ /g, "&nbsp;")
+            .replace(/\n/g, "<br/>"));
+}
+
+function logout(color, x)
+{
+    var row = document.createElement("div");
+    row.style.color = color;
+    if (color == "#000000")
+    {
+        row.style.padding = "4px";
+        row.style.border = "1px solid #C0C0C0";
+        row.style.backgroundColor = "#EEEEEE";
+        row.style.margin = "2px";
+    }
+    row.innerHTML = htmlesc(x);
+    log.appendChild(row);
+}
+
+function f$$display(x) { logout("#008000", x+''); return x; };
+
+function process()
+{
+    var base = cmdline.value.replace(/[\r\n \t]*$/,"");
+    cmdhist.push(base);
+    cmdptr = cmdhist.length;
+    cmdfresh = true;
+    cmdline.value = "";
+    logout("#000000", base);
+    try
+    {
+        var xx = 0;
+        var src = function(n) { var c = base[xx]; xx+=(n|0); return c; };
+        while (xx < base.length)
+        {
+            var pp = f$$parse_value(src);
+            var result = eval(f$$js_compile(pp));
+            logout("#0000FF", "--> " + f$$str_value(result));
+        }
+    }
+    catch (err)
+    {
+        err = ("" + err).replace(/[dmf]\$\$([a-zA-Z_]|(\$[0-9]+\$))*/g,
+                                 function(s)
+                                 {
+                                     return {"d" : "",
+                                             "m" : "macro ",
+                                             "f" : "function "}[s[0]] + f$$demangle(s.substr(1));
+                                 });
+        logout("#FF0000", "ERROR: " + err);
+    }
+    lastscroll.scrollIntoView(false);
+}
+
+function keyDown(e)
+{
+    if (e.which == 9)
+    {
+        e.preventDefault();
+        var text = cmdline.value;
+        var ss = cmdline.selectionStart;
+        var se = cmdline.selectionEnd;
+        var lines = text.split("\n");
+        var before = text.substr(0, ss).replace(/[^\n]/g,"").length;
+        var after = 1 + text.substr(0, se).replace(/[^\n]/g,"").length;
+        var nt = lines.slice(0, before).join("\n"); if (before) nt += "\n";
+        var ns = nt.length;
+        for (var i=before; i<after; i++)
+        {
+            indent = updateClpar(nt);
+            var sp = "";
+            while (indent > 0)
+            {
+                --indent;
+                sp += " ";
+            }
+            var L = lines[i];
+            while (L[0] == ' ') L = L.substr(1);
+            nt += sp + L + "\n";
+        }
+        var ne = nt.length-1;
+        nt += lines.slice(after).join("\n");
+        while (nt[nt.length-1] == "\n")
+            nt = nt.substr(0, nt.length-1);
+        cmdline.value = nt;
+        cmdline.setSelectionRange(ne, ne);
+        cmdline.focus();
+    }
+    else if (cmdfresh && (e.which == 38 || e.which == 40))
+    {
+        e.preventDefault();
+        if (e.which == 38)
+        {
+            if (--cmdptr < 0) cmdptr = 0;
+        }
+        else if (e.which == 40)
+        {
+            if (++cmdptr > cmdhist.length) cmdptr = cmdhist.length;
+        }
+        cmdline.value = cmdhist[cmdptr] || "";
+        cmdline.setSelectionRange(cmdline.value.length, cmdline.value.length);
+        cmdline.focus();
+        lastscroll.scrollIntoView(false);
+    }
+    else
+    {
+        cmdfresh = false;
+    }
+}
+
+function keyPress(e)
+{
+    if (e.which == 10 || (e.which == 13 && (e.ctrlKey || e.shiftKey)))
+    {
+        process();
+        e.preventDefault();
+    }
+    else if (e.which == 13)
+    {
+        e.preventDefault();
+        var level = updateClpar();
+        var text = cmdline.value;
+        var i = cmdline.selectionStart;
+        var sp = "";
+        for (var j=0; j<level; j++)
+            sp += " ";
+        cmdline.value = text.substr(0, i) + "\n" + sp + text.substr(i);
+        cmdline.setSelectionRange(i + 1 + sp.length, i + 1 + sp.length);
+        if (sp == "" && cmdline.selectionStart == cmdline.value.length)
+            process();
+    }
+    lastscroll.scrollIntoView(false);
+}
+
+document.getElementById("cmdline").focus();
+
+    </script>
+  </body>
+</html>

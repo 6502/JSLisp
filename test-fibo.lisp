@@ -1,0 +1,15 @@
+(defun fibo (x)
+    (if (< x 2)
+        1
+        (+ (fibo (- x 1))
+           (fibo (- x 2)))))
+(defun test-fibo (n)
+    (dotimes (i n)
+        (display (+ "(fibo " i ") --> " (fibo i)))))
+(defun clock () (js-code "(new Date).getTime()"))
+(defmacro time (&rest body)
+    (let ((start (gensym)))
+        `(let ((,start (clock)))
+            ,@body
+            (- (clock) ,start))))
+(time (test-fibo 30))

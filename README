@@ -1,0 +1,18 @@
+A tiny lisp compiler in javascript (not an interpreter, code compiles to javascript functions)
+
+- lisp-2 common-lisp like (but not too much)
+- indeed a lisp-3 (a macro and a function can have the same name)
+- native types are javascript ones, with list = array
+- no car/cdr (first is (aref x 0) and rest is (slice x 1))
+- case sensitive, name mangling (p2d? -> $$p2d$63$)
+- true / false / null / undefined / NaN
+- global / lexical / special (defined by defvar)
+- setf / incf / decf with user-defined specializations
+- defmacro, macrolet, symbol-macrolet, defmacro/f
+- back quoting
+- js-code escaping
+- user-defined compilation functions
+- length, aref, dolist, dotimes, let, do, let*, labels, if, when, unless,
+  +, -, *, /, =, <, <=, >, >=, not, display, reverse, nreverse
+- push works like javascript push (adding at the end!)
+- defstruct (test function is <name>?, full BOA constructor is (<name> ...))
