@@ -1205,10 +1205,43 @@ var boot = ["(set-symbol-macro 'defmacro"+
             "(defun gensym (prefix)"+
             "  (intern (+ \"G:\" (if prefix (+ prefix \"/\") \"\") (incf *gensym-count*))))",
 
-            "(defmacro substr (x start count)"+
+            "(defmacro/f substr (x start count)"+
             "    `(js-code ,(+ \"(\" (js-compile x) \").substr(\""+
             "                  (js-compile start) \",\""+
             "                  (js-compile count) \")\")))",
+
+            "(defmacro/f slice (x start end)"+
+            "    `(js-code ,(+ (js-compile x)"+
+            "                  \".slice(\""+
+            "                  (js-compile start)"+
+            "                  \",\""+
+            "                  (js-compile end)"+
+            "                  \")\")))",
+
+            "(defun subseq (x start count)"+
+            "  (if (= count undefined)"+
+            "      (slice x start)"+
+            "      (slice x start (+ start count))))",
+
+            "(defmacro defmathop (name none single jsname)"+
+            "    `(defmacro ,name (&rest args)"+
+            "        (cond"+
+            "            ((= (length args) 0)"+
+            "                ,none)"+
+            "            ((= (length args) 1)"+
+            "                ,single)"+
+            "            ((= (length args) 2)"+
+            "                `(js-code ,(+ \"(\""+
+            "                              (js-compile (aref args 0))"+
+            "                              ,jsname"+
+            "                              (js-compile (aref args 1))"+
+            "                              \")\")))"+
+            "            (true"+
+            "                `(js-code ,(+ \"(\""+
+            "                              (js-compile `(,',name ,@(slice args 0 (1- (length args)))))"+
+            "                              ,jsname"+
+            "                              (js-compile (aref args (1- (length args))))"+
+            "                              \")\"))))))",
 
             "(defmacro defstruct (name &rest fields)"+
             "    `(progn"+
