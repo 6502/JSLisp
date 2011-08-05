@@ -265,60 +265,6 @@ jscompile["$$lambda"] = function(x)
     return res;
 };
 
-function f$$$43$()
-{
-    var total = arguments[0];
-    for (var i=1; i<arguments.length; i++)
-        total += arguments[i];
-    return total;
-}
-
-jscompile["$$$43$"] = function(x)
-{
-    var res = "(";
-    for (var i=1; i<x.length; i++)
-    {
-        if (i > 1) res += "+";
-        res += f$$js_compile(x[i]);
-    }
-    return res + ")";
-};
-
-function f$$_()
-{
-    if (arguments.length == 1)
-    {
-        return - arguments[0];
-    }
-    var total = arguments[0];
-    for (var i=1; i<arguments.length; i++)
-        total -= arguments[i];
-    return total;
-};
-
-jscompile["$$_"] = function(x)
-{
-    var res = "(";
-    if (x.length == 2)
-    {
-        res += "-" + f$$js_compile(x[1]);
-    }
-    else
-    {
-        for (var i=1; i<x.length; i++)
-        {
-            if (i > 1) res += "-";
-            res += f$$js_compile(x[i]);
-        }
-    }
-    return res + ")";
-};
-
-function f$$ash(x, y)
-{
-    return (y > 0 ? x << y : x >> -y);
-}
-
 function f$$logcount(x)
 {
     var n = 0;
@@ -334,31 +280,6 @@ function f$$slice(x, y, z)
 {
     return x.slice(y, z);
 }
-
-(function(){
-    var binops = ["*", "/",
-                  ">", "<", ">=", "<=", ["==", "="], ["!=", "/="],
-                  ["|", "logior"],
-                  ["&", "logand"],
-                  ["^", "logxor"]];
-    for (var i=0; i<binops.length; i++)
-    {
-        var jsname = binops[i];
-        var lispname = jsname;
-        if (jsname.constructor == Array)
-        {
-            lispname = jsname[1];
-            jsname = jsname[0];
-        }
-
-        jscompile[f$$mangle(lispname)] =
-            eval("(function(x) { return \"(\" + f$$js_compile(x[1]) + \"" +
-                 jsname +
-                 "\" + f$$js_compile(x[2]) + \")\"; })");
-        window["f" + f$$mangle(lispname)] =
-            eval("(function(x, y) { return x " + jsname + " y; })");
-    }
-})();
 
 jscompile["$$list"] = function(x)
 {
@@ -1060,6 +981,31 @@ function f$$set_reader(ch, f)
     return f;
 }
 
+// Needed for bootstrap
+function f$$$33$$43$()
+{
+    if (arguments.length == 0) return 0;
+    var res = arguments[0];
+    for (var i=1; i<arguments.length; i++)
+        res += arguments[i];
+    return res;
+}
+
+function f$$$33$$61$(a, b)
+{
+    return a == b;
+}
+
+function f$$$33$$62$(a, b)
+{
+    return a > b;
+}
+
+function f$$$49$_(x)
+{
+    return x-1;
+}
+
 var boot = ["(set-symbol-macro 'defmacro"+
             "   (lambda (name args &rest body)"+
             "     (list 'set-symbol-macro"+
@@ -1073,44 +1019,44 @@ var boot = ["(set-symbol-macro 'defmacro"+
 
             "(defun bqconst (x)"+
             "  (if (listp x)"+
-            "      (if (or (= (aref x 0) '\\,)"+
-            "              (= (aref x 0) '\\`)"+
-            "              (= (aref x 0) '\\,@))"+
+            "      (if (or (!= (aref x 0) '\\,)"+
+            "              (!= (aref x 0) '\\`)"+
+            "              (!= (aref x 0) '\\,@))"+
             "          false"+
-            "          (do ((i 0 (+ i 1)))"+
-            "              ((or (> i (length x)) (not (bqconst (aref x i))))"+
-            "               (> i (length x)))))"+
+            "          (do ((i 0 (!+ i 1)))"+
+            "              ((or (!= i (length x)) (not (bqconst (aref x i))))"+
+            "               (!= i (length x)))))"+
             "      true))",
 
             "(defun bquote (x)"+
             "  (cond"+
-            "   ((or (numberp x) (stringp x) (= x null))"+
+            "   ((or (numberp x) (stringp x) (!= x null))"+
             "    x)"+
             "   ((bqconst x)"+
             "    (list 'quote x))"+
             "   ((listp x)"+
             "    (cond"+
-            "     ((= (aref x 0) '\\`)"+
+            "     ((!= (aref x 0) '\\`)"+
             "      (list '\\` (bquote (aref x 1))))"+
-            "     ((= (aref x 0) '\\,)"+
+            "     ((!= (aref x 0) '\\,)"+
             "      (aref x 1))"+
-            "     ((= (aref x 0) '\\,@)"+
+            "     ((!= (aref x 0) '\\,@)"+
             "      (error \",@ must be used inside lists\"))"+
             "     (true"+
             "      (let ((res (list 'append))"+
             "            (clist (list 'list)))"+
             "        (dolist (el x)"+
             "          (cond"+
-            "           ((and el (listp el) (= (aref el 0) '\\,@))"+
-            "            (when (> (length clist) 1)"+
+            "           ((and el (listp el) (!= (aref el 0) '\\,@))"+
+            "            (when (!> (length clist) 1)"+
             "              (push clist res)"+
             "              (setq clist (list 'list)))"+
             "            (push (aref el 1) res))"+
             "           (true"+
             "            (push (bquote el) clist))))"+
-            "        (when (> (length clist) 1)"+
+            "        (when (!> (length clist) 1)"+
             "          (push clist res))"+
-            "        (if (> (length res) 2)"+
+            "        (if (!> (length res) 2)"+
             "            res"+
             "            (aref res 1))))))"+
             "   (true (list 'quote x))))",
@@ -1133,6 +1079,101 @@ var boot = ["(set-symbol-macro 'defmacro"+
             "(defmacro/f eighth  (x) `(aref ,x 7))",
             "(defmacro/f nineth  (x) `(aref ,x 8))",
             "(defmacro/f tenth   (x) `(aref ,x 9))",
+
+            "(defmacro/f slice (x start end)"+
+            "    `(js-code ,(!+ (js-compile x)"+
+            "                   \".slice(\""+
+            "                   (js-compile start)"+
+            "                   \",\""+
+            "                   (js-compile end)"+
+            "                   \")\")))",
+
+            "(defun subseq (x start count)"+
+            "  (if (!= count undefined)"+
+            "      (slice x start)"+
+            "      (slice x start (+ start count))))",
+
+            "(defmacro defmathop (name none single jsname)"+
+            "    `(defmacro ,name (&rest args)"+
+            "       (cond"+
+            "        ((!= (length args) 0)"+
+            "         ,none)"+
+            "        ((!= (length args) 1)"+
+            "         ,single)"+
+            "        ((!= (length args) 2)"+
+            "         `(js-code ,(!+ \"(\""+
+            "                        (js-compile (aref args 0))"+
+            "                        ,jsname"+
+            "                        (js-compile (aref args 1))"+
+            "                        \")\")))"+
+            "        (true"+
+            "         `(js-code ,(!+ \"(\""+
+            "                        (js-compile `(,',name ,@(slice args 0 (1- (length args)))))"+
+            "                        ,jsname"+
+            "                        (js-compile (aref args (1- (length args))))"+
+            "                        \")\"))))))",
+
+            "(defmacro defmathop-func (name)"+
+            "    `(defun ,name (&rest args)"+
+            "       (cond"+
+            "        ((!= (length args) 0) (,name))"+
+            "        ((!= (length args) 1) (,name (aref args 0)))"+
+            "        (true"+
+            "         (let ((res (aref args 0)))"+
+            "           (dolist (x (slice args 1))"+
+            "             (setq res (,name res x)))"+
+            "           res)))))",
+
+            // Math n-ary operators macros and functions
+            "(defmathop + 0 (aref args 0) \"+\"))",
+            "(defmathop - 0 `(js-code ,(+ \"-\" (js-compile (aref args 0)))) \"-\"))",
+            "(defmathop * 1 (aref args 0) \"*\"))",
+            "(defmathop / 1 `(/ 1 ,(aref args 0)) \"/\"))",
+            "(defmathop logior 0 (aref args 0) \"|\")",
+            "(defmathop logand -1 (aref args 0) \"&\")",
+            "(defmathop logxor 0 (aref args 0) \"^\")",
+            "(defmathop-func +)",
+            "(defmathop-func -)",
+            "(defmathop-func *)",
+            "(defmathop-func /)",
+            "(defmathop-func logior)",
+            "(defmathop-func logand)",
+            "(defmathop-func logxor)",
+
+            "(defmacro/f % (a b) `(js-code ,(+ \"(\""+
+            "                                  (js-compile a)"+
+            "                                  \"%\""+
+            "                                  (js-compile b)"+
+            "                                  \")\")))",
+
+            // Comparisons
+
+            "(defvar *gensym-count* 0)",
+            "(defun gensym (prefix)"+
+            "  (intern (+ \"G:\" (if prefix (+ prefix \"/\") \"\")"+
+            "             (setq *gensym-count* (+ 1 *gensym-count*)))))",
+
+            "(defmacro defrelop (name jsname)"+
+            "  `(defmacro ,name (&rest args)"+
+            "     (cond"+
+            "      ((!= (length args) 0)"+
+            "       true)"+
+            "      ((!= (length args) 1)"+
+            "       true)"+
+            "      ((!= (length args) 2)"+
+            "       `(js-code ,(+ \"(\" (js-compile (aref args 0)) ,jsname (js-compile (aref args 1)) \")\")))"+
+            "      (true"+
+            "       (let ((x1 (gensym))"+
+            "             (x2 (gensym)))"+
+            "         `(let ((x1 ,(aref args 0))"+
+            "                (x2 ,(aref args 1)))"+
+            "            (and (,',name x1 x2) (,',name x2 ,@(slice args 2))))))))))",
+
+            "(defrelop < \"<\")",
+            "(defrelop <= \"<=\")",
+            "(defrelop = \"==\")",
+            "(defrelop >= \">=\")",
+            "(defrelop > \">\")",
 
             "(defmacro let* (bindings &rest body)"+
             "  (if (> (length bindings) 1)"+
@@ -1201,47 +1242,10 @@ var boot = ["(set-symbol-macro 'defmacro"+
             "           (,ix ,index))"+
             "       (setf (aref ,aa ,ix) (- (aref ,aa ,ix) ,value)))))",
 
-            "(defvar *gensym-count* 0)",
-            "(defun gensym (prefix)"+
-            "  (intern (+ \"G:\" (if prefix (+ prefix \"/\") \"\") (incf *gensym-count*))))",
-
             "(defmacro/f substr (x start count)"+
             "    `(js-code ,(+ \"(\" (js-compile x) \").substr(\""+
             "                  (js-compile start) \",\""+
             "                  (js-compile count) \")\")))",
-
-            "(defmacro/f slice (x start end)"+
-            "    `(js-code ,(+ (js-compile x)"+
-            "                  \".slice(\""+
-            "                  (js-compile start)"+
-            "                  \",\""+
-            "                  (js-compile end)"+
-            "                  \")\")))",
-
-            "(defun subseq (x start count)"+
-            "  (if (= count undefined)"+
-            "      (slice x start)"+
-            "      (slice x start (+ start count))))",
-
-            "(defmacro defmathop (name none single jsname)"+
-            "    `(defmacro ,name (&rest args)"+
-            "        (cond"+
-            "            ((= (length args) 0)"+
-            "                ,none)"+
-            "            ((= (length args) 1)"+
-            "                ,single)"+
-            "            ((= (length args) 2)"+
-            "                `(js-code ,(+ \"(\""+
-            "                              (js-compile (aref args 0))"+
-            "                              ,jsname"+
-            "                              (js-compile (aref args 1))"+
-            "                              \")\")))"+
-            "            (true"+
-            "                `(js-code ,(+ \"(\""+
-            "                              (js-compile `(,',name ,@(slice args 0 (1- (length args)))))"+
-            "                              ,jsname"+
-            "                              (js-compile (aref args (1- (length args))))"+
-            "                              \")\"))))))",
 
             "(defmacro defstruct (name &rest fields)"+
             "    `(progn"+
