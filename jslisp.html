@@ -244,6 +244,52 @@ function keyPress(e)
 
 document.getElementById("cmdline").focus();
 
+function f$$ajax(url, cback, error)
+{
+    var xmlhttp = new XMLHttpRequest();
+    xmlhttp.onreadystatechange=function()
+    {
+        if (xmlhttp.readyState == 4)
+        {
+            if (xmlhttp.status == 200)
+            {
+                cback(xmlhttp.responseText);
+            }
+            else
+            {
+                if (error)
+                {
+                    error(xmlhttp.status);
+                }
+                else
+                {
+                    alert("Ajax request error: status=" + xmlhttp.status);
+                }
+            }
+        }
+    };
+    xmlhttp.open("GET", url, true);
+    xmlhttp.send();
+}
+
+// Bootstrap
+f$$ajax("boot.lisp",
+        function(boot)
+        {
+            try
+            {
+                f$$load(boot);
+                f$$display("Boot completed");
+            }
+            catch(err)
+            {
+                f$$display("Bootstrap error: " + err);
+            }
+        },
+        function(err)
+        {
+            f$$display("Bootstrap ajax error: status=" + err)
+        });
     </script>
   </body>
 </html>

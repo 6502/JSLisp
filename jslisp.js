@@ -105,11 +105,6 @@ jscompile["$$if"] = function(x)
             f$$js_compile(x[3]) + ")");
 };
 
-jscompile["$$length"] = function(x)
-{
-    return "(" + f$$js_compile(x[1]) + ").length";
-};
-
 jscompile["$$defvar"] = function(x)
 {
     var v = x[1].name;
@@ -276,49 +271,12 @@ function f$$logcount(x)
     return n;
 }
 
-function f$$slice(x, y, z)
-{
-    return x.slice(y, z);
-}
-
-jscompile["$$list"] = function(x)
-{
-    var res = "[";
-    for (var i=1; i<x.length; i++)
-    {
-        if (i > 1) res += ",";
-        res += f$$js_compile(x[i]);
-    }
-    return res + "]";
-};
-
 function f$$list()
 {
     var res = [];
     for (var i=0; i<arguments.length; i++)
         res.push(arguments[i]);
     return res;
-}
-
-jscompile["$$aref"] = function(x)
-{
-    return f$$js_compile(x[1]) + "[" + f$$js_compile(x[2]) + "]";
-};
-
-function f$$aref(x, index)
-{
-    return x[index];
-}
-
-jscompile["$$set_aref"] = function(x)
-{
-    return "(" + f$$js_compile(x[1]) + "[" + f$$js_compile(x[2]) + "]=" + f$$js_compile(x[3]) + ")";
-};
-
-function f$$set_aref(x, index, value)
-{
-    x[index] = value;
-    return value;
 }
 
 jscompile["$$funcall"] = function(x)
@@ -517,27 +475,6 @@ jscompile["$$cond"] = function(x)
     }
     return res + "})()";
 };
-
-jscompile["$$rest"] = function(x)
-{
-    return f$$js_compile(x[1]) + ".slice(1)";
-};
-
-jscompile["$$reverse"] = function(x)
-{
-    return f$$js_compile(x[1]) + ".slice().reverse()";
-};
-
-jscompile["$$nreverse"] = function(x)
-{
-    return f$$js_compile(x[1]) + ".reverse()";
-};
-
-function f$$push(x, L)
-{
-    L.push(x);
-    return x;
-}
 
 jscompile["$$when"] = function(x)
 {
@@ -755,6 +692,19 @@ var readers = { "|": function(src)
                     return f$$intern(res);
                 },
 
+                '"': function(src)
+                {
+                    src(1);
+                    var res = "";
+                    while (src() != undefined && src() != '"')
+                    {
+                        if (src() == '\\') src(1);
+                        res += src(1);
+                    }
+                    if (src(1) != '"') throw "'\"' expected";
+                    return res;
+                },
+
                 "'": function(src)
                 {
                     src(1);
@@ -806,76 +756,6 @@ var readers = { "|": function(src)
                     }
                     if (src(1) != ")") throw "')' expected";
                     return res;
-                },
-
-                "\"": function(src)
-                {
-                    src(1);
-                    var res = "";
-                    while (src() != undefined && src() != '"')
-                    {
-                        if (src() == '\\')
-                        {
-                            src(1);
-                            if (src() == 'n')
-                            {
-                                res += '\n'; src(1);
-                            }
-                            else if (src() == 'r')
-                            {
-                                res += '\r'; src(1);
-                            }
-                            else if (src() == 't')
-                            {
-                                res += '\t'; src(1);
-                            }
-                            else
-                            {
-                                res += src(1);
-                            }
-                        }
-                        else
-                        {
-                            res += src(1);
-                        }
-                    }
-                    if (src(1) != '"') throw "'\"' expected";
-                    return res;
-                },
-
-                "|": function(src)
-                {
-                    src(1);
-                    var res = "";
-                    while (src() != undefined && src() != '|')
-                    {
-                        if (src() == '\\')
-                        {
-                            src(1);
-                            if (src() == 'n')
-                            {
-                                res += '\n'; src(1);
-                            }
-                            else if (src() == 'r')
-                            {
-                                res += '\r'; src(1);
-                            }
-                            else if (src() == 't')
-                            {
-                                res += '\t'; src(1);
-                            }
-                            else
-                            {
-                                res += src(1);
-                            }
-                        }
-                        else
-                        {
-                            res += src(1);
-                        }
-                    }
-                    if (src(1) != '|') throw "'|' expected";
-                    return f$$intern(res);
                 },
 
                 "0": parseNumberOrSymbol,
@@ -981,317 +861,36 @@ function f$$set_reader(ch, f)
     return f;
 }
 
-// Needed for bootstrap
-function f$$$33$$43$()
+function f$$load(src)
 {
-    if (arguments.length == 0) return 0;
-    var res = arguments[0];
-    for (var i=1; i<arguments.length; i++)
-        res += arguments[i];
-    return res;
-}
-
-function f$$$33$$61$(a, b)
-{
-    return a == b;
-}
-
-function f$$$33$$62$(a, b)
-{
-    return a > b;
-}
-
-function f$$$49$_(x)
-{
-    return x-1;
-}
-
-var boot = ["(set-symbol-macro 'defmacro"+
-            "   (lambda (name args &rest body)"+
-            "     (list 'set-symbol-macro"+
-            "           (list 'quote name)"+
-            "           (append (list 'lambda args) body))))",
-
-            "(defmacro defun (name args &rest body)"+
-            "  (list 'set-symbol-function"+
-            "        (list 'quote name)"+
-            "        (append (list 'lambda args) body)))",
-
-            "(defun bqconst (x)"+
-            "  (if (listp x)"+
-            "      (if (or (!= (aref x 0) '\\,)"+
-            "              (!= (aref x 0) '\\`)"+
-            "              (!= (aref x 0) '\\,@))"+
-            "          false"+
-            "          (do ((i 0 (!+ i 1)))"+
-            "              ((or (!= i (length x)) (not (bqconst (aref x i))))"+
-            "               (!= i (length x)))))"+
-            "      true))",
-
-            "(defun bquote (x)"+
-            "  (cond"+
-            "   ((or (numberp x) (stringp x) (!= x null))"+
-            "    x)"+
-            "   ((bqconst x)"+
-            "    (list 'quote x))"+
-            "   ((listp x)"+
-            "    (cond"+
-            "     ((!= (aref x 0) '\\`)"+
-            "      (list '\\` (bquote (aref x 1))))"+
-            "     ((!= (aref x 0) '\\,)"+
-            "      (aref x 1))"+
-            "     ((!= (aref x 0) '\\,@)"+
-            "      (error \",@ must be used inside lists\"))"+
-            "     (true"+
-            "      (let ((res (list 'append))"+
-            "            (clist (list 'list)))"+
-            "        (dolist (el x)"+
-            "          (cond"+
-            "           ((and el (listp el) (!= (aref el 0) '\\,@))"+
-            "            (when (!> (length clist) 1)"+
-            "              (push clist res)"+
-            "              (setq clist (list 'list)))"+
-            "            (push (aref el 1) res))"+
-            "           (true"+
-            "            (push (bquote el) clist))))"+
-            "        (when (!> (length clist) 1)"+
-            "          (push clist res))"+
-            "        (if (!> (length res) 2)"+
-            "            res"+
-            "            (aref res 1))))))"+
-            "   (true (list 'quote x))))",
-
-            "(defmacro |`| (x) (bquote x))",
-
-            "(defmacro defmacro/f (name args &rest body)"+
-            "    `(progn"+
-            "        (defmacro ,name ,args ,@body)"+
-            "        (eval `(defun ,',name ,',args"+
-            "                      ,(apply (symbol-macro ',name) ',args)))))",
-
-            "(defmacro/f first   (x) `(aref ,x 0))",
-            "(defmacro/f second  (x) `(aref ,x 1))",
-            "(defmacro/f third   (x) `(aref ,x 2))",
-            "(defmacro/f fourth  (x) `(aref ,x 3))",
-            "(defmacro/f fifth   (x) `(aref ,x 4))",
-            "(defmacro/f sixth   (x) `(aref ,x 5))",
-            "(defmacro/f seventh (x) `(aref ,x 6))",
-            "(defmacro/f eighth  (x) `(aref ,x 7))",
-            "(defmacro/f nineth  (x) `(aref ,x 8))",
-            "(defmacro/f tenth   (x) `(aref ,x 9))",
-
-            "(defmacro/f slice (x start end)"+
-            "    `(js-code ,(!+ (js-compile x)"+
-            "                   \".slice(\""+
-            "                   (js-compile start)"+
-            "                   \",\""+
-            "                   (js-compile end)"+
-            "                   \")\")))",
-
-            "(defun subseq (x start count)"+
-            "  (if (!= count undefined)"+
-            "      (slice x start)"+
-            "      (slice x start (+ start count))))",
-
-            "(defmacro defmathop (name none single jsname)"+
-            "    `(defmacro ,name (&rest args)"+
-            "       (cond"+
-            "        ((!= (length args) 0)"+
-            "         ,none)"+
-            "        ((!= (length args) 1)"+
-            "         ,single)"+
-            "        ((!= (length args) 2)"+
-            "         `(js-code ,(!+ \"(\""+
-            "                        (js-compile (aref args 0))"+
-            "                        ,jsname"+
-            "                        (js-compile (aref args 1))"+
-            "                        \")\")))"+
-            "        (true"+
-            "         `(js-code ,(!+ \"(\""+
-            "                        (js-compile `(,',name ,@(slice args 0 (1- (length args)))))"+
-            "                        ,jsname"+
-            "                        (js-compile (aref args (1- (length args))))"+
-            "                        \")\"))))))",
-
-            "(defmacro defmathop-func (name)"+
-            "    `(defun ,name (&rest args)"+
-            "       (cond"+
-            "        ((!= (length args) 0) (,name))"+
-            "        ((!= (length args) 1) (,name (aref args 0)))"+
-            "        (true"+
-            "         (let ((res (aref args 0)))"+
-            "           (dolist (x (slice args 1))"+
-            "             (setq res (,name res x)))"+
-            "           res)))))",
-
-            // Math n-ary operators macros and functions
-            "(defmathop + 0 (aref args 0) \"+\"))",
-            "(defmathop - 0 `(js-code ,(+ \"-\" (js-compile (aref args 0)))) \"-\"))",
-            "(defmathop * 1 (aref args 0) \"*\"))",
-            "(defmathop / 1 `(/ 1 ,(aref args 0)) \"/\"))",
-            "(defmathop logior 0 (aref args 0) \"|\")",
-            "(defmathop logand -1 (aref args 0) \"&\")",
-            "(defmathop logxor 0 (aref args 0) \"^\")",
-            "(defmathop-func +)",
-            "(defmathop-func -)",
-            "(defmathop-func *)",
-            "(defmathop-func /)",
-            "(defmathop-func logior)",
-            "(defmathop-func logand)",
-            "(defmathop-func logxor)",
-
-            "(defmacro/f % (a b) `(js-code ,(+ \"(\""+
-            "                                  (js-compile a)"+
-            "                                  \"%\""+
-            "                                  (js-compile b)"+
-            "                                  \")\")))",
-
-            // Comparisons
-
-            "(defvar *gensym-count* 0)",
-            "(defun gensym (prefix)"+
-            "  (intern (+ \"G:\" (if prefix (+ prefix \"/\") \"\")"+
-            "             (setq *gensym-count* (+ 1 *gensym-count*)))))",
-
-            "(defmacro defrelop (name jsname)"+
-            "  `(defmacro ,name (&rest args)"+
-            "     (cond"+
-            "      ((!= (length args) 0)"+
-            "       true)"+
-            "      ((!= (length args) 1)"+
-            "       true)"+
-            "      ((!= (length args) 2)"+
-            "       `(js-code ,(+ \"(\" (js-compile (aref args 0)) ,jsname (js-compile (aref args 1)) \")\")))"+
-            "      (true"+
-            "       (let ((x1 (gensym))"+
-            "             (x2 (gensym)))"+
-            "         `(let ((x1 ,(aref args 0))"+
-            "                (x2 ,(aref args 1)))"+
-            "            (and (,',name x1 x2) (,',name x2 ,@(slice args 2))))))))))",
-
-            "(defrelop < \"<\")",
-            "(defrelop <= \"<=\")",
-            "(defrelop = \"==\")",
-            "(defrelop >= \">=\")",
-            "(defrelop > \">\")",
-
-            "(defmacro let* (bindings &rest body)"+
-            "  (if (> (length bindings) 1)"+
-            "     `(let (,(aref bindings 0))"+
-            "        (let* ,(rest bindings) ,@body))"+
-            "     `(let ,bindings ,@body)))",
-
-            "(defmacro setf (place value)"+
-            "  (cond"+
-            "    ((symbolp place)"+
-            "     `(setq ,place ,value))"+
-            "    ((listp place)"+
-            "     (let* ((f (first place))"+
-            "            (sf (intern (+ \"set-\" (symbol-name f)))))"+
-            "       (if (or (symbol-function sf) (symbol-macro sf))"+
-            "           `(,sf ,@(rest place) ,value)"+
-            "           (if (symbol-macro f)"+
-            "               `(setf ,(macroexpand-1 place) ,value)"+
-            "                (error \"Unsupported setf place\")))))"+
-            "    (true (error \"Invalid setf place\"))))",
-
-            "(defmacro incf (place inc)"+
-            "  (if (= inc undefined) (setf inc 1))"+
-            "  (cond"+
-            "    ((symbolp place)"+
-            "     `(setq ,place (+ ,place ,inc)))"+
-            "    ((listp place)"+
-            "     (let* ((f (first place))"+
-            "            (sf (intern (+ \"inc-\" (symbol-name f)))))"+
-            "       (if (or (symbol-function sf) (symbol-macro sf))"+
-            "           `(,sf ,@(rest place) ,inc)"+
-            "           (if (symbol-macro f)"+
-            "               `(incf ,(macroexpand-1 place) ,inc)"+
-            "                (error \"Unsupported decf place\")))))"+
-            "    (true (error \"Invalid incf place\"))))",
-
-            "(defmacro decf (place inc)"+
-            "  (if (= inc undefined) (setf inc 1))"+
-            "  (cond"+
-            "    ((symbolp place)"+
-            "     `(setq ,place (- ,place ,inc)))"+
-            "    ((listp place)"+
-            "     (let* ((f (first place))"+
-            "            (sf (intern (+ \"dec-\" (symbol-name f)))))"+
-            "       (if (or (symbol-function sf) (symbol-macro sf))"+
-            "           `(,sf ,@(rest place) ,inc)"+
-            "           (if (symbol-macro f)"+
-            "               `(decf ,(macroexpand-1 place) ,inc)"+
-            "                (error \"Unsupported decf place\")))))"+
-            "    (true (error \"Invalid decf place\"))))",
-
-            "(defun 1+ (x) (+ x 1))",
-            "(defun 1- (x) (- x 1))",
-
-            "(defmacro inc-aref (array index value)"+
-            "  (let ((aa (gensym))"+
-            "        (ix (gensym)))"+
-            "    `(let ((,aa ,array)"+
-            "           (,ix ,index))"+
-            "       (setf (aref ,aa ,ix) (+ (aref ,aa ,ix) ,value)))))",
-
-            "(defmacro dec-aref (array index value)"+
-            "  (let ((aa (gensym))"+
-            "        (ix (gensym)))"+
-            "    `(let ((,aa ,array)"+
-            "           (,ix ,index))"+
-            "       (setf (aref ,aa ,ix) (- (aref ,aa ,ix) ,value)))))",
-
-            "(defmacro/f substr (x start count)"+
-            "    `(js-code ,(+ \"(\" (js-compile x) \").substr(\""+
-            "                  (js-compile start) \",\""+
-            "                  (js-compile count) \")\")))",
-
-            "(defmacro defstruct (name &rest fields)"+
-            "    `(progn"+
-            "        (defmacro/f ,name ,fields"+
-            "            `(list"+
-            "                ,'',name"+
-            "                ,,@fields))"+
-            "        (defun ,(intern (+ (symbol-name name) #\\?)) (self)"+
-            "            (if (and (listp self) (= ',name (aref self 0))) true false))"+
-            "        (defvar ,(intern (+ \"*\" (symbol-name name) \"-fields*\")) ',fields)"+
-            "        ,@(let ((res (list))"+
-            "                (index 1))"+
-            "            (dolist (f fields)"+
-            "                (let ((fn (intern (+ (symbol-name name) \"-\" (symbol-name f)))))"+
-            "                    (push `(defmacro/f ,fn (self)"+
-            "                            `(aref ,self ,,index)) res)"+
-            "                    (incf index)))"+
-            "            res)))",
-
-            // JS object access/creation
-            "(defmacro . (obj &rest fields)"+
-            "    (let ((res (js-compile obj)))"+
-            "        (dolist (x fields)"+
-            "            (setf res (+ res \".\" (symbol-name x))))"+
-            "        `(js-code ,res)))",
-
-            "(defmacro set-. (obj &rest fields)"+
-            "    (let ((res (js-compile obj)))"+
-            "        (dolist (x (slice fields 0 (1- (length fields))))"+
-            "            (setf res (+ res \".\" (symbol-name x))))"+
-            "        (setf res (+ res \"=\" (js-compile (aref fields (1- (length fields))))))"+
-            "        `(js-code ,res)))",
-
-            // DOM
-            "(setf document (js-code \"document\"))",
-            "(setf window (js-code \"window\"))",
-            "(defun get-element-by-id (id) (funcall (. document getElementById) id))",
-            "(defun create-element (id) (funcall (. document createElement) id))",
-            "(defun append-child (x child) (funcall (. x appendChild) child))",
-            "(defun remove-child (x child) (funcall (. x removeChild) child))",
-           ];
-
-(function(){
-    for (var i=0; i<boot.length; i++)
+    if (src.constructor.name == "String")
     {
-        var x = f$$parse_value(boot[i]);
-        eval(f$$js_compile(x));
+        var i = 0;
+        var src_org = src;
+        src = function(d) {
+            d |= 0;
+            i += d;
+            return src_org[i-d];
+        };
     }
-})();
+    var nforms = 0;
+    try
+    {
+        f$$skip_spaces(src);
+        while (src())
+        {
+            var phase = "parsing";
+            var x = f$$parse_value(src);
+            ++nforms;
+            phase = "compiling";
+            x = f$$js_compile(x);
+            phase = "executing";
+            eval(x);
+            f$$skip_spaces(src);
+        }
+    }
+    catch(err)
+    {
+        throw "Error during boot (form=" + nforms + ", phase = " + phase + "):\n" + err;
+    }
+}
