@@ -50,11 +50,12 @@ function Symbol(name)
 
 function f$$intern(name)
 {
-    name = f$$mangle(name);
-    var x = window["s" + name];
+    var mname = f$$mangle(name);
+    var x = window["s" + mname];
     if (x == undefined)
     {
-        x = window["s" + name] = new Symbol(name);
+        x = window["s" + mname] = new Symbol(mname);
+        if (name[0] == ':') window["d" + mname] = x;
     }
     return x;
 }

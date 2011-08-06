@@ -314,6 +314,96 @@
                     (incf index)))
             res)))
 
+; Sequence utilities
+(defun reduce (f seq)
+  (let ((res (first seq)))
+    (dolist (x (rest seq))
+      (setf res (funcall f res x)))
+    res))
+
+(defun min (seq)
+  (reduce (lambda (x y) (if (< x y) x y)) seq))
+
+(defun max (seq)
+  (reduce (lambda (x y) (if (> x y) x y)) seq))
+
+(defun map (f seq)
+  (let ((res (list)))
+    (dolist (x seq)
+      (push (funcall f x) res))
+    res))
+
+(defun zip (&rest sequences)
+  (let ((n (min (map #'length sequences))))
+    (let ((res (list)))
+      (dotimes (i n)
+        (push (map (lambda (seq) (aref seq i)) sequences) res))
+      res)))
+
+(defun mapn (f &rest sequences)
+  (map (lambda (args) (apply f args))
+       (apply #'zip sequences)))
+
+(defun make-array (n initial-value)
+  (let ((x (list)))
+    (dotimes (i n)
+      (setf (aref x i) initial-value))
+    x))
+
+(defun filter (f seq)
+  (let ((res (list)))
+    (dolist (x seq)
+      (when (funcall f x)
+        (push x res)))
+    res))
+
+(defun range (start stop step)
+  (when (= step undefined)
+    (setf step 1))
+  (when (= stop undefined)
+    (setf stop start)
+    (setf start 0))
+  (let ((res (list)))
+    (do ((x start (incf start step)))
+        ((>= (* step (- x stop)) 0))
+      (push x res))
+    res))
+
+(defun index (x L)
+  (js-code "d$$L.indexOf(d$$x)"))
+
+; Keyword arguments
+
+(defmacro defun (name args &rest body)
+  (let ((i (index '&key args)))
+    (if (= i -1)
+        `(set-symbol-function ',name (lambda ,args ,@body))
+        (let ((rest (gensym "rest"))
+              (nrest (gensym "nrest"))
+              (ix (gensym "ix")))
+          (unless (= -1 (index '&rest args))
+            (error "&key and &rest are incompatible"))
+          `(defun ,name ,(append (slice args 0 i) (list '&rest rest))
+             (let ((,nrest (length ,rest))
+                   ,@(map (lambda (x)
+                            (if (listp x)
+                                x
+                                (list x undefined)))
+                       (slice args (1+ i))))
+               (do ((,ix 0 (+ ,ix 2)))
+                   ((>= ,ix ,nrest)
+                      (when (> ,ix ,nrest)
+                        (error "Invalid number of parameters")))
+                 (cond
+                   ,@(append
+                      (map (lambda (x)
+                             `((= (aref ,rest ,ix)
+                                  ,(intern (+ ":" (symbol-name (if (listp x) (first x) x)))))
+                               (setf ,(if (listp x) (first x) x) (aref ,rest (1+ ,ix)))))
+                           (slice args (1+ i)))
+                      `((true (error "Invalid parameters"))))))
+               ,@body))))))
+
 ; JS object access/creation
 (defmacro . (obj &rest fields)
     (let ((res (js-compile obj)))
