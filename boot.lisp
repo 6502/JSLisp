@@ -9,6 +9,8 @@
         (list 'quote name)
         (append (list 'lambda args) body)))
 
+(defun alert (x) (js-code "alert(d$$x)"))
+
 ; Length function
 (defun length (x) (js-code "d$$x.length"))
 
@@ -104,7 +106,13 @@
 
 ;; Utilities
 (defmacro/f slice (x a b)
-  `(js-code ,(+ "(" (js-compile x) ".slice(" (js-compile a) "," (js-compile b) "))")))
+  (cond
+    ((and (= a undefined) (= b undefined))
+     `(js-code ,(+ "(" (js-compile x) ").slice()")))
+    ((and (= b undefined))
+     `(js-code ,(+ "(" (js-compile x) ").slice(" (js-compile a) ")")))
+    (true
+     `(js-code ,(+ "(" (js-compile x) ".slice(" (js-compile a) "," (js-compile b) "))")))))
 
 (defmacro/f reverse (x)
   `(js-code ,(+ "(" (js-compile x) ".slice().reverse())")))
@@ -125,14 +133,6 @@
 (defmacro/f eighth  (x) `(aref ,x 7))
 (defmacro/f nineth  (x) `(aref ,x 8))
 (defmacro/f tenth   (x) `(aref ,x 9))
-
-(defmacro/f slice (x start end)
-    `(js-code ,(+ (js-compile x)
-                  ".slice("
-                  (js-compile start)
-                  ","
-                  (js-compile end)
-                  ")")))
 
 (defun subseq (x start count)
   (if (= count undefined)
@@ -160,17 +160,20 @@
                         ")"))))))
 
 (defmacro defmathop-func (name)
-    `(defun ,name (&rest args)
-       (cond
-        ((= (length args) 0) (,name))
-        ((= (length args) 1) (,name (aref args 0)))
-        (true
-         (let ((res (aref args 0)))
-           (dolist (x (slice args 1))
-             (setq res (,name res x)))
-           res)))))
+  `(defun ,name (&rest args)
+     (cond
+       ((= (length args) 0) (,name))
+       ((= (length args) 1) (,name (aref args 0)))
+       ((= (length args) 2) (,name (aref args 0)
+                                   (aref args 1)))
+       (true
+        (let ((res (aref args 0)))
+          (dolist (x (slice args 1))
+            (setq res (,name res x)))
+          res)))))
 
 ; Math n-ary operators macros and functions
+
 (defmathop + 0 (aref args 0) "+")
 (defmathop - 0 `(js-code ,(+ "-" (js-compile (aref args 0)))) "-")
 (defmathop * 1 (aref args 0) "*")

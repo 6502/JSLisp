@@ -880,12 +880,12 @@ function f$$load(src)
         while (src())
         {
             var phase = "parsing";
-            var x = f$$parse_value(src);
+            var form = f$$parse_value(src);
             ++nforms;
             phase = "compiling";
-            x = f$$js_compile(x);
+            js = f$$js_compile(form);
             phase = "executing";
-            eval(x);
+            eval(js);
             f$$skip_spaces(src);
         }
     }
