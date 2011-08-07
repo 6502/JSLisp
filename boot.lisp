@@ -372,6 +372,14 @@
 (defun index (x L)
   (js-code "d$$L.indexOf(d$$x)"))
 
+(defmacro/f nsort (x cond)
+  (if (= cond undefined)
+      `(js-code ,(+ "(" (js-compile x) ").sort()"))
+      `(js-code ,(+ "(" (js-compile x) ").sort(" (js-compile cond) ")"))))
+
+(defmacro/f sort (x cond)
+  `(nsort (slice ,x) ,cond))
+
 ; Keyword arguments
 
 (defmacro defun (name args &rest body)
