@@ -33,70 +33,96 @@ function updateClpar(text)
 {
     if (text == undefined)
         text = cmdline.value.substr(0, cmdline.selectionStart);
-    var i = 0, n = text.length;
-    var op = [];
-    while (i < n)
+
+    var i = 0;
+    var indent = [];
+    var skip_spaces = function()
     {
+        while (i < text.length && " \r\n\t".indexOf(text[i]) != -1)
+            ++i;
+    };
+
+    var parse = function()
+    {
+        skip_spaces();
         if (text[i] == '(')
         {
-            op.push(i++);
-        }
-        else if (text[i] == ')')
-        {
+            var def = (text.substr(i, 4) == "(def");
+            indent.push([i, 0, i + (def ? 2 : 4)]);
             ++i;
-            if (op.length)
+            skip_spaces();
+            while (i < text.length && text[i] != ')')
             {
-                if (i == n)
-                {
-                    var s = op.pop();
-                    clpar.innerHTML = "closes " + text.substr(s, Math.min(i, s+20)-s) + ((i>s+20)?" ...":"");
-                    return op.length * 4;
-                }
-                op.pop();
+                if (++indent[indent.length-1][1] == 2 && !def)
+                    indent[indent.length-1][2] = i-1;
+                parse();
+                skip_spaces();
             }
-            else
+            i++;
+            if (i >= text.length)
+                throw indent;
+            indent.pop();
+        }
+        else if (text[i] == '"' || text[i] == '|')
+        {
+            var q = text[i++];
+            while (i < text.length && text[i] != q)
             {
-                clpar.innerHTML = "** NO MATCH **";
-                return 0;
+                if (text[i] == '\\') i++;
+                i++;
             }
+            i++;
+        }
+        else if (text[i] == ';')
+        {
+            while (i < text.length && text[i] != '\n')
+                i++;
+            i++;
         }
         else if (text[i] == '#')
         {
             i++;
-            if (text[i] == '\\')
-            {
-                i += 2;
-            }
-            else if (text[i] == '|')
-            {
-                while (i < n && (text[i] != '|' || text[i+1] != '#'))
-                    ++i;
-                if (i < n)  i += 2;
-            }
-        }
-        else if (text[i] == ';')
-        {
-            while (i < n && text[i] != '\n')
+            if (text[i] == '\\') i+=2;
+            while (i < text.length && "() \t\n\r".indexOf(text[i]) == -1)
                 i++;
-        }
-        else if (text[i] == '|' || text[i] == '"')
-        {
-            var qq = text[i++];
-            while (i < n && text[i] != qq)
-            {
-                if (text[i] == '\\')
-                    ++i;
-                ++i;
-            }
-            if (i < n) i++;
         }
         else
         {
-            i++;
+            while (i < text.length && "() \t\n\r".indexOf(text[i]) == -1)
+                i++;
+            while (indent.length == 0 && i < text.length && text[i] == ')')
+                i++;
         }
+    };
+
+    try
+    {
+        while (i < text.length)
+            parse();
     }
-    clpar.innerHTML = "&nbsp;";
-    return op.length * 4;
+    catch(indent)
+    {
+        if (text[text.length-1] == ")")
+        {
+            var s = indent[indent.length-1][0];
+            var msg = "closes " + text.substr(s, 20) + (s < text.length-20 ? " ..." : "");
+            clpar.innerHTML = htmlesc(msg.replace(/\n/g," ").replace(/ +/g, " "));
+            indent.pop();
+        }
+        else
+        {
+            var f = text.substr(1 + indent[indent.length-1][0]);
+            var sp = f.indexOf(" ");
+            if (sp != -1) f = f.substr(0, sp);
+            clpar.innerHTML = f + " (#" + indent[indent.length-1][1] + ")";
+        }
+        if (indent.length == 0)
+            return 0;
+        var i = indent[indent.length-1][2];
+        return i - text.lastIndexOf("\n", i);
+    }
+    clpar.innerHTML = "";
+    return 0;
 }
 
 setInterval(function(){updateClpar();}, 100);
