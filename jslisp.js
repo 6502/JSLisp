@@ -60,15 +60,10 @@ function f$$intern(name)
     return x;
 }
 
-function f$$listp(x)
-{
-    return x && x.constructor == Array;
-}
-
-function f$$symbolp(x)
-{
-    return x && x.constructor == Symbol;
-}
+function f$$numberp(x) { return (typeof x) == "number" || (x && x.constructor == Number) ? true : false; };
+function f$$stringp(x) { return (x && x.constructor == String) ? true : false; };
+function f$$listp(x)   { return (x && x.constructor == Array)  ? true : false; }
+function f$$symbolp(x) { return (x && x.constructor == Symbol) ? true : false; }
 
 var constants = {'$$null':'null',
                  '$$true':'true',
@@ -824,6 +819,14 @@ function f$$str_value(x)
     {
         return "#CODE";
     }
+    else if (x == undefined)
+    {
+        return "undefined";
+    }
+    else if ((typeof x) == "number" && isNaN(x))
+    {
+        return "NaN";
+    }
     else
     {
         try
@@ -843,8 +846,6 @@ jscompile["$$not"] = function(x)
 }
 
 function f$$error(x) { throw x };
-function f$$numberp(x) { return x && x.constructor == Number; };
-function f$$stringp(x) { return x && x.constructor == String; };
 
 function f$$set_compile_function(name, body)
 {
