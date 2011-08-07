@@ -6,12 +6,7 @@
 (defun test-fibo (n)
     (dotimes (i n)
         (display (+ "(fibo " i ") --> " (fibo i)))))
-(defun clock () (js-code "(new Date).getTime()"))
-(defmacro time (&rest body)
-    (let ((start (gensym)))
-        `(let ((,start (clock)))
-            ,@body
-            (- (clock) ,start))))
+
 (time (test-fibo 30))
 
 (defun fibo (n)
