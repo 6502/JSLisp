@@ -462,6 +462,18 @@
                     (incf index)))
             res)))
 
+; Math functions
+(defmacro/f sin (x) `(js-code ,(+ "Math.sin(" (js-compile x) ")")))
+(defmacro/f cos (x) `(js-code ,(+ "Math.cos(" (js-compile x) ")")))
+(defmacro/f tan (x) `(js-code ,(+ "Math.tan(" (js-compile x) ")")))
+(defmacro/f exp (x) `(js-code ,(+ "Math.exp(" (js-compile x) ")")))
+(defmacro/f log (x) `(js-code ,(+ "Math.log(" (js-compile x) ")")))
+(defmacro/f atan (x) `(js-code ,(+ "Math.atan(" (js-compile x) ")")))
+(defmacro/f floor (x) `(js-code ,(+ "Math.floor(" (js-compile x) ")")))
+(defmacro/f abs (x) `(js-code ,(+ "Math.abs(" (js-compile x) ")")))
+(defmacro/f atan2 (y x) `(js-code ,(+ "Math.atan(" (js-compile y) "," (js-compile x) ")")))
+(setq pi (js-code "Math.PI"))
+
 ; Timing
 (defun clock ()
   (js-code "(new Date).getTime()"))
