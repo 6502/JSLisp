@@ -50,6 +50,11 @@
 (defun push (x v)
   (js-code "d$$v.push(d$$x)"))
 
+(defmacro rest (x)
+  (list 'js-code (+ "(" (js-compile x) ".slice(1))")))
+(defun rest (x)
+  (js-code "(d$$x.slice(1))"))
+
 ; Quasiquoting
 (defun bqconst (x)
   (if (listp x)
@@ -119,9 +124,6 @@
 
 (defmacro/f nreverse (x)
   `(js-code ,(+ "(" (js-compile x) ".reverse())")))
-
-(defmacro rest (x)
-  `(js-code ,(+ "(" (js-compile x) ".slice(1))")))
 
 (defmacro/f first   (x) `(aref ,x 0))
 (defmacro/f second  (x) `(aref ,x 1))
@@ -459,6 +461,16 @@
                             `(aref ,self ,,index)) res)
                     (incf index)))
             res)))
+
+; Timing
+(defun clock ()
+  (js-code "(new Date).getTime()"))
+
+(defmacro time (&rest body)
+   (let ((start (gensym)))
+      `(let ((,start (clock)))
+          ,@body
+          (- (clock) ,start))))
 
 ; JS object access/creation
 (defmacro . (obj &rest fields)

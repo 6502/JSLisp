@@ -42,12 +42,18 @@ function updateClpar(text)
             ++i;
     };
 
+    var defs = ["defun", "defmacro", "defstruct",
+                "let", "let*", "do",
+                "when", "unless",
+                "dotimes", "dolist", "lambda"];
+
     var parse = function()
     {
         skip_spaces();
         if (text[i] == '(')
         {
-            var def = (text.substr(i, 4) == "(def");
+            var fsp = text.indexOf(" ", i);
+            var def = (fsp != -1) && defs.indexOf(text.substr(i+1, fsp-i-1)) != -1;
             indent.push([i, 0, i + (def ? 2 : 4)]);
             ++i;
             skip_spaces();
