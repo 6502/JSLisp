@@ -16,3 +16,4 @@ A tiny lisp compiler in javascript (not an interpreter, code compiles to javascr
   +, -, *, /, =, <, <=, >, >=, not, display, reverse, nreverse
 - push works like javascript push (adding at the end!)
 - defstruct (test function is <name>?, full BOA constructor is (<name> ...))
+- keyword arguments
