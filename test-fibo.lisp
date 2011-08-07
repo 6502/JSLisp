@@ -30,3 +30,7 @@
             (setf (aref cache x)
                   (apply f x))
             cached-result)))))
+
+(setf #'fibo (memoized #'fibo))
+
+(time (test-fibo 30))
