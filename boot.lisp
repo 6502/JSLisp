@@ -220,27 +220,49 @@
 
 (defmacro defrelop-func (name)
   `(defun ,name (&rest args)
-     (if (< 2 (length args))
+     (if (< (length args) 2)
          true
-         (let ((current (first args)))
-           (do ((n (length args))
-                (i 1 (1+ i)))
-               ((>= i n) (= i n))
-             (let ((x (aref args i)))
-               (if (,name current x)
-                   (setf current x)
-                   (setf i n))))))))
+         (do ((current (first args))
+              (n (length args))
+              (i 1 (+ i 1)))
+             ((or (= i n) (not (,name current (aref args i))))
+                (= i n))
+           (setq current (aref args i))))))
 
-(defrelop < "<")
-(defrelop <= "<=")
-(defrelop = "==")
-(defrelop >= ">=")
-(defrelop > ">")
-(defrelop-func < "<")
-(defrelop-func <= "<=")
-(defrelop-func = "==")
-(defrelop-func >= ">=")
-(defrelop-func > ">")
+(defrelop < "<"   )
+(defrelop <= "<=" )
+(defrelop = "=="  )
+(defrelop >= ">=" )
+(defrelop > ">"   )
+(defrelop-func <  )
+(defrelop-func <= )
+(defrelop-func =  )
+(defrelop-func >= )
+(defrelop-func >  )
+
+;; /= operator is different from others as no transitivity can be used
+;; (it means "arguments are all distinct"). Implemented as macro for up
+;; to two parameters, calling a function otherwise.
+(defmacro /= (&rest args)
+  (cond
+    ((< (length args) 2)
+     true)
+    ((= (length args) 2)
+     `(js-code ,(+ "(" (js-compile (first args)) "!=" (js-compile (second args)) ")")))
+    (true
+     `(js-code ,(let ((res "f$$$47$$61$("))
+                  (dotimes (i (length args))
+                    (when i (setq res (+ res ",")))
+                    (setq res (+ res (js-compile (aref args i)))))
+                  (+ res ")"))))))
+
+(defun /= (&rest args)
+  (if (< (length args) 2)
+      true
+      (do ((n (- (length args) 1))
+           (i 0 (+ i 1)))
+          ((or (= i n) (/= -1 (js-code "d$$args.indexOf(d$$args[d$$i],d$$i+1)")))
+             (= i n)))))
 
 (defmacro let* (bindings &rest body)
   (if (> (length bindings) 1)
