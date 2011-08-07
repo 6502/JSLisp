@@ -241,8 +241,7 @@
 (defrelop-func >  )
 
 ;; /= operator is different from others as no transitivity can be used
-;; (it means "arguments are all distinct"). Implemented as macro for up
-;; to two parameters, calling a function otherwise.
+;; (it means "arguments are all distinct")
 (defmacro /= (&rest args)
   (cond
     ((< (length args) 2)
@@ -250,11 +249,14 @@
     ((= (length args) 2)
      `(js-code ,(+ "(" (js-compile (first args)) "!=" (js-compile (second args)) ")")))
     (true
-     `(js-code ,(let ((res "f$$$47$$61$("))
-                  (dotimes (i (length args))
-                    (when i (setq res (+ res ",")))
-                    (setq res (+ res (js-compile (aref args i)))))
-                  (+ res ")"))))))
+     `(js-code ,(let ((res "(function(){")
+                      (prev (list)))
+                  (dolist (x args)
+                    (setq res (+ res "var x$" (length prev) "=" (js-compile x) ";"))
+                    (dolist (p prev)
+                      (setq res (+ res "if(" p "==x$" (length prev) ")return false;")))
+                    (push (+ "x$" (length prev)) prev))
+                  (+ res "return true;})()"))))))
 
 (defun /= (&rest args)
   (if (< (length args) 2)
