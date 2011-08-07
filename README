@@ -15,5 +15,5 @@ A tiny lisp compiler in javascript (not an interpreter, code compiles to javascr
 - length, aref, dolist, dotimes, let, do, let*, labels, if, when, unless,
   +, -, *, /, =, <, <=, >, >=, not, display, reverse, nreverse
 - push works like javascript push (adding at the end!)
-- defstruct (test function is <name>?, full BOA constructor is (<name> ...))
+- simple defstruct (test function is <name>?, constructor is make-<name> with keyword arguments)
 - keyword arguments

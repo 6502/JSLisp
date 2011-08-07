@@ -338,24 +338,6 @@
                   (js-compile start) ","
                   (js-compile count) ")")))
 
-(defmacro defstruct (name &rest fields)
-    `(progn
-        (defmacro/f ,name ,fields
-            `(list
-                ,'',name
-                ,,@fields))
-        (defun ,(intern (+ (symbol-name name) #\?)) (self)
-            (if (and (listp self) (= ',name (aref self 0))) true false))
-        (defvar ,(intern (+ "*" (symbol-name name) "-fields*")) ',fields)
-        ,@(let ((res (list))
-                (index 1))
-            (dolist (f fields)
-                (let ((fn (intern (+ (symbol-name name) "-" (symbol-name f)))))
-                    (push `(defmacro/f ,fn (self)
-                            `(aref ,self ,,index)) res)
-                    (incf index)))
-            res)))
-
 ; Sequence utilities
 (defun reduce (f seq)
   (let ((res (first seq)))
@@ -453,6 +435,25 @@
                            (slice args (1+ i)))
                       `((true (error "Invalid parameters"))))))
                ,@body))))))
+
+; Defstruct
+(defmacro defstruct (name &rest fields)
+    `(progn
+        (defun
+            ,(intern (+ "make-" (symbol-name name)))
+            (&key ,@fields)
+          (list ',name ,@fields))
+        (defun ,(intern (+ (symbol-name name) #\?)) (self)
+            (if (and (listp self) (= ',name (aref self 0))) true false))
+        (defvar ,(intern (+ "*" (symbol-name name) "-fields*")) ',fields)
+        ,@(let ((res (list))
+                (index 1))
+            (dolist (f fields)
+                (let ((fn (intern (+ (symbol-name name) "-" (symbol-name f)))))
+                    (push `(defmacro/f ,fn (self)
+                            `(aref ,self ,,index)) res)
+                    (incf index)))
+            res)))
 
 ; JS object access/creation
 (defmacro . (obj &rest fields)
