@@ -195,6 +195,9 @@
                                   (js-compile b)
                                   ")")))
 
+(defun ash (x count)
+  (js-code "(d$$count<0?(d$$x>>-d$$count):(d$$x<<d$$count))"))
+
 ; Comparisons
 
 (defvar *gensym-count* 0)
@@ -340,10 +343,12 @@
 
 ; Sequence utilities
 (defun reduce (f seq)
-  (let ((res (first seq)))
-    (dolist (x (rest seq))
-      (setf res (funcall f res x)))
-    res))
+  (if (= 0 (length seq))
+      (funcall f)
+      (let ((res (first seq)))
+        (dolist (x (rest seq))
+          (setf res (funcall f res x)))
+        res)))
 
 (defun min (seq)
   (reduce (lambda (x y) (if (< x y) x y)) seq))
