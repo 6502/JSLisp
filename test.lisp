@@ -1,11 +1,15 @@
 (defmacro test (form expected-result)
   (let ((result (gensym)))
     `(let ((,result (str-value ,form)))
+       (incf test-count)
        (if (= ,result ,expected-result)
            ,(+ "Test " (str-value form) " *PASSED*")
            (error (+ ,(+ "TEST FAILED: " (str-value form) " --> " )
                      (str-value ,result)
                      ,(+ " instead of " (str-value expected-result))))))))
+
+(setq test-start (clock))
+(setq test-count 0)
 
 (test (mangle "foo")                      "\"$$foo\"")
 (test (mangle "foo1")                     "\"$$foo$49$\"")
@@ -216,3 +220,5 @@
                       (let ((x 20))
                         x)) res))
         res)                           "(1 1 1 (12 12 12 20))")
+
+(+ test-count " tests passed in " (- (clock) test-start) "ms")
