@@ -1,38 +1,29 @@
 <!DOCTYPE HTML>
 <html>
   <body>
-    <div id="log" style="font-family:Courier New; font-size:18px">
-    </div>
-    <textarea type=text id="cmdline" style="width:100%; background-color:#EEEEEE; border:none; outline:none; padding:0px; margin:0px; font-family:Courier New; font-size:18px"
+    <div style="position:absolute; left:0px; top:0px; right:0px; bottom:28px; padding:8px">
+      <textarea type=text id="repl" style="width:100%; height:100%; background-color:#EEEEEE; border:none; outline:none; padding:0px; margin:0px; font-family:Courier New; font-size:18px"
            onkeydown = "keyDown(event)"
            onkeypress = "keyPress(event)"></textarea>
-    <div id="clpar" style="font-family:Courier New; font-size:18px; color:#C0C0C0"></div>
-    <div id="lastscroll">&nbsp;</div>
+    </div>
+    <div id="clpar" style="position:absolute; background-color:#EEEEEE; bottom:8px; left:8px; right:8px; height:20px; font-family:Courier New; font-size:18px; color:#808080"></div>
     <script src="jslisp.js">
     </script>
     <script>
 
-var cmdline = document.getElementById("cmdline");
-var log = document.getElementById("log");
+var prompt = "Ready.";
+var repl = document.getElementById("repl");
 var clpar = document.getElementById("clpar");
-var lastscroll = document.getElementById("lastscroll");
-var cmdhist = [];
-var cmdptr = 0;
-var cmdfresh = true;
-
-function fixCmdline()
-{
-    var nrows = 1 + cmdline.value.replace(/[^\n]/g,"").length;
-    if (cmdline.rows != nrows)
-        cmdline.rows = nrows;
-}
-
-setInterval(fixCmdline, 10);
+repl.focus();
 
 function updateClpar(text)
 {
     if (text == undefined)
-        text = cmdline.value.substr(0, cmdline.selectionStart);
+    {
+        text = repl.value.substr(0, repl.selectionStart);
+        var li = text.lastIndexOf("\n"+prompt+"\n");
+        if (li != -1) text = text.substr(li+2+prompt.length);
+    }
 
     var i = 0;
     var indent = [];
@@ -144,40 +135,32 @@ function htmlesc(x)
             .replace(/\n/g, "<br/>"));
 }
 
-function logout(color, x)
+function f$$display(x)
 {
-    var row = document.createElement("div");
-    row.style.color = color;
-    if (color == "#000000")
-    {
-        row.style.padding = "4px";
-        row.style.border = "1px solid #C0C0C0";
-        row.style.backgroundColor = "#EEEEEE";
-        row.style.margin = "2px";
-    }
-    row.innerHTML = htmlesc(x);
-    log.appendChild(row);
-}
-
-function f$$display(x) { logout("#008000", x+''); return x; };
+    repl.value += x + "\n";
+    var i = repl.value.length;
+    repl.setSelectionRange(i, i);
+    repl.scrollTop = repl.scrollHeight;
+    repl.focus();
+    return x;
+};
 
 function process()
 {
-    var base = cmdline.value.replace(/[\r\n \t]*$/,"");
-    cmdhist.push(base);
-    cmdptr = cmdhist.length;
-    cmdfresh = true;
-    cmdline.value = "";
-    logout("#000000", base);
+    var base = repl.value;
+    var li = base.lastIndexOf("\n"+prompt+"\n");
+    base = base.substr(li == -1 ? 0 : li+2+prompt.length).replace(/\t\n *$/,"");
     try
     {
         var xx = 0;
         var src = function(n) { var c = base[xx]; xx+=(n|0); return c; };
+        f$$skip_spaces(src);
         while (xx < base.length)
         {
             var pp = f$$parse_value(src);
             var result = eval(f$$js_compile(pp));
-            logout("#0000FF", "--> " + f$$str_value(result));
+            f$$display("--> " + f$$str_value(result));
+            f$$skip_spaces(src);
         }
     }
     catch (err)
@@ -189,9 +172,9 @@ function process()
                                              "m" : "macro ",
                                              "f" : "function "}[s[0]] + f$$demangle(s.substr(1));
                                  });
-        logout("#FF0000", "ERROR: " + err);
+        f$$display("**ERROR**: " + err);
     }
-    lastscroll.scrollIntoView(false);
+    f$$display(prompt);
 }
 
 function keyDown(e)
@@ -199,9 +182,9 @@ function keyDown(e)
     if (e.which == 9)
     {
         e.preventDefault();
-        var text = cmdline.value;
-        var ss = cmdline.selectionStart;
-        var se = cmdline.selectionEnd;
+        var text = repl.value;
+        var ss = repl.selectionStart;
+        var se = repl.selectionEnd;
         var lines = text.split("\n");
         var before = text.substr(0, ss).replace(/[^\n]/g,"").length;
         var after = 1 + text.substr(0, se).replace(/[^\n]/g,"").length;
@@ -224,29 +207,9 @@ function keyDown(e)
         nt += lines.slice(after).join("\n");
         while (nt[nt.length-1] == "\n")
             nt = nt.substr(0, nt.length-1);
-        cmdline.value = nt;
-        cmdline.setSelectionRange(ne, ne);
-        cmdline.focus();
-    }
-    else if (cmdfresh && (e.which == 38 || e.which == 40))
-    {
-        e.preventDefault();
-        if (e.which == 38)
-        {
-            if (--cmdptr < 0) cmdptr = 0;
-        }
-        else if (e.which == 40)
-        {
-            if (++cmdptr > cmdhist.length) cmdptr = cmdhist.length;
-        }
-        cmdline.value = cmdhist[cmdptr] || "";
-        cmdline.setSelectionRange(cmdline.value.length, cmdline.value.length);
-        cmdline.focus();
-        lastscroll.scrollIntoView(false);
-    }
-    else
-    {
-        cmdfresh = false;
+        repl.value = nt;
+        repl.setSelectionRange(ne, ne);
+        repl.focus();
     }
 }
 
@@ -261,20 +224,18 @@ function keyPress(e)
     {
         e.preventDefault();
         var level = updateClpar();
-        var text = cmdline.value;
-        var i = cmdline.selectionStart;
+        var text = repl.value;
+        var i = repl.selectionStart;
         var sp = "";
         for (var j=0; j<level; j++)
             sp += " ";
-        cmdline.value = text.substr(0, i) + "\n" + sp + text.substr(i);
-        cmdline.setSelectionRange(i + 1 + sp.length, i + 1 + sp.length);
-        if (sp == "" && cmdline.selectionStart == cmdline.value.length)
+        repl.value = text.substr(0, i) + "\n" + sp + text.substr(i);
+        repl.setSelectionRange(i + 1 + sp.length, i + 1 + sp.length);
+        if (sp == "" && repl.selectionStart == repl.value.length)
             process();
+        repl.scrollTop = repl.scrollHeight;
     }
-    lastscroll.scrollIntoView(false);
 }
-
-document.getElementById("cmdline").focus();
 
 function f$$ajax(url, cback, error)
 {
@@ -317,10 +278,12 @@ f$$ajax("boot.lisp",
             {
                 f$$display("Bootstrap error: " + err);
             }
+            f$$display(prompt);
         },
         function(err)
         {
             f$$display("Bootstrap ajax error: status=" + err)
+            f$$display(prompt);
         });
     </script>
   </body>
