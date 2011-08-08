@@ -433,7 +433,7 @@ function f$$macroexpand_$49$(x)
 jscompile["$$append"] = function(x)
 {
     if (x.length == 1) return "[]";
-    if (x.length == 2) return f$$js_compile(x[1]) + ".slice()";
+    if (x.length == 2) return f$$js_compile(x[1]);
     var res = f$$js_compile(x[1]);
     for (var i=2; i<x.length; i++)
         res += ".concat(" + f$$js_compile(x[i]) + ")";
