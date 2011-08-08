@@ -296,10 +296,22 @@ function f$$funcall()
 
 jscompile["$$labels"] = function(x)
 {
+    // First hide all macros and lexical macros named as defined functions
+    var lexm = [];
+    var hmacros = [];
+    for (var i=0; i<x[1].length; i++)
+    {
+        var v = x[1][i][0].name;
+        lexm.push([v, lexmacros[v]]);
+        hmacros.push([v, window["m"+v]]);
+        lexmacros[v] = window["m"+v] = undefined;
+    }
+
     var res = "((function(){";
     for (var i=0; i<x[1].length; i++)
     {
-        res += "var f" + x[1][i][0].name + "=function(";
+        var v = x[1][i][0].name;
+        res += "var f" + v + "=function(";
         var args = x[1][i][1];
         for (var j=0; j<args.length; j++)
         {
@@ -313,6 +325,12 @@ jscompile["$$labels"] = function(x)
     res += "return ";
     res += implprogn(x.slice(2));
     res += ";})())";
+
+    // Restored hidden macros
+    for (var i=0; i<lexm.length; i++)
+        lexmacros[lexm[i][0]] = lexm[i][1];
+    for (var i=0; i<hmacros.length; i++)
+        window["m"+hmacros[i][0]] = hmacros[i][1];
     return res;
 }
 
