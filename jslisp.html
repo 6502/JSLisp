@@ -16,6 +16,20 @@ var repl = document.getElementById("repl");
 var clpar = document.getElementById("clpar");
 repl.focus();
 
+var indent_rules = {
+    "defun": [2],
+    "defmacro": [2],
+    "defstruct": [2],
+    "let": [2],
+    "let*": [2],
+    "do": [3,3,1],
+    "dotimes": [2],
+    "dolist": [2],
+    "lambda": [2],
+    "labels": [2],
+    "": [0],
+};
+
 function updateClpar(text)
 {
     if (text == undefined)
@@ -33,25 +47,33 @@ function updateClpar(text)
             ++i;
     };
 
-    var defs = ["defun", "defmacro", "defstruct",
-                "let", "let*", "do",
-                "when", "unless",
-                "dotimes", "dolist", "lambda"];
-
     var parse = function()
     {
         skip_spaces();
         if (text[i] == '(')
         {
-            var fsp = text.indexOf(" ", i);
-            var def = (fsp != -1) && defs.indexOf(text.substr(i+1, fsp-i-1)) != -1;
-            indent.push([i, 0, i + (def ? 2 : 4)]);
+            var fsp = Math.min((text+" ").indexOf(" ", i+1),
+                               (text+"(").indexOf("(", i+1));
+            if (fsp == -1) fsp = i+1;
+            var rules = indent_rules[text.substr(i+1, fsp-i-1)] || null;
+            var ii = [i, 0, i+2]; // Indent info: start, arg index, indent
+            indent.push(ii);
             ++i;
             skip_spaces();
             while (i < text.length && text[i] != ')')
             {
-                if (++indent[indent.length-1][1] == 2 && !def)
-                    indent[indent.length-1][2] = i-1;
+                ++ii[1];
+                if (rules)
+                {
+                    // Indentation as specified by the rule
+                    ii[2] = ii[0] + rules[Math.min(ii[1]-1, rules.length-1)];
+                }
+                else if (ii[1] == 2)
+                {
+                    // No special rules... align on start of first parameters
+                    ii[2] = i-1;
+                }
+
                 parse();
                 skip_spaces();
             }
