@@ -1,10 +1,12 @@
 <!DOCTYPE HTML>
 <html>
   <body>
-    <textarea type=text id="repl" style="position:absolute; left:8px; top:8px; right:8px; bottom:8px; background-color:#EEEEEE; border:none; outline:none; padding:0px; margin:0px; font-family:Courier New; font-size:18px"
-           onkeydown = "keyDown(event)"
-           onkeypress = "keyPress(event)"></textarea>
-    <div id="clpar" style="position:absolute; width:22px; height:22px; border:solid 1px #FF0000"></div>
+    <div style="position:absolute; left:0px; top:0px; right:0px; bottom:0px; padding:4px; background-color:#EEEEEE">
+      <textarea type=text id="repl" style="width:100%; height:100%; background-color:#EEEEEE; border:none; outline:none; padding:0px; margin:0px; font-family:Courier New; font-size:18px"
+        onkeydown = "keyDown(event)"
+        onkeypress = "keyPress(event)"></textarea>
+      <div id="clpar" style="position:absolute; width:22px; height:22px; border:solid 1px #FF0000"></div>
+    </div>
     <script src="jslisp.js">
     </script>
     <script>
