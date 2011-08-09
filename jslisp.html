@@ -1,15 +1,29 @@
 <!DOCTYPE HTML>
 <html>
   <body>
-    <div style="position:absolute; left:0px; top:0px; right:0px; bottom:28px; padding:8px">
-      <textarea type=text id="repl" style="width:100%; height:100%; background-color:#EEEEEE; border:none; outline:none; padding:0px; margin:0px; font-family:Courier New; font-size:18px"
+    <textarea type=text id="repl" style="position:absolute; left:8px; top:8px; right:8px; bottom:8px; background-color:#EEEEEE; border:none; outline:none; padding:0px; margin:0px; font-family:Courier New; font-size:18px"
            onkeydown = "keyDown(event)"
            onkeypress = "keyPress(event)"></textarea>
-    </div>
-    <div id="clpar" style="position:absolute; background-color:#EEEEEE; bottom:8px; left:8px; right:8px; height:20px; font-family:Courier New; font-size:18px; color:#808080"></div>
+    <div id="clpar" style="position:absolute; width:22px; height:22px; border:solid 1px #FF0000"></div>
     <script src="jslisp.js">
     </script>
     <script>
+
+var char_width, char_height;
+
+(function(){
+    var nta = document.createElement("textarea");
+    nta.style.fontFamily = "Courier New";
+    nta.style.fontSize = "18px";
+    document.body.appendChild(nta);
+    nta.rows = 10; nta.cols = 10;
+    var w1 = nta.offsetWidth, h1 = nta.offsetHeight;
+    nta.rows = 20; nta.cols = 20;
+    var w2 = nta.offsetWidth, h2 = nta.offsetHeight;
+    document.body.removeChild(nta);
+    char_width = (w2 - w1) / 10;
+    char_height = (h2 - h1) / 10;
+})();
 
 var prompt = "Ready.";
 var repl = document.getElementById("repl");
@@ -17,29 +31,31 @@ var clpar = document.getElementById("clpar");
 repl.focus();
 
 var indent_rules = {
-    "defun": [2],
-    "defmacro": [2],
-    "defstruct": [2],
-    "let": [2],
-    "let*": [2],
+    "defun": [1],
+    "defmacro": [1],
+    "defstruct": [1],
+    "let": [1],
+    "let*": [1],
     "do": [3,3,1],
-    "dotimes": [2],
-    "dolist": [2],
-    "lambda": [2],
-    "labels": [2],
+    "dotimes": [1],
+    "dolist": [1],
+    "lambda": [1],
+    "labels": [1],
+    "when": [1],
+    "unless": [1],
     "": [0],
 };
 
 function updateClpar(text)
 {
+    var i = 0;
     if (text == undefined)
     {
         text = repl.value.substr(0, repl.selectionStart);
         var li = text.lastIndexOf("\n"+prompt+"\n");
-        if (li != -1) text = text.substr(li+2+prompt.length);
+        if (li != -1) i = li + 2 + prompt.length;
     }
 
-    var i = 0;
     var indent = [];
     var skip_spaces = function()
     {
@@ -124,23 +140,26 @@ function updateClpar(text)
         if (text[text.length-1] == ")")
         {
             var s = indent[indent.length-1][0];
-            var msg = "closes " + text.substr(s, 20) + (s < text.length-20 ? " ..." : "");
-            clpar.innerHTML = htmlesc(msg.replace(/\n/g," ").replace(/ +/g, " "));
+            var before = text.substr(0, s);
+            var y = char_height * (before.replace(/[^\n]/g,"").length);
+            var x = char_width * (before.length - ("\n" + before).lastIndexOf("\n"));
+            clpar.style.left = (repl.offsetLeft + x - repl.scrollLeft - 1) + "px";
+            clpar.style.top = (repl.offsetTop + y - repl.scrollTop - 1) + "px";
+            clpar.style.width = char_width + "px";
+            clpar.style.height = char_height + "px";
+            clpar.style.display = "block";
             indent.pop();
         }
         else
         {
-            var f = text.substr(1 + indent[indent.length-1][0]);
-            var sp = f.indexOf(" ");
-            if (sp != -1) f = f.substr(0, sp);
-            clpar.innerHTML = f + " (#" + indent[indent.length-1][1] + ")";
+            clpar.style.display = "none";
         }
         if (indent.length == 0)
             return 0;
         var i = indent[indent.length-1][2];
         return i - text.lastIndexOf("\n", i);
     }
-    clpar.innerHTML = "";
+    clpar.style.display = "none";
     return 0;
 }
 
