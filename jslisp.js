@@ -712,8 +712,49 @@ var readers = { "|": function(src)
                     var res = "";
                     while (src() != undefined && src() != '"')
                     {
-                        if (src() == '\\') src(1);
-                        res += src(1);
+                        if (src() == '\\')
+                        {
+                            src(1);
+                            var c = src(1);
+                            if (c == "n") res += "\n";
+                            else if (c == "b") res += "\b";
+                            else if (c == "t") res += "\t";
+                            else if (c == "n") res += "\n";
+                            else if (c == "v") res += "\v";
+                            else if (c == "f") res += "\f";
+                            else if (c == "r") res += "\r";
+                            else if (c == "0") {
+                                var oct = 0;
+                                while (src() >= "0" && src <= "7")
+                                    oct = oct*8 + (src(1).charCodeAt(0) - 48);
+                                res += String.fromCharCode(oct);
+                            }
+                            else if (c == "x") {
+                                var hx1 = "0123456789ABCDEF".indexOf(src(1).toUpperCase());
+                                var hx2 = "0123456789ABCDEF".indexOf(src(1).toUpperCase());
+                                if (hx1 < 0 || hx2 < 0) throw "Invalid hex char escape";
+                                res += String.fromCharCode(hx1*16 + hx2);
+                            }
+                            else if (c == "u")
+                            {
+                                hx = 0;
+                                for (var i=0; i<4; i++)
+                                {
+                                    var d = "0123456789ABCDEF".indexOf(src(1).toUpperCase());
+                                    if (d < 0) throw "Invalid unicode char escape";
+                                    hx = hx*16 + d;
+                                }
+                                res += String.fromCharCode(hx);
+                            }
+                            else
+                            {
+                                res += c;
+                            }
+                        }
+                        else
+                        {
+                            res += src(1);
+                        }
                     }
                     if (src(1) != '"') throw "'\"' expected";
                     return res;
