@@ -221,4 +221,4 @@
                         x)) res))
         res)                           "(1 1 1 (12 12 12 20))")
 
-(+ test-count " tests passed in " (- (clock) test-start) "ms")
+(display (+ test-count " tests passed in " (- (clock) test-start) "ms"))

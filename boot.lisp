@@ -403,6 +403,9 @@
 (defun index (x L)
   (js-code "d$$L.indexOf(d$$x)"))
 
+(defun last-index (x L)
+  (js-code "d$$L.lastIndexOf(d$$x)"))
+
 (defmacro/f nsort (x cond)
   (if (= cond undefined)
       `(js-code ,(+ "(" (js-compile x) ").sort()"))
