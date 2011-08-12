@@ -87,7 +87,7 @@ function f$$intern(name)
 }
 
 function f$$numberp(x) { return (typeof x) == "number" || (x && x.constructor == Number) ? true : false; };
-function f$$stringp(x) { return (x && x.constructor == String) ? true : false; };
+function f$$stringp(x) { return ((typeof x) == "string"); }
 function f$$listp(x)   { return (x && x.constructor == Array)  ? true : false; }
 function f$$symbolp(x) { return (x && x.constructor == Symbol) ? true : false; }
 
@@ -929,7 +929,7 @@ function f$$str_value(x)
     {
         return "#CODE";
     }
-    else if (x == undefined)
+    else if ((typeof x) == "undefined")
     {
         return "undefined";
     }

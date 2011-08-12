@@ -214,7 +214,7 @@
 (test (list (when (< 1 2) 1)
             (when (> 1 2) 2)
             (unless (< 1 2) 1)
-            (unless (> 1 2) 2))         "(1 undefined undefined 2)")
+            (unless (> 1 2) 2))         "(1 null null 2)")
 
 (defvar *x* 0)
 (test (labels
@@ -247,5 +247,23 @@
                       (let ((x 20))
                         x)) res))
         res)                           "(1 1 1 (12 12 12 20))")
+
+(test (let ((pairs (list (list 'listp (list))
+                         (list 'zerop 0)
+                         (list 'NaNp NaN)
+                         (list 'undefinedp undefined)
+                         (list 'nullp null)
+                         (list 'stringp "")
+                         (list 'boolp false)
+                         (list 'objectp (js-object))))
+            (errors 0))
+        (dotimes (i (length pairs))
+          (dotimes (j (length pairs))
+            (let ((tester (first (aref pairs i)))
+                  (value (second (aref pairs j))))
+              (if (/= (funcall (symbol-function tester) value)
+                      (= i j))
+                  (incf errors)))))
+        errors)                       "0")
 
 (display (+ test-count " tests passed in " (- (clock) test-start) "ms"))
