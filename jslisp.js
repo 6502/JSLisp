@@ -672,14 +672,14 @@ function f$$js_compile(x)
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-var spaces = " \t\r\n";
-var stops = spaces + "()";
+var d$$$42$spaces$42$ = " \t\r\n";
+var d$$$42$stopchars$42$ = "()";
 
 function f$$skip_spaces(src)
 {
     while(true)
     {
-        while (spaces.indexOf(src()) != -1)
+        while (d$$$42$spaces$42$.indexOf(src()) != -1)
             src(1);
         if (src() == ';')
         {
@@ -693,13 +693,20 @@ function f$$skip_spaces(src)
     }
 }
 
-function parseSpaced(src)
+function f$$parse_spaced(src)
 {
     f$$skip_spaces(src);
     return f$$f$$parse_value(src);
 }
 
-function parseNumberOrSymbol(src)
+function f$$parse_stopping(c)
+{
+    return (c == undefined ||
+            d$$$42$spaces$42$.indexOf(c) != -1 ||
+            d$$$42$stopchars$42$.indexOf(c) !=-1);
+}
+
+function f$$parse_number_or_symbol(src)
 {
     var res = "";
     if (src() == "-")
@@ -712,11 +719,39 @@ function parseNumberOrSymbol(src)
         while (src() >= "0" && src() <= "9")
             res += src(1);
     }
-    if (res != "-" && (src() == undefined || stops.indexOf(src()) != -1))
+    if (res != "-" && f$$parse_stopping(src()))
         return parseFloat(res);
-    while (src() != undefined && stops.indexOf(src()) == -1)
+    while (!f$$parse_stopping(src()))
         res += src(1);
     return f$$intern(res);
+}
+
+function f$$parse_delimited_list(src, stop)
+{
+    var res = [];
+    f$$skip_spaces(src);
+    var oldstops = d$$$42$stopchars$42$;
+    d$$$42$stopchars$42$ += stop;
+    while (src() != undefined && src() != stop)
+    {
+        res.push(f$$parse_value(src));
+        f$$skip_spaces(src);
+    }
+    d$$$42$stopchars$42$ = oldstops;
+    if (src() != stop)
+        throw JSON.stringify(stop) + " expected";
+    src(1);
+    return res;
+}
+
+function f$$reader_function(s)
+{
+    var i = 0;
+    return function(n) {
+        var c = s[i];
+        i+=(n|0);
+        return c;
+    };
 }
 
 var readers = { "|": function(src)
@@ -830,36 +865,30 @@ var readers = { "|": function(src)
                 "(": function(src)
                 {
                     src(1);
-                    var res = [];
-                    while (src() != undefined && src() != ")")
-                    {
-                        res.push(f$$parse_value(src)); f$$skip_spaces(src);
-                    }
-                    if (src(1) != ")") throw "')' expected";
-                    return res;
+                    return f$$parse_delimited_list(src, ")");
                 },
 
-                "0": parseNumberOrSymbol,
-                "1": parseNumberOrSymbol,
-                "2": parseNumberOrSymbol,
-                "3": parseNumberOrSymbol,
-                "4": parseNumberOrSymbol,
-                "5": parseNumberOrSymbol,
-                "6": parseNumberOrSymbol,
-                "7": parseNumberOrSymbol,
-                "8": parseNumberOrSymbol,
-                "9": parseNumberOrSymbol,
-                "-": parseNumberOrSymbol,
+                "0": f$$parse_number_or_symbol,
+                "1": f$$parse_number_or_symbol,
+                "2": f$$parse_number_or_symbol,
+                "3": f$$parse_number_or_symbol,
+                "4": f$$parse_number_or_symbol,
+                "5": f$$parse_number_or_symbol,
+                "6": f$$parse_number_or_symbol,
+                "7": f$$parse_number_or_symbol,
+                "8": f$$parse_number_or_symbol,
+                "9": f$$parse_number_or_symbol,
+                "-": f$$parse_number_or_symbol,
 
-                " ": parseSpaced,
-                "\t": parseSpaced,
-                "\n": parseSpaced,
-                "\r": parseSpaced,
+                " ": f$$parse_spaced,
+                "\t": f$$parse_spaced,
+                "\n": f$$parse_spaced,
+                "\r": f$$parse_spaced,
 
                 "default": function(src)
                 {
                     var res = "";
-                    while (src() != undefined && stops.indexOf(src()) == -1)
+                    while (!f$$parse_stopping(src()))
                     {
                         if (src() == "\\") src(1);
                         res += src(1);
@@ -873,11 +902,7 @@ var readers = { "|": function(src)
 function f$$parse_value(src)
 {
     if (src.constructor == String)
-    {
-        var s = src;
-        var i = 0;
-        src = function(n) { var c = s[i]; i+=(n|0); return c; };
-    }
+        src = f$$reader_function(src);
     f$$skip_spaces(src);
     if (src() == undefined)
         throw "Value expected";

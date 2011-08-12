@@ -226,13 +226,13 @@ function process()
     base = base.substr(li == -1 ? 0 : li+2+prompt.length).replace(/\t\n *$/,"");
     try
     {
-        var xx = 0;
-        var src = function(n) { var c = base[xx]; xx+=(n|0); return c; };
+        var src = f$$reader_function(base);
         f$$skip_spaces(src);
-        while (xx < base.length)
+        while (src() != undefined)
         {
-            var pp = f$$parse_value(src);
-            var result = eval(f$$js_compile(pp));
+            var parsed = f$$parse_value(src);
+            var compiled = f$$js_compile(parsed);
+            var result = eval(compiled);
             f$$display("--> " + f$$str_value(result));
             f$$skip_spaces(src);
         }
