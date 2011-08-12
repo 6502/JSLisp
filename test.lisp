@@ -261,8 +261,8 @@
           (dotimes (j (length pairs))
             (let ((tester (first (aref pairs i)))
                   (value (second (aref pairs j))))
-              (if (/= (funcall (symbol-function tester) value)
-                      (= i j))
+              (if (/= (str-value (funcall (symbol-function tester) value))
+                      (str-value (= i j)))
                   (incf errors)))))
         errors)                       "0")
 
