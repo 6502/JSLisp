@@ -371,10 +371,18 @@
            (,ix ,index))
        (setf (aref ,aa ,ix) (- (aref ,aa ,ix) ,value)))))
 
-(defmacro/f substr (x start count)
-    `(js-code ,(+ "(" (js-compile x) ").substr("
-                  (js-compile start) ","
-                  (js-compile count) ")")))
+(defun substr (x start count)
+  (if (undefinedp count)
+      (js-code "(d$$x.substr(d$$start))")
+      (js-code "(d$$x.substr(d$$start,d$$count))")))
+
+(defmacro substr (x start count)
+  (if (undefinedp count)
+      `(js-code ,(+ "(" (js-compile x)
+                    ".substr(" (js-compile start) "))"))
+      `(js-code ,(+ "(" (js-compile x)
+                    ".substr(" (js-compile start)
+                    "," (js-compile count) "))"))))
 
 ; Sequence utilities
 (defun reduce (f seq)
