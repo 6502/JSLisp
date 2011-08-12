@@ -489,22 +489,27 @@
 
 ; Defstruct
 (defmacro defstruct (name &rest fields)
+  (let ((fnames (map (lambda (f) (if (listp f)
+                                     (first f)
+                                     f))
+                     fields)))
     `(progn
-        (defun
-            ,(intern (+ "make-" (symbol-name name)))
-            (&key ,@fields)
-          (list ',name ,@fields))
-        (defun ,(intern (+ (symbol-name name) #\?)) (self)
-            (if (and (listp self) (= ',name (aref self 0))) true false))
-        (defvar ,(intern (+ "*" (symbol-name name) "-fields*")) ',fields)
-        ,@(let ((res (list))
-                (index 1))
-            (dolist (f fields)
-                (let ((fn (intern (+ (symbol-name name) "-" (symbol-name f)))))
-                    (push `(defmacro/f ,fn (self)
-                            `(aref ,self ,,index)) res)
-                    (incf index)))
-            res)))
+       (defun
+           ,(intern (+ "make-" (symbol-name name)))
+           (&key ,@fields)
+         (list ',name ,@fnames))
+       (defun ,(intern (+ (symbol-name name) #\?)) (self)
+         (if (and (listp self) (= ',name (aref self 0))) true false))
+       (defvar ,(intern (+ "*" (symbol-name name) "-fields*"))
+         ',fnames)
+       ,@(let ((res (list))
+               (index 1))
+           (dolist (f fnames)
+             (let ((fn (intern (+ (symbol-name name) "-" (symbol-name f)))))
+               (push `(defmacro/f ,fn (self)
+                        `(aref ,self ,,index)) res)
+               (incf index)))
+           res))))
 
 ; Math functions
 (defmacro/f sin (x) `(js-code ,(+ "Math.sin(" (js-compile x) ")")))
