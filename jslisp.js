@@ -959,7 +959,12 @@ function f$$error(x) { throw x };
 
 function f$$set_compile_function(name, body)
 {
-    jscompile[f$$mangle(name)] = body;
+    jscompile[name.name] = body;
+}
+
+function f$$compile_function(name)
+{
+    return jscompile[name.name];
 }
 
 function f$$reader(ch)
