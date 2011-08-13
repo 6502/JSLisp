@@ -147,6 +147,12 @@
          (square 12))
        (square 12))                       "(479001600 144)")
 
+(defun xfoo () 1)
+(test (labels ((xfoo () 2))
+        (list (funcall #'xfoo)
+              (funcall (symbol-function
+                        'xfoo))))         "(2 1)")
+
 (test (let ((f 1))
         (dotimes (i 10)
           (setf f (* f (1+ i))))
