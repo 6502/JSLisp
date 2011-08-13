@@ -32,7 +32,7 @@
 (defmacro set-handler (element event &rest body)
   `(setf (. ,element ,event) (lambda (event) ,@body)))
 
-(defun dragging (div x0 y0)
+(defun tracking (f)
   (let ((cover (create-element "div")))
     (set-style cover
                position "absolute"
@@ -43,19 +43,23 @@
                opacity 0.001
                backgroundColor "#000000")
     (set-handler cover onmousemove
-                 (let* ((x (. event clientX))
-                        (y (. event clientY))
-                        (dx (- x x0))
-                        (dy (- y y0)))
-                   (funcall (. event preventDefault))
-                   (set-style div
-                              px/left (+ (. div offsetLeft) dx)
-                              px/top (+ (. div offsetTop) dy))
-                   (setf x0 x)
-                   (setf y0 y)))
+                 (funcall (. event preventDefault))
+                 (funcall f
+                          (. event clientX)
+                          (. event clientY)))
     (set-handler cover onmouseup
                  (hide cover))
     (show cover)))
+
+(defun dragging (div x0 y0)
+  (tracking (lambda (x y)
+              (let  ((dx (- x x0))
+                     (dy (- y y0)))
+                (set-style div
+                           px/left (+ (. div offsetLeft) dx)
+                           px/top (+ (. div offsetTop) dy))
+                (setf x0 x)
+                (setf y0 y)))))
 
 (defstruct layout-node
   (class 1) (weight 100)   ;; Weighted distribution when in the same class
@@ -175,6 +179,7 @@
                px/height h
                backgroundColor "#FFFFFF"
                border "solid 1px #000000")
+
     (unless (undefinedp title)
       (let ((title-bar (create-element "div")))
         (set-style title-bar
@@ -189,7 +194,8 @@
                    fontFamily "Arial"
                    px/fontSize 16
                    fontWeight "bold"
-                   textAlign "center")
+                   textAlign "center"
+                   cursor "move")
         (setf (. title-bar innerHTML) title)
         (append-child window title-bar)
         (set-handler title-bar onmousedown
@@ -199,9 +205,66 @@
                      (dragging window
                                (. event clientX)
                                (. event clientY)))))
-    (set-handler window onmousedown
-                 (hide window)
-                 (display (+ "Closed window " (str-value title))))
+
+    (let ((resizer (create-element "canvas")))
+      (set-style resizer
+                 position "absolute"
+                 px/right 0
+                 px/bottom 0
+                 px/width 12
+                 px/height 12
+                 cursor "se-resize")
+      (setf (. resizer width) 12)
+      (setf (. resizer height) 12)
+      (let ((ctx (funcall (. resizer getContext) "2d")))
+        (setf (. ctx strokeStyle) "#000000")
+        (setf (. ctx lineWidth) 1.0)
+        (dolist (i '(0 4 8 12))
+          (funcall (. ctx moveTo) 12 i)
+          (funcall (. ctx lineTo) i 12))
+        (funcall (. ctx stroke)))
+      (append-child window resizer)
+      (set-handler resizer onmousedown
+                   (funcall (. event preventDefault))
+                   (funcall (. event stopPropagation))
+                   (append-child (. document body) window)
+                   (let ((x0 (. event clientX))
+                         (y0 (. event clientY)))
+                     (tracking (lambda (x y)
+                                 (let ((dx (- x x0))
+                                       (dy (- y y0)))
+                                   (set-style window
+                                              px/width (+ (. window clientWidth) dx)
+                                              px/height (+ (. window clientHeight) dy))
+                                   (setf x0 x)
+                                   (setf y0 y)))))))
+
+    (let ((closer (create-element "canvas")))
+      (set-style closer
+                 position "absolute"
+                 px/right 2
+                 px/top 2
+                 px/width 16
+                 px/height 16
+                 cursor "default")
+      (setf (. closer width) 16)
+      (setf (. closer height) 16)
+      (let ((ctx (funcall (. closer getContext) "2d")))
+        (setf (. ctx strokeStyle) "#000000")
+        (setf (. ctx lineWidth) 1.0)
+        (funcall (. ctx strokeRect) 0 0 16 16)
+        (setf (. ctx strokeStyle) "#FFFFFF")
+        (setf (. ctx lineWidth) 2.0)
+        (funcall (. ctx moveTo) 4 4)
+        (funcall (. ctx lineTo) 12 12)
+        (funcall (. ctx moveTo) 12 4)
+        (funcall (. ctx lineTo) 4 12)
+        (funcall (. ctx stroke)))
+      (append-child window closer)
+      (set-handler closer onmousedown
+                   (funcall (. event preventDefault))
+                   (funcall (. event stopPropagation))
+                   (hide window)))
     window))
 
 (show (window 100 100 400 200 "This is a test"))
