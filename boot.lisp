@@ -270,11 +270,13 @@
 (defrelop < "<"   )
 (defrelop <= "<=" )
 (defrelop = "=="  )
+(defrelop == "===")
 (defrelop >= ">=" )
 (defrelop > ">"   )
 (defrelop-func <  )
 (defrelop-func <= )
 (defrelop-func =  )
+(defrelop-func ===)
 (defrelop-func >= )
 (defrelop-func >  )
 
