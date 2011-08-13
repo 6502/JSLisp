@@ -1006,7 +1006,7 @@ function f$$load(src)
             var form = f$$parse_value(src);
             ++nforms;
             phase = "compiling";
-            js = f$$js_compile(form);
+            var js = f$$js_compile(form);
             phase = "executing";
             eval(js);
             f$$skip_spaces(src);
