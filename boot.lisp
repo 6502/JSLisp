@@ -41,7 +41,7 @@
 (defun undefinedp (x) (js-code "((typeof d$$x)=='undefined')"))
 (defun nullp (x) (js-code "((typeof d$$x)=='object'&&!d$$x)"))
 (defun NaNp (x) (js-code "((typeof d$$x)=='number'&&!d$$x&&!(d$$x==0))"))
-(defun objectp (x) (js-code "((d$$x&&d$$x.constructor&&d$$x.constructor.name=='Object')==true)"))
+(defun objectp (x) (js-code "((d$$x&&d$$x.constructor&&d$$x.constructor==Object)==true)"))
 (defun zerop (x) (and (numberp x) (= x 0)))
 
 ; Length function

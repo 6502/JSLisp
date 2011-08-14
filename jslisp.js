@@ -36,6 +36,11 @@ exports.eval = function (x)
 
 */
 
+function stringify(x)
+{
+    return JSON.stringify(x).substr(0); // Opera bug
+}
+
 function f$$mangle(x)
 {
     var res = "";
@@ -436,7 +441,7 @@ jscompile["$$quote"] = function(x)
     if (f$$symbolp(x[1]))
         return "s" + x[1].name;
     if (f$$numberp(x[1]) || f$$stringp(x[1]))
-        return JSON.stringify(x[1]);
+        return stringify(x[1]);
     lisp_literals.push(x[1]);
     return "lisp_literals[" + (lisp_literals.length-1) + "]";
 }
@@ -654,11 +659,15 @@ function f$$js_compile(x)
             throw "Invalid function call";
         }
     }
+    else if ((typeof x) == "undefined")
+    {
+        return "undefined";
+    }
     else
     {
         try
         {
-            return JSON.stringify(x);
+            return stringify(x);
         }
         catch(err)
         {
@@ -736,7 +745,7 @@ function f$$parse_delimited_list(src, stop)
     }
     d$$$42$stopchars$42$ = oldstops;
     if (src() != stop)
-        throw JSON.stringify(stop) + " expected";
+        throw stringify(stop) + " expected";
     src(1);
     return res;
 }
@@ -939,7 +948,7 @@ function f$$str_value(x)
     {
         try
         {
-            return JSON.stringify(x);
+            return stringify(x);
         }
         catch(err)
         {
@@ -978,7 +987,7 @@ function f$$set_reader(ch, f)
 
 function f$$load(src)
 {
-    if (src.constructor.name == "String")
+    if (f$$stringp(src))
     {
         var i = 0;
         var src_org = src;
@@ -1006,6 +1015,6 @@ function f$$load(src)
     }
     catch(err)
     {
-        throw "Error during boot (form=" + nforms + ", phase = " + phase + "):\n" + err;
+        throw "Error during load (form=" + nforms + ", phase = " + phase + "):\n" + err;
     }
 }
