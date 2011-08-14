@@ -459,8 +459,8 @@
 
 ; Keyword arguments
 
-(setf (compile-function 'lambda)
-      (let ((oldcf (compile-function 'lambda)))
+(setf (compile-specialization 'lambda)
+      (let ((oldcf (compile-specialization 'lambda)))
         (lambda (whole)
           (let* ((args (second whole))
                  (body (slice whole 2))
@@ -532,7 +532,7 @@
 
 ; JS exception support
 (defvar *exception* null)
-(setf (compile-function 'try)
+(setf (compile-specialization 'try)
       (lambda (x)
         (+ "((function(){try{return("
            (js-compile (aref x 1))

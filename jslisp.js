@@ -955,12 +955,12 @@ jscompile["$$not"] = function(x)
 
 function f$$error(x) { throw x };
 
-function f$$set_compile_function(name, body)
+function f$$set_compile_specialization(name, body)
 {
     jscompile[name.name] = body;
 }
 
-function f$$compile_function(name)
+function f$$compile_specialization(name)
 {
     return jscompile[name.name];
 }
