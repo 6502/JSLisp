@@ -342,16 +342,8 @@ jscompile["$$labels"] = function(x)
     for (var i=0; i<x[1].length; i++)
     {
         var v = x[1][i][0].name;
-        res += "var f" + v + "=function(";
-        var args = x[1][i][1];
-        for (var j=0; j<args.length; j++)
-        {
-            if (j > 0) res += ",";
-            res += "d" + args[j].name;
-        }
-        res += "){return ";
-        res += implprogn(x[1][i].slice(2));
-        res += ";};";
+        res += "var f" + v + "=" +
+               f$$js_compile([f$$intern("lambda")].concat(x[1][i].slice(1))) + ";";
     }
     res += "return ";
     res += implprogn(x.slice(2));
