@@ -61,13 +61,15 @@
                 (setf x0 x)
                 (setf y0 y)))))
 
+(defvar *spacing* 0)       ;; Spacing is inherited to a layout node subtree
+
 (defstruct layout-node
   (class 1) (weight 100)   ;; Weighted distribution when in the same class
   (min 0) (max 1000000)    ;; Minimum and maximum space
   (buddy null)             ;; Someone to inform about the size
   (algorithm :H)           ;; Algorithm for children
   (border 0)               ;; Fixed border around space for children
-  (spacing 0)              ;; Fixed space between children
+  (spacing null)           ;; Fixed space between children (if null use *spacing*)
   (children (list)))       ;; List of children nodes (if any)
 
 (defun set-coords (node x0 y0 x1 y1)
@@ -76,6 +78,8 @@
          (border (layout-node-border node))
          (spacing (layout-node-spacing node))
          (algo (layout-node-algorithm node)))
+    (when (nullp spacing)
+      (setf spacing *spacing*))
     (when (layout-node-buddy node)
       (funcall (layout-node-buddy node) x0 y0 x1 y1))
     (when (> nchild 0)
@@ -102,7 +106,8 @@
                           (incf x (+ (aref assigned i) spacing))))
                       (let ((y (+ y0 border))
                             (xa (+ x0 border))
-                            (xb (- x1 border)))
+                            (xb (- x1 border))
+                            (*spacing* spacing))
                         (dotimes (i nchild)
                           (set-coords (aref children i)
                                       xa y
@@ -320,16 +325,13 @@
     (append-child window disp-div)
     (let* ((layout (:V :border 4 :spacing 4
                        (:Hdiv disp-div :min 30 :max 30)
-                       (:H :weight 75 :spacing 4
-                           (key "C" #'back) (key "Call" #'call :weight 200))
-                       (:H :spacing 4
-                           (key "1") (key "2") (key "3"))
-                       (:H :spacing 4
-                           (key "4") (key "5") (key "6"))
-                       (:H :spacing 4
-                           (key "7") (key "8") (key "9"))
-                       (:H :spacing 4
-                           (key "#") (key "0") (key "*"))))
+                       (:H :weight 75
+                           (key "C" #'back)
+                           (key "Call" #'call :weight 200))
+                       (:H (key "1") (key "2") (key "3"))
+                       (:H (key "4") (key "5") (key "6"))
+                       (:H (key "7") (key "8") (key "9"))
+                       (:H (key "#") (key "0") (key "*"))))
            (frame (window 100 100 200 300
                           :title "Dialing pad"
                           :close (lambda ())
