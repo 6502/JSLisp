@@ -225,9 +225,9 @@
         (let ((ctx (funcall (. resizer getContext) "2d")))
           (setf (. ctx strokeStyle) "#000000")
           (setf (. ctx lineWidth) 1.0)
-          (dolist (i '(0 4 8 12))
-            (funcall (. ctx moveTo) 12 i)
-            (funcall (. ctx lineTo) i 12))
+          (dolist (i '(0 5))
+            (funcall (. ctx moveTo) 10 i)
+            (funcall (. ctx lineTo) i 10))
           (funcall (. ctx stroke)))
         (append-child window resizer)
         (set-handler resizer onmousedown
@@ -280,50 +280,35 @@
                      (funcall close))))
     window))
 
+(defun button (text action)
+  (let ((button (create-element "input")))
+    (setf (. button type) "button")
+    (setf (. button value) text)
+    (set-style button
+               position "absolute")
+    (setf (. button onclick) action)
+    button))
+
 (let ((disp-div (create-element "div"))
       (window (create-element "div"))
-      (stack (list 0)))
-  (labels ((key (k action)
-             (let ((kdiv (create-element "div")))
-               (set-style kdiv
-                          position "absolute"
-                          backgroundColor "#808080"
-                          color "#FFFFFF"
-                          fontFamily "Arial"
-                          fontWeight "bold"
-                          textAlign "center"
-                          px/fontSize 14)
-               (setf (. kdiv innerHTML) k)
-               (set-handler kdiv onmousedown
-                            (funcall (. event stopPropagation))
-                            (funcall (. event preventDefault))
-                            (funcall action))
-               (append-child window kdiv)
-               kdiv))
-           (update () (setf (. disp-div innerHTML)
-                            (+ "" (first stack))))
-           (digit (d) (lambda ()
-                        (setf (first stack)
-                              (+ (* 10 (first stack)) d))
-                        (update)))
+      (number ""))
+  (labels ((update () (setf (. disp-div innerHTML)
+                            (+ "<table width=100%><tr><td valign=center align=center>"
+                               number "<font color=\"#FF0000\">|</font>"
+                               "</td></tr></table>")))
+           (key (k action &key (weight 100))
+             (unless action
+               (setf action (lambda ()
+                              (setf number (+ number k))
+                              (update))))
+             (:Hdiv (append-child window (button k action))
+                    :weight weight))
            (back ()
-             (setf (first stack)
-                   (floor (/ (first stack) 10)))
+             (when (> (length number) 0)
+               (setf number (substr number 0 (1- (length number)))))
              (update))
-           (clear ()
-             (setf stack (list 0))
-             (update))
-           (enter ()
-             (setf stack (append (list 0) stack))
-             (update))
-           (operation (op) (lambda ()
-                             (if (< (length stack) 2)
-                                 (setf (. disp-div innerHTML) "*ERR*")
-                                 (progn
-                                   (setf stack
-                                         (append (list (funcall op (first stack) (second stack)))
-                                                 (slice stack 2)))
-                                   (update))))))
+           (call ()
+             (display (+ "Calling " number))))
     (set-style disp-div
                position "absolute"
                backgroundColor "#000000"
@@ -333,35 +318,23 @@
                px/fontSize 20
                textAlign "right")
     (append-child window disp-div)
-    (let* ((layout (:V :border 8 :spacing 8
+    (let* ((layout (:V :border 4 :spacing 4
                        (:Hdiv disp-div :min 30 :max 30)
-                       (:H :spacing 8
-                           (:Hdiv (key "Enter" #'enter))
-                           (:Hdiv (key "C" #'clear))
-                           (:Hdiv (key "<-" #'back)))
-                       (:H :spacing 8
-                           (:Hdiv (key "1" (digit 1)))
-                           (:Hdiv (key "2" (digit 2)))
-                           (:Hdiv (key "3" (digit 3)))
-                           (:Hdiv (key "+" (operation #'+))))
-                       (:H :spacing 8
-                           (:Hdiv (key "4" (digit 4)))
-                           (:Hdiv (key "5" (digit 5)))
-                           (:Hdiv (key "6" (digit 6)))
-                           (:Hdiv (key "-" (operation #'-))))
-                       (:H :spacing 8
-                           (:Hdiv (key "7" (digit 7)))
-                           (:Hdiv (key "8" (digit 8)))
-                           (:Hdiv (key "9" (digit 9)))
-                           (:Hdiv (key "*" (operation #'*))))
-                       (:H :spacing 8
-                           (:H :weight 50)
-                           (:Hdiv (key "0" (digit 0)))
-                           (:H :weight 50))))
-           (frame (window 100 100 200 400
-                         :title "RPN calculator"
-                         :close (lambda ())
-                         :layout layout)))
+                       (:H :weight 75 :spacing 4
+                           (key "C" #'back) (key "Call" #'call :weight 200))
+                       (:H :spacing 4
+                           (key "1") (key "2") (key "3"))
+                       (:H :spacing 4
+                           (key "4") (key "5") (key "6"))
+                       (:H :spacing 4
+                           (key "7") (key "8") (key "9"))
+                       (:H :spacing 4
+                           (key "#") (key "0") (key "*"))))
+           (frame (window 100 100 200 300
+                          :title "Dialing pad"
+                          :close (lambda ())
+                          :layout layout)))
       (append-child frame window)
-      (set-coords layout 0 0 200 400)
+      (update)
+      (set-coords layout 0 20 200 300)
       (show frame))))
