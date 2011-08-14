@@ -530,6 +530,16 @@
 (defmacro/f atan2 (y x) `(js-code ,(+ "Math.atan(" (js-compile y) "," (js-compile x) ")")))
 (setq pi (js-code "Math.PI"))
 
+; JS exception support
+(defvar *exception* null)
+(setf (compile-function 'try)
+      (lambda (x)
+        (+ "((function(){try{return("
+           (js-compile (aref x 1))
+           ");}catch(err){var olderr=d$$$42$exception$42$;d$$$42$exception$42$=err;var res=("
+           (js-compile (aref x 2))
+           ");d$$$42$exception$42$=olderr;return res;}})())")))
+
 ; Timing
 (defun clock ()
   (js-code "(new Date).getTime()"))
