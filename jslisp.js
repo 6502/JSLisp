@@ -161,6 +161,11 @@ jscompile["$$function"] = function(x)
     return "f" + x[1].name;
 };
 
+jscompile["$$set_function"] = function(x, value)
+{
+    return "(f" + x[1].name + "=" + f$$js_compile(value) + ")";
+}
+
 jscompile["$$if"] = function(x)
 {
     return ("(" +
@@ -735,7 +740,7 @@ function f$$js_compile(x)
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 var d$$$42$spaces$42$ = " \t\r\n";
-var d$$$42$stopchars$42$ = "()";
+var d$$$42$stopchars$42$ = "()\"";
 
 function f$$skip_spaces(src)
 {
