@@ -96,15 +96,49 @@ function f$$stringp(x) { return ((typeof x) == "string"); }
 function f$$listp(x)   { return (x && x.constructor == Array)  ? true : false; }
 function f$$symbolp(x) { return (x && x.constructor == Symbol) ? true : false; }
 
+function Namespace()
+{
+    this.vars = {};
+    this.stack = [];
+
+    this.add = function(name, value)
+    {
+        this.stack.push([name, this.vars[name]]);
+        this.vars[name] = value;
+    };
+
+    this.begin = function()
+    {
+        this.stack.push(false);
+    };
+
+    this.end = function()
+    {
+        if (this.stack.length == 0)
+            throw "Internal error: Stack underflow in Namespace.end()";
+        for (var x=this.stack.pop(); x; x=this.stack.pop())
+        {
+            this.vars[x[0]] = x[1];
+            if (this.stack.length == 0)
+                throw "Internal error: Stack underflow in Namespace.end()";
+        }
+    };
+
+    return this;
+}
+
 var constants = {'$$null':'null',
                  '$$true':'true',
                  '$$false':'false',
                  '$$undefined':'undefined',
                  '$$NaN':'NaN'};
 
+var lexvar = new Namespace();
+var lexfunc = new Namespace();
+var lexmacro = new Namespace();
+var lexsmacro = new Namespace();
+
 var specials = {};
-var lexmacros = {};
-var lexsmacros = {};
 var jscompile = {};
 
 jscompile["$$js_code"] = function(x) { return x[1]; };
@@ -140,7 +174,7 @@ jscompile["$$if"] = function(x)
 jscompile["$$defvar"] = function(x)
 {
     var v = x[1].name;
-    specials[v] = true;
+    specials[v] = "d" + v;
     return "(d" + v + " = ((window['d" + v + "']!=undefined)?d" + v + ":" + f$$js_compile(x[2]) + "))";
 };
 
@@ -168,24 +202,11 @@ jscompile["$$progn"] = function(x)
     return implprogn(x.slice(1));
 };
 
-function shadow_lexsmacro(n,s)
-{
-    if (lexsmacros[n])
-    {
-        s.push([n,lexsmacros[n]]);
-        lexsmacros[n] = null;
-    }
-}
-
-function unshadow_lexsmacros(s)
-{
-    for (var i=0; i<s.length; i++)
-        lexsmacros[s[i][0]] = s[i][1];
-}
-
 jscompile["$$let"] = function(x)
 {
-    var lexsm = [];
+    lexvar.begin();
+    lexsmacro.begin();
+
     var spe = [];
     var res = "((function(";
     for (var i=0; i<x[1].length; i++)
@@ -199,9 +220,10 @@ jscompile["$$let"] = function(x)
         }
         else
         {
+            lexvar.add(name, "d" + name);
             res += "d" + name;
         }
-        shadow_lexsmacro(name, lexsm);
+        lexsmacro.add(name, undefined);
     }
     res += "){";
     for (var i=0; i<spe.length; i++)
@@ -211,7 +233,10 @@ jscompile["$$let"] = function(x)
     }
     res += "var res=";
     res += implprogn(x.slice(2));
-    unshadow_lexsmacros(lexsm);
+
+    lexsmacro.end();
+    lexvar.end();
+
     res += ";";
     for (var i=0; i<spe.length; i++)
     {
@@ -229,7 +254,8 @@ jscompile["$$let"] = function(x)
 
 jscompile["$$lambda"] = function(x)
 {
-    var lexsm = [];
+    lexvar.begin();
+    lexsmacro.begin();
     var spe = [];
     var res = "(function(";
     var rest = null;
@@ -240,7 +266,9 @@ jscompile["$$lambda"] = function(x)
         if (v == "$$$38$rest" || v == "$$$38$body")
         {
             rest = x[1][i+1].name;
-            shadow_lexsmacro(rest, lexsm);
+            if (!specials[rest])
+                lexvar.add(rest, "d"+ rest);
+            lexsmacro.add(rest, undefined);
         }
         else if (!rest)
         {
@@ -253,9 +281,10 @@ jscompile["$$lambda"] = function(x)
             else
             {
                 res += "d" + v;
+                lexvar.add(v, "d" + v);
             }
             nargs++;
-            shadow_lexsmacro(v, lexsm);
+            lexsmacro.add(v, undefined);
         }
     }
     res += "){";
@@ -282,7 +311,10 @@ jscompile["$$lambda"] = function(x)
     }
     res += "var res=";
     res += implprogn(x.slice(2));
-    unshadow_lexsmacros(lexsm);
+
+    lexvar.end();
+    lexsmacro.end();
+
     res += ";"
     for (var i=0; i<spe.length; i++)
     {
@@ -333,20 +365,22 @@ function f$$funcall()
 jscompile["$$labels"] = function(x)
 {
     // First hide all macros and lexical macros named as defined functions
-    var lexm = [];
+    lexfunc.begin();
+    lexmacro.begin();
     var hmacros = [];
     for (var i=0; i<x[1].length; i++)
     {
         var v = x[1][i][0].name;
-        lexm.push([v, lexmacros[v]]);
-        hmacros.push([v, window["m"+v]]);
-        lexmacros[v] = window["m"+v] = undefined;
+        lexmacro.add(v, undefined);
+        hmacros.push([v, window["m" + v]]);
+        window["m" + v] = undefined;
     }
 
     var res = "((function(){";
     for (var i=0; i<x[1].length; i++)
     {
         var v = x[1][i][0].name;
+        lexfunc.add(v, "f" + v);
         res += "var f" + v + "=" +
                f$$js_compile([f$$intern("lambda")].concat(x[1][i].slice(1))) + ";";
     }
@@ -354,19 +388,19 @@ jscompile["$$labels"] = function(x)
     res += implprogn(x.slice(2));
     res += ";})())";
 
-    // Restored hidden macros
-    for (var i=0; i<lexm.length; i++)
-        lexmacros[lexm[i][0]] = lexm[i][1];
+    lexfunc.end();
+    lexmacro.end();
+    // Restore hidden global macros
     for (var i=0; i<hmacros.length; i++)
-        window["m"+hmacros[i][0]] = hmacros[i][1];
+        window["m" + hmacros[i][0]] = hmacros[i][1];
     return res;
 }
 
 jscompile["$$dotimes"] = function(x)
 {
-    var lexsm = [];
+    lexsmacro.begin();
     var v = x[1][0].name;
-    shadow_lexsmacro(v, lexsm);
+    lexsmacro.add(v, undefined);
     if (specials[v])
     {
         var res = ("(function($$dotimes_count){var osd" + v + "=d" + v + ";for(d" + v +
@@ -375,18 +409,21 @@ jscompile["$$dotimes"] = function(x)
         {
             res += f$$js_compile(x[j]) + ";";
         }
-        unshadow_lexsmacros(lexsm);
+        lexsmacro.end();
         res += "};d" + v + "=osd" + v + ";return null;})(" + f$$js_compile(x[1][1]) + ")";
     }
     else
     {
+        lexvar.begin();
+        lexvar.add(v, "d" + v);
         var res = ("(function($$dotimes_count){for(var d" + v +
                    "=0; d" + v + "<$$dotimes_count; ++d" + v + "){");
         for (var j=2; j<x.length; j++)
         {
             res += f$$js_compile(x[j]) + ";";
         }
-        unshadow_lexsmacros(lexsm);
+        lexvar.end();
+        lexsmacro.end();
         res += "}return null;})(" + f$$js_compile(x[1][1]) + ")";
     }
     return res;
@@ -394,9 +431,9 @@ jscompile["$$dotimes"] = function(x)
 
 jscompile["$$dolist"] = function(x)
 {
-    var lexsm = [];
+    lexsmacro.begin();
     var v = x[1][0].name;
-    shadow_lexsmacro(v, lexsm);
+    lexsmacro.add(v, undefined);
     if (specials[v])
     {
         var res = ("(function($$dolist_L){var osd" + v + "=d" + v + ";for(var $$i=0; $$i < $$dolist_L.length; ++$$i){" +
@@ -405,18 +442,21 @@ jscompile["$$dolist"] = function(x)
         {
             res += f$$js_compile(x[j]) + ";";
         }
-        unshadow_lexsmacros(lexsm);
+        lexsmacro.end();
         res += "};d" + v + "=osd" + v + ";return null;})(" + f$$js_compile(x[1][1]) + ")";
     }
     else
     {
+        lexvar.begin();
+        lexvar.add(v, "d" + v);
         var res = ("(function($$dolist_L){for(var $$i=0; $$i < $$dolist_L.length; ++$$i){" +
                    "var d" + v + " = $$dolist_L[$$i]; ");
         for (var j=2; j<x.length; j++)
         {
             res += f$$js_compile(x[j]) + ";";
         }
-        unshadow_lexsmacros(lexsm);
+        lexvar.end();
+        lexsmacro.end();
         res += "}return null;})(" + f$$js_compile(x[1][1]) + ")";
     }
     return res;
@@ -532,7 +572,8 @@ jscompile["$$unless"] = function(x)
 
 jscompile["$$do"] = function(x)
 {
-    var lexsm = [];
+    lexsmacro.begin();
+    lexvar.begin();
     var spe = [];
     var res = "(function(";
     for (var i=0; i<x[1].length; i++)
@@ -547,8 +588,9 @@ jscompile["$$do"] = function(x)
         else
         {
             res += "d" + v;
+            lexvar.add(v, "d" + v);
         }
-        shadow_lexsmacro(v, lexsm);
+        lexsmacro.add(v, undefined);
     }
     res += "){";
     for (var i=0; i<spe.length; i++)
@@ -565,7 +607,6 @@ jscompile["$$do"] = function(x)
     }
     res += "return res;}";
     res += implprogn(x.slice(3)) + ";";
-    unshadow_lexsmacros(lexsm);
     for (var i=0; i<x[1].length; i++)
     {
         if (x[1][i].length == 3)
@@ -575,6 +616,8 @@ jscompile["$$do"] = function(x)
         }
     }
     res += "}})(";
+    lexsmacro.end();
+    lexvar.end();
     for (var i=0; i<x[1].length; i++)
     {
         if (i > 0) res += ",";
@@ -585,42 +628,53 @@ jscompile["$$do"] = function(x)
 
 jscompile["$$macrolet"] = function(x)
 {
-    var oldm = [];
+    lexmacro.begin();
     for (var i=0; i<x[1].length; i++)
     {
         var name = x[1][i][0].name;
         var args = x[1][i][1];
         var body = x[1][i].slice(2);
-        oldm.push([name, lexmacros[name]]);
-        lexmacros[name] = eval(f$$js_compile([f$$intern("lambda"), args].concat(body)));
+        lexmacro.add(name, eval(f$$js_compile([f$$intern("lambda"), args].concat(body))));
     }
     var res = implprogn(x.slice(2));
-    for (var i=0; i<oldm.length; i++)
-        lexmacros[oldm[i][0]] = oldm[i][1];
+    lexmacro.end();
     return res;
 };
 
 jscompile["$$symbol_macrolet"] = function(x)
 {
-    var oldm = [];
+    lexsmacro.begin();
     for (var i=0; i<x[1].length; i++)
     {
         var name = x[1][i][0].name;
         var value = f$$js_compile(x[1][i][1]);
-        oldm.push([name, lexsmacros[name]]);
-        lexsmacros[name] = value;
+        lexsmacro.add(name, value);
     }
     var res = implprogn(x.slice(2));
-    for (var i=0; i<oldm.length; i++)
-        lexsmacros[oldm[i][0]] = oldm[i][1];
+    lexsmacro.end();
     return res;
+};
+
+function warning(msg)
+{
+    f$$display("WARNING: " + msg.replace(/\$\$[a-zA-Z_0-9\$]*/g, f$$demangle));
 };
 
 function f$$js_compile(x)
 {
     if (f$$symbolp(x))
     {
-        return lexsmacros[x.name] || constants[x.name] || "d" + x.name;
+        var v =  (lexsmacro.vars[x.name] ||
+                  lexvar.vars[x.name] ||
+                  specials[x.name] ||
+                  constants[x.name]);
+        if ((typeof v) == "undefined")
+        {
+            if ((typeof window["d" + x.name]) == "undefined")
+                warning("Undefined variable " + x.name);
+            v = "d" + x.name;
+        }
+        return v;
     }
     else if (f$$listp(x))
     {
@@ -632,9 +686,9 @@ function f$$js_compile(x)
             {
                 return wf(x);
             }
-            else if (lexmacros[f.name])
+            else if (lexmacro.vars[f.name])
             {
-                var macro_expansion = lexmacros[f.name].apply(window, x.slice(1));
+                var macro_expansion = lexmacro.vars[f.name].apply(window, x.slice(1));
                 return f$$js_compile(macro_expansion);
             }
             else if (window["m" + f.name])
@@ -644,6 +698,8 @@ function f$$js_compile(x)
             }
             else
             {
+                if (!lexfunc.vars[f.name] && !window["f" + f.name])
+                    warning("Undefined function " + f.name);
                 var res = "f" + f.name + "(";
                 for (var i=1; i<x.length; i++)
                 {
@@ -1015,6 +1071,9 @@ function f$$load(src)
     }
     catch(err)
     {
-        throw "Error during load (form=" + nforms + ", phase = " + phase + "):\n" + err;
+        throw ("Error during load (form=" + nforms + ", phase = " + phase + "):\n" +
+               err + "\n" +
+               ((phase == "executing" || phase == "compiling") ?
+                f$$macroexpand_$49$(f$$str_value(form)) : ""));
     }
 }

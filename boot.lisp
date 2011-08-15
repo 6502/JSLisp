@@ -32,17 +32,15 @@
            (append (list 'lambda args) body))))
 
 (defmacro defun (name args &rest body)
+  ;; Shut up warnings about unknown function in recursive definitions
+  ;; Must not set the function value unconditionally because of the
+  ;; double-stage bootstrap of some basic operators (the poor version
+  ;; must be available during macro expansion time of the better version)
+  (unless (symbol-function name)
+    (set-symbol-function name 42))
   (list 'set-symbol-function
         (list 'quote name)
         (append (list 'lambda args) body)))
-
-; Javascript crazyness
-(defun boolp (x) (js-code "((typeof d$$x)=='boolean')"))
-(defun undefinedp (x) (js-code "((typeof d$$x)=='undefined')"))
-(defun nullp (x) (js-code "((typeof d$$x)=='object'&&!d$$x)"))
-(defun NaNp (x) (js-code "((typeof d$$x)=='number'&&!d$$x&&!(d$$x==0))"))
-(defun objectp (x) (js-code "((d$$x&&d$$x.constructor&&d$$x.constructor==Object)==true)"))
-(defun zerop (x) (and (numberp x) (= x 0)))
 
 ; Length function
 (defun length (x) (js-code "d$$x.length"))
@@ -54,9 +52,24 @@
 (defun - (a b) (js-code "(d$$a-d$$b)"))
 (defun + (&rest args)
   (cond
-    ((= (length args) 1) (aref args 0))
     ((= (length args) 2) (js-code "(d$$args[0]+d$$args[1])"))
     (true (js-code "(d$$args[0]+f$$$43$.apply(null,d$$args.slice(1)))"))))
+
+; Javascript crazyness
+(defun boolp (x) (js-code "((typeof d$$x)=='boolean')"))
+(defun undefinedp (x) (js-code "((typeof d$$x)=='undefined')"))
+(defun nullp (x) (js-code "((typeof d$$x)=='object'&&!d$$x)"))
+(defun NaNp (x) (js-code "((typeof d$$x)=='number'&&!d$$x&&!(d$$x==0))"))
+(defun objectp (x) (js-code "((d$$x&&d$$x.constructor&&d$$x.constructor==Object)==true)"))
+(defun zerop (x) (and (numberp x) (= x 0)))
+
+(defmacro aref (x i)
+  (list 'js-code (+ "(" (js-compile x) "[" (js-compile i) "])")))
+(defun aref (x i) (aref x i))
+
+(defmacro set-aref (x i v)
+  (list 'js-code (+ "(" (js-compile x) "[" (js-compile i) "]=" (js-compile v) ")")))
+(defun set-aref (x i v) (set-aref x i v))
 
 ; List-related macros (can't be defined before '+')
 (defmacro length (x)
@@ -71,14 +84,6 @@
     ;; Note that the following is still the list FUNCTION because the
     ;; macro will be available AFTER this defmacro form is evaluated
     (list 'js-code (+ res "]"))))
-
-(defmacro aref (x i)
-  (list 'js-code (+ "(" (js-compile x) "[" (js-compile i) "])")))
-(defun aref (x i) (aref x i))
-
-(defmacro set-aref (x i v)
-  (list 'js-code (+ "(" (js-compile x) "[" (js-compile i) "]=" (js-compile v) ")")))
-(defun set-aref (x i v) (set-aref x i v))
 
 (defun push (x v)
   (js-code "d$$v.push(d$$x)"))
@@ -137,10 +142,11 @@
 
 ;; defmacro/f
 (defmacro defmacro/f (name args &rest body)
-    `(progn
-        (defmacro ,name ,args ,@body)
-        (eval `(defun ,',name ,',args
-                      ,(apply (symbol-macro ',name) ',args)))))
+  ;; Note: Defmacro must be done at macro expansion time
+  ;;       because we need the macro in place when
+  ;;       defun is macroexpanded
+  (eval `(defmacro ,name ,args ,@body))
+  `(defun ,name ,args (,name ,@args)))
 
 ;; Utilities
 (defmacro/f slice (x a b)

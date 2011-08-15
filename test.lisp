@@ -25,9 +25,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(setq test-passed 0)
-(setq test-total 0)
-(setq test-start (clock))
+(defvar test-passed 0)
+(defvar test-total 0)
+(defvar test-start (clock))
 
 (let ((result (gensym)))
   (defmacro test (form expected-result)
