@@ -418,6 +418,10 @@
         (eval `(test (funcall (symbol-function ',tester) ,value)
                      ,(str-value (= i j))))))))
 
+(test (let ((x 10) (y 20))
+        ~"(+ {x} {y}) --> {(+ x y)} ... \\{}")
+      "\"(+ 10 20) --> 30 ... {}\"")
+
 (display (+ test-passed "/" test-total
             " tests passed in "
             (- (clock) test-start) "ms"))

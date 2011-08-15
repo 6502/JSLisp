@@ -282,7 +282,7 @@
 (defrelop-func <  )
 (defrelop-func <= )
 (defrelop-func =  )
-(defrelop-func ===)
+(defrelop-func == )
 (defrelop-func >= )
 (defrelop-func >  )
 
@@ -582,3 +582,36 @@
 (defun create-element (id) (funcall (. document createElement) id))
 (defun append-child (x child) (funcall (. x appendChild) child))
 (defun remove-child (x child) (funcall (. x removeChild) child))
+
+; String interpolation reader
+(setf (reader "~")
+      (lambda (src)
+        (funcall src 1)
+        (let ((x (parse-value src))
+              (pieces (list))  ; list of parts
+              (part "")        ; current part
+              (expr false)     ; is current part an expression?
+              (escape false))  ; is next char verbatim ?
+          (unless (stringp x)
+            (error "string interpolation requires a string literal"))
+          (dolist (c x)
+            (cond
+              (escape
+               (setf escape false)
+               (incf part c))
+              ((= c "\\")
+               (setf escape true))
+              ((= c (if expr "}" "{"))
+               (when (> (length part) 0)
+                 (push (if expr (parse-value part) part) pieces)
+                 (setf part ""))
+               (setf expr (not expr)))
+              (true (incf part c))))
+          (if escape
+              (error "Invalid escaping"))
+          (if (> (length part) 0)
+              (push (if expr (parse-value part) part) pieces))
+          (cond
+            ((= 0 (length pieces)) "")
+            ((= 1 (length pieces)) (aref pieces 0))
+            (true `(+ ,@pieces))))))
