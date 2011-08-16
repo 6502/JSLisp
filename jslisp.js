@@ -161,9 +161,9 @@ jscompile["$$function"] = function(x)
     return "f" + x[1].name;
 };
 
-jscompile["$$set_function"] = function(x, value)
+jscompile["$$set_function"] = function(x)
 {
-    return "(f" + x[1].name + "=" + f$$js_compile(value) + ")";
+    return "(f" + x[1].name + "=" + f$$js_compile(x[2]) + ")";
 }
 
 jscompile["$$if"] = function(x)
