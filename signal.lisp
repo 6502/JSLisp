@@ -1,0 +1,17 @@
+(defmacro signal (condition &rest restarts)
+  `(do ((i (1- length *handlers*) (1- i))
+        (h null))
+       ((or (< i 0)
+            (setf (h (funcall (aref *handlers* i)
+                              ',(map #'first restarts)))))
+        (if h
+          (cond
+           ,@(map (lambda (r)
+                    `((= (first h) ,(first (first r)))
+                      (let (,@(map (lambda (i)
+                                     `(,(aref (first r) i) (aref h ,i)))
+                                   (range 1 (length (first r)))))
+                        ,@(rest r))))
+                  restarts)
+           (true (error "Invalid restart")))
+          (error ,~"Unhandled condition {(symbol-name condition)}")))))
