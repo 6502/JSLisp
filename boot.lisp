@@ -55,6 +55,16 @@
     ((= (length args) 2) (js-code "(d$$args[0]+d$$args[1])"))
     (true (js-code "(d$$args[0]+f$$$43$.apply(null,d$$args.slice(1)))"))))
 
+; Function accessor
+(defmacro function (x)
+  (list 'js-code (+ "f" (mangle (symbol-name x)))))
+
+(defmacro set-function (x value)
+  (list 'js-code (+ "(f"
+                    (mangle (symbol-name x)) "="
+                    (js-compile value)
+                    ")")))
+
 ; Javascript crazyness
 (defun boolp (x) (js-code "((typeof d$$x)=='boolean')"))
 (defun undefinedp (x) (js-code "((typeof d$$x)=='undefined')"))
@@ -325,7 +335,7 @@
     ((listp place)
      (let* ((f (first place))
             (sf (intern (+ "set-" (symbol-name f)))))
-       (if (or (symbol-function sf) (symbol-macro sf) (compile-specialization sf))
+       (if (or (symbol-function sf) (symbol-macro sf))
            `(,sf ,@(rest place) ,value)
            (if (symbol-macro f)
                `(setf ,(macroexpand-1 place) ,value)
@@ -340,7 +350,7 @@
     ((listp place)
      (let* ((f (first place))
             (sf (intern (+ "inc-" (symbol-name f)))))
-       (if (or (symbol-function sf) (symbol-macro sf) (compile-specialization sf))
+       (if (or (symbol-function sf) (symbol-macro sf))
            `(,sf ,@(rest place) ,inc)
            (if (symbol-macro f)
                `(incf ,(macroexpand-1 place) ,inc)
@@ -355,7 +365,7 @@
     ((listp place)
      (let* ((f (first place))
             (sf (intern (+ "dec-" (symbol-name f)))))
-       (if (or (symbol-function sf) (symbol-macro sf) (compile-specialization sf))
+       (if (or (symbol-function sf) (symbol-macro sf))
            `(,sf ,@(rest place) ,inc)
            (if (symbol-macro f)
                `(decf ,(macroexpand-1 place) ,inc)

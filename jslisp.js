@@ -156,16 +156,6 @@ function f$$set_symbol_macro(x, y) { return window["m" + x.name] = y; }
 
 function f$$symbol_name(x) { return f$$demangle(x.name); }
 
-jscompile["$$function"] = function(x)
-{
-    return "f" + x[1].name;
-};
-
-jscompile["$$set_function"] = function(x)
-{
-    return "(f" + x[1].name + "=" + f$$js_compile(x[2]) + ")";
-}
-
 jscompile["$$if"] = function(x)
 {
     return ("(" +
