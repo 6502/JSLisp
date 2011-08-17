@@ -542,15 +542,15 @@ jscompile["$$or"] = function(x)
 
 jscompile["$$cond"] = function(x)
 {
-    var res = "(function(){";
+    var res = "(";
     for (var i=1; i<x.length; i++)
     {
         if (i > 1)
-            res += "else ";
-        res += ("if (" + f$$js_compile(x[i][0]) +
-                ") return " + implprogn(x[i].slice(1)) + ";");
+            res += ":";
+        res += (f$$js_compile(x[i][0]) + "?" +
+                implprogn(x[i].slice(1)));
     }
-    return res + "})()";
+    return res + ":null)";
 };
 
 jscompile["$$when"] = function(x)
