@@ -422,6 +422,12 @@
         ~"(+ {x} {y}) --> {(+ x y)} ... \\{}")
       "\"(+ 10 20) --> 30 ... {}\"")
 
+(test (let ((x 0))
+        (labels ((bar () (incf x) 42)
+                 (foo (&key (x (bar))) x))
+          (list (foo) (foo :x 12) x)))
+      "(42 12 1)")
+
 (display (+ test-passed "/" test-total
             " tests passed in "
             (- (clock) test-start) "ms"))
