@@ -472,7 +472,8 @@
 ; Keyword arguments
 
 (setf (compile-specialization 'lambda)
-      (let ((oldcf (compile-specialization 'lambda)))
+      (let ((oldcf (compile-specialization 'lambda))
+            (unassigned (gensym)))
         (lambda (whole)
           (let* ((args (second whole))
                  (body (slice whole 2))
@@ -489,8 +490,8 @@
                               (let ((,nrest (length ,rest))
                                     ,@(map (lambda (x)
                                              (if (listp x)
-                                                 x
-                                                 (list x undefined)))
+                                                 `(,(first x) ',unassigned)
+                                                 `(,x undefined)))
                                         (slice args (1+ i))))
                                 (do ((,ix 0 (+ ,ix 2)))
                                     ((>= ,ix ,nrest)
@@ -504,6 +505,13 @@
                                                 (setf ,(if (listp x) (first x) x) (aref ,rest (1+ ,ix)))))
                                             (slice args (1+ i)))
                                        `((true (error "Invalid parameters"))))))
+                                ,@(let ((res (list)))
+                                       (dolist (x (slice args (1+ i)))
+                                         (when (listp x)
+                                           (push `(when (= ,(first x) ',unassigned)
+                                                    (setf ,(first x) ,(second x)))
+                                                 res)))
+                                       res)
                                 ,@body)))))))))
 
 ; Defstruct
