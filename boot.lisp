@@ -633,3 +633,17 @@
             ((= 0 (length pieces)) "")
             ((= 1 (length pieces)) (aref pieces 0))
             (true `(+ ,@pieces))))))
+
+; Javascript blocking interaction
+(defun prompt (x)
+  (js-code "prompt(d$$x)"))
+
+(defun alert (x)
+  (js-code "alert(d$$x)"))
+
+(defun yesno (msg)
+  (do ((reply (prompt msg)
+              (prompt ~"I don't understand...\n{msg}\nPlease answer \"yes\" or \"no\" without quotes.")))
+      ((or (= reply "yes")
+           (= reply "no"))
+       (= reply "yes"))))
