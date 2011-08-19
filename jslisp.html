@@ -76,6 +76,7 @@ var indent_rules = {
     "labels": [1],
     "when": [1],
     "unless": [1],
+    "cond": [1],
     "": [0],
 };
 
@@ -156,7 +157,7 @@ function updateClpar(text)
         }
         else
         {
-            while (i < text.length && "() \t\n\r".indexOf(text[i]) == -1)
+            while (i < text.length && "()\" \t\n\r".indexOf(text[i]) == -1)
                 i++;
             while (indent.length == 0 && i < text.length && text[i] == ')')
                 i++;
