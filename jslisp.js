@@ -1072,3 +1072,32 @@ function f$$load(src)
                 f$$macroexpand_$49$(f$$str_value(form)) : ""));
     }
 }
+
+function f$$ajax(url, onSuccess, onFail)
+{
+    var req = new XMLHttpRequest();
+    if (onSuccess)
+    {
+        req.onreadystatechange = function()
+        {
+            if (req.readyState == 4) {
+                if (req.status == 200) {
+                    onSuccess(req.responseText, url, req);
+                }
+                else
+                {
+                    if (onFail)
+                        onFail(url, req.status);
+                    else
+                        throw ("Ajax request error (url=" +
+                               url +
+                               ", status=" +
+                               req.status + ")");
+                }
+            }
+        }
+    }
+    req.open("GET", url, !!onSuccess);
+    req.send(null);
+    return onSuccess ? req : req.responseText;
+}

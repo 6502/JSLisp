@@ -58,7 +58,7 @@ var char_width, char_height;
     char_height = (h2 - h1) / 10;
 })();
 
-var prompt = "Ready.";
+var prompt_message = "Ready.";
 var repl = document.getElementById("repl");
 var clpar = document.getElementById("clpar");
 repl.focus();
@@ -85,8 +85,8 @@ function updateClpar(text)
     if (text == undefined)
     {
         text = repl.value.substr(0, repl.selectionStart);
-        var li = text.lastIndexOf("\n"+prompt+"\n");
-        if (li != -1) i = li + 2 + prompt.length;
+        var li = text.lastIndexOf("\n"+prompt_message+"\n");
+        if (li != -1) i = li + 2 + prompt_message.length;
     }
 
     var indent = [];
@@ -222,8 +222,8 @@ function f$$display(x)
 function process()
 {
     var base = repl.value;
-    var li = base.lastIndexOf("\n"+prompt+"\n");
-    base = base.substr(li == -1 ? 0 : li+2+prompt.length).replace(/\t\n *$/,"");
+    var li = base.lastIndexOf("\n"+prompt_message+"\n");
+    base = base.substr(li == -1 ? 0 : li+2+prompt_message.length).replace(/\t\n *$/,"");
     try
     {
         var src = f$$reader_function(base);
@@ -248,7 +248,7 @@ function process()
                                  });
         f$$display("**ERROR**: " + err);
     }
-    f$$display(prompt);
+    f$$display(prompt_message);
 }
 
 function keyDown(e)
@@ -311,54 +311,18 @@ function keyPress(e)
     }
 }
 
-function f$$ajax(url, cback, error)
+// Bootstrap
+try
 {
-    var xmlhttp = new XMLHttpRequest();
-    xmlhttp.onreadystatechange=function()
-    {
-        if (xmlhttp.readyState == 4)
-        {
-            if (xmlhttp.status == 200)
-            {
-                cback(xmlhttp.responseText);
-            }
-            else
-            {
-                if (error)
-                {
-                    error(xmlhttp.status);
-                }
-                else
-                {
-                    alert("Ajax request error: status=" + xmlhttp.status);
-                }
-            }
-        }
-    };
-    xmlhttp.open("GET", url, true);
-    xmlhttp.send();
+    f$$load(f$$ajax("boot.lisp"));
+    f$$display("Boot completed.");
+    f$$display(prompt_message);
+}
+catch(err)
+{
+    f$$display("Error during bootstrap: " + err);
 }
 
-// Bootstrap
-f$$ajax("boot.lisp",
-        function(boot)
-        {
-            try
-            {
-                f$$load(boot);
-                f$$display("Boot completed");
-            }
-            catch(err)
-            {
-                f$$display("Bootstrap error: " + err);
-            }
-            f$$display(prompt);
-        },
-        function(err)
-        {
-            f$$display("Bootstrap ajax error: status=" + err)
-            f$$display(prompt);
-        });
     </script>
   </body>
 </html>
