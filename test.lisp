@@ -195,13 +195,13 @@
       "42")
 
 (test (defun bar () *foo*)
-      "#CODE")
+      "bar")
 
 (test (setq xxx 42)
       "42")
 
 (test (defun xar () xxx)
-      "#CODE")
+      "xar")
 
 (test (funcall (lambda (*foo*) (bar)) 9)
       "9")
@@ -234,14 +234,14 @@
            (funcall
             f (lambda (&rest args)
                 (apply (funcall y y) args))))))
-      "#CODE")
+      "Y")
 
 (test (defun fac (f)
         (lambda (n)
           (if (= 0 n)
               1
               (* n (funcall f (1- n))))))
-      "#CODE")
+      "fac")
 
 (test (funcall (Y #'fac) 10)
       "3628800")
@@ -256,7 +256,7 @@
       "16")
 
 (test (defmacro square (x) `(* ,x ,x))
-      "#CODE")
+      "square")
 
 (test (let ((x 2)) (square (incf x)))
       "12")
@@ -271,7 +271,7 @@
       "(479001600 144)")
 
 (test (defun xfoo () 1)
-      "#CODE")
+      "xfoo")
 
 (test (labels ((xfoo () 2))
         (list (funcall #'xfoo)
@@ -382,7 +382,7 @@
       "2332")
 
 (test (defmacro foo (x) `(* ,x ,x))
-      "#CODE")
+      "foo")
 
 (test (let ((x 3))
         (list

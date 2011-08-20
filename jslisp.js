@@ -846,7 +846,7 @@ defcompile("symbol-macrolet",
 deflisp("warning",
         "(warning msg)\n" +
         "Function called by the compiler to emit warnings about possible logical errors in the compiled code.",
-        function warning(msg)
+        function(msg)
         {
             f$$display("WARNING: " + msg.replace(/\$\$[a-zA-Z_0-9\$]*/g, f$$demangle));
         });
@@ -866,7 +866,7 @@ deflisp("js-compile",
                 if ((typeof v) == "undefined")
                 {
                     if ((typeof window["d" + x.name]) == "undefined")
-                        warning("Undefined variable " + x.name);
+                        f$$warning("Undefined variable " + x.name);
                     v = "d" + x.name;
                 }
                 return v;
@@ -894,7 +894,7 @@ deflisp("js-compile",
                     else
                     {
                         if (!lexfunc.vars[f.name] && !window["f" + f.name])
-                            warning("Undefined function " + f.name);
+                            f$$warning("Undefined function " + f.name);
                         var res = "f" + f.name + "(";
                         for (var i=1; i<x.length; i++)
                         {
