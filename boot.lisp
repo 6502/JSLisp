@@ -767,6 +767,10 @@ Fields are specified as unevaluated symbols."
            res)
        ,self)))
 
+(defun keys (obj)
+  "(keys obj)\nReturns a list of all keys defined in the specified javascript object"
+  (js-code "((function(){var res=[];for(var $i in d$$obj)res.push($i);return res})())"))
+
 ; DOM
 (setf document (js-code "document"))
 (setf window (js-code "window"))
