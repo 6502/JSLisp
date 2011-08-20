@@ -1139,6 +1139,11 @@ var readers = { "|": function(src)
                         src(1);
                         return src(1);
                     }
+                    else if (src() == ".")
+                    {
+                        src(1);
+                        return f$$eval(f$$parse_value(src));
+                    }
                     throw "Unsupported '#' combination";
                 },
 
