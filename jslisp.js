@@ -130,6 +130,22 @@ function defcompile(name, doc, f)
     f.documentation = doc;
 }
 
+deflisp("documentation",
+        "(documentation x:function) -> string/null\n" +
+        "Returns the documentation string for function 'x' or null if there's no documentation.",
+        function(x)
+        {
+            return x.documentation || null;
+        });
+
+deflisp("set-documentation",
+        "(set-documentation x:function doc:string)\n" +
+        "Sets the documentation string for function 'x' to 'doc'.",
+        function(x, doc)
+        {
+            x.documentation = doc;
+        });
+
 deflisp("demangle",
         "(demangle x:string) -> string\n" +
         "Returns a lisp name by decoding a javascript name produced by (mangle ...)",

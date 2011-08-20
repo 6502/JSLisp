@@ -38,12 +38,23 @@
   ;; must be available during macro expansion time of the better version)
   (unless (symbol-function name)
     (set-symbol-function name 42))
-  (list 'set-symbol-function
-        (list 'quote name)
-        (append (list 'lambda args) body)))
+  (let ((doc null))
+    (if (stringp (js-code "d$$body[0]"))
+        (setq doc (js-code "d$$body.splice(0,1)[0]")))
+    (list 'progn
+          (list 'set-symbol-function
+                (list 'quote name)
+                (append (list 'lambda args) body))
+          (list 'set-documentation
+                (list 'symbol-function (list 'quote name))
+                doc)
+          (list 'quote name))))
 
 ; Length function
-(defun length (x) (js-code "d$$x.length"))
+(defun length (x)
+"(length x) -> number
+Returns the length of string/list x"
+  (js-code "d$$x.length"))
 
 ; Simple versions of a few operators needed for bootstrap, they will be redefined
 (defun = (a b) (js-code "(d$$a==d$$b)"))
