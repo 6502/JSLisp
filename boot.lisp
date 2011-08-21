@@ -609,14 +609,14 @@ Returns the last index position in which x appears in list/string L or -1 if it'
 
 (defmacro/f nsort (x cond)
   "(nsort sequence condition)
-Modifies a sequence by sorting the elements according to the specified condition."
+Modifies a sequence by sorting the elements according to the specified condition or #'< if no condition is given."
   (if (= cond undefined)
-      `(js-code ,(+ "(" (js-compile x) ").sort()"))
-      `(js-code ,(+ "(" (js-compile x) ").sort(" (js-compile cond) ")"))))
+      `(js-code ,(+ "(" (js-compile x) ").sort(function(a,b){return a<b?-1:1;})"))
+      `(js-code ,(+ "(" (js-compile x) ").sort(function(a,b){return (" (js-compile cond) ")(a,b)?-1:1;})"))))
 
 (defmacro/f sort (x cond)
   "(sort sequence condition)
-Returns a copy of a sequence with elements sorted according to the specified condition."
+Returns a copy of a sequence with elements sorted according to the specified condition or #'< if no condition is given."
   `(nsort (slice ,x) ,cond))
 
 ; Keyword arguments
