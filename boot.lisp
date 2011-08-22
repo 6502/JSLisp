@@ -360,15 +360,21 @@ Modulo operation"
 Arithmetic shift left (< count 0) or right (> count 0)"
   (js-code "(d$$count<0?(d$$x>>-d$$count):(d$$x<<d$$count))"))
 
-; Comparisons
+; Make symbol / gensym
+(defun make-symbol (name)
+  "(make-symbol name/stringp)
+Creates a new uninterned symbol."
+  (js-code "(new Symbol(f$$mangle(d$$name)))"))
 
 (defvar *gensym-count* 0)
+
 (defun gensym (prefix)
   "(gensym [prefix])
-Returns a new unique symbol eventually named using the specified prefix"
-  (intern (+ "G:" (if prefix (+ prefix "/") "")
-             (setq *gensym-count* (+ 1 *gensym-count*)))))
+Returns a new uninterned unique symbol eventually named using the specified prefix"
+  (make-symbol (+ "G:" (if prefix (+ prefix "/") "")
+                  (setq *gensym-count* (+ 1 *gensym-count*)))))
 
+; Comparisons
 (defmacro defrelop (name comment jsname)
   "(defrelop name comment jsname)
 Defines a relational operator short-circuiting macro given the name comment and Javascript operator name."

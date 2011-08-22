@@ -41,9 +41,15 @@ function stringify(x)
     return JSON.stringify(x).substr(0); // Opera bug
 }
 
-function Symbol(name)
+function Symbol(name, interned)
 {
     this.name = name;
+    this.interned = interned;
+
+    // Cells (used only for uninterned symbols)
+    this.d = undefined;
+    this.f = undefined;
+    this.m = undefined;
 }
 
 function Namespace()
@@ -171,7 +177,7 @@ deflisp("intern",
             var x = window["s" + mname];
             if (x == undefined)
             {
-                x = window["s" + mname] = new Symbol(mname);
+                x = window["s" + mname] = new Symbol(mname, true);
                 if (name[0] == ':') window["d" + mname] = x;
             }
             return x;
@@ -203,35 +209,35 @@ deflisp("symbol-function",
         "(symbol-function x:symbol) -> function\n" +
         "Returns the function cell of a symbol or undefined if that function is not present. " +
         "Lookup doesn't consider lexical function definitions (e.g. (labels ...)).",
-        function(x) { return window["f" + x.name]; });
+        function(x) { return x.interned ? window["f" + x.name] : x.d; });
 
 deflisp("set-symbol-function",
         "(set-symbol-function x:symbol f:function)\n" +
         "Sets the function cell of a symbol to the specified function. It doesn't affect "+
         "lexical function definitions (e.g. (lables ...)).",
-        function(x, y) { return window["f" + x.name] = y; });
+        function(x, y) { return x.interned ? (window["f" + x.name] = y) : (x.d = y); });
 
 deflisp("symbol-value",
         "(symbol-value x:symbol) -> value)\n" +
         "Returns the current value cell of a symbol or undefined if that symbol has no value. " +
         "Lookup doesn't consider lexical symbols.",
-        function(x) { return window["d" + x.name]; });
+        function(x) { return x.interned ? window["d" + x.name] : x.d; });
 
 deflisp("set-symbol-value",
         "(set-symbol-value x:symbol y)\n" +
         "Sets the current value cell of a symbol. It doesn't affect lexical bindings.",
-        function(x, y) { return window["d" + x.name] = y; });
+        function(x, y) { return x.interned ? (window["d" + x.name] = y) : (x.d = y); });
 
 deflisp("symbol-macro",
         "(symbol-macro x:symbol) -> function\n" +
         "Returns the current macro expander function cell of a symbol or undefined if that " +
         "symbol has no macro expander function set. Lookup doesn't consider lexical macros.",
-        function(x) { return window["m" + x.name]; });
+        function(x) { return x.interned ? window["m" + x.name] : x.m; });
 
 deflisp("set-symbol-macro",
         "(set-symbol-macro x:symbol y:function)\n" +
         "Sets the macro expander function cell of a symbol. It doesn't affect lexical macros.",
-        function(x, y) { return window["m" + x.name] = y; });
+        function(x, y) { return x.interned ? (window["m" + x.name] = y) : (x.m = y); });
 
 deflisp("symbol-name",
         "(symbol-name x:symbol) -> string\n" +
@@ -609,7 +615,7 @@ defcompile("quote",
            "Returns the unevaluated x as result.",
            function(x)
            {
-               if (f$$symbolp(x[1]))
+               if (f$$symbolp(x[1]) && x[1].interned)
                    return "s" + x[1].name;
                if (f$$numberp(x[1]) || f$$stringp(x[1]))
                    return stringify(x[1]);
