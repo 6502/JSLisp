@@ -27,9 +27,9 @@
 
 (set-symbol-macro 'defmacro
                   (lambda (name args &rest body)
-                    (let ((doc null))
+                    (let ((doc (str-value (append (list name) args))))
                       (if (stringp (js-code "d$$body[0]"))
-                          (setq doc (js-code "d$$body.splice(0,1)[0]")))
+                          (setq doc (js-code "d$$doc+\"\\n\"+d$$body.splice(0,1)[0]")))
                       (list 'progn
                             (list 'set-symbol-macro
                                   (list 'quote name)
@@ -46,9 +46,9 @@
   ;; must be available during macro expansion time of the better version)
   (unless (symbol-function name)
     (set-symbol-function name 42))
-  (let ((doc null))
+  (let ((doc (str-value (append (list name) args))))
     (if (stringp (js-code "d$$body[0]"))
-        (setq doc (js-code "d$$body.splice(0,1)[0]")))
+        (setq doc (js-code "d$$doc+\"\\n\"+d$$body.splice(0,1)[0]")))
     (list 'progn
           (list 'set-symbol-function
                 (list 'quote name)
@@ -57,18 +57,17 @@
                 (list 'symbol-function (list 'quote name))
                 doc)
           (list 'quote name))))
-(set-documentation 'defmacro
+(set-documentation (symbol-macro 'defmacro)
                    "(defmacro name (args) ...)
 Defines or redefines a compile-time macro.")
 
-(set-documentation 'defun
+(set-documentation (symbol-macro 'defun)
                    "(defun name (args) ...)
 Defines or redefines a regular function")
 
 ; Length function
 (defun length (x)
-  "(length x) -> number
-Returns the length of string/list x"
+  "Returns the length of string/list x"
   (js-code "d$$x.length"))
 
 ; Simple versions of a few operators needed for bootstrap, they will be redefined
@@ -83,13 +82,11 @@ Returns the length of string/list x"
 
 ; Function accessor
 (defmacro function (x)
-  "(function x)
-Returns the function currently bound to the /unevaluated/ symbol x (including lexical bindings)"
+  "Returns the function currently bound to the /unevaluated/ symbol x (including lexical bindings)"
   (list 'js-code (+ "f" (mangle (symbol-name x)))))
 
 (defmacro set-function (x value)
-  "(set-function x value)
-Sets the function currently bound to the /unevaluated/ symbol x (including lexical bindings)"
+  "Sets the function currently bound to the /unevaluated/ symbol x (including lexical bindings)"
   (list 'js-code (+ "(f"
                     (mangle (symbol-name x)) "="
                     (js-compile value)
@@ -97,63 +94,51 @@ Sets the function currently bound to the /unevaluated/ symbol x (including lexic
 
 ; Javascript crazyness
 (defun boolp (x)
-  "(boolp x)
-True if and only if x is a boolean"
+  "True if and only if x is a boolean"
   (js-code "((typeof d$$x)=='boolean')"))
 
 (defun undefinedp (x)
-  "(undefinedp x)
-True if and only if x is the undefined value"
+  "True if and only if x is the undefined value"
   (js-code "((typeof d$$x)=='undefined')"))
 
 (defun nullp (x)
-  "(nullp x)
-True if and only if x is the null value"
+  "True if and only if x is the null value"
   (js-code "((typeof d$$x)=='object'&&!d$$x)"))
 
 (defun NaNp (x)
-  "(NaNp x)
-True if and only if x is the NaN value"
+  "True if and only if x is the NaN value"
   (js-code "((typeof d$$x)=='number'&&!d$$x&&!(d$$x==0))"))
 
 (defun objectp (x)
-  "(objectp x)
-True if and only if x is a javascript object"
+  "True if and only if x is a javascript object"
   (js-code "((d$$x&&d$$x.constructor&&d$$x.constructor==Object)==true)"))
 
 (defun zerop (x)
-  "(zerop x)
-True if and only if x is the number zero"
+  "True if and only if x is the number zero"
   (and (numberp x) (= x 0)))
 
-(defmacro aref (x i)
-  "(aref list index)
-Returns the index-th element of a list/string or the value associated to the key 'index' in an object"
-  (list 'js-code (+ "(" (js-compile x) "[" (js-compile i) "])")))
-(defun aref (x i)
-  "(aref list index)
-Returns the index-th element of a list/string or the value associated to the key 'index' in an object"
-  (aref x i))
+(defmacro aref (x k)
+  "Returns the k-th element of a list/string or the value associated to the key k in an object"
+  (list 'js-code (+ "(" (js-compile x) "[" (js-compile k) "])")))
+(defun aref (x k)
+  "Returns the k-th element of a list/string or the value associated to the key k in an object"
+  (aref x k))
 
-(defmacro set-aref (x i v)
-  "(set-aref list index value)
-Sets the index-th element of a list or the value associated to the key 'index' in an object"
-  (list 'js-code (+ "(" (js-compile x) "[" (js-compile i) "]=" (js-compile v) ")")))
+(defmacro set-aref (x k value)
+  "Sets the k-th element of a list or the value associated to the key k in an object"
+  (list 'js-code (+ "(" (js-compile x) "[" (js-compile k) "]=" (js-compile value) ")")))
 
-(defun set-aref (x i v)
-  "(set-aref list index value)
-Sets the index-th element of a list or the value associated to the key 'index' in an object"
-  (set-aref x i v))
+(defun set-aref (x k value)
+  "Sets the k-th element of a list or the value associated to the key k in an object"
+  (set-aref x k value))
 
 ; List-related macros (can't be defined before '+')
 (defmacro length (x)
-  "(length x)
-Returns the length of a list or string object"
+  "Returns the length of a list or string object"
   (list 'js-code (+ "(" (js-compile x) ".length)")))
 
 (defmacro list (&rest args)
-  "(list x1 x2 ... xn)
-Returns a new fresh list containing the values of x1, x2 ... xn"
+  "Returns a new fresh list containing the passed values"
   (let ((res "[")
         (sep ""))
     (dolist (x args)
@@ -163,25 +148,21 @@ Returns a new fresh list containing the values of x1, x2 ... xn"
     ;; macro will be available AFTER this defmacro form is evaluated
     (list 'js-code (+ res "]"))))
 
-(defun push (x v)
-  "(push value list)
-Adds the specified value to the end of the list 'list'"
-  (js-code "d$$v.push(d$$x)"))
+(defun push (value list)
+  "Adds the specified value to the end of the list"
+  (js-code "d$$list.push(d$$value)"))
 
 (defmacro rest (x)
-  "(rest x)
-Returns a list obtained from 'x' by removing first element"
+  "Returns a string or list obtained from x by removing first element"
   (list 'js-code (+ "(" (js-compile x) ".slice(1))")))
 
 (defun rest (x)
-  "(rest x)
-Returns a list obtained from 'x' by removing first element"
+  "Returns a list or string obtained from x by removing first element"
   (js-code "(d$$x.slice(1))"))
 
 ; Quasiquoting
 (defun bqconst (x)
-  "(bqconst x)
-True if the form 'x' is constant in respect to backquoting"
+  "True if the form 'x' is constant in respect to backquoting"
   (if (listp x)
       (if (or (= (aref x 0) '\,)
               (= (aref x 0) '\`)
@@ -193,8 +174,7 @@ True if the form 'x' is constant in respect to backquoting"
       true))
 
 (defun bquote (x)
-  "(bquote x)
-Returns the backquote expansion of x"
+  "Returns the backquote expansion of x"
   (cond
    ((or (numberp x) (stringp x) (= x null))
     x)
@@ -227,12 +207,13 @@ Returns the backquote expansion of x"
             (aref res 1))))))
    (true (list 'quote x))))
 
-(defmacro |`| (x) (bquote x))
+(defmacro |`| (x)
+    "Backquoting macro"
+    (bquote x))
 
 ;; defmacro/f
 (defmacro defmacro/f (name args &rest body)
-  "(defmacro/f name args &rest body)
-Defines a macro and an equivalent function"
+  "Defines a macro and an equivalent function"
   ;; Note: Defmacro must be done at macro expansion time
   ;;       because we need the macro in place when
   ;;       defun is macroexpanded
@@ -244,8 +225,7 @@ Defines a macro and an equivalent function"
 
 ;; Utilities
 (defmacro/f slice (x a b)
-  "(slice x a b)
-Returns a list obtained by copying from x elements from a-th to b-th (excluded)."
+  "Returns a list or string obtained by copying from x elements from a-th to b-th (excluded)."
   (cond
     ((and (= a undefined) (= b undefined))
      `(js-code ,(+ "(" (js-compile x) ").slice()")))
@@ -254,38 +234,34 @@ Returns a list obtained by copying from x elements from a-th to b-th (excluded).
     (true
      `(js-code ,(+ "(" (js-compile x) ".slice(" (js-compile a) "," (js-compile b) "))")))))
 
-(defmacro/f reverse (x)
-  "(reverse x)
-Returns a copy of the elements in x in the opposite ordering"
-  `(js-code ,(+ "(" (js-compile x) ".slice().reverse())")))
+(defmacro/f reverse (list)
+  "Returns a copy of the elements in the opposite ordering"
+  `(js-code ,(+ "(" (js-compile list) ".slice().reverse())")))
 
-(defmacro/f nreverse (x)
-  "(nreverse x)
-Inverts the ordering of the elements in list x"
-  `(js-code ,(+ "(" (js-compile x) ".reverse())")))
+(defmacro/f nreverse (list)
+  "Reverses in place the ordering of the elements"
+  `(js-code ,(+ "(" (js-compile list) ".reverse())")))
 
-(defmacro/f first (x) "(first x)\nFirst element of list/string" `(aref ,x 0))
-(defmacro/f second (x) "(second x)\nSecond element of list/string" `(aref ,x 1))
-(defmacro/f third (x) "(third x)\nThird element of list/string" `(aref ,x 2))
-(defmacro/f fourth (x) "(fourth x)\nFourth element of list/string" `(aref ,x 3))
-(defmacro/f fifth (x) "(fifth x)\nFifth element of list/string" `(aref ,x 4))
-(defmacro/f sixth (x) "(sixth x)\nSixth element of list/string" `(aref ,x 5))
-(defmacro/f seventh (x) "(seventh x)\nSeventh element of list/string" `(aref ,x 6))
-(defmacro/f eighth (x) "(eighth x)\nEighth element of list/string" `(aref ,x 7))
-(defmacro/f nineth (x) "(nineth x)\nNineth element of list/string" `(aref ,x 8))
-(defmacro/f tenth (x) "(tenth x)\nTenth element of list/string" `(aref ,x 9))
+(defmacro/f first (x) "First element of list/string" `(aref ,x 0))
+(defmacro/f second (x) "Second element of list/string" `(aref ,x 1))
+(defmacro/f third (x) "Third element of list/string" `(aref ,x 2))
+(defmacro/f fourth (x) "Fourth element of list/string" `(aref ,x 3))
+(defmacro/f fifth (x) "Fifth element of list/string" `(aref ,x 4))
+(defmacro/f sixth (x) "Sixth element of list/string" `(aref ,x 5))
+(defmacro/f seventh (x) "Seventh element of list/string" `(aref ,x 6))
+(defmacro/f eighth (x) "Eighth element of list/string" `(aref ,x 7))
+(defmacro/f nineth (x) "Nineth element of list/string" `(aref ,x 8))
+(defmacro/f tenth (x) "Tenth element of list/string" `(aref ,x 9))
 
 (defun subseq (x start count)
-  "(subseq x start count)
-Returns a partial copy of the list/string x starting from 'start' and with 'count' elements.
-If count is omitted then the subsequence will contain all elements from start to the end of the list."
+  "Returns a partial copy of the list/string x starting from 'start' and with 'count' elements.
+If count is omitted then the subsequence will contain all elements from start to the end of the list/string."
   (if (= count undefined)
       (slice x start)
       (slice x start (+ start count))))
 
 (defmacro defmathop (name comment none single jsname)
-  "(defmathop name comment none single jsname)
-Defines a math operator macro with the given comment (comment), the value to use in case of no operands (none), the value in case of a single operand x (single) and the Javascript operator name (jsname) when more operands are present."
+  "Defines a math operator macro with the given comment (comment), the value to use in case of no operands (none), the value in case of a single operand x (single) and the Javascript operator name (jsname) when more operands are present."
   `(defmacro ,name (&rest args)
      ,comment
      (cond
@@ -307,8 +283,7 @@ Defines a math operator macro with the given comment (comment), the value to use
                       ")"))))))
 
 (defmacro defmathop-func (name)
-  "(defmathop-func name)
-Defines a math function based on a math operator macro defined with defmathop."
+  "Defines a math function based on a math operator macro defined with defmathop."
   `(defun ,name (&rest args)
      ,(documentation (symbol-macro name))
      (cond
@@ -324,19 +299,19 @@ Defines a math function based on a math operator macro defined with defmathop."
 
 ; Math n-ary operators macros and functions
 
-(defmathop + "(+ x1 x2 x3 ...)\nAddition/string concatenation"
+(defmathop + "Numeric addition or string concatenation"
   0 (aref args 0) "+")
-(defmathop - "(- x1 x2 x3 ...)\nSubtraction"
+(defmathop - "Numeric subtraction. When called with a single argument negates the operand."
   0 `(js-code ,(+ "-" (js-compile (aref args 0)))) "-")
-(defmathop * "(* x1 x2 x3 ...)\nMultiplication"
+(defmathop * "Numeric multiplication"
   1 (aref args 0) "*")
-(defmathop / "(/ x1 x2 ...)\nDivision"
+(defmathop / "Numeric division. When called with a single operand returns the inverse."
   1 `(/ 1 ,(aref args 0)) "/")
-(defmathop logior "(logior x1 x2 ...)\nBitwise inclusive or"
+(defmathop logior "Bitwise inclusive or"
   0 (aref args 0) "|")
-(defmathop logand "(logand x1 x2 ...)\nBitwise and"
+(defmathop logand "Bitwise and"
   -1 (aref args 0) "&")
-(defmathop logxor "(logxor x1 x2 ...)\nBitwise exclusive or"
+(defmathop logxor "Bitwise exclusive or"
   0 (aref args 0) "^")
 (defmathop-func +)
 (defmathop-func -)
@@ -347,8 +322,7 @@ Defines a math function based on a math operator macro defined with defmathop."
 (defmathop-func logxor)
 
 (defmacro/f % (a b)
-  "(% a b)
-Modulo operation"
+  "Modulo operation"
   `(js-code ,(+ "("
                 (js-compile a)
                 "%"
@@ -356,28 +330,24 @@ Modulo operation"
                 ")")))
 
 (defun ash (x count)
-  "(ash x count)
-Arithmetic shift left (< count 0) or right (> count 0)"
+  "Arithmetic shift left (< count 0) or right (> count 0)"
   (js-code "(d$$count<0?(d$$x>>-d$$count):(d$$x<<d$$count))"))
 
 ; Make symbol / gensym
 (defun make-symbol (name)
-  "(make-symbol name/stringp)
-Creates a new uninterned symbol."
+  "Creates a new uninterned symbol"
   (js-code "(new Symbol(f$$mangle(d$$name)))"))
 
 (defvar *gensym-count* 0)
 
 (defun gensym (prefix)
-  "(gensym [prefix])
-Returns a new uninterned unique symbol eventually named using the specified prefix"
+  "Returns a new uninterned unique symbol eventually named using the specified prefix"
   (make-symbol (+ "G:" (if prefix (+ prefix "/") "")
                   (setq *gensym-count* (+ 1 *gensym-count*)))))
 
 ; Comparisons
 (defmacro defrelop (name comment jsname)
-  "(defrelop name comment jsname)
-Defines a relational operator short-circuiting macro given the name comment and Javascript operator name."
+  "Defines a relational operator short-circuiting macro given the name comment and Javascript operator name."
   `(defmacro ,name (&rest args)
      ,comment
      (cond
@@ -395,8 +365,7 @@ Defines a relational operator short-circuiting macro given the name comment and 
             (and (,',name x1 x2) (,',name x2 ,@(slice args 2)))))))))
 
 (defmacro defrelop-func (name)
-  "(defrelop-func name)
-Defines a variadic relational operator function given a corresponding macro."
+  "Defines a variadic relational operator function given a corresponding macro name"
   `(defun ,name (&rest args)
      ,(documentation (symbol-macro name))
      (if (< (length args) 2)
@@ -408,12 +377,12 @@ Defines a variadic relational operator function given a corresponding macro."
                 (= i n))
            (setq current (aref args i))))))
 
-(defrelop <  "(< x1 x2 ...)\nStrictly less than comparison" "<")
-(defrelop <= "(<= x1 x2 ...)\nLess than or equal comparison" "<=")
-(defrelop =  "(= x1 x2 ...)\nEquality comparison" "==")
-(defrelop == "(== x1 x2 ...)\nTyped-equality comparison" "===")
-(defrelop >= "(>= x1 x2 ...)\nGreater than or equal comparison" ">=")
-(defrelop >  "(> x1 x2 ...)\nStrictly greather than comparison" ">")
+(defrelop <  "Strictly less than comparison" "<")
+(defrelop <= "Less than or equal comparison" "<=")
+(defrelop =  "Equality comparison" "==")
+(defrelop == "Typed-equality comparison" "===")
+(defrelop >= "Greater than or equal comparison" ">=")
+(defrelop >  "Strictly greather than comparison" ">")
 (defrelop-func <  )
 (defrelop-func <= )
 (defrelop-func =  )
@@ -424,8 +393,7 @@ Defines a variadic relational operator function given a corresponding macro."
 ;; /= operator is different from others as no transitivity can be used
 ;; (it means "arguments are all distinct")
 (defmacro /= (&rest args)
-  "(/= x1 x2 x3 ...)
-True if and only if the values x1, x2, x3 ... are all distinct"
+  "True if and only if the passed values are all distinct"
   (cond
     ((< (length args) 2)
      true)
@@ -442,8 +410,7 @@ True if and only if the values x1, x2, x3 ... are all distinct"
                   (+ res "return true;})()"))))))
 
 (defun /= (&rest args)
-  "(/= x1 x2 x3 ...)
-True if and only if the values x1, x2, x3 ... are all distinct"
+  "True if and only if the passed values are all distinct"
   (if (< (length args) 2)
       true
       (do ((n (- (length args) 1))
@@ -452,20 +419,14 @@ True if and only if the values x1, x2, x3 ... are all distinct"
              (= i n)))))
 
 (defmacro let* (bindings &rest body)
-  "(let* ((x1 v1)(x2 v2)...(xn vn)) f1 f2 ... fn)
-Evaluates the body forms f1, f2 ... fn in sequence by first establishing lexical/dynamic bindings
-x1=v1, x2=v2 ... xn=vn and when during the evaluation of form vk all previous bindings x1, x2 ... xk-1
-are already visible."
+  "Evaluates the body forms in sequence by first establishing lexical/dynamic bindings 'one at a time' so that during the evaluation n-th binding all previous ones are already visible"
   (if (> (length bindings) 1)
      `(let (,(aref bindings 0))
         (let* ,(rest bindings) ,@body))
      `(let ,bindings ,@body)))
 
 (defmacro setf (place value)
-  "(setf place value)
-Sets the content of a place to be the specified value. A place is either a symbol or a form (e.g. (aref x i))
-for which a corresponding setting form is defined (e.g. (set-aref x i value)) either as function or macro
-eventually after macro expansion."
+  "Sets the content of a place to be the specified value. A place is either a symbol or a form (e.g. (aref x i)) for which a corresponding setting form is defined (e.g. (set-aref x i value)) either as function or macro eventually after macro expansion."
   (cond
     ((symbolp place)
      `(setq ,place ,value))
@@ -480,11 +441,8 @@ eventually after macro expansion."
     (true (error "Invalid setf place"))))
 
 (defmacro incf (place inc)
-  "(incf place [increment])
-Increments the content of a place by the specified increment or by 1 if not specified.
-A place is either a symbol or a form (e.g. (aref x i)) for which a corresponding
-increment form is defined (e.g. (inc-aref x i increment)) either as function or macro
-eventually after macro expansion."
+  "Increments the content of a place by the specified increment or by 1 if not specified.
+A place is either a symbol or a form (e.g. (aref x i)) for which a corresponding increment form is defined (e.g. (inc-aref x i inc)) either as function or macro eventually after macro expansion."
   (if (= inc undefined) (setf inc 1))
   (cond
     ((symbolp place)
@@ -499,55 +457,47 @@ eventually after macro expansion."
                 (error "Unsupported decf place")))))
     (true (error "Invalid incf place"))))
 
-(defmacro decf (place inc)
-  "(decf place [decrement])
-Decrements the content of a place by the specified decrement or by 1 if not specified.
-A place is either a symbol or a form (e.g. (aref x i)) for which a corresponding
-decrement form is defined (e.g. (dec-aref x i decrement)) either as function or macro
-eventually after macro expansion."
-  (if (= inc undefined) (setf inc 1))
+(defmacro decf (place dec)
+  "Decrements the content of a place by the specified decrement or by 1 if not specified.
+A place is either a symbol or a form (e.g. (aref x i)) for which a corresponding decrement form is defined (e.g. (dec-aref x i dec)) either as function or macro eventually after macro expansion."
+  (if (= dec undefined) (setf dec 1))
   (cond
     ((symbolp place)
-     `(setq ,place (- ,place ,inc)))
+     `(setq ,place (- ,place ,dec)))
     ((listp place)
      (let* ((f (first place))
             (sf (intern (+ "dec-" (symbol-name f)))))
        (if (or (symbol-function sf) (symbol-macro sf))
-           `(,sf ,@(rest place) ,inc)
+           `(,sf ,@(rest place) ,dec)
            (if (symbol-macro f)
-               `(decf ,(macroexpand-1 place) ,inc)
+               `(decf ,(macroexpand-1 place) ,dec)
                 (error "Unsupported decf place")))))
     (true (error "Invalid decf place"))))
 
 (defmacro/f 1+ (x)
-  "(1+ x)
-Returns (+ x 1)"
+  "Returns (+ x 1)"
   `(+ ,x 1))
 
 (defmacro/f 1- (x)
-  "(1- x)
-Returns (- x 1)"
+  "Returns (- x 1)"
   `(- ,x 1))
 
-(defmacro inc-aref (array index value)
-  "(inc-aref list index increment)
-Increments the index-th element of a list or the element associated to key 'index' in a javascript object"
-  `(js-code ,(+ "(" (js-compile array)
-                "[" (js-compile index)
+(defmacro inc-aref (x k value)
+  "Increments the k-th element of a list or the element associated to key k in a javascript object"
+  `(js-code ,(+ "(" (js-compile x)
+                "[" (js-compile k)
                 "]+=" (js-compile value) ")")))
 
-(defmacro dec-aref (array index value)
-  "(dec-aref list index decrement)
-Decrements the index-th element of a list or the element associated to key 'index' in a javascript object"
-  `(js-code ,(+ "(" (js-compile array)
-                "[" (js-compile index)
+(defmacro dec-aref (x k value)
+  "Decrements the k-th element of a list or the element associated to key k in a javascript object"
+  `(js-code ,(+ "(" (js-compile x)
+                "[" (js-compile k)
                 "]-=" (js-compile value) ")")))
 
 ; Sequence utilities
 (defun reduce (f seq)
-  "(reduce function sequence)
-Reduces a sequence to a single value by repeating application of function to pairs of elements in the sequence.
-For an empty sequence the return value is the result of calling function without parameters"
+  "Reduces a sequence to a single value by repeating application of function f to pairs of elements in the sequence seq.
+For an empty sequence the return value is the result of calling the function without parameters"
   (if (= 0 (length seq))
       (funcall f)
       (let ((res (first seq)))
@@ -556,27 +506,23 @@ For an empty sequence the return value is the result of calling function without
         res)))
 
 (defun min (seq)
-  "(min sequence)
-Returns the minimum value of a sequence under comparison with <"
+  "Returns the minimum value of a sequence under comparison with <"
   (reduce (lambda (x y) (if (< x y) x y)) seq))
 
 (defun max (seq)
-  "(max sequence)
-Returns the maximum value of a sequence under comparison with >"
+  "Returns the maximum value of a sequence under comparison with >"
   (reduce (lambda (x y) (if (> x y) x y)) seq))
 
 (defun map (f seq)
-  "(map function sequence)
-Returns the sequence obtained by applying function to each element of sequence"
+  "Returns the sequence obtained by applying function f to each element of sequence seq"
   (let ((res (list)))
     (dolist (x seq)
       (push (funcall f x) res))
     res))
 
 (defun zip (&rest sequences)
-  "(zip seq1 seq2 ... seqn)
-Returns a list of lists built from corresponding elements in all sequences.
-The resulting list length is equal to the shorter of seq1, seq2, ... seqn."
+  "Returns a list of lists built from corresponding elements in all sequences.
+The resulting list length is equal to the shortest input sequence."
   (let ((n (min (map #'length sequences))))
     (let ((res (list)))
       (dotimes (i n)
@@ -584,23 +530,20 @@ The resulting list length is equal to the shorter of seq1, seq2, ... seqn."
       res)))
 
 (defun mapn (f &rest sequences)
-  "(mapn function &rest sequences)
-Returns the sequence of calling function passing as parameters corresponding elements in the sequences.
-The resulting list length is equal to the shotest sequence."
+  "Returns the sequence of calling function f passing as parameters corresponding elements from the sequences.
+The resulting list length is equal to the length of the shortest sequence."
   (map (lambda (args) (apply f args))
        (apply #'zip sequences)))
 
 (defun make-array (n initial-value)
-  "(make-array size initial-value)
-Creates a list with the specified number of elements all of them with the specified value"
+  "Creates a list containing n elements all equal to the specified initial value"
   (let ((x (list)))
     (dotimes (i n)
       (setf (aref x i) initial-value))
     x))
 
 (defun filter (f seq)
-  "(filter function sequence)
-Returns the subset of elements from sequence for which the function filter returned a logical true value"
+  "Returns the subset of elements from sequence seq for which the function f returned a logical true value"
   (let ((res (list)))
     (dolist (x seq)
       (when (funcall f x)
@@ -608,8 +551,8 @@ Returns the subset of elements from sequence for which the function filter retur
     res))
 
 (defun range (start stop step)
-  "(range [start] stop [step])
-Returns a list containing all numbers from start (0 if not specified) up to stop counting by step (1 if not specified)."
+  "Returns a list containing all numbers from start (0 if not specified) up to stop counting by step (1 if not specified).
+If only one parameter is passed it's assumed to be 'stop'."
   (when (= step undefined)
     (setf step 1))
   (when (= stop undefined)
@@ -622,25 +565,21 @@ Returns a list containing all numbers from start (0 if not specified) up to stop
     res))
 
 (defun index (x L)
-  "(index x L)
-Returns the index position in which x appears in list/string L or -1 if it's not present"
+  "Returns the index position in which x appears in list/string L or -1 if it's not present"
   (js-code "d$$L.indexOf(d$$x)"))
 
 (defun last-index (x L)
-  "(last-index x L)
-Returns the last index position in which x appears in list/string L or -1 if it's not present"
+  "Returns the last index position in which x appears in list/string L or -1 if it's not present"
   (js-code "d$$L.lastIndexOf(d$$x)"))
 
 (defmacro/f nsort (x cond)
-  "(nsort sequence condition)
-Modifies a sequence by sorting the elements according to the specified condition or #'< if no condition is given."
+  "Modifies a sequence inplace by sorting the elements according to the specified condition or #'< if no condition is given."
   (if (= cond undefined)
       `(js-code ,(+ "(" (js-compile x) ").sort(function(a,b){return a<b?-1:1;})"))
       `(js-code ,(+ "(" (js-compile x) ").sort(function(a,b){return (" (js-compile cond) ")(a,b)?-1:1;})"))))
 
 (defmacro/f sort (x cond)
-  "(sort sequence condition)
-Returns a copy of a sequence with elements sorted according to the specified condition or #'< if no condition is given."
+  "Returns a copy of a sequence with elements sorted according to the specified condition or #'< if no condition is given."
   `(nsort (slice ,x) ,cond))
 
 ; Keyword arguments
@@ -731,9 +670,8 @@ Returns a copy of a sequence with elements sorted according to the specified con
 
 ; Defstruct
 (defmacro defstruct (name &rest fields)
-  "(defstruct field1 field2 ... fieldn)
-Defines a structur with the specified fields. Each field can be either a symbol or a list with a symbol
-and a default value that will be used when instantiating the structure if no values are passed for
+  "Defines a structure with the specified fields. Each field can be either a symbol or a list with a symbol
+and a default value form that will be used when instantiating the structure if no values are passed for
 that field. When absent the default value is assumed to be the undefined value."
   (let ((fnames (map (lambda (f) (if (listp f)
                                      (first f)
@@ -758,23 +696,23 @@ that field. When absent the default value is assumed to be the undefined value."
            res))))
 
 ; Math functions
-(defmacro/f sin (x) "(sin x)\nSine of angle x in radians"
+(defmacro/f sin (x) "Sine of angle x in radians"
   `(js-code ,(+ "Math.sin(" (js-compile x) ")")))
-(defmacro/f cos (x) "(cos x)\nCosine of angle x in radians"
+(defmacro/f cos (x) "Cosine of angle x in radians"
   `(js-code ,(+ "Math.cos(" (js-compile x) ")")))
-(defmacro/f tan (x) "(tan x)\nTangent of angle x in radians"
+(defmacro/f tan (x) "Tangent of angle x in radians"
   `(js-code ,(+ "Math.tan(" (js-compile x) ")")))
-(defmacro/f exp (x) "(exp x)\ne=2.718281828... raised to power of x"
+(defmacro/f exp (x) "e=2.718281828... raised to power of x"
   `(js-code ,(+ "Math.exp(" (js-compile x) ")")))
-(defmacro/f log (x) "(log x)\nNatural logarithm of x"
+(defmacro/f log (x) "Natural logarithm of x"
   `(js-code ,(+ "Math.log(" (js-compile x) ")")))
-(defmacro/f atan (x) "(atan x)\nArc-tangent in radians of the value x"
+(defmacro/f atan (x) "Arc-tangent in radians of the value x"
   `(js-code ,(+ "Math.atan(" (js-compile x) ")")))
-(defmacro/f floor (x) "(floor x)\nBiggest integer that is not bigger than x"
+(defmacro/f floor (x) "Biggest integer that is not bigger than x"
   `(js-code ,(+ "Math.floor(" (js-compile x) ")")))
-(defmacro/f abs (x) "(abs x)\nAbsolute value of x"
+(defmacro/f abs (x) "Absolute value of x"
   `(js-code ,(+ "Math.abs(" (js-compile x) ")")))
-(defmacro/f atan2 (y x) "(atan2 y x)\nArc-tangent of y/x in radians with proper handling of all quadrants"
+(defmacro/f atan2 (y x) "Arc-tangent of y/x in radians with proper handling of all quadrants"
   `(js-code ,(+ "Math.atan(" (js-compile y) "," (js-compile x) ")")))
 (setq pi (js-code "Math.PI"))
 
@@ -793,41 +731,35 @@ Evaluates expr and in case of exception evaluates the on-error form setting *exc
 
 ; Timing
 (defun clock ()
-  "(clock)
-Returns the number of millisecond passed since midnight of January 1st, 1970"
+  "Returns the number of millisecond passed since 00:00:00.000 of January 1st, 1970"
   (js-code "(new Date).getTime()"))
 
 (defmacro time (&rest body)
-  "(time form1 form2 ... formn)
-Measures and returns the number of millisecond needed for the evaluation form1 form2 ... formn in sequence"
-   (let ((start (gensym)))
-     `(let ((,start (clock)))
-        ,@body
-        (- (clock) ,start))))
+  "Measures and returns the number of millisecond needed for the evaluation of all body forms in sequence"
+  (let ((start (gensym)))
+    `(let ((,start (clock)))
+       ,@body
+       (- (clock) ,start))))
 
 ; Regular expression
 (defun regexp (x options)
-  "(regexp string [options])
-Returns a new Javascript regular expression object"
+  "Returns a new Javascript regular expression object"
   (js-code "(new RegExp(d$$x,d$$options|\"\"))"))
 
 (defun replace (x a b)
-  "(replace x a b)
-Replaces all instances of regular expression a with b."
+  "Replaces all instances of regular expression a with b."
   (js-code "d$$x.replace(new RegExp(d$$a,'g'), d$$b)"))
 
 ; JS object access/creation
 (defmacro . (obj &rest fields)
-  "(obj field sub-field sub-sub-field ...)
-Returns the javascript object value selected by traversing the specified list of fields (unevaluated symbols)"
+  "Returns the javascript object value selected by traversing the specified list of fields (unevaluated symbols)"
   (let ((res (js-compile obj)))
     (dolist (x fields)
       (setf res (+ res "." (symbol-name x))))
     `(js-code ,res)))
 
 (defmacro set-. (obj &rest fields)
-  "(set-obj field sub-field sub-sub-field ... value)
-Sets the javascript object value selected by traversing the specified list of fields (unevaluated symbols)"
+  "Sets the javascript object value selected by traversing the specified list of fields (unevaluated symbols)"
     (let ((res (js-compile obj)))
         (dolist (x (slice fields 0 (1- (length fields))))
             (setf res (+ res "." (symbol-name x))))
@@ -835,9 +767,8 @@ Sets the javascript object value selected by traversing the specified list of fi
         `(js-code ,res)))
 
 (defmacro js-object (&rest fields)
-  "(js-object (x1 v1)(x2 v2)...(xn vn))
-Creates a javascript object and assigns v1 to the field x1, v2 to field x2 ... vn to field xn.
-Fields are specified as unevaluated symbols."
+  "Creates a javascript object and eventually assigns fields.
+Each field is a list of an unevaluated symbol as name and a value."
   (let ((self (gensym)))
     `(let ((,self (js-code "({})")))
        ,@(let ((res (list)))
@@ -847,15 +778,14 @@ Fields are specified as unevaluated symbols."
        ,self)))
 
 (defun keys (obj)
-  "(keys obj)\nReturns a list of all keys defined in the specified javascript object"
+  "Returns a list of all keys defined in the specified javascript object"
   (js-code "((function(){var res=[];for(var $i in d$$obj)res.push($i);return res})())"))
 
 ; DOM
 (setf document (js-code "document"))
 (setf window (js-code "window"))
 (defun htm (x)
-  "(htm x)
-Escapes characters so that the string x can be displayed correctly in HTML"
+  "Escapes characters so that the content string x can be displayed correctly as HTML"
   (dolist (c (list "&&amp;"
                    "<&lt;"
                    ">&gt;"
@@ -865,24 +795,20 @@ Escapes characters so that the string x can be displayed correctly in HTML"
 
 
 (defun get-element-by-id (id)
-  "(get-element-by-id id)
-Returns the DOM element with the specified id value"
+  "Returns the DOM element with the specified id value"
   (funcall (. document getElementById) id))
 
 (defun create-element (type)
-  "(create-element type)
-Creates a new DOM element with the specified type passed as a string"
+  "Creates a new DOM element with the specified type passed as a string"
   (funcall (. document createElement) type))
 
-(defun append-child (x child)
-  "(append-child parent child)
-Appends the DOM element 'child' as last (frontmost) children of the DOM element 'parent'"
-  (funcall (. x appendChild) child))
+(defun append-child (parent child)
+  "Appends the DOM element 'child' as last (frontmost) children of the parent DOM element"
+  (funcall (. parent appendChild) child))
 
-(defun remove-child (x child)
-  "(remove-child parent child)
-Removes the DOM element child from the list of children of DOM element 'parent'"
-  (funcall (. x removeChild) child))
+(defun remove-child (parent child)
+  "Removes the DOM element child from the list of children of parent DOM element"
+  (funcall (. parent removeChild) child))
 
 ; String interpolation reader
 (setf (reader "~")
@@ -919,28 +845,24 @@ Removes the DOM element child from the list of children of DOM element 'parent'"
 
 ; Javascript blocking interaction
 (defun prompt (x)
-  "(prompt x)
-Asks the user for a string providing 'x' as a prompt message"
+  "Asks the user for a string providing x as a prompt message"
   (js-code "prompt(d$$x)"))
 
 (defun alert (x)
-  "(alert x)
-Displays an alert message to the user"
+  "Displays an alert message x to the user"
   (js-code "alert(d$$x)"))
 
-(defun yesno (msg)
-  "(yesno question)
-Asks the user to reply either yes or no to a question. Returns True if the answer is yes or False otherwise"
-  (do ((reply (prompt msg)
-              (prompt ~"I don't understand...\n{msg}\nPlease answer \"yes\" or \"no\" without quotes.")))
+(defun yesno (x)
+  "Asks the user to reply either yes or no to a question. Returns True if the answer is yes or False otherwise"
+  (do ((reply (prompt x)
+              (prompt ~"I don't understand...\n{x}\nPlease answer \"yes\" or \"no\" without quotes.")))
       ((or (= reply "yes")
            (= reply "no"))
        (= reply "yes"))))
 
 ; documentation support
 (defmacro help (name)
-  "(help symbol)
-Displays any documentation for compile specialization, macro, function or value bound to the symbol."
+  "Displays any documentation for compile specialization, macro, function or value bound to the (unevaluated) specified symbol."
   (labels ((doc (x)
              (unless (stringp x)
                (setf x (or (documentation x) "- no documentation -")))
