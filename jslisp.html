@@ -82,6 +82,7 @@ var indent_rules = {
 
 function updateClpar(text)
 {
+    var quote = 0;
     var i = 0;
     if (text == undefined)
     {
@@ -134,26 +135,32 @@ function updateClpar(text)
         }
         else if (text[i] == '"' || text[i] == '|')
         {
+            quote = 1;
             var q = text[i++];
             while (i < text.length && text[i] != q)
             {
                 if (text[i] == '\\') i++;
                 i++;
             }
+            if (i < text.length) quote = 0;
             i++;
         }
         else if (text[i] == ';')
         {
+            quote = 1;
             while (i < text.length && text[i] != '\n')
                 i++;
+            if (i < text.length) quote = 0;
             i++;
         }
         else if (text[i] == '#')
         {
+            quote = 1;
             i++;
             if (text[i] == '\\') i+=2;
             while (i < text.length && "() \t\n\r".indexOf(text[i]) == -1)
                 i++;
+            if (i < text.length) quote = 0;
         }
         else
         {
@@ -171,7 +178,7 @@ function updateClpar(text)
     }
     catch(indent)
     {
-        if (text[text.length-1] == ")")
+        if (!quote && text[text.length-1] == ")")
         {
             var s = indent[indent.length-1][0];
             var before = text.substr(0, s);
