@@ -231,7 +231,7 @@ Returns the backquote expansion of x"
 
 ;; defmacro/f
 (defmacro defmacro/f (name args &rest body)
-  "(defmacro/f <name> <args> &rest <body)
+  "(defmacro/f name args &rest body)
 Defines a macro and an equivalent function"
   ;; Note: Defmacro must be done at macro expansion time
   ;;       because we need the macro in place when
@@ -284,6 +284,8 @@ If count is omitted then the subsequence will contain all elements from start to
       (slice x start (+ start count))))
 
 (defmacro defmathop (name comment none single jsname)
+  "(defmathop name comment none single jsname)
+Defines a math operator macro with the given comment (comment), the value to use in case of no operands (none), the value in case of a single operand x (single) and the Javascript operator name (jsname) when more operands are present."
   `(defmacro ,name (&rest args)
      ,comment
      (cond
@@ -305,6 +307,8 @@ If count is omitted then the subsequence will contain all elements from start to
                       ")"))))))
 
 (defmacro defmathop-func (name)
+  "(defmathop-func name)
+Defines a math function based on a math operator macro defined with defmathop."
   `(defun ,name (&rest args)
      ,(documentation (symbol-macro name))
      (cond
@@ -366,6 +370,8 @@ Returns a new unique symbol eventually named using the specified prefix"
              (setq *gensym-count* (+ 1 *gensym-count*)))))
 
 (defmacro defrelop (name comment jsname)
+  "(defrelop name comment jsname)
+Defines a relational operator short-circuiting macro given the name comment and Javascript operator name."
   `(defmacro ,name (&rest args)
      ,comment
      (cond
@@ -383,6 +389,8 @@ Returns a new unique symbol eventually named using the specified prefix"
             (and (,',name x1 x2) (,',name x2 ,@(slice args 2)))))))))
 
 (defmacro defrelop-func (name)
+  "(defrelop-func name)
+Defines a variadic relational operator function given a corresponding macro."
   `(defun ,name (&rest args)
      ,(documentation (symbol-macro name))
      (if (< (length args) 2)
@@ -632,47 +640,50 @@ Returns a copy of a sequence with elements sorted according to the specified con
 ; Keyword arguments
 
 (setf (compile-specialization 'lambda)
-      (let ((oldcf (compile-specialization 'lambda))
-            (unassigned (gensym)))
-        (lambda (whole)
-          (let* ((args (second whole))
-                 (body (slice whole 2))
-                 (i (index '&key args)))
-            (if (= i -1)
-                (funcall oldcf whole)
-                (let ((rest (gensym "rest"))
-                      (nrest (gensym "nrest"))
-                      (ix (gensym "ix")))
-                  (unless (= -1 (index '&rest args))
-                    (error "&key and &rest are incompatible"))
-                  (funcall oldcf
-                           `(lambda (,@(slice args 0 i) &rest ,rest)
-                              (let ((,nrest (length ,rest))
-                                    ,@(map (lambda (x)
-                                             (if (listp x)
-                                                 `(,(first x) ',unassigned)
-                                                 `(,x undefined)))
-                                        (slice args (1+ i))))
-                                (do ((,ix 0 (+ ,ix 2)))
-                                    ((>= ,ix ,nrest)
-                                       (when (> ,ix ,nrest)
-                                         (error "Invalid number of parameters")))
-                                  (cond
-                                    ,@(append
-                                       (map (lambda (x)
-                                              `((= (aref ,rest ,ix)
-                                                   ,(intern (+ ":" (symbol-name (if (listp x) (first x) x)))))
-                                                (setf ,(if (listp x) (first x) x) (aref ,rest (1+ ,ix)))))
-                                            (slice args (1+ i)))
-                                       `((true (error "Invalid parameters"))))))
-                                ,@(let ((res (list)))
-                                       (dolist (x (slice args (1+ i)))
-                                         (when (listp x)
-                                           (push `(when (= ,(first x) ',unassigned)
-                                                    (setf ,(first x) ,(second x)))
-                                                 res)))
-                                       res)
-                                ,@body)))))))))
+      (let* ((oldcf (compile-specialization 'lambda))
+             (oldcomm (documentation (compile-specialization 'lambda)))
+             (unassigned (gensym))
+             (f (lambda (whole)
+                  (let* ((args (second whole))
+                         (body (slice whole 2))
+                         (i (index '&key args)))
+                    (if (= i -1)
+                        (funcall oldcf whole)
+                        (let ((rest (gensym "rest"))
+                              (nrest (gensym "nrest"))
+                              (ix (gensym "ix")))
+                          (unless (= -1 (index '&rest args))
+                            (error "&key and &rest are incompatible"))
+                          (funcall oldcf
+                                   `(lambda (,@(slice args 0 i) &rest ,rest)
+                                      (let ((,nrest (length ,rest))
+                                            ,@(map (lambda (x)
+                                                     (if (listp x)
+                                                         `(,(first x) ',unassigned)
+                                                         `(,x undefined)))
+                                                   (slice args (1+ i))))
+                                        (do ((,ix 0 (+ ,ix 2)))
+                                            ((>= ,ix ,nrest)
+                                             (when (> ,ix ,nrest)
+                                               (error "Invalid number of parameters")))
+                                          (cond
+                                            ,@(append
+                                               (map (lambda (x)
+                                                      `((= (aref ,rest ,ix)
+                                                           ,(intern (+ ":" (symbol-name (if (listp x) (first x) x)))))
+                                                        (setf ,(if (listp x) (first x) x) (aref ,rest (1+ ,ix)))))
+                                                    (slice args (1+ i)))
+                                               `((true (error "Invalid parameters"))))))
+                                        ,@(let ((res (list)))
+                                               (dolist (x (slice args (1+ i)))
+                                                 (when (listp x)
+                                                   (push `(when (= ,(first x) ',unassigned)
+                                                            (setf ,(first x) ,(second x)))
+                                                         res)))
+                                               res)
+                                        ,@body)))))))))
+        (setf (documentation f) oldcomm)
+        f))
 
 ; Defstruct
 (defmacro defstruct (name &rest fields)
@@ -732,6 +743,9 @@ that field. When absent the default value is assumed to be the undefined value."
            ");}catch(err){var olderr=d$$$42$exception$42$;d$$$42$exception$42$=err;var res=("
            (js-compile (aref x 2))
            ");d$$$42$exception$42$=olderr;return res;}})())")))
+(setf (documentation (compile-specialization 'try))
+      "(try expr on-error)
+Evaluates expr and in case of exception evaluates the on-error form setting *exception* to the current exception")
 
 ; Timing
 (defun clock ()
@@ -746,6 +760,17 @@ Measures and returns the number of millisecond needed for the evaluation form1 f
      `(let ((,start (clock)))
         ,@body
         (- (clock) ,start))))
+
+; Regular expression
+(defun regexp (x options)
+  "(regexp string [options])
+Returns a new Javascript regular expression object"
+  (js-code "(new RegExp(d$$x,d$$options|\"\"))"))
+
+(defun replace (x a b)
+  "(replace x a b)
+Replaces all instances of regular expression a with b."
+  (js-code "d$$x.replace(new RegExp(d$$a,'g'), d$$b)"))
 
 ; JS object access/creation
 (defmacro . (obj &rest fields)
@@ -784,6 +809,16 @@ Fields are specified as unevaluated symbols."
 ; DOM
 (setf document (js-code "document"))
 (setf window (js-code "window"))
+(defun htm (x)
+  "(htm x)
+Escapes characters so that the string x can be displayed correctly in HTML"
+  (dolist (c (list "&&amp;"
+                   "<&lt;"
+                   ">&gt;"
+                   "\"&quot;"))
+    (setf x (replace x (subseq c 0 1) (subseq c 1))))
+  x)
+
 
 (defun get-element-by-id (id)
   "(get-element-by-id id)

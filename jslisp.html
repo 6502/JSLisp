@@ -210,15 +210,18 @@ function htmlesc(x)
             .replace(/\n/g, "<br/>"));
 }
 
-function f$$display(x)
-{
-    repl.value += x + "\n";
-    var i = repl.value.length;
-    repl.setSelectionRange(i, i);
-    repl.scrollTop = repl.scrollHeight;
-    repl.focus();
-    return x;
-};
+deflisp("display",
+        "(display x)\n" +
+        "Displays the string x in the browser window",
+        function(x)
+        {
+            repl.value += x + "\n";
+            var i = repl.value.length;
+            repl.setSelectionRange(i, i);
+            repl.scrollTop = repl.scrollHeight;
+            repl.focus();
+            return x;
+        });
 
 function process()
 {

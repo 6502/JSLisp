@@ -1,14 +1,3 @@
-(defun replace (x a b)
-  (js-code "d$$x.replace(new RegExp(d$$a,'g'), d$$b)"))
-
-(defun htm (x)
-  (dolist (c (list "&&amp;"
-                   "<&lt;"
-                   ">&gt;"
-                   "\"&quot"))
-    (setf x (replace x (subseq c 0 1) (subseq c 1))))
-  x)
-
 (let ((functions (map (lambda (x)
                         (list (demangle (subseq x 1))
                               (documentation (aref window x))))
@@ -53,7 +42,9 @@
                          (list "Compile specializations" compspecs)))
       (out ~"<h1>{(first group)}</h1>")
       (dolist (f (sort (second group) (lambda (x y) (< (first x) (first y)))))
-        (out ~"<a href=\"#{(subseq (first group) 0 1)}_{(mangle (first f))}\">{(first f)}</a> ")))
+        (out ~"<a href=\"#{(subseq (first group) 0 1)}_{(mangle (first f))}\">")
+        (out ~"<span style=\"font-family:Courier new; font-weight:bold\">{(first f)}</span>")
+        (out ~"</a> ")))
     (dolist (group (list (list "Functions" functions)
                          (list "Macros" macros)
                          (list "Compile specializations" compspecs)))
@@ -63,10 +54,10 @@
         (out ~"<span style=\"font-weight:bold; font-family:Courier New\">{(htm (first f))}</span></a>")
         (let* ((doc (or (second f) "No documentation available"))
                (i (index "\n" doc))
-               (pre (list)))
+               (pre ""))
           (when (/= i -1)
-            (push (subseq doc 0 i) pre)
+            (setf pre (subseq doc 0 i))
             (setf doc (subseq doc (1+ i))))
-          (out ~"<pre>{pre}</pre>{(htm doc)}</div>"))))
+          (out ~"<pre>{(htm pre)}</pre>{(htm doc)}</div>"))))
     (out "</body></html>"))
   (display result))
