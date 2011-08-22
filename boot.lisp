@@ -57,6 +57,13 @@
                 (list 'symbol-function (list 'quote name))
                 doc)
           (list 'quote name))))
+(set-documentation 'defmacro
+                   "(defmacro name (args) ...)
+Defines or redefines a compile-time macro.")
+
+(set-documentation 'defun
+                   "(defun name (args) ...)
+Defines or redefines a regular function")
 
 ; Length function
 (defun length (x)
@@ -230,7 +237,10 @@ Defines a macro and an equivalent function"
   ;;       because we need the macro in place when
   ;;       defun is macroexpanded
   (eval `(defmacro ,name ,args ,@body))
-  `(defun ,name ,args (,name ,@args)))
+  (let ((doc (if (stringp (aref body 0))
+                 (js-code "d$$body.splice(0, 1)")
+                 (list))))
+    `(defun ,name ,args ,@doc (,name ,@args))))
 
 ;; Utilities
 (defmacro/f slice (x a b)
@@ -254,7 +264,7 @@ Returns a copy of the elements in x in the opposite ordering"
 Inverts the ordering of the elements in list x"
   `(js-code ,(+ "(" (js-compile x) ".reverse())")))
 
-(defmacro/f first (x) "(first  x)\nFirst element of list/string" `(aref ,x 0))
+(defmacro/f first (x) "(first x)\nFirst element of list/string" `(aref ,x 0))
 (defmacro/f second (x) "(second x)\nSecond element of list/string" `(aref ,x 1))
 (defmacro/f third (x) "(third x)\nThird element of list/string" `(aref ,x 2))
 (defmacro/f fourth (x) "(fourth x)\nFourth element of list/string" `(aref ,x 3))
@@ -847,3 +857,37 @@ Asks the user to reply either yes or no to a question. Returns True if the answe
       ((or (= reply "yes")
            (= reply "no"))
        (= reply "yes"))))
+
+; documentation support
+(defmacro help (name)
+  "(help symbol)
+Displays any documentation for compile specialization, macro, function or value bound to the symbol."
+  (labels ((doc (x)
+             (unless (stringp x)
+               (setf x (or (documentation x) "- no documentation -")))
+             (do ((i (if (/= -1 (index "\n" x))
+                         (index "\n" x)
+                         60)
+                     (1+ i)))
+                 ((or (>= i (length x))
+                      (/= -1 (index (aref x i) *spaces*)))
+                  (+ (subseq x 0 i) "\n"
+                     (if (< i (length x))
+                         (doc (subseq x (1+ i)))
+                         ""))))))
+    (let ((found false))
+      (when (compile-specialization name)
+        (display ~"Compile specialization {(symbol-name name)}\n{(doc (compile-specialization name))}")
+        (setf found true))
+      (when (symbol-macro name)
+        (display ~"Macro {(symbol-name name)}\n{(doc (symbol-macro name))}")
+        (setf found true))
+      (when (symbol-function name)
+        (display ~"Function {(symbol-name name)}\n{(doc (symbol-function name))}")
+        (setf found true))
+      (when (symbol-value name)
+        (display ~"Variable {(symbol-name name)}\nCurrent value: {(str-value (symbol-value name))}")
+        (setf found true))
+      (unless found
+        (display ~"No documentation available for {(symbol-name name)}"))
+      `',name)))

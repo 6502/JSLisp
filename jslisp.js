@@ -190,7 +190,7 @@ deflisp("symbolp", "(symbolp x) -> bool\nReturns true if and only if x is a symb
         function(x) { return (x && x.constructor == Symbol) ? true : false; });
 
 defcompile("js-code",
-           "Compiler specialization (js-code x:string-literal)\n" +
+           "(js-code x:string-literal)\n" +
            "Verbatim javascript code generation.",
            function(x) { return x[1]; });
 
@@ -239,7 +239,7 @@ deflisp("symbol-name",
         function(x) { return f$$demangle(x.name); });
 
 defcompile("if",
-           "Compiler specialization (if condition then-part [else-part])\n" +
+           "(if condition then-part [else-part])\n" +
            "Conditional evaluation form. Evaluates either then-part only or else-part only depending " +
            "on wether the evaluation of condition returned a true value or not.",
            function(x)
@@ -253,7 +253,7 @@ defcompile("if",
            });
 
 defcompile("defvar",
-           "Compiler specialization (defvar variable:symbol value)\n" +
+           "(defvar variable:symbol value)\n" +
            "Sets the value cell of variable only if is not currenly undefined, and also marks the " +
            "symbol as 'special' so that future value bindings on this symbol will always be dynamic " +
            "and not lexical.",
@@ -284,7 +284,7 @@ function implprogn(x)
 }
 
 defcompile("progn",
-           "Compiler specialization (progn form-1 form-2 ... form-n)\n" +
+           "(progn form-1 form-2 ... form-n)\n" +
            "Evaluates all the forms in sequence, returning as value the value of the last one.",
            function(x)
            {
@@ -292,7 +292,7 @@ defcompile("progn",
            });
 
 defcompile("let",
-           "Compiler specialization (let ((x1 v1)(x2 v2) ... (xn vn)) f1 f2 ... fn)\n" +
+           "(let ((x1 v1)(x2 v2) ... (xn vn)) f1 f2 ... fn)\n" +
            "Evaluates a sequence of forms f1, f2 ... fn by first establishing lexical/dynamic bindings " +
            "for the variables x1=v1, x2=v2 ... xn=vn. The evaluation of the forms v1 ... vn " +
            "does /NOT/ consider the bindings that will be established by (let ...).",
@@ -347,7 +347,7 @@ defcompile("let",
            });
 
 defcompile("lambda",
-           "Compiler specialization (lambda (arg-1 ... arg-n) form-1 form-2 ... form-n)\n" +
+           "(lambda (arg-1 ... arg-n) form-1 form-2 ... form-n)\n" +
            "Returns a function object that when called will lexically/dynamically bind " +
            "parameters to arg1, arg2, ... arg-n and that will evaluate form-1 form-2 " +
            "form-n in sequence returning the last evaluated form value as result",
@@ -449,7 +449,7 @@ deflisp("list",
         });
 
 defcompile("funcall",
-           "Compiler specialization (funcall f x1 x2 ... xn)\n" +
+           "(funcall f x1 x2 ... xn)\n" +
            "Calls the function object f passing x1, x2 ... xn values as parameters.",
            function(x)
            {
@@ -474,7 +474,7 @@ deflisp("funcall",
         });
 
 defcompile("labels",
-           "Compiler specialization (labels ((func1 (x1 x2 ... xn) f1 f2 .. fn)...) b1 b2 ... bn)\n" +
+           "(labels ((func1 (x1 x2 ... xn) f1 f2 .. fn)...) b1 b2 ... bn)\n" +
            "Excutes the body forms b1, b2 ... bn by first establishing a lexical binding for the " +
            "function names func1, func2 ... funcn. When compiling the body forms any macros defined outside " +
            "the (labels ...) form with names func1, func2, ... funcn will be ignored.",
@@ -513,7 +513,7 @@ defcompile("labels",
            });
 
 defcompile("dotimes",
-           "Compiler specialization (dotimes (var count) f1 f2 ... fn)\n" +
+           "(dotimes (var count) f1 f2 ... fn)\n" +
            "Evaluates the body forms f1 f2 ... fn in sequence exactly 'count' times by setting " +
            "the dynamically/lexically bound variable 'var' to 0, 1, ... count-1 before each iteration. "+
            "The return value is null.",
@@ -551,7 +551,7 @@ defcompile("dotimes",
            });
 
 defcompile("dolist",
-           "Compiler specialization (dolist (var x:list) f1 f2 ... fn)\n" +
+           "(dolist (var x:list) f1 f2 ... fn)\n" +
            "Evaluates the body forms f1 f2 ... fn in sequence times by setting " +
            "the dynamically/lexically bound variable 'var' to next element of list 'x' each time. "+
            "The return value is null.",
@@ -589,7 +589,7 @@ defcompile("dolist",
            });
 
 defcompile("setq",
-           "Compiler specialization (setq name value)\n" +
+           "(setq name value)\n" +
            "Sets the current value of variable 'name'. When 'name' is currently bound to a symbol macro setq "+
            "is transformed in a corresponding (setf ...) form.",
            function(x)
@@ -605,7 +605,7 @@ defcompile("setq",
            });
 
 defcompile("quote",
-           "Compiler specialization (quote x)\n" +
+           "(quote x)\n" +
            "Returns the unevaluated x as result.",
            function(x)
            {
@@ -637,7 +637,7 @@ deflisp("macroexpand-1",
         });
 
 defcompile("append",
-           "Compiler specialization (append list-1 list-2 ... list-n)\n" +
+           "(append list-1 list-2 ... list-n)\n" +
            "Retuns a list obtained by concatenating all specified lists.",
            function(x)
            {
@@ -658,7 +658,7 @@ deflisp("apply",
         });
 
 defcompile("apply",
-           "Compiler specialization (apply f args)\n",
+           "(apply f args)\n",
            "Calls the function 'f' passing the list 'args' as arguments",
            function(x)
            {
@@ -667,7 +667,7 @@ defcompile("apply",
            });
 
 defcompile("and",
-           "Compiler specialization (and x1 x2 ... xn)\n" +
+           "(and x1 x2 ... xn)\n" +
            "Returns the value of last form 'xn' if all forms evaluate to logically true or otherwise " +
            "returns the first logically false result without evaluating subsequent forms.",
            function(x)
@@ -684,7 +684,7 @@ defcompile("and",
            });
 
 defcompile("or",
-           "Compiler specialization (or x1 x2 ... xn)\n" +
+           "(or x1 x2 ... xn)\n" +
            "Returns the value of the first form that evaluates to logically true without evaluating " +
            "subsequent forms, or otherwise returns the value of last form 'xn' if all of them evaluate " +
            "to logicall false.",
@@ -702,7 +702,7 @@ defcompile("or",
            });
 
 defcompile("cond",
-           "Compiler specialization (cond ((t1 f1)(t2 f2)...(tn fn)))\n" +
+           "(cond ((t1 f1)(t2 f2)...(tn fn)))\n" +
            "Evaluates in sequence t1, t2 ... tn and returns the value of the first corresponding form " +
            "'f' when the value is logically true without evaluating subsequent conditions. " +
            "Returns null if no condition t evaluates to logically true",
@@ -720,7 +720,7 @@ defcompile("cond",
            });
 
 defcompile("when",
-           "Compiler specialization (when condition f1 f2 ... fn)\n" +
+           "(when condition f1 f2 ... fn)\n" +
            "If 'condition' evaluates to logically true evaluates the body forms f1, f2, ... fn in " +
            "sequence an returns the value of last evaluated form, otherwise returns null without " +
            "evaluating any of the body forms.",
@@ -731,7 +731,7 @@ defcompile("when",
            });
 
 defcompile("unless",
-           "Compiler specialization (unless condition f1 f2 ... fn)\n" +
+           "(unless condition f1 f2 ... fn)\n" +
            "If 'condition' evaluates to logically false evaluates the body forms f1, f2, ... fn in " +
            "sequence an returns the value of last evaluated form, otherwise returns null without " +
            "evaluating any of the body forms.",
@@ -742,7 +742,7 @@ defcompile("unless",
            });
 
 defcompile("do",
-           "Compiler specialization (do ((v1 init1 [inc1])...)(exit-test res1 res2 ...) b1 b2 ...)\n" +
+           "(do ((v1 init1 [inc1])...)(exit-test res1 res2 ...) b1 b2 ...)\n" +
            "Loops over the body forms b1 b2 ... bn by first establishing a lexical/dynamic binding " +
            "v1=init1, v2=init2, ... and by assigning the value of the increment forms inc1 to v1, " +
            "inc2 to v2 ... where they are present after each iteration. " +
@@ -806,7 +806,7 @@ defcompile("do",
            });
 
 defcompile("macrolet",
-           "Compiler specialization (macrolet ((m1 (x1 x2 ...) b1 b2 ...) ...) body1 body2 ... bodyn)\n" +
+           "(macrolet ((m1 (x1 x2 ...) b1 b2 ...) ...) body1 body2 ... bodyn)\n" +
            "Evaluates the body forms body1, body2, ... bodyn that are compiled by first installing " +
            "the lexical macros m1, m2 ... mn. Global macros accessible with (symbol-macro x) are not " +
            "affected by these local definitions.",
@@ -826,7 +826,7 @@ defcompile("macrolet",
            });
 
 defcompile("symbol-macrolet",
-           "Compiler specialization (symbol-macrolet ((x1 def1)(x2 def2)...) body1 body2 ... bodyn)\n" +
+           "(symbol-macrolet ((x1 def1)(x2 def2)...) body1 body2 ... bodyn)\n" +
            "Evaluates the body forms body1, body2 ... bodyn that are compiled by first installing "+
            "the lexical symbol macros x1 x2 ... xn.",
            function(x)
@@ -1242,7 +1242,7 @@ deflisp("str-value",
         });
 
 defcompile("not",
-           "Compiler specialization (not x) -> bool\n" +
+           "(not x) -> bool\n" +
            "Returns true if and only if x is logically false and false otherwise.",
            function(x)
            {
