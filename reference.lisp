@@ -33,17 +33,23 @@
             color: #000080;
             padding: 2px;
             background-color: #F0F0FF; }
+      h1 { font-family: Arial;
+           font-size: 40px;
+           font-weight: bold;
+           text-align:center;
+           color: #000080; }
     </style>
   </head>
   <body>
+    <h1>JSLisp reference</h1>
 ")
     (dolist (group (list (list "Functions" functions)
                          (list "Macros" macros)
                          (list "Compile specializations" compspecs)))
-      (out ~"<h1>{(first group)}</h1>")
+      (out ~"<h2>{(first group)}</h2>")
       (dolist (f (sort (second group) (lambda (x y) (< (first x) (first y)))))
         (out ~"<a href=\"#{(subseq (first group) 0 1)}_{(mangle (first f))}\">")
-        (out ~"<span style=\"font-family:Courier new; font-weight:bold\">{(first f)}</span>")
+        (out ~"<span style=\"white-space:nowrap; font-family:Courier new; font-weight:bold\">{(first f)}</span>")
         (out ~"</a> ")))
     (dolist (group (list (list "Functions" functions)
                          (list "Macros" macros)
