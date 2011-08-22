@@ -315,7 +315,7 @@ function keyPress(e)
 // Bootstrap
 try
 {
-    f$$load(f$$ajax("boot.lisp"));
+    f$$load(f$$http_get("boot.lisp"));
     f$$display("Boot completed.");
     f$$display(prompt_message);
 }

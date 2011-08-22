@@ -1332,13 +1332,14 @@ deflisp("load",
             }
         });
 
-deflisp("ajax",
-        "(ajax url [success-function [failure-function]]) -> result\n" +
-        "Acquires the content of the specified url either asynchronously (if success-function is specified) " +
-        "or synchronously if only the url is specified. The success function if specified will be passed " +
-        "the content, the url and the request object. The failure function if specified will be passed the " +
-        "url and the request status code in case of an error.",
-        function(url, onSuccess, onFail)
+deflisp("http",
+        "(http verb url data [success-function [failure-function]]) -> result\n" +
+        "Executes the specified http request (\"GET\" or \"POST\") for the specified url " +
+        "either asynchronously (if success-function is specified) or synchronously if no " +
+        "callback is specified. The success function if specified will be passed " +
+        "the content, the url and the request object. The failure function if specified " +
+        "will be passed the url and the request status code in case of an error.",
+        function(verb, url, data, onSuccess, onFail)
         {
             var req = new XMLHttpRequest();
             if (onSuccess)
@@ -1362,7 +1363,19 @@ deflisp("ajax",
                     }
                 }
             }
-            req.open("GET", url, !!onSuccess);
-            req.send(null);
+            req.open(verb, url, !!onSuccess);
+            req.send(data);
             return onSuccess ? req : req.responseText;
+        });
+
+deflisp("http-get",
+        "(http-get url [success-function [failure-function]]) -> result\n" +
+        "Acquires the specified resource Executes " +
+        "either asynchronously (if success-function is specified) or synchronously if no " +
+        "callback is specified. The success function if specified will be passed " +
+        "the content, the url and the request object. The failure function if specified " +
+        "will be passed the url and the request status code in case of an error.",
+        function(url, onSuccess, onFailure)
+        {
+            return f$$http("GET", url, null, onSuccess, onFailure);
         });
