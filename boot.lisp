@@ -582,6 +582,62 @@ If only one parameter is passed it's assumed to be 'stop'."
   "Returns a copy of a sequence with elements sorted according to the specified condition or #'< if no condition is given."
   `(nsort (slice ,x) ,cond))
 
+; &optional
+
+(defmacro argument-count ()
+  `(js-code "arguments.length"))
+
+(setf (compile-specialization 'lambda)
+      (let* ((oldcf (compile-specialization 'lambda))
+             (olddoc (documentation oldcf))
+             (f (lambda (whole)
+                  (let* ((args (second whole))
+                         (body (slice whole 2))
+                         (doc (if (stringp (first body))
+                                  (js-code "d$$body.slice(0,1)")
+                                  (list)))
+                         (i (index '&optional args))
+                         (r (index '&rest args)))
+                    (if (= i -1)
+                        (funcall oldcf
+                                 `(lambda ,args
+                                    ,@doc
+                                    ,@(if (= r -1)
+                                          `((unless (= (argument-count) ,(length args))
+                                              (error "Invalid number of arguments")))
+                                          (if (> r 0)
+                                              `((when (< (argument-count) ,r)
+                                                  (error "Invalid number of arguments")))
+                                              (list)))
+                                    ,@body))
+                        (let ((defaults (list))
+                              (checks (list))
+                              (args (append (subseq args 0 i)
+                                            (subseq args (1+ i)))))
+                          (unless (= i 0)
+                            (push `(when (< (argument-count) ,i)
+                                     (error "Invalid number of arguments"))
+                                  checks))
+                          (when (= r -1)
+                            (push `(when (> (argument-count) ,(length args))
+                                     (error "Invalid number of arguments"))
+                                  checks))
+                          (dotimes (i (length args))
+                            (when (listp (aref args i))
+                              (push `(when (< (argument-count) ,(1+ i))
+                                       (setf ,(first (aref args i))
+                                             ,(second (aref args i))))
+                                    defaults)
+                              (setf (aref args i) (first (aref args i)))))
+                          (funcall oldcf
+                                   `(lambda ,args
+                                      ,@doc
+                                      ,@checks
+                                      ,@defaults
+                                      ,@body))))))))
+        (setf (documentation f) olddoc)
+        f))
+
 ; Keyword arguments
 
 (setf (compile-specialization 'lambda)
@@ -630,7 +686,7 @@ If only one parameter is passed it's assumed to be 'stop'."
         (setf (documentation f) oldcomm)
         f))
 
-; Typecheck
+; Parameter conditions
 (setf (compile-specialization 'lambda)
       (let* ((old (compile-specialization 'lambda))
              (f (lambda (x)
