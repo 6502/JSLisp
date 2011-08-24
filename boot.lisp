@@ -160,6 +160,20 @@ Defines or redefines a regular function")
   "Returns a list or string obtained from x by removing first element"
   (js-code "(d$$x.slice(1))"))
 
+(defmacro splice (x a b)
+  "Removes and returns elements from a-th to b-th from list x"
+  (list 'js-code (+ "("
+                    (js-compile x)
+                    ".splice("
+                    (js-compile a)
+                    ","
+                    (js-compile b)
+                    "))")))
+
+(defun splice (x a b)
+  "Removes and returns elements from a-th to b-th from list x"
+  (js-code "(d$$x.splice(d$$a,d$$b))"))
+
 ; Quasiquoting
 (defun bqconst (x)
   "True if the form 'x' is constant in respect to backquoting"
@@ -219,7 +233,7 @@ Defines or redefines a regular function")
   ;;       defun is macroexpanded
   (eval `(defmacro ,name ,args ,@body))
   (let ((doc (if (stringp (aref body 0))
-                 (js-code "d$$body.splice(0, 1)")
+                 (splice body 0 1)
                  (list))))
     `(defun ,name ,args ,@doc (,name ,@args))))
 
