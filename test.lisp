@@ -47,6 +47,24 @@
               (display (+ "ERROR: " *exception*))
               (display ""))))))
 
+(defmacro test-err (form error)
+  `(progn
+     (incf test-total)
+     (try (progn
+            ,form
+            (display (+ "Test #" test-total " ** FAILED **"))
+            (display ,(str-value form))
+            (display (+ "Should throw: " (str-value error)))
+            (display ""))
+          (if (= (str-value error) (str-value *exception*))
+              (incf test-passed)
+              (progn
+                (display (+ "Test #" test-total " ** FAILED **"))
+                (display ,(str-value form))
+                (display (+ "Should throw: " (str-value error)
+                            "instead of: " (str-value *exception*)))
+                (display ""))))))
+
 (test (mangle "foo")
       "\"$$foo\"")
 
@@ -427,6 +445,126 @@
                  (foo (&key (x (bar))) x))
           (list (foo) (foo :x 12) x)))
       "(42 12 1)")
+
+(test (defun gfoo (x) (* x x))
+      "gfoo")
+
+(test (labels ((gfoo (x) (* x 2)))
+        (list (funcall #'gfoo 12)
+              (funcall (symbol-function 'gfoo) 12)))
+      "(24 144)")
+
+(test (aref (list 1 2 3) 2)
+      "3")
+
+(test (aref (list 1 2) 3)
+      "undefined")
+
+(test (let ((x (list 1 2 3)))
+        (setf (aref x 0) 10)
+        (setf (aref x 5) 42)
+        x)
+      "(10 2 3 undefined undefined 42)")
+
+(test (let ((x (list)))
+        (dotimes (i 5)
+          (push (* i i ) x))
+        x)
+      "(0 1 4 9 16)")
+
+(test (let ((x (list 1 2 3 4)))
+        (rest x))
+      "(2 3 4)")
+
+(test (let ((x (list 10 20))
+            (y (list 30 40))
+            (z (list)))
+        `(abc ,x def ,@y ghi ,z jlm ,@z nop))
+      "(abc (10 20) def 30 40 ghi () jlm nop)")
+
+(test (let ((x (list 1 2 3)))
+        (list (slice x)
+              (slice x 1)
+              (slice x 1 2)
+              (slice x 10)
+              (slice "abcdefg" 3 6)))
+      "((1 2 3) (2 3) (2) () \"def\")")
+
+(test (let ((x (list 1 2 3)))
+        (list (nreverse x) x))
+      "((3 2 1) (3 2 1))")
+
+(test (let ((x (list 1 2 3)))
+        (list (reverse x) x))
+      "((3 2 1) (1 2 3))")
+
+(test (let ((x (list 0 1 2 3 4 5 6 7 8 9)))
+        (list (list (incf (first x))
+                    (incf (second x))
+                    (incf (third x))
+                    (incf (fourth x))
+                    (incf (fifth x))
+                    (incf (sixth x))
+                    (incf (seventh x))
+                    (incf (eighth x))
+                    (incf (nineth x))
+                    (incf (tenth x)))
+              (map (lambda (i)
+                     (funcall (aref (list #'first
+                                          #'second
+                                          #'third
+                                          #'fourth
+                                          #'fifth
+                                          #'sixth
+                                          #'seventh
+                                          #'eighth
+                                          #'nineth
+                                          #'tenth) i)
+                              x))
+                   (range 10))))
+      "((1 2 3 4 5 6 7 8 9 10) (1 2 3 4 5 6 7 8 9 10))")
+
+(test (let ((x (range 10))
+            (y "andrea"))
+        (list (subseq x 0 3)
+              (subseq x 4)
+              (subseq y 0 99)
+              (subseq y 5)
+              (subseq y 99)))
+      "((0 1 2) (4 5 6 7 8 9) \"andrea\" \"a\" \"\")")
+
+(test (list (+ 1 2 3) (+) (+ 1)) "(6 0 1)")
+(test (list (- 1 2 3) (-) (- 1)) "(-4 0 -1)")
+(test (list (* 1 2 3) (*) (* 1)) "(6 1 1)")
+(test (list (/ 12 3 2) (/) (/ 4)) "(2 1 0.25)")
+(test (list (logior 1 2 4) (logior) (logior 1)) "(7 0 1)")
+(test (list (logxor 1 2 3) (logxor) (logxor 1)) "(0 0 1)")
+(test (list (logand 3 6) (logand) (logand 2)) "(2 -1 2)")
+(test (list (ash 12 2) (ash 12 -2) (ash 12 -4)) "(48 3 0)")
+(test (list (% 12 5)) "(2)")
+
+(test (map (lambda (L) (apply #'+ L)) '((1 2 3) () (1))) "(6 0 1)")
+(test (map (lambda (L) (apply #'- L)) '((1 2 3) () (1))) "(-4 0 -1)")
+(test (map (lambda (L) (apply #'* L)) '((1 2 3) () (1))) "(6 1 1)")
+(test (map (lambda (L) (apply #'/ L)) '((12 3 2) () (4))) "(2 1 0.25)")
+(test (map (lambda (L) (apply #'logior L)) '((1 2 4) () (1))) "(7 0 1)")
+(test (map (lambda (L) (apply #'logxor L)) '((1 2 3) () (1))) "(0 0 1)")
+(test (map (lambda (L) (apply #'logand L)) '((3 6 7) () (2))) "(2 -1 2)")
+(test (map (lambda (L) (apply #'ash L)) '((12 2) (12 -2) (12 -4))) "(48 3 0)")
+(test (map (lambda (L) (apply #'% L)) '((12 5))) "(2)")
+
+(test (= (make-symbol "sym") 'sym) "false")
+(test (symbol-name (make-symbol "sym")) "\"sym\"")
+(test (/= (make-symbol "sym") (make-symbol "sym") 'sym) "true")
+(test (setf sym 99) "99")
+(test (let ((x (make-symbol "sym")))
+        (setf (symbol-value x) 42)
+        (list (symbol-value x)
+              (symbol-value 'sym)))
+      "(42 99)")
+(test (/= (gensym) (gensym) (gensym)) "true")
+(test (let ((x (gensym)))
+        (/= x (intern (symbol-name x)))) "true")
 
 (display (+ test-passed "/" test-total
             " tests passed in "
