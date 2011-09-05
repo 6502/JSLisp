@@ -71,12 +71,12 @@ function Namespace()
     this.end = function()
     {
         if (this.stack.length == 0)
-            throw "Internal error: Stack underflow in Namespace.end()";
+            throw new String("Internal error: Stack underflow in Namespace.end()");
         for (var x=this.stack.pop(); x; x=this.stack.pop())
         {
             this.vars[x[0]] = x[1];
             if (this.stack.length == 0)
-                throw "Internal error: Stack underflow in Namespace.end()";
+                throw new String("Internal error: Stack underflow in Namespace.end()");
         }
     };
 
@@ -857,9 +857,26 @@ deflisp("warning",
             f$$display("WARNING: " + msg.replace(/\$\$[a-zA-Z_0-9\$]*/g, f$$demangle));
         });
 
+var d$$$42$error_location$42$ = null;
+
+function erl(x, f)
+{
+    try
+    {
+        return f()
+    }
+    catch (err)
+    {
+        if (!err.location)
+            err.location = [];
+        err.location.push(x);
+        throw err;
+    }
+}
+
 deflisp("js-compile",
         "(js-compile x) -> string\n" +
-        "Returns a string containing Javascript code that when evaluated will execute the " +
+        "Returns a string containing Javascript code that when evaluated in javascript will perform the " +
         "evaluation of the passed form 'x'.",
         function(x)
         {
@@ -879,23 +896,30 @@ deflisp("js-compile",
             }
             else if (f$$listp(x))
             {
+                var trloc = "";
+                var trend = "";
+                if (x.location)
+                {
+                    trloc = "erl(" + stringify(x.location) + ",function(){return(";
+                    trend = ");})";
+                }
                 var f = x[0];
                 if (f$$symbolp(f))
                 {
                     var wf = jscompile[f.name];
                     if (wf && wf.constructor == Function)
                     {
-                        return wf(x);
+                        return trloc + wf(x) + trend;
                     }
                     else if (lexmacro.vars[f.name])
                     {
                         var macro_expansion = lexmacro.vars[f.name].apply(window, x.slice(1));
-                        return f$$js_compile(macro_expansion);
+                        return trloc + f$$js_compile(macro_expansion) + trend;
                     }
                     else if (window["m" + f.name])
                     {
                         var macro_expansion = window["m" + f.name].apply(window, x.slice(1));
-                        return f$$js_compile(macro_expansion);
+                        return trloc + f$$js_compile(macro_expansion) + trend;
                     }
                     else
                     {
@@ -908,12 +932,12 @@ deflisp("js-compile",
                             res += f$$js_compile(x[i]);
                         }
                         res += ")";
-                        return res;
+                        return trloc + res + trend;
                     }
                 }
                 else
                 {
-                    throw "Invalid function call";
+                    throw new String("Invalid function call");
                 }
             }
             else if ((typeof x) == "undefined")
@@ -1012,6 +1036,11 @@ deflisp("parse-delimited-list",
         {
             var res = [];
             f$$skip_spaces(src);
+            if (src.location)
+            {
+                // copy source location info if available
+                res.location = src.location.slice();
+            }
             var oldstops = d$$$42$stopchars$42$;
             d$$$42$stopchars$42$ += stop;
             while (src() != undefined && src() != stop)
@@ -1021,7 +1050,7 @@ deflisp("parse-delimited-list",
             }
             d$$$42$stopchars$42$ = oldstops;
             if (src() != stop)
-                throw stringify(stop) + " expected";
+                throw new String(stringify(stop) + " expected");
             src(1);
             return res;
         });
@@ -1048,7 +1077,7 @@ var readers = { "|": function(src)
                         if (src() == '\\') src(1);
                         res += src(1);
                     }
-                    if (src(1) != '|') throw "'|' expected";
+                    if (src(1) != '|') throw new String("'|' expected");
                     return f$$intern(res);
                 },
 
@@ -1078,7 +1107,7 @@ var readers = { "|": function(src)
                             else if (c == "x") {
                                 var hx1 = "0123456789ABCDEF".indexOf(src(1).toUpperCase());
                                 var hx2 = "0123456789ABCDEF".indexOf(src(1).toUpperCase());
-                                if (hx1 < 0 || hx2 < 0) throw "Invalid hex char escape";
+                                if (hx1 < 0 || hx2 < 0) throw new String("Invalid hex char escape");
                                 res += String.fromCharCode(hx1*16 + hx2);
                             }
                             else if (c == "u")
@@ -1087,7 +1116,7 @@ var readers = { "|": function(src)
                                 for (var i=0; i<4; i++)
                                 {
                                     var d = "0123456789ABCDEF".indexOf(src(1).toUpperCase());
-                                    if (d < 0) throw "Invalid unicode char escape";
+                                    if (d < 0) throw new String("Invalid unicode char escape");
                                     hx = hx*16 + d;
                                 }
                                 res += String.fromCharCode(hx);
@@ -1102,7 +1131,7 @@ var readers = { "|": function(src)
                             res += src(1);
                         }
                     }
-                    if (src(1) != '"') throw "'\"' expected";
+                    if (src(1) != '"') throw new String("'\"' expected");
                     return res;
                 },
 
@@ -1150,7 +1179,7 @@ var readers = { "|": function(src)
                         src(1);
                         return f$$eval(f$$parse_value(src));
                     }
-                    throw "Unsupported '#' combination";
+                    throw new String("Unsupported '#' combination");
                 },
 
                 "(": function(src)
@@ -1185,7 +1214,7 @@ var readers = { "|": function(src)
                         res += src(1);
                     }
                     if (res == "")
-                        throw "Value expected";
+                        throw new String("Value expected");
                     return f$$intern(res);
                 }
               };
@@ -1199,7 +1228,7 @@ deflisp("parse-value",
                 src = f$$reader_function(src);
             f$$skip_spaces(src);
             if (src() == undefined)
-                throw "Value expected";
+                throw new String("Value expected");
             return (readers[src()] || readers["default"])(src);
         });
 
@@ -1258,7 +1287,7 @@ defcompile("not",
 deflisp("error",
         "(error x) -> /doesn't return/\n" +
         "Throws the error message x that can be intercepted by a (try ...) form.",
-        function(x) { throw x });
+        function(x) { throw new String(x) });
 
 deflisp("set-compile-specialization",
         "(set-compile-specialization x:symbol function)\n" +
@@ -1298,10 +1327,10 @@ deflisp("set-reader",
         });
 
 deflisp("load",
-        "(load src)\n" +
+        "(load src &optional name)\n" +
         "Parses, compiles and evaluates all forms in the character source or string 'src' " +
-        "one at a time in sequence.",
-        function f$$load(src)
+        "one at a time in sequence. If name is passed and src is a string then source location information is attached to each parsed list.",
+        function f$$load(src, name)
         {
             if (f$$stringp(src))
             {
@@ -1309,9 +1338,18 @@ deflisp("load",
                 var src_org = src;
                 src = function(d) {
                     d |= 0;
+                    if (name && d && src_org[i] == "\n")
+                    {
+                        src.location[1]++;
+                        src.location[2] = 0;
+                    }
                     i += d;
+                    if (name)
+                        src.location[2] += d;
                     return src_org[i-d];
                 };
+                if (name)
+                    src.location = [name, 1, 1];
             }
             var nforms = 0;
             try
@@ -1331,10 +1369,12 @@ deflisp("load",
             }
             catch(err)
             {
-                throw ("Error during load (form=" + nforms + ", phase = " + phase + "):\n" +
-                       err + "\n" +
-                       ((phase == "executing" || phase == "compiling") ?
-                        f$$macroexpand_$49$(f$$str_value(form)) : ""));
+                var werr = new String("Error during load (form=" + nforms + ", phase = " + phase + "):\n" +
+                                      err + "\n" +
+                                      ((phase == "executing" || phase == "compiling") ?
+                                       f$$macroexpand_$49$(f$$str_value(form)) : ""));
+                werr.location = err.location;
+                throw werr;
             }
         });
 
@@ -1361,10 +1401,10 @@ deflisp("http",
                             if (onFail)
                                 onFail(url, req.status);
                             else
-                                throw ("Ajax request error (url=" +
-                                       url +
-                                       ", status=" +
-                                       req.status + ")");
+                                throw new String("Ajax request error (url=" +
+                                                 url +
+                                                 ", status=" +
+                                                 req.status + ")");
                         }
                     }
                 }

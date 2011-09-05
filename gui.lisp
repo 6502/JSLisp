@@ -291,7 +291,7 @@
     (setf (. button value) text)
     (set-style button
                position "absolute")
-    (setf (. button onclick) action)
+    (setf (. button onclick) (lambda (&rest args) (funcall action)))
     button))
 
 (let ((disp-div (create-element "div"))
@@ -301,11 +301,10 @@
                             (+ "<table width=100%><tr><td valign=center align=center>"
                                number "<font color=\"#FF0000\">|</font>"
                                "</td></tr></table>")))
-           (key (k action &key (weight 100))
-             (unless action
-               (setf action (lambda ()
-                              (setf number (+ number k))
-                              (update))))
+           (key (k &optional (action (lambda ()
+                                       (setf number (+ number k))
+                                       (update)))
+                   &key (weight 100))
              (:Hdiv (append-child window (button k action))
                     :weight weight))
            (back ()
