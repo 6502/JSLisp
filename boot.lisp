@@ -824,11 +824,12 @@ Evaluates expr and in case of exception evaluates the on-error form setting *exc
 (defmacro . (obj &rest fields)
   "Returns the javascript object value selected by traversing the specified list of fields (unevaluated symbols)"
   (let ((this (js-compile obj))
-        (res "((function(obj){var f=obj"))
-    (dolist (x fields)
-      (setf res (+ res "." (symbol-name x))))
+        (res "((function(obj){var th=obj"))
+    (dotimes (x (1- (length fields)))
+      (setf res (+ res "." (symbol-name (aref fields x)))))
+    (setf res (+ res "; var f=th." (symbol-name (aref fields (1- (length fields))))))
     `(js-code ,(+ res
-                  "; if ((typeof f)==\"function\") return function(){return f.apply(obj, arguments);}; return f;})("
+                  "; if ((typeof f)==\"function\") return function(){return f.apply(th, arguments);}; return f;})("
                   this "))"))))
 
 (defmacro set-. (obj &rest fields)
