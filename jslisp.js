@@ -896,12 +896,17 @@ deflisp("js-compile",
             }
             else if (f$$listp(x))
             {
-                var trloc = "";
-                var trend = "";
+                var wrapper = function(r) {
+                    return r;
+                };
                 if (x.location)
                 {
-                    trloc = "erl(" + stringify(x.location) + ",function(){return(";
-                    trend = ");})";
+                    wrapper = function(r) {
+                        return ("erl(" +
+                                stringify(x.location) +
+                                ", function(){return(" +
+                                r + ");})");
+                    };
                 }
                 var f = x[0];
                 if (f$$symbolp(f))
@@ -909,17 +914,17 @@ deflisp("js-compile",
                     var wf = jscompile[f.name];
                     if (wf && wf.constructor == Function)
                     {
-                        return trloc + wf(x) + trend;
+                        return wrapper(wf(x));
                     }
                     else if (lexmacro.vars[f.name])
                     {
                         var macro_expansion = lexmacro.vars[f.name].apply(window, x.slice(1));
-                        return trloc + f$$js_compile(macro_expansion) + trend;
+                        return wrapper(f$$js_compile(macro_expansion));
                     }
                     else if (window["m" + f.name])
                     {
                         var macro_expansion = window["m" + f.name].apply(window, x.slice(1));
-                        return trloc + f$$js_compile(macro_expansion) + trend;
+                        return wrapper(f$$js_compile(macro_expansion));
                     }
                     else
                     {
@@ -932,7 +937,7 @@ deflisp("js-compile",
                             res += f$$js_compile(x[i]);
                         }
                         res += ")";
-                        return trloc + res + trend;
+                        return wrapper(res);
                     }
                 }
                 else
