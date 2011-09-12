@@ -766,6 +766,8 @@ that field. When absent the default value is assumed to be the undefined value."
            res))))
 
 ; Math functions
+(defmacro/f sqrt (x) "Square root of x"
+  `(js-code ,(+ "Math.sqrt(" (js-compile x) ")")))
 (defmacro/f sin (x) "Sine of angle x in radians"
   `(js-code ,(+ "Math.sin(" (js-compile x) ")")))
 (defmacro/f cos (x) "Cosine of angle x in radians"
