@@ -294,48 +294,50 @@
     (setf (. button onclick) (lambda (&rest args) (funcall action)))
     button))
 
-(let ((disp-div (create-element "div"))
-      (window (create-element "div"))
-      (number ""))
-  (labels ((update () (setf (. disp-div innerHTML)
-                            (+ "<table width=100%><tr><td valign=center align=center>"
-                               number "<font color=\"#FF0000\">|</font>"
-                               "</td></tr></table>")))
-           (key (k &optional (action (lambda ()
-                                       (setf number (+ number k))
-                                       (update)))
-                   &key (weight 100))
-             (:Hdiv (append-child window (button k action))
-                    :weight weight))
-           (back ()
-             (when (> (length number) 0)
-               (setf number (subseq number 0 (1- (length number)))))
-             (update))
-           (call ()
-             (display (+ "Calling " number))))
-    (set-style disp-div
-               position "absolute"
-               backgroundColor "#000000"
-               color "#00FF00"
-               fontFamily "Arial"
-               fontWeight "bold"
-               px/fontSize 20
-               textAlign "right")
-    (append-child window disp-div)
-    (let* ((layout (:V :border 4 :spacing 4
-                       (:Hdiv disp-div :min 30 :max 30)
-                       (:H :weight 75
-                           (key "C" #'back)
-                           (key "Call" #'call :weight 200))
-                       (:H (key "1") (key "2") (key "3"))
-                       (:H (key "4") (key "5") (key "6"))
-                       (:H (key "7") (key "8") (key "9"))
-                       (:H (key "#") (key "0") (key "*"))))
-           (frame (window 100 100 200 300
-                          :title "Dialing pad"
-                          :close (lambda ())
-                          :layout layout)))
-      (append-child frame window)
-      (update)
-      (set-coords layout 0 20 200 300)
-      (show frame))))
+(defun calc ()
+  (let ((disp-div (create-element "div"))
+        (window (create-element "div"))
+        (number ""))
+    (labels ((update () (setf (. disp-div innerHTML)
+                              (+ "<table width=100%><tr><td valign=center align=center>"
+                                 number "<font color=\"#FF0000\">|</font>"
+                                 "</td></tr></table>")))
+             (key (k &optional (action (lambda ()
+                                         (setf number (+ number k))
+                                         (update)))
+                     &key (weight 100))
+               (:Hdiv (append-child window (button k action))
+                      :weight weight))
+             (back ()
+               (when (> (length number) 0)
+                 (setf number (subseq number 0 (1- (length number)))))
+               (update))
+             (call ()
+               (display (+ "Calling " number))))
+      (set-style disp-div
+                 position "absolute"
+                 backgroundColor "#000000"
+                 color "#00FF00"
+                 fontFamily "Arial"
+                 fontWeight "bold"
+                 px/fontSize 20
+                 textAlign "right")
+      (append-child window disp-div)
+      (let* ((layout (:V :border 4 :spacing 4
+                         (:Hdiv disp-div :min 30 :max 30)
+                         (:H :weight 75
+                             (key "C" #'back)
+                             (key "Call" #'call :weight 200))
+                         (:H (key "1") (key "2") (key "3"))
+                         (:H (key "4") (key "5") (key "6"))
+                         (:H (key "7") (key "8") (key "9"))
+                         (:H (key "#") (key "0") (key "*"))))
+             (frame (window 100 100 200 300
+                            :title "Dialing pad"
+                            :close (lambda ())
+                            :layout layout)))
+        (append-child frame window)
+        (update)
+        (set-coords layout 0 20 200 300)
+        (show frame)))))
+
