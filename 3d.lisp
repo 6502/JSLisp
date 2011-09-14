@@ -44,6 +44,46 @@
 
 (load (http-get "gui.lisp"))
 
+(defvar *faces* (list))
+
+(dolist (i '(-1 0 1))
+  (dolist (j '(-1 0 1))
+    (push (list "#0000FF"
+                (v (- i 0.5) (- j 0.5) -1.5)
+                (v (+ i 0.5) (- j 0.5) -1.5)
+                (v (+ i 0.5) (+ j 0.5) -1.5)
+                (v (- i 0.5) (+ j 0.5) -1.5)) *faces*)
+
+    (push (list "#FFFF00"
+                (v (- i 0.5) (- j 0.5) 1.5)
+                (v (+ i 0.5) (- j 0.5) 1.5)
+                (v (+ i 0.5) (+ j 0.5) 1.5)
+                (v (- i 0.5) (+ j 0.5) 1.5)) *faces*)
+
+    (push (list "#00FF00"
+                (v (- i 0.5) -1.5 (- j 0.5))
+                (v (+ i 0.5) -1.5 (- j 0.5))
+                (v (+ i 0.5) -1.5 (+ j 0.5))
+                (v (- i 0.5) -1.5 (+ j 0.5))) *faces*)
+
+    (push (list "#FF00FF"
+                (v (- i 0.5) 1.5 (- j 0.5))
+                (v (+ i 0.5) 1.5 (- j 0.5))
+                (v (+ i 0.5) 1.5 (+ j 0.5))
+                (v (- i 0.5) 1.5 (+ j 0.5))) *faces*)
+
+    (push (list "#FF0000"
+                (v -1.5 (- i 0.5) (- j 0.5))
+                (v -1.5 (+ i 0.5) (- j 0.5))
+                (v -1.5 (+ i 0.5) (+ j 0.5))
+                (v -1.5 (- i 0.5) (+ j 0.5))) *faces*)
+
+    (push (list "#00FFFF"
+                (v 1.5 (- i 0.5) (- j 0.5))
+                (v 1.5 (+ i 0.5) (- j 0.5))
+                (v 1.5 (+ i 0.5) (+ j 0.5))
+                (v 1.5 (- i 0.5) (+ j 0.5))) *faces*)))
+
 (let* ((canvas (create-element "canvas"))
        (layout (:Hdiv canvas))
        (cb null)
@@ -51,7 +91,7 @@
                       :title "3d view"
                       :close (lambda () (clear-interval cb))
                       :layout layout))
-       (from (v -200 -500 -1000)))
+       (from (v -400 -600 -1000)))
   (append-child frame canvas)
 
   (setf cb (set-interval (lambda ()
@@ -65,23 +105,28 @@
                                      (zy (/ (. canvas height) 2)))
                                  (setf (. canvas width) w)
                                  (setf (. canvas height) h)
-                                 (setf (. ctx fillStyle) "#000000")
+                                 (setf (. ctx fillStyle) "#808080")
                                  (funcall (. ctx fillRect) 0 0 w h)
-                                 (setf (. ctx strokeStyle) "#00FF00")
-                                 (setf (. ctx lineWidth) 2)
+                                 (setf (. ctx strokeStyle) "#000000")
+                                 (setf (. ctx lineWidth) 1)
                                  (labels ((moveTo (p)
                                             (let ((sp (funcall cam p)))
                                               (funcall (. ctx moveTo) (+ zx (x sp)) (+ zy (y sp)))))
                                           (lineTo (p)
                                             (let ((sp (funcall cam p)))
-                                              (funcall (. ctx lineTo) (+ zx (x sp)) (+ zy (y sp))))))
-                                   (funcall (. ctx beginPath))
-                                   (dolist (i (range -10 11))
-                                     (moveTo (v (* i 50) 0 -500))
-                                     (lineTo (v (* i 50) 0 500))
-                                     (moveTo (v -500 0 (* i 50)))
-                                     (lineTo (v 500 0 (* i 50))))
-                                   (funcall (. ctx stroke)))))))
+                                              (funcall (. ctx lineTo) (+ zx (x sp)) (+ zy (y sp)))))
+                                          (zdist (f)
+                                            (max (map #'z (map cam f)))))
+                                   (dolist (f (sort *faces*
+                                                    (lambda (a b) (< (zdist a) (zdist b)))))
+                                     (setf (. ctx fillStyle) (first f))
+                                     (funcall (. ctx beginPath))
+                                     (moveTo (v* (second f) 100))
+                                     (dolist (p (slice f 2))
+                                       (lineTo (v* p 100)))
+                                     (funcall (. ctx closePath))
+                                     (funcall (. ctx fill))
+                                     (funcall (. ctx stroke))))))))
                          100))
 
   (set-coords layout 100 100 200 300)
