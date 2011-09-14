@@ -54,7 +54,7 @@
        (from (v -200 -500 -1000)))
   (append-child frame canvas)
 
-  (setf cb (set-interval (lambda (&rest ignored)
+  (setf cb (set-interval (lambda ()
                            (let ((w (. canvas offsetWidth))
                                  (h (. canvas offsetHeight)))
                              (when (or (/= w (. canvas width))

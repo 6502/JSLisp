@@ -889,7 +889,7 @@ Each field is a list of an unevaluated symbol as name and a value."
 ; Timer events
 (defun set-timeout (f delay)
   "Invokes the specified function f after a delay (in ms). Returns an id usable in clear-timeout."
-  (js-code "setTimeout(d$$f, d$$delay)"))
+  (js-code "setTimeout(function(){d$$f()}, d$$delay)"))
 
 (defun clear-timeout (id)
   "Disables a specified delayed call if it has not been already executed."
@@ -897,7 +897,7 @@ Each field is a list of an unevaluated symbol as name and a value."
 
 (defun set-interval (f interval)
   "Invokes the specified function f every `interval` ms. Returns an id usable in clear-interval"
-  (js-code "setInterval(d$$f, d$$interval)"))
+  (js-code "setInterval(function(){d$$f()}, d$$interval)"))
 
 (defun clear-interval (id)
   "Stops a scheduled interval call."
