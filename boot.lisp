@@ -132,6 +132,15 @@ Defines or redefines a regular function")
   "Sets the k-th element of a list or the value associated to the key k in an object"
   (set-aref x k value))
 
+; Funcall macro
+(defmacro funcall (f &rest args)
+  (let ((res (+ (js-compile f) "("))
+        (sep ""))
+    (dolist (x args)
+      (setq res (+ res sep (js-compile x)))
+      (setq sep ","))
+    (list 'js-code (+ res ")"))))
+
 ; List-related macros (can't be defined before '+')
 (defmacro length (x)
   "Returns the length of a list or string object"
@@ -824,23 +833,39 @@ Evaluates expr and in case of exception evaluates the on-error form setting *exc
 
 ; JS object access/creation
 (defmacro . (obj &rest fields)
-  "Returns the javascript object value selected by traversing the specified list of fields (unevaluated symbols)"
-  (let ((this (js-compile obj))
-        (res "((function(obj){var th=obj"))
-    (dotimes (x (1- (length fields)))
-      (setf res (+ res "." (symbol-name (aref fields x)))))
-    (setf res (+ res "; var f=th." (symbol-name (aref fields (1- (length fields))))))
-    `(js-code ,(+ res
-                  "; if ((typeof f)==\"function\") return function(){return f.apply(th, arguments);}; return f;})("
-                  this "))"))))
+  "Returns the javascript object value selected by traversing the specified chain of fields (unevaluated symbols)"
+  (let ((res (js-compile obj)))
+    (dolist (x fields)
+      (setf res (+ res "." (symbol-name x))))
+    `(js-code ,res)))
 
 (defmacro set-. (obj &rest fields)
-  "Sets the javascript object value selected by traversing the specified list of fields (unevaluated symbols)"
-    (let ((res (js-compile obj)))
-        (dolist (x (slice fields 0 (1- (length fields))))
-            (setf res (+ res "." (symbol-name x))))
-        (setf res (+ res "=" (js-compile (aref fields (1- (length fields))))))
-        `(js-code ,res)))
+  "Sets the javascript object value selected by traversing the specified chain of fields (unevaluated symbols)"
+  (let ((res (js-compile obj)))
+    (dolist (x (slice fields 0 (1- (length fields))))
+      (setf res (+ res "." (symbol-name x))))
+    (setf res (+ res "=" (js-compile (aref fields (1- (length fields))))))
+    `(js-code ,res)))
+
+;; Funcall specialization for (funcall (. a b) ...) to avoid wrapper creation
+(setf (symbol-macro 'funcall)
+      (let ((om (symbol-macro 'funcall)))
+        (lambda (f &rest args)
+          (if (and (listp f)
+                   (= (first f) '.)
+                   (= (length f) 3))
+              `(js-code ,(+ (js-compile (second f))
+                            "."
+                            (symbol-name (third f))
+                            "("
+                            (let ((sep "")
+                                  (res ""))
+                              (dolist (x args)
+                                (setf res (+ res sep (js-compile x)))
+                                (setf sep ","))
+                              res)
+                            ")"))
+              (apply om (append (list f) args))))))
 
 (defmacro js-object (&rest fields)
   "Creates a javascript object and eventually assigns fields.

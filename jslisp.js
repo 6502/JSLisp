@@ -454,20 +454,6 @@ deflisp("list",
             return res;
         });
 
-defcompile("funcall",
-           "(funcall f x1 x2 ... xn)\n" +
-           "Calls the function object f passing x1, x2 ... xn values as parameters.",
-           function(x)
-           {
-               var res = f$$js_compile(x[1]) + "(";
-               for (var i=2; i<x.length; i++)
-               {
-                   if (i > 2) res += ",";
-                   res += f$$js_compile(x[i]);
-               }
-               return res + ")";
-           });
-
 deflisp("funcall",
         "(funcall f x1 x2 ... xn)\n" +
         "Calls the function object f passing x1, x2, ... xn values as parameters.",
