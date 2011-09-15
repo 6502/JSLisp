@@ -65,16 +65,16 @@
                 (v (- i 0.5) (+ j 0.5) -1.5)) *faces*)
 
     (push (list "#FFFF00"
-                (v (- i 0.5) (- j 0.5) 1.5)
                 (v (+ i 0.5) (- j 0.5) 1.5)
-                (v (+ i 0.5) (+ j 0.5) 1.5)
-                (v (- i 0.5) (+ j 0.5) 1.5)) *faces*)
+                (v (- i 0.5) (- j 0.5) 1.5)
+                (v (- i 0.5) (+ j 0.5) 1.5)
+                (v (+ i 0.5) (+ j 0.5) 1.5)) *faces*)
 
     (push (list "#00FF00"
-                (v (- i 0.5) -1.5 (- j 0.5))
                 (v (+ i 0.5) -1.5 (- j 0.5))
-                (v (+ i 0.5) -1.5 (+ j 0.5))
-                (v (- i 0.5) -1.5 (+ j 0.5))) *faces*)
+                (v (- i 0.5) -1.5 (- j 0.5))
+                (v (- i 0.5) -1.5 (+ j 0.5))
+                (v (+ i 0.5) -1.5 (+ j 0.5))) *faces*)
 
     (push (list "#FF00FF"
                 (v (- i 0.5) 1.5 (- j 0.5))
@@ -89,10 +89,15 @@
                 (v -1.5 (- i 0.5) (+ j 0.5))) *faces*)
 
     (push (list "#00FFFF"
-                (v 1.5 (- i 0.5) (- j 0.5))
                 (v 1.5 (+ i 0.5) (- j 0.5))
-                (v 1.5 (+ i 0.5) (+ j 0.5))
-                (v 1.5 (- i 0.5) (+ j 0.5))) *faces*)))
+                (v 1.5 (- i 0.5) (- j 0.5))
+                (v 1.5 (- i 0.5) (+ j 0.5))
+                (v 1.5 (+ i 0.5) (+ j 0.5))) *faces*)))
+
+(dolist (f *faces*)
+  (dotimes (i (1- (length f)))
+    (setf (aref f (1+ i))
+          (v* (aref f (1+ i)) 100))))
 
 (let* ((canvas (create-element "canvas"))
        (layout (:Hdiv canvas))
@@ -114,12 +119,16 @@
                    (setf (. ctx strokeStyle) "#000000")
                    (setf (. ctx lineWidth) 1)
                    (let ((xfaces (map (lambda (f)
-                                        (let ((xp (map (lambda (p) (funcall cam (v* p 100)))
-                                                       (slice f 1))))
+                                        (let ((xp (map cam (slice f 1))))
                                           (list (max (map #'z xp))
                                                 (first f)
                                                 xp)))
-                                      *faces*)))
+                                      (filter (lambda (f)
+                                                (> 0
+                                                   (v. (v- from (third f))
+                                                       (v^ (v- (third f) (second f))
+                                                           (v- (fourth f) (third f))))))
+                                              *faces*))))
                      (nsort xfaces (lambda (a b) (< (first a) (first b))))
                      (dolist (xf xfaces)
                        (setf (. ctx fillStyle) (second xf))
