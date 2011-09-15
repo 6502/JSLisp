@@ -44,13 +44,13 @@
 
 (defun invcamera (from to up dist)
   (let* ((n (vdir (v- to from)))
-         (u (v* (vdir (v^ up n)) dist))
+         (u (vdir (v^ up n)))
          (v (v^ n u)))
     (lambda (xs ys)
       (v+ from
-          (v* xs u)
-          (v* ys v)
-          (v* dist n)))))
+          (v* u xs)
+          (v* v ys)
+          (v* n dist)))))
 
 (load (http-get "gui.lisp"))
 
@@ -154,14 +154,18 @@
                (let ((x0 (. event clientX))
                      (y0 (. event clientY)))
                  (tracking (lambda (x y)
-                             (let ((dx (- x x0))
-                                   (dy (- y y0))
-                                   (icam (invcamera from (v 0 0 0) (v 0 1 0) 800)))
-                               (setf from (v+ from (v dx dy 0)))
+                             (let* ((dx (- x x0))
+                                    (dy (- y y0))
+                                    (icam (invcamera from (v 0 0 0) (v 0 1 0) 800))
+                                    (p1 (funcall icam 0 0))
+                                    (p2 (funcall icam dx dy)))
+                               (setf from
+                                     (v* (vdir (v+ from (v* (v- p1 p2) 4)))
+                                         (vlen from)))
                                (funcall redraw)
                                (setf x0 x)
                                (setf y0 y))))))
 
-  (set-coords layout 100 100 200 300)
+  (set-coords layout 0 20 200 300)
 
   (show frame))
