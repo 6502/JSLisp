@@ -133,6 +133,75 @@
         (n (section-n section)))
     (<= (section-k0 section) (v. m n) (section-k1 section))))
 
+(defun xrot (angle)
+  (let ((c (cos angle))
+        (s (sin angle))
+        (n (- (sin angle))))
+    (list  1  0  0
+           0  c  s
+           0  n  c
+           0  0  0)))
+
+(defun yrot (angle)
+  (let ((c (cos angle))
+        (s (sin angle))
+        (n (- (sin angle))))
+    (list  c  0  s
+           0  1  0
+           n  0  c
+           0  0  0)))
+
+(defun zrot (angle)
+  (let ((c (cos angle))
+        (s (sin angle))
+        (n (- (sin angle))))
+    (list  c  s  0
+           n  c  0
+           0  0  1
+           0  0  0)))
+
+(defun xform (m p)
+  (let ((x (x p))
+        (y (y p))
+        (z (z p)))
+    (v (+ (* x (aref m 0))
+          (* y (aref m 3))
+          (* z (aref m 6))
+          (aref m 9))
+       (+ (* x (aref m 1))
+          (* y (aref m 4))
+          (* z (aref m 7))
+          (aref m 10))
+       (+ (* x (aref m 2))
+          (* y (aref m 5))
+          (* z (aref m 8))
+          (aref m 11)))))
+
+(defun animate (section angle duration redraw)
+  (let ((faces (filter (lambda (f) (face-in-section f section))
+                       *faces*))
+        (xf (cond
+              ((= (x (section-n section)) 1) #'xrot)
+              ((= (y (section-n section)) 1) #'yrot)
+              (true #'zrot)))
+        (f null)
+        (start (clock))
+        (i 0))
+    (setf f (lambda ()
+              (let ((ci (/ (- (clock) start) duration)))
+                (when (> ci 1)
+                  (setf ci 1))
+                (let ((s (- (* 3 ci ci) (* 2 ci ci ci))))
+                  (let ((x (funcall xf (* angle (- s i)))))
+                    (dolist (f faces)
+                      (dotimes (j (1- (length f)))
+                        (setf (aref f (1+ j)) (xform x (aref f (1+ j)))))))
+                  (funcall redraw)
+                  (setf i s))
+                (when (< ci 1)
+                  (set-timeout f 10)))))
+    (set-timeout f 10)))
+
 (defun inside (p pts)
   (let ((n (length pts))
         (inside false)
@@ -232,10 +301,11 @@
                                                           0.5)
                                                        (face-in-section f s)))
                                                 *sections*)))
-                         (dolist (f *faces*)
-                           (when (any (s sections)
-                                      (face-in-section f s))
-                             (setf (first f) "#000000"))))))
+                         (when (> (length sections) 0)
+                           (animate (first sections)
+                                    (/ pi 2)
+                                    1000
+                                    #'redraw)))))
                    (redraw)
                    (tracking (lambda (x y)
                                (let* ((dx (- x x0))
