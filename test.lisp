@@ -566,6 +566,9 @@
 (test (let ((x (gensym)))
         (/= x (intern (symbol-name x)))) "true")
 
+(test (any (x (range 10)) (>= x 10)) "false")
+(test (all (x (range 10)) (< x 10)) "true")
+
 (display (+ test-passed "/" test-total
             " tests passed in "
             (- (clock) test-start) "ms"))

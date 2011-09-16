@@ -747,6 +747,20 @@ If only one parameter is passed it's assumed to be 'stop'."
         (setf (documentation f) (documentation old))
         f))
 
+; Any/all
+(defmacro any (var &rest body)
+  (let ((index (gensym))
+        (list (gensym)))
+    `(do ((,list ,(second var))
+          (,index 0 (1+ ,index)))
+         ((or (>= ,index (length ,list))
+              (let ((,(first var) (aref ,list ,index)))
+                ,@body))
+            (< ,index (length ,list))))))
+
+(defmacro all (var &rest body)
+  `(not (any ,var (not (progn ,@body)))))
+
 ; Defstruct
 (defmacro defstruct (name &rest fields)
   "Defines a structure with the specified fields. Each field can be either a symbol or a list with a symbol
