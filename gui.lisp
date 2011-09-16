@@ -23,6 +23,31 @@
                     cmd)
                 props))))))
 
+(defun element-pos (x)
+  (let ((left 0) (top 0))
+    (do ()
+        ((or (nullp x)
+             (undefinedp (. x offsetParent)))
+         (list left top))
+      (incf left (. x offsetLeft))
+      (incf top (. x offsetTop))
+      (setf x (. x offsetParent)))))
+
+(defun event-pos (event)
+  (let ((x 0) (y 0))
+    (cond
+      ((or (. event pageX) (. event pageY))
+       (setf x (. event pageX))
+       (setf y (. event pageY)))
+      ((or (. event clientX) (. event clientY))
+       (setf x (+ (. event clientX)
+                  (. document body scrollLeft)
+                  (. document documentElement scrollLeft)))
+       (setf y (+ (. event clientY)
+                  (. document body scrollTop)
+                  (. document documentElement scrollTop)))))
+    (list x y)))
+
 (defun show (x)
   (append-child (. document body) x))
 
@@ -44,9 +69,7 @@
                backgroundColor "#000000")
     (set-handler cover onmousemove
                  (funcall (. event preventDefault))
-                 (funcall f
-                          (. event clientX)
-                          (. event clientY)))
+                 (apply f (event-pos event)))
     (set-handler cover onmouseup
                  (hide cover))
     (show cover)))
@@ -213,8 +236,8 @@
                      (funcall (. event stopPropagation))
                      (append-child (. document body) window)
                      (dragging window
-                               (. event clientX)
-                               (. event clientY)))))
+                               (first (event-pos event))
+                               (second (event-pos event))))))
 
     (unless (undefinedp layout)
       (let ((resizer (create-element "canvas")))
@@ -239,8 +262,8 @@
                      (funcall (. event preventDefault))
                      (funcall (. event stopPropagation))
                      (append-child (. document body) window)
-                     (let ((x0 (. event clientX))
-                           (y0 (. event clientY)))
+                     (let ((x0 (first (event-pos event)))
+                           (y0 (second (event-pos event))))
                        (tracking (lambda (x y)
                                    (let ((dx (- x x0))
                                          (dy (- y y0)))
