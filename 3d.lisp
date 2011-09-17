@@ -219,14 +219,25 @@
           (when (>= (+ x0 (/ (* (- y y0) (- x1 x0)) (- y1 y0))) x)
             (setf inside (not inside))))))))
 
+(defun hit3d (p0 p1 face)
+  ; <p0 + t(p1 - p0), n> = k
+  ; <p0, n> + t<p1 - p0, n> = k
+  ; t = (k - <p0, n>) / <p1 - p0, n>
+  (let* ((n (v^ (v- (third face) (second face))
+                (v- (fourth face) (third face))))
+         (k (v. (third face) n))
+         (t (/ (- k (v. p0 n)) (v. (v- p1 p0) n))))
+    (v+ p0 (v* (v- p1 p0) t))))
+
 (let* ((canvas (create-element "canvas"))
        (layout (:Hdiv canvas))
        (cb null)
-       (frame (window 100 100 200 300
+       (frame (window 100 100 350 450
                       :title "3d view"
                       :close (lambda () (clear-interval cb))
                       :layout layout))
-       (cam (camera (v -400 -600 -1000) (v 0 0 0) (v 0 1 0) 800)))
+       (cam (camera (v -400 -600 -1000) (v 0 0 0) (v 0 1 0) 800))
+       (marks (list)))
   (labels ((visible-faces ()
              (let ((xfaces (map (lambda (f)
                                   (let ((xp (map (lambda (p) (camera-map cam p))
@@ -266,7 +277,17 @@
                               (+ zy (y p))))
                    (funcall (. ctx closePath))
                    (funcall (. ctx fill))
-                   (funcall (. ctx stroke)))))))
+                   (funcall (. ctx stroke))))
+               (setf (. ctx fillStyle) "#000000")
+               (dolist (p marks)
+                 (let ((pp (camera-map cam p)))
+                   (funcall (. ctx beginPath))
+                   (funcall (. ctx arc)
+                            (+ zx (x pp))
+                            (+ zy (y pp))
+                            2
+                            0 (* 2 pi) true)
+                   (funcall (. ctx fill)))))))
 
     (append-child frame canvas)
 
@@ -293,19 +314,26 @@
                      (when (inside (v (- x0 cx (/ w 2))
                                       (- y0 cy (/ h 2)))
                                    (third xf))
-                       (let* ((f (fourth xf))
-                              (sections (filter (lambda (s)
-                                                  (and (< (abs (v. (section-n s)
-                                                                   (v^ (v- (third f) (second f))
-                                                                       (v- (fourth f) (third f)))))
-                                                          0.5)
-                                                       (face-in-section f s)))
-                                                *sections*)))
-                         (when (> (length sections) 0)
-                           (animate (first sections)
-                                    (/ pi 2)
-                                    1000
-                                    #'redraw)))))
+                       (push (hit3d (camera-o cam)
+                                    (camera-invmap cam
+                                                   (- x0 cx (/ w 2))
+                                                   (- y0 cy (/ h 2)))
+                                    (fourth xf))
+                             marks)
+                       (when false
+                         (let* ((f (fourth xf))
+                                (sections (filter (lambda (s)
+                                                    (and (< (abs (v. (section-n s)
+                                                                     (v^ (v- (third f) (second f))
+                                                                         (v- (fourth f) (third f)))))
+                                                            0.5)
+                                                         (face-in-section f s)))
+                                                  *sections*)))
+                           (when (> (length sections) 0)
+                             (animate (first sections)
+                                      (/ pi 2)
+                                      1000
+                                      #'redraw))))))
                    (redraw)
                    (tracking (lambda (x y)
                                (let* ((dx (- x x0))
@@ -322,6 +350,6 @@
                                  (setf x0 x)
                                  (setf y0 y)))))))
 
-  (set-coords layout 0 20 200 300)
+  (set-coords layout 0 20 350 450)
 
   (show frame))
