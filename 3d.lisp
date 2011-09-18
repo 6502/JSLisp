@@ -75,37 +75,37 @@
 
 (dolist (i '(-1 0 1))
   (dolist (j '(-1 0 1))
-    (push (list "#0000FF"
+    (push (list (v 1 1 1)
                 (v (- i 0.5) (- j 0.5) -1.5)
                 (v (+ i 0.5) (- j 0.5) -1.5)
                 (v (+ i 0.5) (+ j 0.5) -1.5)
                 (v (- i 0.5) (+ j 0.5) -1.5)) *faces*)
 
-    (push (list "#FFFF00"
+    (push (list (v 0 0 1)
                 (v (+ i 0.5) (- j 0.5) 1.5)
                 (v (- i 0.5) (- j 0.5) 1.5)
                 (v (- i 0.5) (+ j 0.5) 1.5)
                 (v (+ i 0.5) (+ j 0.5) 1.5)) *faces*)
 
-    (push (list "#00FF00"
+    (push (list (v 1 0 0)
                 (v (+ i 0.5) -1.5 (- j 0.5))
                 (v (- i 0.5) -1.5 (- j 0.5))
                 (v (- i 0.5) -1.5 (+ j 0.5))
                 (v (+ i 0.5) -1.5 (+ j 0.5))) *faces*)
 
-    (push (list "#FF00FF"
+    (push (list (v 0 0.7 0)
                 (v (- i 0.5) 1.5 (- j 0.5))
                 (v (+ i 0.5) 1.5 (- j 0.5))
                 (v (+ i 0.5) 1.5 (+ j 0.5))
                 (v (- i 0.5) 1.5 (+ j 0.5))) *faces*)
 
-    (push (list "#FF0000"
+    (push (list (v 1 1 0)
                 (v -1.5 (- i 0.5) (- j 0.5))
                 (v -1.5 (+ i 0.5) (- j 0.5))
                 (v -1.5 (+ i 0.5) (+ j 0.5))
                 (v -1.5 (- i 0.5) (+ j 0.5))) *faces*)
 
-    (push (list "#00FFFF"
+    (push (list (v 0.9 0.65 0)
                 (v 1.5 (+ i 0.5) (- j 0.5))
                 (v 1.5 (- i 0.5) (- j 0.5))
                 (v 1.5 (- i 0.5) (+ j 0.5))
@@ -265,12 +265,20 @@
                     (h (. canvas height))
                     (zx (/ w 2))
                     (zy (/ h 2)))
-               (setf (. ctx fillStyle) "#808080")
+               (setf (. ctx fillStyle) "#000000")
                (funcall (. ctx fillRect) 0 0 w h)
                (setf (. ctx strokeStyle) "#000000")
                (setf (. ctx lineWidth) 1)
                (dolist (xf (visible-faces))
-                 (setf (. ctx fillStyle) (second xf))
+                 (let ((r (first (second xf)))
+                       (g (second (second xf)))
+                       (b (third (second xf)))
+                       (k (v. (vdir (v^ (v- (third (fourth xf)) (second (fourth xf)))
+                                        (v- (fourth (fourth xf)) (third (fourth xf)))))
+                              (vdir (camera-n cam)))))
+                   (setf k (+ 0.5 (* 0.5 k k)))
+                   (setf (. ctx fillStyle)
+                         ~"rgb({(floor (* 255 r k))},{(floor (* 255 g k))},{(floor (* 255 b k))})"))
                  (funcall (. ctx beginPath))
                  (let ((pts (third xf)))
                    (funcall (. ctx moveTo)
