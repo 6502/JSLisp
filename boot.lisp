@@ -747,6 +747,48 @@ If only one parameter is passed it's assumed to be 'stop'."
         (setf (documentation f) (documentation old))
         f))
 
+; Destructuring
+
+(setf (compile-specialization 'lambda)
+      (let* ((oldcf (compile-specialization 'lambda))
+             (olddoc (documentation oldcf))
+             (f (lambda (whole)
+                  (let* ((args (second whole))
+                         (body (slice whole 2))
+                         (doc (if (stringp (first body))
+                                  (js-code "d$$body.slice(0,1)")
+                                  (list)))
+                         (dslist (list)))
+                    (do ((n (length args))
+                         (i 0 (1+ i)))
+                        ((or (= i n)
+                             (and (symbolp (aref args i))
+                                  (= "&" (aref (symbol-name (aref args i)) 0)))))
+                      (when (listp (aref args i))
+                        (let ((tname (gensym)))
+                          (push (list tname (aref args i)) dslist)
+                          (setf (aref args i) tname))))
+                    (when (> (length dslist) 0)
+                      (labels ((expand (expr template)
+                                 (cond
+                                   ((symbolp template)
+                                    `((,template ,expr)))
+                                   ((listp template)
+                                    (let ((res (list)))
+                                      (dotimes (i (length template))
+                                        (setf res (append res
+                                                          (expand `(aref ,expr ,i)
+                                                                  (aref template i)))))
+                                      res))
+                                   (true (error "Invalid destructuring list")))))
+                        (setf body
+                              `((let (,@(apply #'append (map (lambda (x) (expand (first x) (second x)))
+                                                             dslist)))
+                                  ,@body)))))
+                    (funcall oldcf `(lambda ,args ,@doc ,@body))))))
+        (setf (documentation f) olddoc)
+        f))
+
 ; Any/all
 (defmacro any (var &rest body)
   (let ((index (gensym))

@@ -628,18 +628,16 @@ deflisp("macroexpand-1",
             return x;
         });
 
-defcompile("append",
-           "(append list-1 list-2 ... list-n)\n" +
-           "Retuns a list obtained by concatenating all specified lists.",
-           function(x)
-           {
-               if (x.length == 1) return "[]";
-               if (x.length == 2) return f$$js_compile(x[1]);
-               var res = f$$js_compile(x[1]);
-               for (var i=2; i<x.length; i++)
-                   res += ".concat(" + f$$js_compile(x[i]) + ")";
-               return res;
-           });
+deflisp("append",
+        "(append list-1 list-2 ... list-n\n"+
+        "Returns a list obtained by concatenating all specified lists.",
+        function()
+        {
+            res = [];
+            for (var i=0; i<arguments.length; i++)
+                res = res.concat(arguments[i]);
+            return res;
+        });
 
 deflisp("apply",
         "(apply f args) -> result\n" +
