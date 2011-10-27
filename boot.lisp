@@ -517,6 +517,10 @@ A place is either a symbol or a form (e.g. (aref x i)) for which a corresponding
                 "[" (js-compile k)
                 "]-=" (js-compile value) ")")))
 
+(defmacro/f set-length (L n)
+  "Sets the length of list L to n"
+  `(js-code ,(+ "(" (js-compile L) ".length=" (js-compile n) ")")))
+
 ; Sequence utilities
 (defun reduce (f seq)
   "Reduces a sequence to a single value by repeating application of function f to pairs of elements in the sequence seq.

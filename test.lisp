@@ -569,6 +569,14 @@
 (test (any (x (range 10)) (>= x 10)) "false")
 (test (all (x (range 10)) (< x 10)) "true")
 
+(test (let ((x (list 1 2 3 4 5)))
+        (setf (length x 2))
+        x) "(1 2)")
+
+(test (let ((x "abcde"))
+        (setf (length x 2))
+        x) "\"abcde\"")
+
 (display (+ test-passed "/" test-total
             " tests passed in "
             (- (clock) test-start) "ms"))
