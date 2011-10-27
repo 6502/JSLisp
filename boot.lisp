@@ -353,7 +353,7 @@ If count is omitted then the subsequence will contain all elements from start to
                 ")")))
 
 (defun ash (x count)
-  "Arithmetic shift left (< count 0) or right (> count 0)"
+  "Arithmetic shift left (> count 0) or right (< count 0)"
   (js-code "(d$$count<0?(d$$x>>-d$$count):(d$$x<<d$$count))"))
 
 ; Make symbol / gensym
