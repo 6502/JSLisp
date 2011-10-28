@@ -1,1 +1,1 @@
-scp jslisp.js jslisp.html boot.lisp test.lisp gui.lisp 3d.lisp reference.lisp $1
+scp jslisp.js jslisp.html boot.lisp test.lisp gui.lisp 3d.lisp reference.lisp heap.lisp pathfinder.lisp $1
