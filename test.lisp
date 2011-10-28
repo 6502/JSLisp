@@ -472,6 +472,10 @@
         x)
       "(0 1 4 9 16)")
 
+(test (let ((x (list 1 2 3)))
+        (list (pop x) (pop x) (pop x) x))
+      "(3 2 1 ())")
+
 (test (let ((x (list 1 2 3 4)))
         (rest x))
       "(2 3 4)")

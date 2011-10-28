@@ -522,6 +522,10 @@ A place is either a symbol or a form (e.g. (aref x i)) for which a corresponding
   `(js-code ,(+ "(" (js-compile L) ".length=" (js-compile n) ")")))
 
 ; Sequence utilities
+(defmacro/f pop (x)
+  "Removes and returns last element from list x"
+  `(js-code ,(+ "(" (js-compile x) ".pop())")))
+
 (defun reduce (f seq)
   "Reduces a sequence to a single value by repeating application of function f to pairs of elements in the sequence seq.
 For an empty sequence the return value is the result of calling the function without parameters"
