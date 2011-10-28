@@ -37,7 +37,7 @@
               (let ((nh (first nx))
                     (cost (second nx)))
                 (let ((nh-info (aref seen nh))
-                      (tc (+ (state-info-total-cost state) cost)))
+                      (tc (+ (state-info-total-cost info) cost)))
                   (if nh-info
                       (when (< tc (state-info-total-cost nh-info))
                         (setf (state-info-total-cost nh-info) tc)
@@ -71,7 +71,7 @@
                               (= " " (aref (aref maze yy) xx)))
                        (push (list (list xx yy)
                                    (if (or (= xx x) (= yy y))
-                                       1000000 1412135))
+                                       100 141))
                              moves))))
                  moves)))
        (goal (lambda ((x y))
