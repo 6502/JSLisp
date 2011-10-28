@@ -97,12 +97,3 @@
         (when (or (and (< c1 sz) (not (funcall bt (aref data i) (aref data c1))))
                   (and (< c2 sz) (not (funcall bt (aref data i) (aref data c2)))))
           (error "Invalid heap data"))))))
-
-(let ((x (heap #'>=)))
-  (dotimes (i 10)
-    (heap-push (- 40 i) x)
-    (heap-push (/ i 2) x)
-    (heap-push i x))
-  (do () ((zerop (heap-length x)))
-    (heap-check x)
-    (display (heap-pop x))))
