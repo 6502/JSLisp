@@ -38,27 +38,75 @@
   `(js-code ,(+ "(2+(" (js-compile x) "<<1))")))
 
 (defstruct heap
-  data before-than)
+  data before-than index-tracking)
 
-(defun heap (&optional (before-than #'<=))
-  "Creates an heap object sorted on the optionally specified comparison function"
+(defun heap (&optional (before-than #'<=) index-tracking)
+  "Creates an heap object
+   - before-than is a callable accepting two parms that must
+     return true if first element can precede second.
+   - index-tracking is a callable that if present will be called with the
+     element and the index to track its position in the heap."
   (make-heap :data (list)
-             :before-than before-than))
+             :before-than before-than
+             :index-tracking index-tracking))
 
 (defmacro/f heap-length (heap)
   "Returns the number of elements contained in the heap"
   `(length (heap-data ,heap)))
 
+(defmacro/f heap-aref (heap index)
+  "Returns an element from the heap given the index"
+  `(aref (heap-data ,heap) ,index))
+
+(defun heap-fix (heap index)
+  "Adjustes the position of item index in the heap assuming all other elements are
+currently are satisfying the heap invariant. Returns true if elements have been moved."
+  (let ((data (heap-data heap))
+        (bt (heap-before-than heap))
+        (sz (heap-length heap))
+        (it (heap-index-tracking heap))
+        (moved false))
+    ;; Bubble up if lighter
+    (do ((parent (heap-parent index)))
+        ((or (= index 0)
+             (funcall bt (aref data parent) (aref data index))))
+      (setf moved true)
+      (let ((x (aref data index))
+            (y (aref data parent)))
+        (setf (aref data index) y)
+        (setf (aref data parent) x)
+        (when it
+          (funcall it y index)
+          (funcall it x parent))
+        (setf index parent)
+        (setf parent (heap-parent parent))))
+    ;; Sink if heavier
+    (do ((child (heap-first-child index)))
+        ((or (>= child sz)
+             (and (funcall bt (aref data index) (aref data child))
+                  (or (>= (1+ child) sz)
+                      (funcall bt (aref data index) (aref data (1+ child)))))))
+      (setf moved true)
+      (when (and (< (1+ child) sz)
+                 (not (funcall bt (aref data child) (aref data (1+ child)))))
+        (incf child))
+      (let ((x (aref data index))
+            (y (aref data child)))
+        (setf (aref data index y))
+        (setf (aref data child x))
+        (when it
+          (funcall it y index)
+          (funcall it x child))
+        (setf index child)
+        (setf child (heap-first-child child))))
+    moved))
+
 (defun heap-push (x heap)
   "Adds a new element to an heap, maintaining the heap invariant"
-  (let* ((data (heap-data heap))
-         (ix (length data))
-         (bt (heap-before-than heap)))
-    (do ((i ix parent)
-         (parent (heap-parent ix) (heap-parent parent)))
-        ((or (= i 0) (funcall bt (aref data parent) x))
-           (setf (aref data i) x))
-      (setf (aref data i) (aref data parent)))))
+  (push x (heap-data heap))
+  (when (heap-index-tracking heap)
+    (funcall (heap-index-tracking heap) x (1- (heap-length heap))))
+  (heap-fix heap (1- (heap-length heap))))
 
 (defmacro/f heap-top (heap)
   "Returns the current top element of an heap, without removing it"
@@ -66,24 +114,14 @@
 
 (defun heap-pop (heap)
   "Removes the top element from an heap and returns it"
-  (let* ((data (heap-data heap))
-         (bt (heap-before-than heap))
-         (result (first data))
-         (sz (1- (length data))))
-    (if (zerop sz)
-        (pop data)
-        (do ((i 0 c)
-             (x (pop data))
-             (c (heap-first-child 0) (heap-first-child c)))
-            ((or (>= c sz)
-                 (and (funcall bt x (aref data c))
-                      (or (>= (1+ c) sz)
-                          (funcall bt x (aref data (1+ c))))))
-             (setf (aref data i) x))
-          (when (and (< (1+ c) sz)
-                     (not (funcall bt (aref data c) (aref data (1+ c)))))
-            (incf c))
-          (setf (aref data i) (aref data c))))
+  (let ((result (heap-top heap))
+        (x (pop (heap-data heap)))
+        (it (heap-index-tracking heap)))
+    (when it (funcall it result null))
+    (when (> (heap-length heap) 0)
+      (setf (aref (heap-data heap) 0) x)
+      (when it (funcall it x 0))
+      (heap-fix heap 0))
     result))
 
 (defun heap-check (heap)

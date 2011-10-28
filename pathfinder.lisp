@@ -1,32 +1,55 @@
+(load (http-get "heap.lisp"))
+
+(defstruct state-info
+  state
+  total-cost
+  previous-state
+  heap-index)
+
 (defun find-path (start-states next goal)
   "Path-finding algorithm:
       start-states ... list of starting states
-      next ........... function that given a state returns a list of neighbors
+      next ........... function that given a state returns a list of (neighbor cost) pairs
       goal ........... a function that returns true if the passed state is a goal state
-   The function returns either a shortest path of states or null if no such a path exists"
-  (do ((prev (let ((prev (js-object)))
-               (dolist (x start-states)
-                 (setf (aref prev x) null))
-               prev))
-       (active start-states)
-       (result null))
-      ((or result
-           (zerop (length active)))
+   The function returns either a minimal cost path of states or null if no such a path exists"
+  (let ((seen (js-object))
+        (heap (heap (lambda (a b) (<= (state-info-total-cost a) (state-info-total-cost b)))
+                    (lambda (x index) (setf (state-info-heap-index x) index)))))
+    (dolist (x start-states)
+      (let ((state-record (make-state-info :state x
+                                           :total-cost 0
+                                           :previous-state null
+                                           :heap-index null)))
+        (setf (aref seen x) state-record)
+        (heap-push state-record heap)))
+    (do ((result null))
+        ((or result (zerop (heap-length heap)))
          result)
-    (let ((new-active (list)))
-      (dolist (x active)
-        (dolist (n (funcall next x))
-          (when (undefinedp (aref prev n))
-            (setf (aref prev n) x)
-            (push n new-active)
-            (when (funcall goal n)
+      (let* ((info (heap-pop heap))
+             (state (state-info-state info)))
+        (if (funcall goal state)
+            (progn
               (setf result (list))
-              (do ()
-                  ((not n)
-                     (nreverse result))
-                (push n result)
-                (setf n (aref prev n)))))))
-      (setf active new-active))))
+              (do ((x state (state-info-previous-state (aref seen x))))
+                  ((nullp x) (nreverse result))
+                (push x result)))
+            (dolist (nx (funcall next state))
+              (let ((nh (first nx))
+                    (cost (second nx)))
+                (let ((nh-info (aref seen nh))
+                      (tc (+ (state-info-total-cost state) cost)))
+                  (if nh-info
+                      (when (< tc (state-info-total-cost nh-info))
+                        (setf (state-info-total-cost nh-info) tc)
+                        (if (state-info-heap-index nh-info)
+                            (heap-fix heap (state-info-heap-index nh-info))
+                            (heap-push nh-info heap)))
+                      (heap-push (setf (aref seen nh)
+                                       (make-state-info :state nh
+                                                        :total-cost tc
+                                                        :previous-state state
+                                                        :heap-index null))
+                                 heap))))))))))
 
 (let* ((maze (list "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
                    "x                               x"
@@ -46,7 +69,10 @@
                                 (<= 0 yy (1- (length maze)))
                                 (<= 0 xx (1- (length (aref maze yy))))
                               (= " " (aref (aref maze yy) xx)))
-                       (push (list xx yy) moves))))
+                       (push (list (list xx yy)
+                                   (if (or (= xx x) (= yy y))
+                                       1000000 1412135))
+                             moves))))
                  moves)))
        (goal (lambda ((x y))
                (or (= x 0)
