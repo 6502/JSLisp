@@ -836,7 +836,8 @@ that field. When absent the default value is assumed to be the undefined value."
                (push `(defmacro/f ,fn (self)
                         `(aref ,self ,,index)) res)
                (incf index)))
-           res))))
+           res)
+       ',name)))
 
 ; Math functions
 (defmacro/f sqrt (x) "Square root of x"
