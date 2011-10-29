@@ -46,6 +46,8 @@ function Symbol(name, interned)
     this.name = name;
     this.interned = interned;
 
+    this.toString = function () { return f$$demangle(this.name); };
+
     // Cells (used only for uninterned symbols)
     this.d = undefined;
     this.f = undefined;
