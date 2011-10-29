@@ -581,6 +581,16 @@
         (setf (length x 2))
         x) "\"abcde\"")
 
+(test (let ((x (list 1 2 3))
+            (y (list 2 3 4)))
+        (list (sort (set-union x y))
+              (sort (set-difference x y))
+              (sort (set-difference y x))
+              (sort (set-intersection x y))
+              (subset (list 1 2) x)
+              (subset x (list 1 2))))
+      "((1 2 3 4) (1) (4) (2 3) true false)")
+
 (display (+ test-passed "/" test-total
             " tests passed in "
             (- (clock) test-start) "ms"))

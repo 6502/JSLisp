@@ -603,6 +603,49 @@ If only one parameter is passed it's assumed to be 'stop'."
   "Returns the last index position in which x appears in list/string L or -1 if it's not present"
   (js-code "d$$L.lastIndexOf(d$$x)"))
 
+(defun find (x L)
+  "True if element is included in L"
+  (/= -1 (index x L)))
+
+(defun remove (x L)
+  "Returns a copy of L after any x has been removed"
+  (let ((res (list)))
+    (dolist (y L)
+      (unless (= x y)
+        (push y res)))
+    res))
+
+(defun subset (L1 L2)
+  "True if every element in L1 is also in L2"
+  (do ((i 0 (1+ i)))
+      ((or (>= i (length L1))
+           (not (find (aref L1 i) L2)))
+         (>= i (length L1)))))
+
+(defun set-union (L1 L2)
+  "List of elements appearing in L1 or in L2"
+  (let ((res (slice L1)))
+    (dolist (x L2)
+      (unless (find x res)
+        (push x res)))
+    res))
+
+(defun set-difference (L1 L2)
+  "List of elements appearing in L1 but not in L2"
+  (let ((res (list)))
+    (dolist (x L1)
+      (unless (find x L2)
+        (push x res)))
+    res))
+
+(defun set-intersection (L1 L2)
+  "List of elements appearing in both L1 and L2"
+  (let ((res (list)))
+    (dolist (x L1)
+      (when (find x L2)
+        (push x res)))
+    res))
+
 (defmacro/f nsort (x cond)
   "Modifies a sequence inplace by sorting the elements according to the specified condition or #'< if no condition is given."
   (if (= cond undefined)
