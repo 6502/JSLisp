@@ -1232,6 +1232,14 @@ deflisp("str-value",
             }
             else if (f$$listp(x))
             {
+                if (x.length == 2 && f$$symbolp(x[0]))
+                {
+                    if (x[0].name == "$$quote")
+                        return "'" + f$$str_value(x[1]);
+                    if (x[0].name == "$$function" &&
+                        f$$symbolp(x[1]))
+                        return "#'" + f$$demangle(x[1].name);
+                }
                 var res = "(";
                 for (var i=0; i<x.length; i++)
                 {
