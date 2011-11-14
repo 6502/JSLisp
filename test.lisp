@@ -591,6 +591,30 @@
               (subset x (list 1 2))))
       "((1 2 3 4) (1) (4) (2 3) true false)")
 
+(test (let* ((x (list))
+             (f (lambda ()
+                  (push 1 x)
+                  (return 42)
+                  (push 2 x))))
+        (push (funcall f) x)
+        x)
+      "(1 42)")
+
+(test (defun ybar (f L)
+        (push "ybar:before" L)
+        (funcall f)
+        (push "ybar:after" L)) "ybar")
+
+(test (defun yfoo (L)
+        (push "yfoo:before" L)
+        (ybar (lambda () (return-from yfoo 42)) L)
+        (push "fyoo:after" L)) "yfoo")
+
+(test (let ((L (list)))
+        (push (yfoo L) L)
+        L)
+      "(\"yfoo:before\" \"ybar:before\" 42)")
+
 (display (+ test-passed "/" test-total
             " tests passed in "
             (- (clock) test-start) "ms"))

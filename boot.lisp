@@ -1124,3 +1124,59 @@ Each field is a list of an unevaluated symbol as name and a value."
       (unless found
         (display ~"No documentation available for {(symbol-name name)}"))
       `',name)))
+
+; return and return-from
+(js-eval "window.retv=function(f,x){this.f=f;this.x=x;}")
+
+(defmacro catch-return (fname)
+  `(js-code ,(+ "(function(f,x){if(x.constructor!=window.retv||(x.f!=null&&x.f!=f))throw x;return x.x})("
+                "s" (mangle (symbol-name fname))
+                ",d$$$42$exception$42$)")))
+
+(defmacro catch-unnamed-return ()
+  `(js-code ,(+ "(function(x){if(x.constructor!=window.retv||x.f!=null)throw x;return x.x})("
+                "d$$$42$exception$42$)")))
+
+(defmacro return (&optional x)
+  "Interrupts the current function returning the specified value (or undefined)."
+  `(js-code ,(+ "(function(){throw new retv(null," (js-compile x) ")})()")))
+
+(defmacro return-from (fname &optional x)
+  "Interrupts the specified function returning the specified value (or undefined)."
+  `(js-code ,(+ "(function(){throw new retv("
+                "s" (mangle (symbol-name fname))
+                ","
+                (js-compile x) ")})()")))
+
+(setf (symbol-macro 'defun)
+      (let* ((of (symbol-macro 'defun))
+             (f (lambda (name args &rest body)
+                  (if (stringp (first body))
+                      (let ((doc (js-code "d$$body.splice(0,1)")))
+                        (funcall of name args
+                                 (first doc)
+                                 `(try (progn ,@body)
+                                       (catch-return ,name))))
+                      (funcall of name args
+                               `(try (progn ,@body)
+                                     (catch-return ,name)))))))
+        (setf (documentation f)
+              (documentation of))
+        f))
+
+(setf (compile-specialization 'lambda)
+      (let* ((oldcf (compile-specialization 'lambda))
+             (olddoc (documentation oldcf))
+             (f (lambda (whole)
+                  (let* ((args (second whole))
+                         (body (slice whole 2))
+                         (doc (if (stringp (first body))
+                                  (js-code "d$$body.slice(0,1)")
+                                  (list))))
+                    (funcall oldcf
+                             `(lambda ,args
+                                ,@doc
+                                (try (progn ,@body)
+                                     (catch-unnamed-return))))))))
+        (setf (documentation f) olddoc)
+        f))
