@@ -1130,7 +1130,7 @@ Each field is a list of an unevaluated symbol as name and a value."
 
 (defmacro catch-return (fname)
   `(js-code ,(+ "(function(f,x){if(x.constructor!=window.retv||(x.f!=null&&x.f!=f))throw x;return x.x})("
-                "s" (mangle (symbol-name fname))
+                "d" (mangle (+ "@" (symbol-name fname)))
                 ",d$$$42$exception$42$)")))
 
 (defmacro catch-unnamed-return ()
@@ -1144,22 +1144,25 @@ Each field is a list of an unevaluated symbol as name and a value."
 (defmacro return-from (fname &optional x)
   "Interrupts the specified function returning the specified value (or undefined)."
   `(js-code ,(+ "(function(){throw new retv("
-                "s" (mangle (symbol-name fname))
+                "d" (mangle (+ "@" (symbol-name fname)))
                 ","
                 (js-compile x) ")})()")))
 
 (setf (symbol-macro 'defun)
       (let* ((of (symbol-macro 'defun))
              (f (lambda (name args &rest body)
-                  (if (stringp (first body))
-                      (let ((doc (js-code "d$$body.splice(0,1)")))
+                  (let ((locname (intern (+ "@" (symbol-name name)))))
+                    (if (stringp (first body))
+                        (let ((doc (js-code "d$$body.splice(0,1)")))
+                          (funcall of name args
+                                   (first doc)
+                                   `(let ((,locname (list)))
+                                      (try (progn ,@body)
+                                           (catch-return ,name)))))
                         (funcall of name args
-                                 (first doc)
-                                 `(try (progn ,@body)
-                                       (catch-return ,name))))
-                      (funcall of name args
-                               `(try (progn ,@body)
-                                     (catch-return ,name)))))))
+                                 `(let ((,locname (list)))
+                                    (try (progn ,@body)
+                                         (catch-return ,name)))))))))
         (setf (documentation f)
               (documentation of))
         f))

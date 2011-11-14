@@ -615,6 +615,24 @@
         L)
       "(\"yfoo:before\" \"ybar:before\" 42)")
 
+(test (defun zfoo (n rf i out)
+        (if (> n 0)
+            (progn
+              (push (lambda () (return-from zfoo n)) rf)
+              (push n out)
+              (zfoo (1- n) rf i out)
+              (push (- n) out))
+            (progn
+              (push 999 out)
+              (funcall (aref rf i))
+              (push -999 out)))) "zfoo")
+
+(test (let ((out (list))
+            (rf (list)))
+        (zfoo 5 rf 3 out)
+        out)
+      "(5 4 3 2 1 999 -3 -4 -5)")
+
 (display (+ test-passed "/" test-total
             " tests passed in "
             (- (clock) test-start) "ms"))
