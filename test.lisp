@@ -633,6 +633,17 @@
         out)
       "(5 4 3 2 1 999 -3 -4 -5)")
 
+(test (let ((x (list))
+            (y 0))
+        (tagbody
+           loop
+           (push y x)
+           (incf y)
+           (when (< y 10)
+             (go loop)))
+        x)
+      "(0 1 2 3 4 5 6 7 8 9)")
+
 (display (+ test-passed "/" test-total
             " tests passed in "
             (- (clock) test-start) "ms"))

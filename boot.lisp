@@ -526,6 +526,10 @@ A place is either a symbol or a form (e.g. (aref x i)) for which a corresponding
   "Removes and returns last element from list x"
   `(js-code ,(+ "(" (js-compile x) ".pop())")))
 
+(defun last (x) "Last element of list/string" (aref x (1- (length x))))
+
+(defun set-last (x y) "Sets the last element of list/string" (setf (aref x (1- (length x))) y))
+
 (defun reduce (f seq)
   "Reduces a sequence to a single value by repeating application of function f to pairs of elements in the sequence seq.
 For an empty sequence the return value is the result of calling the function without parameters"
@@ -1183,3 +1187,40 @@ Each field is a list of an unevaluated symbol as name and a value."
                                      (catch-unnamed-return))))))))
         (setf (documentation f) olddoc)
         f))
+
+;; Tagbody
+
+(defmacro go (tagname)
+  `(js-code ,(+ "((function(){throw "
+                "$tag$" (mangle (symbol-name tagname))
+                ";})())")))
+
+(defmacro tagbody (&rest body)
+  (let ((tagdecl "")
+        (eelist "")
+        (sep "var $tag$=null,")
+        (eesep "")
+        (fragments (list (list))))
+    (dolist (x body)
+      (if (symbolp x)
+          (progn
+            (setf tagdecl (+ tagdecl sep "$tag$" (mangle (symbol-name x)) "=[]"))
+            (setf sep ",")
+            (setf eelist (+ eelist eesep "$ee$==$tag$" (mangle (symbol-name x))))
+            (setf eesep "||")
+            (push (list x) fragments))
+          (push x (last fragments))))
+    (if (= tagdecl "")
+        `(progn ,@body null)
+        `(js-code ,(+ "((function(){"
+                      tagdecl
+                      ";for(;;){try{switch($tag$){case null:"
+                      (js-compile `(progn ,@(first fragments)))
+                      ";"
+                      (let ((cases ""))
+                        (dolist (x (rest fragments))
+                          (setf cases (+ cases
+                                         "case $tag$" (mangle (symbol-name (first x))) ":"
+                                         (js-compile `(progn ,@(rest x))) ";")))
+                        cases)
+                      "}break}catch($ee$){if(" eelist "){$tag$=$ee$}else throw $ee$;}}})(),null)")))))
