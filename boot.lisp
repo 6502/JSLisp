@@ -1151,20 +1151,31 @@ Each field is a list of an unevaluated symbol as name and a value."
             (setf eesep "||")
             (push (list x) fragments))
           (push x (last fragments))))
-    (if (= tagdecl "")
-        `(progn ,@body null)
-        `(js-code ,(+ "((function(){"
-                      tagdecl
-                      ";for(;;){try{switch($tag$){case null:"
-                      (js-compile `(progn ,@(first fragments)))
-                      ";"
-                      (let ((cases ""))
-                        (dolist (x (rest fragments))
-                          (setf cases (+ cases
-                                         "case $tag$" (mangle (symbol-name (first x))) ":"
-                                         (js-compile `(progn ,@(rest x))) ";")))
-                        cases)
-                      "}break}catch($ee$){if(" eelist "){$tag$=$ee$}else throw $ee$;}}})(),null)")))))
+    (cond
+      ((= tagdecl "")
+       `(progn ,@body null))
+      ((and (= (length fragments) 2)
+            (= (length (aref fragments 1)) 1))
+       (let ((exit-tag (aref (aref fragments 1) 0)))
+         `(js-code ,(+ "((function(){"
+                       "var $tag$" (mangle (symbol-name exit-tag)) "=[];"
+                       "try{"
+                       (js-compile `(progn ,@(first fragments)))
+                       "}catch($ee$){if($ee$!=$tag$" (mangle (symbol-name exit-tag)) "){throw $ee$}}"
+                       "return null;})())"))))
+      (true
+       `(js-code ,(+ "((function(){"
+                     tagdecl
+                     ";for(;;){try{switch($tag$){case null:"
+                     (js-compile `(progn ,@(first fragments)))
+                     ";"
+                     (let ((cases ""))
+                       (dolist (x (rest fragments))
+                         (setf cases (+ cases
+                                        "case $tag$" (mangle (symbol-name (first x))) ":"
+                                        (js-compile `(progn ,@(rest x))) ";")))
+                       cases)
+                     "}break}catch($ee$){if(" eelist "){$tag$=$ee$}else throw $ee$;}}})(),null)"))))))
 
 ;; Block / return / return-from
 (defvar ret@ (js-object))
