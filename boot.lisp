@@ -1129,65 +1129,6 @@ Each field is a list of an unevaluated symbol as name and a value."
         (display ~"No documentation available for {(symbol-name name)}"))
       `',name)))
 
-; return and return-from
-(js-eval "window.retv=function(f,x){this.f=f;this.x=x;}")
-
-(defmacro catch-return (fname)
-  `(js-code ,(+ "(function(f,x){if(x.constructor!=window.retv||(x.f!=null&&x.f!=f))throw x;return x.x})("
-                "d" (mangle (+ "@" (symbol-name fname)))
-                ",d$$$42$exception$42$)")))
-
-(defmacro catch-unnamed-return ()
-  `(js-code ,(+ "(function(x){if(x.constructor!=window.retv||x.f!=null)throw x;return x.x})("
-                "d$$$42$exception$42$)")))
-
-(defmacro return (&optional x)
-  "Interrupts the current function returning the specified value (or undefined)."
-  `(js-code ,(+ "(function(){throw new retv(null," (js-compile x) ")})()")))
-
-(defmacro return-from (fname &optional x)
-  "Interrupts the specified function returning the specified value (or undefined)."
-  `(js-code ,(+ "(function(){throw new retv("
-                "d" (mangle (+ "@" (symbol-name fname)))
-                ","
-                (js-compile x) ")})()")))
-
-(setf (symbol-macro 'defun)
-      (let* ((of (symbol-macro 'defun))
-             (f (lambda (name args &rest body)
-                  (let ((locname (intern (+ "@" (symbol-name name)))))
-                    (if (stringp (first body))
-                        (let ((doc (js-code "d$$body.splice(0,1)")))
-                          (funcall of name args
-                                   (first doc)
-                                   `(let ((,locname (list)))
-                                      (try (progn ,@body)
-                                           (catch-return ,name)))))
-                        (funcall of name args
-                                 `(let ((,locname (list)))
-                                    (try (progn ,@body)
-                                         (catch-return ,name)))))))))
-        (setf (documentation f)
-              (documentation of))
-        f))
-
-(setf (compile-specialization 'lambda)
-      (let* ((oldcf (compile-specialization 'lambda))
-             (olddoc (documentation oldcf))
-             (f (lambda (whole)
-                  (let* ((args (second whole))
-                         (body (slice whole 2))
-                         (doc (if (stringp (first body))
-                                  (js-code "d$$body.slice(0,1)")
-                                  (list))))
-                    (funcall oldcf
-                             `(lambda ,args
-                                ,@doc
-                                (try (progn ,@body)
-                                     (catch-unnamed-return))))))))
-        (setf (documentation f) olddoc)
-        f))
-
 ;; Tagbody
 
 (defmacro go (tagname)
@@ -1224,3 +1165,43 @@ Each field is a list of an unevaluated symbol as name and a value."
                                          (js-compile `(progn ,@(rest x))) ";")))
                         cases)
                       "}break}catch($ee$){if(" eelist "){$tag$=$ee$}else throw $ee$;}}})(),null)")))))
+
+;; Block / return / return-from
+(defvar ret@ (js-object))
+
+(defmacro return-from (name &optional value)
+  (when (undefinedp (aref ret@ name))
+    (error ~"(return-from {name} ...) can be used only inside (block {name} ...)"))
+  (setf (aref ret@ name) true)
+  `(progn
+     (setf @result ,value)
+     (go ,(intern ~"ret@{name}"))))
+
+(defmacro return (&optional value)
+  `(return-from null ,value))
+
+(defmacro block (name &rest body)
+  (let ((old-ret (aref ret@ name)))
+    (setf (aref ret@ name) false)
+    (let ((jsbody (js-compile `(progn ,@body))))
+      (let ((mr (if (aref ret@ name)
+                    `(let ((@result null))
+                       (tagbody
+                          (setf @result
+                                (js-code ,jsbody))
+                          ,(intern ~"ret@{name}"))
+                       @result)
+                    `(js-code ,jsbody))))
+        (setf (aref ret@ name) old-ret)
+        mr))))
+
+(setf (symbol-macro 'defun)
+      (let ((om (symbol-macro 'defun)))
+        (lambda (name args &rest body)
+          (apply om `(,name ,args (block ,name ,@body))))))
+
+(setf (compile-specialization 'lambda)
+      (let ((om (compile-specialization 'lambda)))
+        (lambda (x)
+          (apply om `((lambda ,(second x)
+                        ,(append `(block null) (slice x 2))))))))
