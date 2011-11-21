@@ -1174,7 +1174,7 @@ Each field is a list of an unevaluated symbol as name and a value."
     (error ~"(return-from {name} ...) can be used only inside (block {name} ...)"))
   (setf (aref ret@ name) true)
   `(progn
-     (setf @result ,value)
+     (setf ,(intern ~"{name}@result") ,value)
      (go ,(intern ~"ret@{name}"))))
 
 (defmacro return (&optional value)
@@ -1185,12 +1185,12 @@ Each field is a list of an unevaluated symbol as name and a value."
     (setf (aref ret@ name) false)
     (let ((jsbody (js-compile `(progn ,@body))))
       (let ((mr (if (aref ret@ name)
-                    `(let ((@result null))
+                    `(let ((,(intern ~"{name}@result") null))
                        (tagbody
-                          (setf @result
+                          (setf ,(intern ~"{name}@result")
                                 (js-code ,jsbody))
                           ,(intern ~"ret@{name}"))
-                       @result)
+                       ,(intern ~"{name}@result"))
                     `(js-code ,jsbody))))
         (setf (aref ret@ name) old-ret)
         mr))))
@@ -1198,10 +1198,19 @@ Each field is a list of an unevaluated symbol as name and a value."
 (setf (symbol-macro 'defun)
       (let ((om (symbol-macro 'defun)))
         (lambda (name args &rest body)
-          (apply om `(,name ,args (block ,name ,@body))))))
+          (let ((doc (if (stringp (first body))
+                         (js-code "d$$body.splice(0,1)")
+                         (list))))
+            (apply om `(,name ,args ,@doc (block ,name ,@body)))))))
 
 (setf (compile-specialization 'lambda)
       (let ((om (compile-specialization 'lambda)))
         (lambda (x)
-          (apply om `((lambda ,(second x)
-                        ,(append `(block null) (slice x 2))))))))
+          (let* ((args (second x))
+                 (body (slice x 2))
+                 (doc (if (stringp (first body))
+                          (js-code "d$$body.splice(0,1)")
+                          (list))))
+            (apply om `((lambda ,args
+                          ,@doc
+                          ,(append `(block null) body))))))))
