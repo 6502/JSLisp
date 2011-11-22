@@ -37,6 +37,9 @@
                             (list 'set-documentation
                                   (list 'symbol-macro (list 'quote name))
                                   doc)
+                            (list 'set-arglist
+                                  (list 'symbol-macro (list 'quote name))
+                                  (list 'quote args))
                             (list 'quote name)))))
 
 (defmacro defun (name args &rest body)
@@ -56,14 +59,22 @@
           (list 'set-documentation
                 (list 'symbol-function (list 'quote name))
                 doc)
+          (list 'set-arglist
+                (list 'symbol-function (list 'quote name))
+                (list 'quote args))
           (list 'quote name))))
 (set-documentation (symbol-macro 'defmacro)
                    "(defmacro name (args) ...)
 Defines or redefines a compile-time macro.")
 
+(set-arglist (symbol-macro 'defmacro)
+             '(name args &rest body))
+
 (set-documentation (symbol-macro 'defun)
                    "(defun name (args) ...)
 Defines or redefines a regular function")
+(set-arglist (symbol-macro 'defun)
+             '(name args &rest body))
 
 ; Length function
 (defun length (x)

@@ -154,6 +154,22 @@ deflisp("set-documentation",
             x.documentation = doc;
         });
 
+deflisp("arglist",
+        "(arglist function)\n" +
+        "Returns the argument list for function 'x' or null if unknown.",
+        function(x)
+        {
+            return x.arglist || null;
+        });
+
+deflisp("set-arglist",
+        "(set-arglist function arglist)\n" +
+        "Sets the argument list for function 'x' to 'arglist'.",
+        function(x, arglist)
+        {
+            x.arglist = arglist;
+        });
+
 deflisp("demangle",
         "(demangle x:string) -> string\n" +
         "Returns a lisp name by decoding a javascript name produced by (mangle ...)",
