@@ -610,9 +610,9 @@ If only one parameter is passed it's assumed to be 'stop'."
       (push x res))
     res))
 
-(defun index (x L)
+(defun index (x L start)
   "Returns the index position in which x appears in list/string L or -1 if it's not present"
-  (js-code "d$$L.indexOf(d$$x)"))
+  (js-code "d$$L.indexOf(d$$x,d$$start)"))
 
 (defun last-index (x L)
   "Returns the last index position in which x appears in list/string L or -1 if it's not present"
