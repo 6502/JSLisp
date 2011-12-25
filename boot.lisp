@@ -1106,6 +1106,15 @@ Each field is a list of an unevaluated symbol as name and a value."
   "Executes a body for each line of a string"
   `(maplines (lambda (,var) ,@body) ,str))
 
+; Loose number parsing
+(defmacro/f atof (s)
+  "Returns a float from the start of the specified string (NaN if fails)"
+  `(js-code ,(+ "parseFloat(" (js-compile s) ")")))
+
+(defmacro/f atoi (s)
+  "Returns an integer from the start of the specified string (NaN if fails)"
+  `(js-code ,(+ "parseInt(" (js-compile s) ")")))
+
 ; Javascript blocking interaction
 (defun prompt (x)
   "Asks the user for a string providing x as a prompt message"
