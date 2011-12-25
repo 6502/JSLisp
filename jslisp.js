@@ -1239,6 +1239,8 @@ deflisp("parse-value",
             return (readers[src()] || readers["default"])(src);
         });
 
+var circle_print = [];
+
 deflisp("str-value",
         "(str-value x) -> string\n" +
         "Computes a string representation of the value x",
@@ -1258,12 +1260,16 @@ deflisp("str-value",
                         f$$symbolp(x[1]))
                         return "#'" + f$$demangle(x[1].name);
                 }
+                if (circle_print.indexOf(x) != -1)
+                    return "#" + circle_print.indexOf(x);
+                circle_print.push(x);
                 var res = "(";
                 for (var i=0; i<x.length; i++)
                 {
                     if (i > 0) res += " ";
                     res += f$$str_value(x[i]);
                 }
+                circle_print.pop();
                 return res + ")";
             }
             else if (x && x.constructor == Function)
