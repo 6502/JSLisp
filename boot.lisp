@@ -1090,6 +1090,22 @@ Each field is a list of an unevaluated symbol as name and a value."
             ((= 1 (length pieces)) (aref pieces 0))
             (true `(+ ,@pieces))))))
 
+; Line split utility
+(defun maplines (f str)
+  "Calls a function for each line in a string"
+  (do ((i 0)
+       (n (length str)))
+      ((>= i n))
+    (let ((j (index "\n" str i)))
+      (when (= j -1)
+        (setf j (1+ n)))
+      (funcall f (subseq str i (- j i)))
+      (setf i (1+ j)))))
+
+(defmacro dolines ((var str) &rest body)
+  "Executes a body for each line of a string"
+  `(maplines (lambda (,var) ,@body) ,str))
+
 ; Javascript blocking interaction
 (defun prompt (x)
   "Asks the user for a string providing x as a prompt message"
