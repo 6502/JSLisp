@@ -496,7 +496,7 @@
 
 (test (let ((x (list 1 2 3)))
         (list (nreverse x) x))
-      "((3 2 1) (3 2 1))")
+      "((3 2 1) #1)")
 
 (test (let ((x (list 1 2 3)))
         (list (reverse x) x))
@@ -643,6 +643,13 @@
              (go loop)))
         x)
       "(0 1 2 3 4 5 6 7 8 9)")
+
+(test (let ((L1 (list 1 2 3 4))
+            (L2 (list 5 6 7 8)))
+        (setf (aref L1 3 L2))
+        (setf (aref L2 3 L1))
+        (str-value (list L2 L1 L2)))
+      "\"((5 6 7 (1 2 3 #1)) #2 #1)\"")
 
 (display (+ test-passed "/" test-total
             " tests passed in "
