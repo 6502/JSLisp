@@ -1106,6 +1106,17 @@ Each field is a list of an unevaluated symbol as name and a value."
   "Executes a body for each line of a string"
   `(maplines (lambda (,var) ,@body) ,str))
 
+; Destructuring dolist utility
+(defmacro dolist-d ((vars L) &rest body)
+  "dolist-like utility destructuring elements to multiple variables"
+  (let ((x (gensym)))
+    `(dolist (,x ,L)
+       (let ,(let ((res (list)))
+               (dotimes (i (length vars))
+                 (push `(,(aref vars i) (aref ,x ,i)) res))
+               res)
+         ,@body))))
+
 ; Loose number parsing
 (defmacro/f atof (s)
   "Returns a float from the start of the specified string (NaN if fails)"
