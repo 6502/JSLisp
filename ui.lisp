@@ -55,7 +55,7 @@
   graphics    ;; List of drawing commands
   children    ;; List of child sprites
   hit         ;; Hit function or null
-  cache       ;; Either null or (dx, dy, canvas) where delta is relative to m31 m32
+  cache       ;; Either null or (matrix, dx, dy, canvas) where dx, dy is topleft relative to m31 m32
   canvas      ;; Either null or current canvas DOM element displayed
   dirty)      ;; Next dirty sprite or null if not dirty
 
@@ -65,24 +65,14 @@
 ;; True if z ordering needs recomputation
 (defvar *zdirty* false)
 
-(defun touch (sprite)
+(defun invalidate (sprite)
   "Adds the sprite to dirty sprites list if not already there"
   (unless (sprite-dirty sprite)
     (setf (sprite-dirty sprite) *dirty*)
     (setf *dirty* sprite)))
 
-(defun invalidate (sprite)
-  "Invalidates sprite cached canvas"
-  (touch sprite)
-  (setf (sprite-cache sprite) null))
-
-(defun rtouch (sprite)
-  "Recursive touch (needed when translating a sprite)"
-  (touch sprite)
-  (map #'rtouch (sprite-children sprite)))
-
 (defun rinvalidate (sprite)
-  "Recursive invalidate (needed when matrix change is not a pure translation)"
+  "Recursive invalidate (needed when matrix changes)"
   (invalidate sprite)
   (map #'rinvalidate (sprite-children sprite)))
 
@@ -92,15 +82,17 @@
                (== parent (sprite-parent sprite))
                (== sprite (last (sprite-children parent))))
     (when (sprite-parent sprite)
-      (delete sprite (sprite-children (sprite-parent sprite)))
-      (when (sprite-canvas sprite)
-        (remove-child (. document body) (sprite-canvas sprite))
-        (setf (sprite-canvas sprite) null)))
+      (delete sprite (sprite-children (sprite-parent sprite))))
     (setf (sprite-parent sprite) parent)
-    (when parent
-      (push sprite (sprite-children parent))
-      (rinvalidate sprite))
-    (setf *zdirty* true)))
+    (if parent
+        (progn
+          (push sprite (sprite-children parent))
+          (rinvalidate sprite)
+          (setf *zdirty* true))
+        (when (sprite-canvas sprite)
+          (remove-child (. document body) (sprite-canvas sprite))
+          (setf (sprite-canvas sprite) null)
+          (setf (sprite-cache sprite) null)))))
 
 ;; 2d geometry
 
@@ -161,7 +153,7 @@
           (list [m 0] [m 1]
                 [m 2] [m 3]
                 (+ [m 4] x) (+ [m 5] y))))
-  (rtouch sprite))
+  (rinvalidate sprite))
 
 (defun set-rotation (sprite angle)
   "Sets absolute angle for a sprite (scale from m11 and m12)"
@@ -180,17 +172,19 @@
           (list [m 0] [m 1]
                 [m 2] [m 3]
                 x y))
-    (rtouch sprite)))
+    (rinvalidate sprite)))
 
 (defun add-graphics (sprite &rest L)
   "Adds graphic commands to a sprite"
   (setf (sprite-graphics sprite)
         (append (sprite-graphics sprite) L))
+  (setf (sprite-cache sprite) null)
   (invalidate sprite))
 
 (defun set-graphics (sprite &rest L)
   "Sets graphic commands of a sprite"
   (setf (sprite-graphics sprite) L)
+  (setf (sprite-cache sprite) null)
   (invalidate sprite))
 
 ;; Constructor
@@ -208,7 +202,7 @@
                         :dirty null)))
     (when parent
       (set-parent s parent))
-    (touch s)
+    (invalidate s)
     s))
 
 ;; Graphic management
@@ -308,7 +302,7 @@
 (defun load-image (sprite src x y)
   (let ((img (create-element "img")))
     (setf (. img onload)
-          (add-graphics sprite (image img x y)))
+          (lambda (&rest args) (add-graphics sprite (image img x y))))
     (setf (. img src) src)))
 
 ;;;;;;;;;;;;;;
@@ -359,7 +353,7 @@ Returns null for an empty sprite or (dx dy canvas) with delta being the translat
                      (- [m 4] ix0) (- [m 5] iy0))
             (dolist (el (sprite-graphics sprite))
               (draw el ctx)))
-          (list (- ix0 [m 4]) (- iy0 [m 5]) canvas))))))
+          (list m (- ix0 [m 4]) (- iy0 [m 5]) canvas))))))
 
 (defun update ()
   "Updates screen content by recomputing/translating updated sprites"
@@ -367,8 +361,14 @@ Returns null for an empty sprite or (dx dy canvas) with delta being the translat
     (let ((sprite *dirty*))
       (setf *dirty* (sprite-dirty sprite))
       (setf (sprite-dirty sprite) null)
-      (let ((m (total-matrix sprite)))
-        (when (nullp (sprite-cache sprite))
+      (let ((m (total-matrix sprite))
+            (cm (and (sprite-cache sprite) (first (sprite-cache sprite)))))
+        (when (or (nullp cm)
+                  (/= [m 0] [cm 0])
+                  (/= [m 1] [cm 1])
+                  (/= [m 2] [cm 2])
+                  (/= [m 3] [cm 3]))
+          ;; No cache or matrix change is not a translation; canvas must be (re)computed
           (unless (sprite-canvas sprite)
             (setf (sprite-canvas sprite) (create-element "canvas"))
             (append-child (. document body) (sprite-canvas sprite))
@@ -378,10 +378,11 @@ Returns null for an empty sprite or (dx dy canvas) with delta being the translat
             (remove-child (. document body) (sprite-canvas sprite))
             (setf (sprite-canvas sprite) null)))
         (when (sprite-canvas sprite)
+          (setf (first (sprite-cache sprite)) m)
           (setf (. (sprite-canvas sprite) style left)
-                (+ [m 4] (first (sprite-cache sprite)) "px"))
+                (+ [m 4] (second (sprite-cache sprite)) "px"))
           (setf (. (sprite-canvas sprite) style top)
-                (+ [m 5] (second (sprite-cache sprite)) "px"))))))
+                (+ [m 5] (third (sprite-cache sprite)) "px"))))))
   (when *zdirty*
     (setf *zdirty* false)
     (let ((body (. document body)))
