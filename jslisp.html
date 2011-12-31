@@ -333,8 +333,30 @@ function keyPress(e)
 try
 {
     f$$load(f$$http_get("boot.lisp"));
-    f$$display("Boot completed.");
-    f$$display(prompt_message);
+
+    var args = {};
+    var aa = document.location.href;
+    if (aa.indexOf("?") != -1)
+    {
+        aa = aa.split("?")[1].split("&");
+        for (var i=0; i<aa.length; i++)
+        {
+            var s = aa[i];
+            var j = s.indexOf("=");
+            if (j != -1)
+            {
+                var name = s.substr(0, j);
+                var value = s.substr(j + 1);
+                args[name] = value;
+            }
+        }
+    }
+    if (args["load"]) {
+        f$$load(f$$http_get(args["load"]));
+    } else {
+        f$$display("Boot completed.");
+        f$$display(prompt_message);
+    }
 }
 catch(err)
 {
