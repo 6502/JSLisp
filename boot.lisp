@@ -304,17 +304,17 @@ If count is omitted then the subsequence will contain all elements from start to
        ((= (length args) 1)
         ,single)
        ((= (length args) 2)
-        `(js-code ,(+ "("
+        `(js-code ,(+ "(("
                       (js-compile (aref args 0))
-                      ,jsname
+                      ")" ,jsname "("
                       (js-compile (aref args 1))
-                      ")")))
+                      "))")))
        (true
-        `(js-code ,(+ "("
+        `(js-code ,(+ "(("
                       (js-compile `(,',name ,@(slice args 0 (- (length args) 1))))
-                      ,jsname
+                      ")" ,jsname "("
                       (js-compile (aref args (- (length args) 1)))
-                      ")"))))))
+                      "))"))))))
 
 (defmacro defmathop-func (name)
   "Defines a math function based on a math operator macro defined with defmathop."
