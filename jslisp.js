@@ -876,6 +876,8 @@ function erl(x, f)
     }
 }
 
+var d$$$42$declarations$42$ = [];
+
 deflisp("js-compile",
         "(js-compile x) -> string\n" +
         "Returns a string containing Javascript code that when evaluated in javascript will perform the " +
@@ -896,55 +898,67 @@ deflisp("js-compile",
                 }
                 return v;
             }
+            else if (f$$listp(x) && f$$symbolp(x[0]) && x[0].name == "$$declare")
+            {
+                d$$$42$declarations$42$.push(x);
+            }
             else if (f$$listp(x))
             {
-                var wrapper = function(r) {
-                    return r;
-                };
-                if (x.location)
-                {
-                    wrapper = function(r) {
-                        return ("erl(" +
-                                stringify(x.location) +
-                                ", function(){return(" +
-                                r + ");})");
+                try {
+                    var decl = d$$$42$declarations$42$.length;
+
+                    var wrapper = function(r) {
+                        return r;
                     };
-                }
-                var f = x[0];
-                if (f$$symbolp(f))
-                {
-                    var wf = jscompile[f.name];
-                    if (wf && wf.constructor == Function)
+                    if (x.location)
                     {
-                        return wrapper(wf(x));
+                        wrapper = function(r) {
+                            return ("erl(" +
+                                    stringify(x.location) +
+                                    ", function(){return(" +
+                                    r + ");})");
+                        };
                     }
-                    else if (lexmacro.vars[f.name])
+                    var f = x[0];
+                    if (f$$symbolp(f))
                     {
-                        var macro_expansion = lexmacro.vars[f.name].apply(window, x.slice(1));
-                        return wrapper(f$$js_compile(macro_expansion));
-                    }
-                    else if (window["m" + f.name])
-                    {
-                        var macro_expansion = window["m" + f.name].apply(window, x.slice(1));
-                        return wrapper(f$$js_compile(macro_expansion));
+                        var wf = jscompile[f.name];
+                        if (wf && wf.constructor == Function)
+                        {
+                            return wrapper(wf(x));
+                        }
+                        else if (lexmacro.vars[f.name])
+                        {
+                            var macro_expansion = lexmacro.vars[f.name].apply(window, x.slice(1));
+                            return wrapper(f$$js_compile(macro_expansion));
+                        }
+                        else if (window["m" + f.name])
+                        {
+                            var macro_expansion = window["m" + f.name].apply(window, x.slice(1));
+                            return wrapper(f$$js_compile(macro_expansion));
+                        }
+                        else
+                        {
+                            if (!lexfunc.vars[f.name] && !window["f" + f.name])
+                                f$$warning("Undefined function " + f.name);
+                            var res = "f" + f.name + "(";
+                            for (var i=1; i<x.length; i++)
+                            {
+                                if (i > 1) res += ",";
+                                res += f$$js_compile(x[i]);
+                            }
+                            res += ")";
+                            return wrapper(res);
+                        }
                     }
                     else
                     {
-                        if (!lexfunc.vars[f.name] && !window["f" + f.name])
-                            f$$warning("Undefined function " + f.name);
-                        var res = "f" + f.name + "(";
-                        for (var i=1; i<x.length; i++)
-                        {
-                            if (i > 1) res += ",";
-                            res += f$$js_compile(x[i]);
-                        }
-                        res += ")";
-                        return wrapper(res);
+                        throw new String("Invalid function call");
                     }
                 }
-                else
+                finally
                 {
-                    throw new String("Invalid function call");
+                    d$$$42$declarations$42$.length = decl;
                 }
             }
             else if ((typeof x) == "undefined")
