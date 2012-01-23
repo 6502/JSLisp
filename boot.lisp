@@ -508,6 +508,14 @@ A place is either a symbol or a form (e.g. (aref x i)) for which a corresponding
                 (error "Unsupported decf place")))))
     (true (error "Invalid decf place"))))
 
+(defmacro inc-js-code (x delta)
+  "Increment of js literal lvalue"
+  `(js-code ,(+ "((" x ")+=(" (js-compile delta) "))")))
+
+(defmacro dec-js-code (x delta)
+  "Decrement of js literal lvalue"
+  `(js-code ,(+ "((" x ")-=(" (js-compile delta) "))")))
+
 (defmacro/f 1+ (x)
   "Returns (+ x 1)"
   `(+ ,x 1))
