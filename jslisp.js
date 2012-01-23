@@ -939,8 +939,19 @@ deflisp("js-compile",
                         }
                         else
                         {
-                            if (!lexfunc.vars[f.name] && !window["f" + f.name])
-                                f$$warning("Undefined function " + f.name);
+                            var gf = window["f" + f.name];
+                            if (!lexfunc.vars[f.name])
+                            {
+                                if (!gf)
+                                {
+                                    f$$warning("Undefined function " + f.name);
+                                }
+                                else if (gf.arglist && window["f$$check_args"])
+                                {
+                                    window["f$$check_args"](x, gf.arglist);
+                                }
+                            }
+
                             var res = "f" + f.name + "(";
                             for (var i=1; i<x.length; i++)
                             {
