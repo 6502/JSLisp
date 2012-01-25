@@ -194,6 +194,10 @@ Defines or redefines a regular function")
   "Removes and returns elements from a-th to b-th from list x"
   (js-code "(d$$x.splice(d$$a,d$$b))"))
 
+(defun insert (x i y)
+  "Inserts element y into list x at index i"
+  (js-code "(d$$x.splice(d$$i,0,d$$y),d$$y)"))
+
 ; Quasiquoting
 (defun bqconst (x)
   "True if the form 'x' is constant in respect to backquoting"
