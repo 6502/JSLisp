@@ -939,7 +939,7 @@ that field. When absent the default value is assumed to be the undefined value."
 (defmacro/f abs (x) "Absolute value of x"
   `(js-code ,(+ "Math.abs(" (js-compile x) ")")))
 (defmacro/f atan2 (y x) "Arc-tangent of y/x in radians with proper handling of all quadrants"
-  `(js-code ,(+ "Math.atan(" (js-compile y) "," (js-compile x) ")")))
+  `(js-code ,(+ "Math.atan2(" (js-compile y) "," (js-compile x) ")")))
 (setq pi (js-code "Math.PI"))
 
 ; JS exception support
