@@ -946,9 +946,11 @@ deflisp("js-compile",
                                 {
                                     f$$warning("Undefined function " + f.name);
                                 }
-                                else if (gf.arglist && window["f$$check_args"])
+                                else if (gf.arglist)
                                 {
-                                    window["f$$check_args"](x, gf.arglist);
+                                    var caf = window["f$$static_check_args"];
+                                    if (caf && caf!=42)
+                                        caf(x, gf.arglist);
                                 }
                             }
 

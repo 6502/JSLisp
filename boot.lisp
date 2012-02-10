@@ -291,9 +291,9 @@ Defines or redefines a regular function")
 (defmacro/f nineth (x) "Nineth element of list/string" `(aref ,x 8))
 (defmacro/f tenth (x) "Tenth element of list/string" `(aref ,x 9))
 
-(defun subseq (x start count)
+(defun subseq-count (x start count)
   "Returns a partial copy of the list/string x starting from 'start' and with 'count' elements.
-If count is omitted then the subsequence will contain all elements from start to the end of the list/string."
+If count is undefined then the subsequence will contain all elements from start to the end of the list/string."
   (if (= count undefined)
       (slice x start)
       (slice x start (+ start count))))
@@ -378,10 +378,14 @@ If count is omitted then the subsequence will contain all elements from start to
 
 (defvar *gensym-count* 0)
 
-(defun gensym (prefix)
-  "Returns a new uninterned unique symbol eventually named using the specified prefix"
-  (make-symbol (+ "G:" (if prefix (+ prefix "/") "")
+(defun gensym-prefix (prefix)
+  "Returns a new uninterned unique symbol using the specified prefix"
+  (make-symbol (+ "G:" prefix "/"
                   (setq *gensym-count* (+ 1 *gensym-count*)))))
+
+(defun gensym-noprefix ()
+  "Returns a new uninterned unique symbol"
+  (make-symbol (+ "G:" (setq *gensym-count* (+ 1 *gensym-count*)))))
 
 ; Comparisons
 (defmacro defrelop (name comment jsname)
@@ -396,8 +400,8 @@ If count is omitted then the subsequence will contain all elements from start to
       ((= (length args) 2)
        `(js-code ,(+ "(" (js-compile (aref args 0)) ,jsname (js-compile (aref args 1)) ")")))
       (true
-       (let ((x1 (gensym))
-             (x2 (gensym)))
+       (let ((x1 (gensym-noprefix))
+             (x2 (gensym-noprefix)))
          `(let ((x1 ,(aref args 0))
                 (x2 ,(aref args 1)))
             (and (,',name x1 x2) (,',name x2 ,@(slice args 2)))))))))
@@ -608,20 +612,6 @@ The resulting list length is equal to the length of the shortest sequence."
         (push x res)))
     res))
 
-(defun range (start stop step)
-  "Returns a list containing all numbers from start (0 if not specified) up to stop counting by step (1 if not specified).
-If only one parameter is passed it's assumed to be 'stop'."
-  (when (= step undefined)
-    (setf step 1))
-  (when (= stop undefined)
-    (setf stop start)
-    (setf start 0))
-  (let ((res (list)))
-    (do ((x start (incf start step)))
-        ((>= (* step (- x stop)) 0))
-      (push x res))
-    res))
-
 (defun index (x L start)
   "Returns the index position in which x appears in list/string L or -1 if it's not present"
   (js-code "d$$L.indexOf(d$$x,d$$start)"))
@@ -713,8 +703,8 @@ If only one parameter is passed it's assumed to be 'stop'."
                                     ,@body))
                         (let ((defaults (list))
                               (checks (list))
-                              (args (append (subseq args 0 i)
-                                            (subseq args (1+ i)))))
+                              (args (append (subseq-count args 0 i)
+                                            (subseq-count args (1+ i)))))
                           (unless (= i 0)
                             (push `(when (< (argument-count) ,i)
                                      (error "Invalid number of arguments"))
@@ -744,16 +734,16 @@ If only one parameter is passed it's assumed to be 'stop'."
 (setf (compile-specialization 'lambda)
       (let* ((oldcf (compile-specialization 'lambda))
              (oldcomm (documentation (compile-specialization 'lambda)))
-             (unassigned (gensym))
+             (unassigned (gensym-noprefix))
              (f (lambda (whole)
                   (let* ((args (second whole))
                          (body (slice whole 2))
                          (i (index '&key args)))
                     (if (= i -1)
                         (funcall oldcf whole)
-                        (let ((rest (gensym "rest"))
-                              (nrest (gensym "nrest"))
-                              (ix (gensym "ix")))
+                        (let ((rest (gensym-prefix "rest"))
+                              (nrest (gensym-prefix "nrest"))
+                              (ix (gensym-prefix "ix")))
                           (unless (= -1 (index '&rest args))
                             (error "&key and &rest are incompatible"))
                           (funcall oldcf
@@ -797,8 +787,8 @@ If only one parameter is passed it's assumed to be 'stop'."
                       (let* ((n (symbol-name (if (symbolp f) f (first f))))
                              (i (index "/" n)))
                         (when (> i 0)
-                          (let ((ns (intern (subseq n 0 i)))
-                                (cf (intern (+ (subseq n (1+ i))))))
+                          (let ((ns (intern (subseq-count n 0 i)))
+                                (cf (intern (+ (subseq-count n (1+ i))))))
                             (push (list ns cf) checks)
                             (if (symbolp f)
                                 (setf (aref (second x) j) ns)
@@ -843,7 +833,7 @@ If only one parameter is passed it's assumed to be 'stop'."
                              (and (symbolp (aref args i))
                                   (= "&" (aref (symbol-name (aref args i)) 0)))))
                       (when (listp (aref args i))
-                        (let ((tname (gensym)))
+                        (let ((tname (gensym-noprefix)))
                           (push (list tname (aref args i)) dslist)
                           (setf (aref args i) tname))))
                     (when (> (length dslist) 0)
@@ -866,6 +856,41 @@ If only one parameter is passed it's assumed to be 'stop'."
                     (funcall oldcf `(lambda ,args ,@doc ,@body))))))
         (setf (documentation f) olddoc)
         f))
+
+; Range
+
+(defun range (start &optional stop step)
+  "Returns a list containing all numbers from start (0 if not specified) up to stop counting by step (1 if not specified).
+If only one parameter is passed it's assumed to be 'stop'."
+  (when (= step undefined)
+    (setf step 1))
+  (when (= stop undefined)
+    (setf stop start)
+    (setf start 0))
+  (let ((res (list)))
+    (do ((x start (incf start step)))
+        ((>= (* step (- x stop)) 0))
+      (push x res))
+    res))
+
+; Generic gensym
+(defmacro gensym (&optional prefix)
+  (if prefix
+      `(gensym-prefix ,prefix)
+      `(gensym-noprefix)))
+
+; Generic subseq
+(defmacro subseq (seq start &optional count)
+  (if count
+      `(subseq-count ,seq ,start ,count)
+      `(js-code ,(+ "("
+                    (js-compile seq)
+                    ").slice("
+                    (js-compile start)
+                    ")"))))
+
+(defun subseq (seq start &optional count)
+  (subseq-count seq start count))
 
 ; Any/all
 (defmacro any (var &rest body)
@@ -1292,3 +1317,52 @@ Each field is a list of an unevaluated symbol as name and a value."
             (apply om `((lambda ,args
                           ,@doc
                           ,(append `(block null) body))))))))
+
+;; Compile-time argument checking
+
+(defun static-check-args (form args)
+  (let ((fi 1)
+        (ai 0)
+        (fn (length form))
+        (an (length args))
+        (uae false))
+    (do ()
+        ((or (= fi fn)
+             (= ai an)
+             (find (aref args ai) '(&rest &key &optional))))
+      (incf ai)
+      (incf fi))
+    (when (and (= ai an) (< fi fn))
+      (setf uae true)
+      (warning ~"Unexpected arguments in {(str-value form)}"))
+    (when (and (< ai an)
+               (not (find (aref args ai) '(&rest &key &optional)))
+               (= fi fn))
+      (warning ~"Not enough arguments in {(str-value form)}"))
+    (when (= (aref args ai) '&optional)
+      (incf ai)
+      (do ()
+          ((or (= ai an)
+               (= fi fn)
+               (find (aref args ai) '(&key &rest))))
+        (incf ai)
+        (incf fi)))
+    (when (and (not uae) (= ai an) (< fi fn))
+      (warning ~"Unexpected arguments in {(str-value form)}"))
+    (when (and (< ai an) (= (aref args ai) '&key))
+      (when (% (- fn fi) 2)
+        (warning ~"Odd number of arguments in keyword pairing in {(str-value form)}"))
+      (incf ai)
+      (let ((keys (map (lambda (kwa)
+                         (if (listp kwa)
+                             (first kwa)
+                             kwa))
+                       (subseq args ai))))
+        (do ()
+            ((>= fi fn))
+          (let ((k (aref form fi)))
+            (when (and (symbolp k)
+                       (= ":" (aref (symbol-name k) 0)))
+              (unless (find (intern (subseq (symbol-name k) 1)) keys)
+                (warning ~"Invalid keyword parameter {k} in {(str-value form)}"))))
+          (incf fi 2))))))
