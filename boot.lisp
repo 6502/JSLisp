@@ -612,9 +612,9 @@ The resulting list length is equal to the length of the shortest sequence."
         (push x res)))
     res))
 
-(defun index (x L start)
+(defun index0 (x L)
   "Returns the index position in which x appears in list/string L or -1 if it's not present"
-  (js-code "d$$L.indexOf(d$$x,d$$start)"))
+  (js-code "d$$L.indexOf(d$$x)"))
 
 (defun last-index (x L)
   "Returns the last index position in which x appears in list/string L or -1 if it's not present"
@@ -622,7 +622,7 @@ The resulting list length is equal to the length of the shortest sequence."
 
 (defun find (x L)
   "True if element is included in L"
-  (/= -1 (index x L)))
+  (/= -1 (index0 x L)))
 
 (defun remove (x L)
   "Returns a copy of L after any x has been removed"
@@ -687,8 +687,8 @@ The resulting list length is equal to the length of the shortest sequence."
                          (doc (if (stringp (first body))
                                   (js-code "d$$body.slice(0,1)")
                                   (list)))
-                         (i (index '&optional args))
-                         (r (index '&rest args)))
+                         (i (index0 '&optional args))
+                         (r (index0 '&rest args)))
                     (if (= i -1)
                         (funcall oldcf
                                  `(lambda ,args
@@ -738,13 +738,13 @@ The resulting list length is equal to the length of the shortest sequence."
              (f (lambda (whole)
                   (let* ((args (second whole))
                          (body (slice whole 2))
-                         (i (index '&key args)))
+                         (i (index0 '&key args)))
                     (if (= i -1)
                         (funcall oldcf whole)
                         (let ((rest (gensym-prefix "rest"))
                               (nrest (gensym-prefix "nrest"))
                               (ix (gensym-prefix "ix")))
-                          (unless (= -1 (index '&rest args))
+                          (unless (= -1 (index0 '&rest args))
                             (error "&key and &rest are incompatible"))
                           (funcall oldcf
                                    `(lambda (,@(slice args 0 i) &rest ,rest)
@@ -785,7 +785,7 @@ The resulting list length is equal to the length of the shortest sequence."
                         (j 0))
                     (dolist (f (second x))
                       (let* ((n (symbol-name (if (symbolp f) f (first f))))
-                             (i (index "/" n)))
+                             (i (index0 "/" n)))
                         (when (> i 0)
                           (let ((ns (intern (subseq-count n 0 i)))
                                 (cf (intern (+ (subseq-count n (1+ i))))))
@@ -891,6 +891,27 @@ If only one parameter is passed it's assumed to be 'stop'."
 
 (defun subseq (seq start &optional count)
   (subseq-count seq start count))
+
+; Generic index
+(defmacro index (x seq &optional start)
+  (if start
+      `(js-code ,(+ "("
+                    (js-compile seq)
+                    ".indexOf("
+                    (js-compile x)
+                    ","
+                    (js-compile start)
+                    "))"))
+      `(js-code ,(+ "("
+                    (js-compile seq)
+                    ".indexOf("
+                    (js-compile x)
+                    "))"))))
+
+(defun index (x seq &optional start)
+  (if start
+      (js-code "(d$$seq.indexOf(d$$x,d$$start))")
+      (js-code "(d$$seq.indexOf(d$$x))")))
 
 ; Any/all
 (defmacro any (var &rest body)
