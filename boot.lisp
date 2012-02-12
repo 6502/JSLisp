@@ -1028,21 +1028,25 @@ Evaluates expr and in case of exception evaluates the on-error form setting *exc
 
 ; JS object access/creation
 (defmacro . (obj &rest fields)
-  "Returns the javascript object value selected by traversing the specified chain of fields (unevaluated atoms)"
+  "Returns the javascript object value selected by traversing the specified chain of fields.
+A field is either an unevaluated symbol, a number, a string or an (evaluated) form."
   (let ((res (js-compile obj)))
     (dolist (x fields)
-      (setf res (if (symbolp x)
-                    (+ res "." (symbol-name x))
-                    (+ res "[" (str-value x) "]"))))
+      (setf res (cond
+                  ((symbolp x) (+ res "." (symbol-name x)))
+                  ((listp x) (+ res "[" (js-compile x) "]"))
+                  (true (+ res "[" (str-value x) "]")))))
     `(js-code ,res)))
 
 (defmacro set-. (obj &rest fields)
-  "Sets the javascript object value selected by traversing the specified chain of fields (unevaluated atoms)"
+  "Sets the javascript object value selected by traversing the specified chain of fields.
+A field is either an unevaluated symbol, a number, a string or an (evaluated) form."
   (let ((res (js-compile obj)))
     (dolist (x (slice fields 0 (1- (length fields))))
-      (setf res (if (symbolp x)
-                    (+ res "." (symbol-name x))
-                    (+ res "[" (str-value x) "]"))))
+      (setf res (cond
+                  ((symbolp x) (+ res "." (symbol-name x)))
+                  ((listp x) (+ res "[" (js-compile x) "]"))
+                  (true (+ res "[" (str-value x) "]")))))
     (setf res (+ res "=" (js-compile (aref fields (1- (length fields))))))
     `(js-code ,res)))
 
