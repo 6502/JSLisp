@@ -1028,17 +1028,21 @@ Evaluates expr and in case of exception evaluates the on-error form setting *exc
 
 ; JS object access/creation
 (defmacro . (obj &rest fields)
-  "Returns the javascript object value selected by traversing the specified chain of fields (unevaluated symbols)"
+  "Returns the javascript object value selected by traversing the specified chain of fields (unevaluated atoms)"
   (let ((res (js-compile obj)))
     (dolist (x fields)
-      (setf res (+ res "." (symbol-name x))))
+      (setf res (if (symbolp x)
+                    (+ res "." (symbol-name x))
+                    (+ res "[" (str-value x) "]"))))
     `(js-code ,res)))
 
 (defmacro set-. (obj &rest fields)
-  "Sets the javascript object value selected by traversing the specified chain of fields (unevaluated symbols)"
+  "Sets the javascript object value selected by traversing the specified chain of fields (unevaluated atoms)"
   (let ((res (js-compile obj)))
     (dolist (x (slice fields 0 (1- (length fields))))
-      (setf res (+ res "." (symbol-name x))))
+      (setf res (if (symbolp x)
+                    (+ res "." (symbol-name x))
+                    (+ res "[" (str-value x) "]"))))
     (setf res (+ res "=" (js-compile (aref fields (1- (length fields))))))
     `(js-code ,res)))
 
@@ -1064,7 +1068,7 @@ Evaluates expr and in case of exception evaluates the on-error form setting *exc
 
 (defmacro js-object (&rest fields)
   "Creates a javascript object and eventually assigns fields.
-Each field is a list of an unevaluated symbol as name and a value."
+Each field is a list of an unevaluated atom as name and a value."
   (let ((self (gensym)))
     `(let ((,self (js-code "({})")))
        ,@(let ((res (list)))
@@ -1387,3 +1391,18 @@ Each field is a list of an unevaluated symbol as name and a value."
               (unless (find (intern (subseq (symbol-name k) 1)) keys)
                 (warning ~"Invalid keyword parameter {k} in {(str-value form)}"))))
           (incf fi 2))))))
+
+; Simple destructuring let
+(defmacro dlet (vars list &rest body)
+  (if (symbolp list)
+      `(if (= (length ,list) ,(length vars))
+           (let (,@(let ((res (list))
+                         (index -1))
+                     (dolist (v vars)
+                       (push `(,v (aref ,list ,(incf index))) res))
+                     res))
+             ,@body)
+           (error "Invalid destructuring assignment"))
+      (let ((x (gensym)))
+        `(let ((,x ,list))
+           (dlet ,vars ,x ,@body)))))
