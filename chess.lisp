@@ -42,6 +42,10 @@
   (tosq (index (aref x 1) "87654321")
         (index (aref x 0) "abcdefgh")))
 
+(defun sqname (x)
+  (+ (aref "abcdefgh" (1- (% x 10)))
+     (aref "87654321" (- (floor (/ x 10)) 2))))
+
 (dolist (x "abcdefgh")
   (dolist (y "12345678")
     (setf (symbol-value (intern ~"{x}{y}"))
@@ -314,8 +318,8 @@
             ((= [x] +BP+)
              (when (= (logand [+ x 9] +COLOR+) +WHITE+)
                (funcall f (move x (+ x 9))))
-             (when (= (logand [- x 11] +COLOR+) +WHITE+)
-               (funcall f (move x (- x 11))))
+             (when (= (logand [+ x 11] +COLOR+) +WHITE+)
+               (funcall f (move x (+ x 11))))
              (when (= [+ x 10] +EMPTY+)
                (funcall f (move x (+ x 10)))
                (when (and (= [+ x 20] +EMPTY+)
@@ -404,6 +408,14 @@
                     (undo)))
         count)))
 
+(defun perft-debug (n)
+  (move-map (lambda (m)
+              (play m)
+              (display ~"{(sqname (move-x0 m))}-{(sqname (move-x1 m))} = {(perft (1- n))}")
+              (undo))))
+
 (init-board "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -")
 (display (perft 1))
 (display (perft 2))
+(display (perft 3))
+
