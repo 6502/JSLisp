@@ -851,17 +851,6 @@ defcompile("symbol-macrolet",
                return res;
            });
 
-defcompile("define-symbol-macro",
-           "(define-symbol-macro x y)\n"+
-           "Establishes a global mapping for symbol x that when evaluated in data position will "+
-           "be replaced by y and then re-evaluated. Symbol macro mappings can be shadowed by "+
-           "lexical variables or symbol macros.",
-           function(x)
-           {
-               lexsmacro.add(x[1].name, x[2]);
-               return "null";
-           });
-
 deflisp("warning",
         "(warning msg)\n" +
         "Function called by the compiler to emit warnings about possible logical errors in the compiled code.",
@@ -899,14 +888,22 @@ deflisp("js-compile",
             {
                 if (lexsmacro.vars[x.name])
                     return f$$js_compile(lexsmacro.vars[x.name]);
-                var v = (lexvar.vars[x.name] ||
-                         specials[x.name] ||
+
+                if (lexvar.vars[x.name])
+                    return lexvar.vars[x.name];
+
+                if (x.symbol_macro)
+                    return f$$js_compile(x.symbol_macro);
+
+                var v = (specials[x.name] ||
                          constants[x.name]);
                 if ((typeof v) == "undefined")
                 {
                     if ((typeof window["d" + x.name]) == "undefined")
                         f$$warning("Undefined variable " + x.name);
                     v = "d" + x.name;
+                    if (x.constant)
+                        v = f$$str_value(window["d" + x.name]);
                 }
                 return v;
             }

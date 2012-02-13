@@ -1410,3 +1410,19 @@ Each field is a list of an unevaluated atom as name and a value."
       (let ((x (gensym)))
         `(let ((,x ,list))
            (dlet ,vars ,x ,@body)))))
+
+; Defconstant
+(defmacro defconstant (name value)
+  "Defines a constant value associated with the global variable identified by name"
+  `(progn
+     (setf (symbol-value ',name) ,value)
+     (setf (. ',name constant) true)))
+
+; Define/undefine symbol-macro
+(defmacro define-symbol-macro (x y)
+  `(setf (. ',x symbol_macro) ',y))
+
+(defmacro undefine-symbol-macro (x)
+  `(js-code ,(+ "((function(){delete s"
+                (mangle (symbol-name x))
+                ".symbol_macro;})())")))

@@ -651,6 +651,24 @@
         (str-value (list L2 L1 L2)))
       "\"((5 6 7 (1 2 3 #1)) #2 #1)\"")
 
+(test (let ((y 2)
+            (z 3))
+        (symbol-macrolet ((x y))
+          (symbol-macrolet ((y z))
+            x))) "3")
+
+(define-symbol-macro x y)
+(define-symbol-macro y z)
+
+(test (progn
+        (let ((result null))
+          (let ((z 42))
+            (setf result x))
+          result)) "42")
+
+(undefine-symbol-macro y)
+(undefine-symbol-macro z)
+
 (display (+ test-passed "/" test-total
             " tests passed in "
             (- (clock) test-start) "ms"))
