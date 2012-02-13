@@ -843,12 +843,23 @@ defcompile("symbol-macrolet",
                for (var i=0; i<x[1].length; i++)
                {
                    var name = x[1][i][0].name;
-                   var value = f$$js_compile(x[1][i][1]);
+                   var value = x[1][i][1];
                    lexsmacro.add(name, value);
                }
                var res = implprogn(x.slice(2));
                lexsmacro.end();
                return res;
+           });
+
+defcompile("define-symbol-macro",
+           "(define-symbol-macro x y)\n"+
+           "Establishes a global mapping for symbol x that when evaluated in data position will "+
+           "be replaced by y and then re-evaluated. Symbol macro mappings can be shadowed by "+
+           "lexical variables or symbol macros.",
+           function(x)
+           {
+               lexsmacro.add(x[1].name, x[2]);
+               return "null";
            });
 
 deflisp("warning",
@@ -886,10 +897,11 @@ deflisp("js-compile",
         {
             if (f$$symbolp(x))
             {
-                var v =  (lexsmacro.vars[x.name] ||
-                          lexvar.vars[x.name] ||
-                          specials[x.name] ||
-                          constants[x.name]);
+                if (lexsmacro.vars[x.name])
+                    return f$$js_compile(lexsmacro.vars[x.name]);
+                var v = (lexvar.vars[x.name] ||
+                         specials[x.name] ||
+                         constants[x.name]);
                 if ((typeof v) == "undefined")
                 {
                     if ((typeof window["d" + x.name]) == "undefined")
