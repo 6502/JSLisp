@@ -903,7 +903,7 @@ deflisp("js-compile",
                         f$$warning("Undefined variable " + x.name);
                     v = "d" + x.name;
                     if (x.constant)
-                        v = f$$str_value(window["d" + x.name]);
+                        v = stringify(window["d" + x.name]);
                 }
                 return v;
             }
