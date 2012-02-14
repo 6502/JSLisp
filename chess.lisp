@@ -216,8 +216,8 @@
                           (aref +UFLAGS+ x1)))
     (when (= x1 *ep-square*)
       (cond
-        ((= np +WP+) (setf [- x1 10] +EMPTY+))
-        ((= np +BP+) (setf [+ x1 10] +EMPTY+))))
+        ((= np +WP+) (setf [+ x1 10] +EMPTY+))
+        ((= np +BP+) (setf [- x1 10] +EMPTY+))))
     (when (= (logand np +PIECE+) +KING+)
       (cond
         ((= (- x1 x0) 2)
@@ -245,8 +245,8 @@
         (setf *color* (logxor +COLOR+ *color*))
         (when (= x1 epsq)
           (cond
-            ((= np +WP+) (setf [- x1 10] +BP+))
-            ((= np +BP+) (setf [+ x1 10] +WP+))))
+            ((= np +WP+) (setf [+ x1 10] +BP+))
+            ((= np +BP+) (setf [- x1 10] +WP+))))
         (when (= (logand np +PIECE+) +KING+)
           (cond
             ((= (- x1 x0) 2)
@@ -428,5 +428,7 @@
       (display x))
     (display ~"Total ---> {total}")))
 
-(init-board "r3k2r/p1ppqpb1/bn2pnp1/3PN3/Pp2P3/2N2Q1p/1PPBBPPP/R3K2R b KQkq a3 0 1")
-(perft-debug 2)
+(init-board "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -")
+(display (perft 1))
+(display (perft 2))
+(display (perft 3))
