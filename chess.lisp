@@ -377,19 +377,61 @@
                         (not (attacks (- x 1) opponent)))
                (funcall f (move x (- x 2)))))))))))
 
+(defun legal (m)
+  "True if a move doesn't leave the king under check"
+  (play m)
+  (let ((legal (not (attacks (index (logxor *color* +COLOR+ +KING+) *sq*)
+                             *color*))))
+    (undo)
+    legal))
+
 (defun move-map (f)
   "Calls the specified function with all legal moves"
-  (pmove-map (lambda (m)
-               (play m)
-               (let ((x (attacks (index (logxor *color* +COLOR+ +KING+) *sq*)
-                                 *color*)))
-                 (undo)
-                 (unless x
-                   (if (and (= (move-np m) (+ *color* +PAWN+))
-                            (= [+ (move-x1 m) (if (= *color* +WHITE+) -10 10)] +OUT+))
-                       (dolist (y '(+QUEEN+ +KNIGHT+ +ROOK+ +BISHOP+))
-                         (funcall f (move (move-x0 m) (move-x1 m) (+ *color* y))))
-                       (funcall f m)))))))
+  (let ((special (list))
+        (kp (index (+ *color* +KING+) *sq*))
+        (opponent (logxor *color* +COLOR+))
+        (check (check)))
+    (labels ((ok (m)
+               (if (and (= (move-np m) (+ *color* +PAWN+))
+                        (= [+ (move-x1 m) (if (= *color* +WHITE+) -10 10)] +OUT+))
+                   (dolist (y '(+QUEEN+ +KNIGHT+ +ROOK+ +BISHOP+))
+                     (funcall f (move (move-x0 m) (move-x1 m) (+ *color* y))))
+                   (funcall f m))))
+      (dotimes (i 120)
+        (setf (aref special i) false))
+      ;; King moves needs always to be considered
+      (setf (aref special kp) true)
+      (if check
+          (progn
+            ;; When king is under attack only consider moves that
+            ;; can possibly solve the problem. A valid move will
+            ;; move the King or will end in a square that is
+            ;; at queen or knight from the king (it must either
+            ;; shield the king or capture the offender).
+            (dolist (d +QUEEN-DIR+)
+              (do ((x (+ kp d) (+ x d)))
+                  ((/= [x] +EMPTY+)
+                     (setf (aref special x) true))
+                (setf (aref special x) true)))
+            (dolist (d +KNIGHT-DIR+)
+              (setf (aref special (+ kp d)) true))
+            (pmove-map (lambda (m)
+                         (when (and (or (= (move-x0 m) kp)
+                                        (aref special (move-x1 m)))
+                                    (legal m))
+                           (ok m)))))
+          (progn
+            ;; When *not* in check any move that starts from a
+            ;; square that is at queen of the king is potentially
+            ;; dangerous (the piece could be pinned).
+            (dolist (d +QUEEN-DIR+)
+              (do ((x (+ kp d) (+ x d)))
+                  ((/= [x] +EMPTY+)
+                     (setf (aref special x) true))))
+            (pmove-map (lambda (m)
+                         (when (or (not (aref special (move-x0 m)))
+                                   (legal m))
+                           (ok m)))))))))
 
 (defmacro play-moves (&rest moves)
   `(progn ,@(map (lambda (m)
@@ -428,7 +470,10 @@
       (display x))
     (display ~"Total ---> {total}")))
 
-(init-board "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -")
-(display (perft 1))
-(display (perft 2))
-(display (perft 3))
+(init-board "r3k2r/p1ppqpb1/1n2pnp1/3PN3/1p2P3/2N2Q1p/PPPBbPPP/R2K3R w kq - 0 1")
+(dolist (n (range 2 5))
+  (let ((elapsed null)
+        (count null))
+    (setf elapsed (time (setf count (perft n))))
+    (display ~"perft({n}) --> {count} ({elapsed} ms, {(to-fixed (/ count elapsed) 2)} kn/s)")))
+
