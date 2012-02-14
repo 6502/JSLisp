@@ -902,7 +902,9 @@ deflisp("js-compile",
                     if ((typeof window["d" + x.name]) == "undefined")
                         f$$warning("Undefined variable " + x.name);
                     v = "d" + x.name;
-                    if (x.constant)
+                    if (x.constant &&
+                        (typeof window["d" + x.name]) == "string" ||
+                        (typeof window["d" + x.name]) == "number")
                         v = stringify(window["d" + x.name]);
                 }
                 return v;
