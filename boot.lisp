@@ -1200,6 +1200,11 @@ Each field is a list of an unevaluated atom as name and a value."
   "Returns an integer from the start of the specified string (NaN if fails)"
   `(js-code ,(+ "parseInt(" (js-compile s) ")")))
 
+; Round formatting
+(defun to-fixed (x n)
+  "Formats a number using the specified amounts of decimals"
+  (js-code "(d$$x.toFixed(d$$n))"))
+
 ; Javascript blocking interaction
 (defun prompt (x)
   "Asks the user for a string providing x as a prompt message"
