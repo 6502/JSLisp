@@ -194,22 +194,21 @@
       (setf res (+ res "\n")))
     (+ res "\n")))
 
-(defstruct move
-  x0 x1 np)
 
-(defun move (x0 x1 &optional np)
-  (make-move :x0 x0
-             :x1 x1
-             :np (or np [x0])))
+(defmacro move (x0 x1 &optional np)
+  `(list ,x0 ,x1 ,np))
+(defmacro move-x0 (m) `(first ,m))
+(defmacro move-x1 (m) `(second ,m))
+(defmacro move-np (m) `(third ,m))
 
 (defun play (move)
   "Play a move on the chessboard"
   (let ((x0 (move-x0 move))
         (x1 (move-x1 move))
         (np (move-np move)))
-    (push (list x0 x1 np [x0] [x1] *ep-square* *flags*)
+    (push (list x0 x1 [x0] [x1] *ep-square* *flags*)
           *history*)
-    (setf [x1] np)
+    (setf [x1] (or np [x0]))
     (setf [x0] +EMPTY+)
     (setf *flags* (logand *flags*
                           (aref +UFLAGS+ x0)
@@ -237,7 +236,7 @@
 
 (defun undo ()
   "Undo last move on the chessboard"
-  (dlet (x0 x1 np px0 px1 epsq flags) (pop *history*)
+  (dlet (x0 x1 px0 px1 epsq flags) (pop *history*)
         (setf [x0] px0)
         (setf [x1] px1)
         (setf *ep-square* epsq)
@@ -245,9 +244,9 @@
         (setf *color* (logxor +COLOR+ *color*))
         (when (= x1 epsq)
           (cond
-            ((= np +WP+) (setf [+ x1 10] +BP+))
-            ((= np +BP+) (setf [- x1 10] +WP+))))
-        (when (= (logand np +PIECE+) +KING+)
+            ((= px0 +WP+) (setf [+ x1 10] +BP+))
+            ((= px0 +BP+) (setf [- x1 10] +WP+))))
+        (when (= (logand px0 +PIECE+) +KING+)
           (cond
             ((= (- x1 x0) 2)
              (setf [1+ x1] [1+ x0])
@@ -300,7 +299,7 @@
         (funcall f (move (+ *ep-square* (if (= *color* +WHITE+) 9 -9)) *ep-square*)))
       (when (= [+ *ep-square* (if (= *color* +WHITE+) 11 -11)] (+ *color* +PAWN+))
         (funcall f (move (+ *ep-square* (if (= *color* +WHITE+) 11 -11)) *ep-square*))))
-    (dotimes (x 120)
+    (dotimes (x 99)
       (let ((p (logxor [x] *color*)))
         (when (= 0 (logand p +COLOR+))
           (cond
@@ -470,10 +469,9 @@
       (display x))
     (display ~"Total ---> {total}")))
 
-(init-board "r3k2r/p1ppqpb1/1n2pnp1/3PN3/1p2P3/2N2Q1p/PPPBbPPP/R2K3R w kq - 0 1")
-(dolist (n (range 2 5))
+(init-board)
+(dolist (n (range 1 5))
   (let ((elapsed null)
         (count null))
     (setf elapsed (time (setf count (perft n))))
     (display ~"perft({n}) --> {count} ({elapsed} ms, {(to-fixed (/ count elapsed) 2)} kn/s)")))
-
