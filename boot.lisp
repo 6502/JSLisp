@@ -942,7 +942,7 @@ that field. When absent the default value is assumed to be the undefined value."
            (&key ,@fields)
          (list ',name ,@fnames))
        (defun ,(intern (+ (symbol-name name) #\?)) (self)
-         (if (and (listp self) (= ',name (aref self 0))) true false))
+         (and (listp self) (= ',name (aref self 0))))
        (defvar ,(intern (+ "*" (symbol-name name) "-fields*"))
          ',fnames)
        ,@(let ((res (list))
