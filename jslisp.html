@@ -327,6 +327,10 @@ function keyPress(e)
             process();
         repl.scrollTop = repl.scrollHeight;
     }
+    else if (e.which == 17)
+    {
+        repl.value = "";
+    }
 }
 
 // Bootstrap
