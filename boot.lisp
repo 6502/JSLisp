@@ -367,9 +367,17 @@ If count is undefined then the subsequence will contain all elements from start 
                 (js-compile b)
                 ")")))
 
-(defun ash (x count)
+(defmacro/f ash (x count)
   "Arithmetic shift left (> count 0) or right (< count 0)"
-  (js-code "(d$$count<0?(d$$x>>-d$$count):(d$$x<<d$$count))"))
+  (if (numberp count)
+      (if (> count 0)
+          `(js-code ,(+ "((" (js-compile x) ")<<(" count "))"))
+          `(js-code ,(+ "((" (js-compile x) ")>>(" (- count) "))")))
+      `(js-code ,(+ "(function(x,c){return (c>0)?(x<<c):(x>>-c);})("
+                    (js-compile x)
+                    ","
+                    (js-compile count)
+                    ")"))))
 
 ; Make symbol / gensym
 (defun make-symbol (name)
