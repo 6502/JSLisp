@@ -291,6 +291,15 @@ Defines or redefines a regular function")
 (defmacro/f nineth (x) "Nineth element of list/string" `(aref ,x 8))
 (defmacro/f tenth (x) "Tenth element of list/string" `(aref ,x 9))
 
+;; String splitting
+(defmacro/f split (x separator)
+  "Splits a string x using the specified separator"
+  `(js-code ,(+ "("
+                (js-compile x)
+                ".split("
+                (js-compile separator)
+                "))")))
+
 (defun subseq-count (x start count)
   "Returns a partial copy of the list/string x starting from 'start' and with 'count' elements.
 If count is undefined then the subsequence will contain all elements from start to the end of the list/string."
@@ -1026,9 +1035,9 @@ Evaluates expr and in case of exception evaluates the on-error form setting *exc
        (- (clock) ,start))))
 
 ; Regular expression
-(defun regexp (x options)
+(defun regexp (x &optional options)
   "Returns a new Javascript regular expression object"
-  (js-code "(new RegExp(d$$x,d$$options|\"\"))"))
+  (js-code "(new RegExp(d$$x,d$$options||\"\"))"))
 
 (defun replace (x a b)
   "Replaces all instances of regular expression a with b."
