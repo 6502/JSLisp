@@ -1009,6 +1009,52 @@ that field. When absent the default value is assumed to be the undefined value."
   `(js-code ,(+ "Math.atan2(" (js-compile y) "," (js-compile x) ")")))
 (setq pi (js-code "Math.PI"))
 
+; Swap
+
+(defmacro swap (a b)
+  "Swaps the content of two places (evaluating each place twice: once for reading and once for writing)"
+  (let ((xa (gensym))
+        (xb (gensym)))
+    `(let ((,xa ,a)
+           (,xb ,b))
+       (setf ,a ,xb)
+       (setf ,b ,xa)
+       null)))
+
+; Random
+
+(defmacro random ()
+  "Random number between 0 < x < 1"
+  `(js-code "(Math.random())"))
+
+(defun random-int (n)
+  "Random integer number 0 <= x < n"
+  (ash (* (random) n) 0))
+
+(defun random-shuffle (L)
+  "Randomly shuffles an array inplace and returns null"
+  (dotimes (i (length L))
+    (let ((j (random-int (length L))))
+      (swap (aref L i) (aref L j)))))
+
+(defun random-shuffled (L)
+  "Returns a randomly shuffled version of an array"
+  (let ((x (slice L)))
+    (random-shuffle x)
+    x))
+
+; Filler string
+
+(defun filler (n &optional (c " "))
+  "Returns a string composed by replicating a specified string (a space by default)"
+  (cond
+    ((<= n 0) "")
+    ((= n 1) c)
+    ((logand n 1) (+ c (filler (1- n) c)))
+    (true
+       (let ((h (filler (ash n -1) c)))
+         (+ h h)))))
+
 ; JS exception support
 (defvar *exception* null)
 (setf (compile-specialization 'try)
