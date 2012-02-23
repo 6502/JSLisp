@@ -614,13 +614,6 @@ The resulting list length is equal to the length of the shortest sequence."
   (map (lambda (args) (apply f args))
        (apply #'zip sequences)))
 
-(defun make-array (n initial-value)
-  "Creates a list containing n elements all equal to the specified initial value"
-  (let ((x (list)))
-    (dotimes (i n)
-      (setf (aref x i) initial-value))
-    x))
-
 (defun filter (f seq)
   "Returns the subset of elements from sequence seq for which the function f returned a logical true value"
   (let ((res (list)))
@@ -873,6 +866,15 @@ The resulting list length is equal to the length of the shortest sequence."
                     (funcall oldcf `(lambda ,args ,@doc ,@body))))))
         (setf (documentation f) olddoc)
         f))
+
+; Array construction
+
+(defun make-array (n &optional initial-value)
+  "Creates a list containing n elements all equal to the specified initial value"
+  (let ((x (list)))
+    (dotimes (i n)
+      (setf (aref x i) initial-value))
+    x))
 
 ; Range
 
