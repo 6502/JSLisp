@@ -60,26 +60,35 @@
               20)
 
 (defmacro defcommand (name args &rest body)
-  `(defun ,name ,args (push (lambda () ,@body) *turtle-commands*) 'Ok))
+  (let ((doc (list)))
+    (when (stringp (first body))
+      (setf doc (splice body 0 1)))
+    `(defun ,name ,args ,@doc (push (lambda () ,@body) *turtle-commands*) 'Ok)))
 
 (defcommand left (x)
+  "Turns the turtle x degrees to the left"
   (decf *target-angle* x))
 
 (defcommand right (x)
+  "Turns the turtle x degrees to the right"
   (incf *target-angle* x))
 
 (defcommand move (x)
+  "Advances the turtle the specified number of pixels"
   (let ((a (* (/ pi 180) *target-angle*)))
     (incf *target-x* (* x (cos a)))
     (incf *target-y* (* x (sin a)))))
 
 (defcommand up ()
+  "Stops leaving a colored trail"
   (setf *turtle-pen* null))
 
 (defmacro colors (&rest colors)
   `(progn ,@(let ((res (list)))
               (dolist (c colors)
-                (push `(defcommand ,(second c) () (setf *turtle-pen* ,(first c)))
+                (push `(defcommand ,(second c) ()
+                         ,~"Starts leaving a {(second c)} trail"
+                         (setf *turtle-pen* ,(first c)))
                       res))
               res)))
 
@@ -92,7 +101,3 @@
         ("#00FFFF" cyan)
         ("#FFFFFF" white)
         ("#888888" gray))
-
-(defmacro repeat (count &rest body)
-  (let ((x (gensym)))
-    `(dotimes (,x ,count) ,@body)))
