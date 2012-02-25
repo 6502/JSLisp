@@ -636,13 +636,21 @@ deflisp("eval",
         });
 
 deflisp("macroexpand-1",
-        "(macroexpand-1 form) -> result\n" +
-        "Expands the macro call contained in 'form' or returns the original form if " +
-        "form is not a macro invocation. Lexical macro bindings are not considered.",
+        "(macroexpand-1 x) -> result\n" +
+        "Expands the macro call or symbol in x or returns x unaltered if " +
+        "it's neither a macro invocation nor a macro symbol. Lexical macro bindings are NOT considered.",
         function(x)
         {
-            if (f$$listp(x) && f$$symbolp(x[0]) && window["m" + x[0].name])
-                return  window["m" + x[0].name].apply(window, x.slice(1));
+            if (f$$symbolp(x))
+            {
+                if (x.symbol_macro)
+                    x = x.symbol_macro;
+            }
+            else if (f$$listp(x) && f$$symbolp(x[0]))
+            {
+                if (window["m" + x[0].name])
+                    x = window["m" + x[0].name].apply(window, x.slice(1));
+            }
             return x;
         });
 
