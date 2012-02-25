@@ -574,11 +574,11 @@
 (test (all (x (range 10)) (< x 10)) "true")
 
 (test (let ((x (list 1 2 3 4 5)))
-        (setf (length x 2))
+        (setf (length x) 2)
         x) "(1 2)")
 
 (test (let ((x "abcde"))
-        (setf (length x 2))
+        (setf (length x) 2)
         x) "\"abcde\"")
 
 (test (let ((x (list 1 2 3))
@@ -668,6 +668,25 @@
 
 (undefine-symbol-macro y)
 (undefine-symbol-macro z)
+
+(defun square (x)
+  "Computes the square of a number"
+  (* x x))
+
+(test (documentation #'square)
+      "\"(square x)\\nComputes the square of a number\"")
+
+(setf (documentation #'square)
+      "(square x)\nComputes the value of (* x x)")
+
+(test (documentation #'square)
+      "\"(square x)\\nComputes the value of (* x x)\"")
+
+(test (list (length '(1 2 3 4))
+            (length (list))
+            (length "foo")
+            (length ""))
+      "(4 0 3 0)")
 
 (display (+ test-passed "/" test-total
             " tests passed in "
