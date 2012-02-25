@@ -478,7 +478,7 @@ If count is undefined then the subsequence will contain all elements from start 
              (= i n)))))
 
 (defmacro let* (bindings &rest body)
-  "Evaluates the body forms in sequence by first establishing lexical/dynamic bindings 'one at a time' so that during the evaluation n-th binding all previous ones are already visible"
+  "Evaluates the body forms in sequence by first establishing lexical/dynamic bindings 'one at a time' so that during the evaluation of n-th binding all previous ones are already visible"
   (if (> (length bindings) 1)
      `(let (,(aref bindings 0))
         (let* ,(rest bindings) ,@body))
@@ -486,17 +486,29 @@ If count is undefined then the subsequence will contain all elements from start 
 
 (defmacro setf (place value)
   "Sets the content of a place to be the specified value. A place is either a symbol or a form (e.g. (aref x i)) for which a corresponding setting form is defined (e.g. (set-aref x i value)) either as function or macro eventually after macro expansion."
+  (do ()
+      ((or (not (symbolp place))
+           (and (not (lexical-symbol-macro place))
+                (not (js-code "d$$place.symbol_macro")))))
+    (setq place (or (lexical-symbol-macro place)
+                    (js-code "d$$place.symbol_macro"))))
   (cond
     ((symbolp place)
      `(setq ,place ,value))
     ((listp place)
      (let* ((f (first place))
             (sf (intern (+ "set-" (symbol-name f)))))
-       (if (or (symbol-function sf) (symbol-macro sf))
-           `(,sf ,@(rest place) ,value)
-           (if (symbol-macro f)
-               `(setf ,(macroexpand-1 place) ,value)
-                (error "Unsupported setf place")))))
+       (cond
+         ((or (lexical-macro sf)
+              (symbol-macro sf)
+              (symbol-function sf))
+          `(,sf ,@(rest place) ,value))
+         ((lexical-macro f)
+          `(setf ,(apply (lexical-macro f) (rest place)) ,value))
+         ((symbol-macro f)
+          `(setf ,(macroexpand-1 place) ,value))
+         (true
+          (error "Unsupported setf place")))))
     (true (error "Invalid setf place"))))
 
 (defmacro incf (place inc)

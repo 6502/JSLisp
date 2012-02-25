@@ -641,15 +641,25 @@ deflisp("macroexpand-1",
         "it's neither a macro invocation nor a macro symbol. Lexical macro bindings are NOT considered.",
         function(x)
         {
-            if (f$$symbolp(x))
+            if (f$$symbolp(x) && x.symbol_macro)
+                x = x.symbol_macro;
+            else if (f$$listp(x) && f$$symbolp(x[0]) && window["m" + x[0].name])
+                x = window["m" + x[0].name].apply(window, x.slice(1));
+            return x;
+        });
+
+deflisp("macroexpand",
+        "(macroexpand x) -> result\n" +
+        "Repeats macro expansion process of macroexpand-1 on x until no more expansions are possible.",
+        function(x)
+        {
+            for (;;)
             {
-                if (x.symbol_macro)
+                if (f$$symbolp(x) && x.symbol_macro)
                     x = x.symbol_macro;
-            }
-            else if (f$$listp(x) && f$$symbolp(x[0]))
-            {
-                if (window["m" + x[0].name])
+                else if (f$$listp(x) && f$$symbolp(x[0]) && window["m" + x[0].name])
                     x = window["m" + x[0].name].apply(window, x.slice(1));
+                else break;
             }
             return x;
         });
@@ -671,6 +681,22 @@ deflisp("apply",
         function(f, args)
         {
             return f.apply(null, args);
+        });
+
+deflisp("lexical-macro",
+        "(lexical-macro x) -> result\n" +
+        "Returns the lexical macro function associated to symbol x if present or undefined otherwise",
+        function(x)
+        {
+            return lexmacro.vars[x.name];
+        });
+
+deflisp("lexical-symbol-macro",
+        "(lexical-symbol-macro x:symbol) -> result\n" +
+        "Returns the lexical symbol-macro associated to symbol x if present or undefined otherwise",
+        function(x)
+        {
+            return lexsmacro.vars[x.name];
         });
 
 defcompile("apply",
