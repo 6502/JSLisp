@@ -250,7 +250,7 @@
              (let ((xfaces (map (lambda (f)
                                   (let ((xp (map (lambda (p) (camera-map cam p))
                                                  (slice f 1))))
-                                    (list (max (map #'z xp))
+                                    (list (apply #'max (map #'z xp))
                                           (first f)
                                           xp
                                           f)))

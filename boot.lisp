@@ -600,13 +600,29 @@ For an empty sequence the return value is the result of calling the function wit
           (setf res (funcall f res x)))
         res)))
 
-(defun min (seq)
-  "Returns the minimum value of a sequence under comparison with <"
-  (reduce (lambda (x y) (if (< x y) x y)) seq))
+(defmacro min (&rest seq)
+  "Returns the minimum value of all arguments under comparison with <"
+  `(js-code ,(let ((code "(Math.min(")
+                   (sep ""))
+               (dolist (x seq)
+                 (setf code (+ code sep (js-compile x)))
+                 (setf sep ","))
+               (+ code "))"))))
+(defun min (&rest seq)
+  "Returns the minimum value of all arguments under comparison with <"
+  (js-code "(Math.min.apply(Math,d$$seq))"))
 
-(defun max (seq)
-  "Returns the maximum value of a sequence under comparison with >"
-  (reduce (lambda (x y) (if (> x y) x y)) seq))
+(defmacro max (&rest seq)
+  "Returns the maximum value of all arguments under comparison with >"
+  `(js-code ,(let ((code "(Math.max(")
+                   (sep ""))
+               (dolist (x seq)
+                 (setf code (+ code sep (js-compile x)))
+                 (setf sep ","))
+               (+ code "))"))))
+(defun max (&rest seq)
+  "Returns the maximum value of all arguments under comparison with >"
+  (js-code "(Math.max.apply(Math,d$$seq))"))
 
 (defun map (f seq)
   "Returns the sequence obtained by applying function f to each element of sequence seq"
@@ -618,7 +634,7 @@ For an empty sequence the return value is the result of calling the function wit
 (defun zip (&rest sequences)
   "Returns a list of lists built from corresponding elements in all sequences.
 The resulting list length is equal to the shortest input sequence."
-  (let ((n (min (map #'length sequences))))
+  (let ((n (apply #'min (map #'length sequences))))
     (let ((res (list)))
       (dotimes (i n)
         (push (map (lambda (seq) (aref seq i)) sequences) res))
