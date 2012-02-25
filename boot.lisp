@@ -570,6 +570,10 @@ A place is either a symbol or a form (e.g. (aref x i)) for which a corresponding
   "Removes and returns last element from list x"
   `(js-code ,(+ "(" (js-compile x) ".pop())")))
 
+(defmacro empty (x)
+  "True if length of array or string x is zero"
+  `(not (length ,x)))
+
 (defun last (x) "Last element of list/string" (aref x (1- (length x))))
 
 (defun set-last (x y) "Sets the last element of list/string" (setf (aref x (1- (length x))) y))
