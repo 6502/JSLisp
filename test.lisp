@@ -688,6 +688,21 @@
             (length ""))
       "(4 0 3 0)")
 
+(defmacro foo () `(aref L 0))
+(define-symbol-macro x (aref L 1))
+
+(test (let ((L (list 1 2 3 4 5)))
+        (setf x 77)
+        (setf (foo) 66)
+        (symbol-macrolet ((x (aref L 2)))
+          (setf x 99))
+        (macrolet ((foo () `(aref L 3)))
+          (setf (foo) 88))
+        L)
+      "(66 77 99 88 5)")
+
+(undefine-symbol-macro x)
+
 (display (+ test-passed "/" test-total
             " tests passed in "
             (- (clock) test-start) "ms"))
