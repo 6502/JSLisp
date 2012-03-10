@@ -699,6 +699,14 @@ deflisp("lexical-symbol-macro",
             return lexsmacro.vars[x.name];
         });
 
+deflisp("lexical-function",
+        "(lexical-function x:symbol) -> result\n" +
+        "Returns the lexical function associated to symbol x if present or undefined otherwise",
+        function(x)
+        {
+            return lexfunc.vars[x.name];
+        });
+
 defcompile("apply",
            "(apply f args)\n",
            "Calls the function 'f' passing the list 'args' as arguments",

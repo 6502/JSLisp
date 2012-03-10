@@ -500,6 +500,7 @@ If count is undefined then the subsequence will contain all elements from start 
             (sf (intern (+ "set-" (symbol-name f)))))
        (cond
          ((or (lexical-macro sf)
+              (lexical-function sf)
               (symbol-macro sf)
               (symbol-function sf))
           `(,sf ,@(rest place) ,value))
@@ -923,6 +924,15 @@ If only one parameter is passed it's assumed to be 'stop'."
         ((>= (* step (- x stop)) 0))
       (push x res))
     res))
+
+(defun fp-range (n from to)
+  "A list of <n> equally spaced floating point values starting with <from> and ending with <to>"
+  (let ((result (list)))
+    (dotimes (i (1- n))
+      (push (+ from (/ (* i (- to from)) (1- n)))
+            result))
+    (push to result)
+    result))
 
 ; Generic gensym
 (defmacro gensym (&optional prefix)
@@ -1530,3 +1540,9 @@ Each field is a list of an unevaluated atom as name and a value."
   `(js-code ,(+ "((function(){delete s"
                 (mangle (symbol-name x))
                 ".symbol_macro;})())")))
+
+; Import
+(defmacro import (name)
+  `(unless (symbol-value ',(intern ~"+{name}.lisp.included+"))
+     (defconstant ,(intern ~"+{name}.lisp.included+") true)
+     (load (http-get ,(+ (symbol-name name) ".lisp")))))
