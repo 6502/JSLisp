@@ -79,4 +79,8 @@
     "Clips subsequent draw operations to current path"
     clip)
 
+(defgfx fill-rect
+    "Fills a rectangle with current fill style"
+    fillRect x0 y0 w h)
+
 (clear)
