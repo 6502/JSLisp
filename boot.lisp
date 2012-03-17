@@ -194,19 +194,19 @@ Defines or redefines a regular function")
   "Returns a list or string obtained from x by removing first element"
   (js-code "(d$$x.slice(1))"))
 
-(defmacro splice (x a b)
-  "Removes and returns elements from a-th to b-th from list x"
+(defmacro splice (x start size)
+  "Removes and returns size elements (or all remaining) from a given start point."
   (list 'js-code (+ "("
                     (js-compile x)
                     ".splice("
-                    (js-compile a)
+                    (js-compile start)
                     ","
-                    (js-compile b)
+                    (js-compile size)
                     "))")))
 
-(defun splice (x a b)
-  "Removes and returns elements from a-th to b-th from list x"
-  (js-code "(d$$x.splice(d$$a,d$$b))"))
+(defun splice (x start size)
+  "Removes and returns size elements (or all remaining) from a given start point."
+  (js-code "(d$$x.splice(d$$start,d$$size))"))
 
 (defun insert (x i y)
   "Inserts element y into list x at index i"
@@ -276,15 +276,15 @@ Defines or redefines a regular function")
     `(defun ,name ,args ,@doc (,name ,@args))))
 
 ;; Utilities
-(defmacro/f slice (x a b)
-  "Returns a list or string obtained by copying from x elements from a-th to b-th (excluded)."
+(defmacro/f slice (x start size)
+  "Returns size elements (or all remaining) from a given start point. Without args does a full shallow copy."
   (cond
-    ((and (= a undefined) (= b undefined))
+    ((and (undefinedp start) (undefinedp size))
      `(js-code ,(+ "(" (js-compile x) ").slice()")))
-    ((and (= b undefined))
-     `(js-code ,(+ "(" (js-compile x) ").slice(" (js-compile a) ")")))
+    ((undefinedp size)
+     `(js-code ,(+ "(" (js-compile x) ").slice(" (js-compile start) ")")))
     (true
-     `(js-code ,(+ "(" (js-compile x) ".slice(" (js-compile a) "," (js-compile b) "))")))))
+     `(js-code ,(+ "(" (js-compile x) ".slice(" (js-compile start) "," (js-compile size) "))")))))
 
 (defmacro/f reverse (list)
   "Returns a copy of the elements in the opposite ordering"
