@@ -1572,3 +1572,22 @@ Each field is a list of an unevaluated atom as name and a value."
   `(unless (symbol-value ',(intern ~"+{name}.lisp.included+"))
      (defconstant ,(intern ~"+{name}.lisp.included+") true)
      (load (http-get ,(+ (symbol-name name) ".lisp")))))
+
+; Lexical symbol properties support
+(defun lexical-property (x name)
+  (js-code "(lexvar.props[d$$x.name][d$$name])"))
+
+(defun set-lexical-property (x name value)
+  (js-code "(lexvar.props[d$$x.name][d$$name]=d$$value)"))
+
+; Case
+(defmacro case (expr &rest cases)
+  (let ((v (gensym)))
+    `(let ((,v ,expr))
+       (cond
+         ,@(map (lambda (c)
+                  (if (= (first c) 'otherwise)
+                      `(true ,@(rest c))
+                      `((= ,v ,(first c))
+                        ,@(rest c))))
+            cases)))))
