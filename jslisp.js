@@ -1379,19 +1379,6 @@ deflisp("str-value",
             }
         });
 
-defcompile("not",
-           "(not x) -> bool\n" +
-           "Returns true if and only if x is logically false and false otherwise.",
-           function(x)
-           {
-               return "!" + f$$js_compile(x[1]);
-           });
-
-deflisp("error",
-        "(error x) -> /doesn't return/\n" +
-        "Throws the error message x that can be intercepted by a (try ...) form.",
-        function(x) { throw new String(x) });
-
 deflisp("set-compile-specialization",
         "(set-compile-specialization x:symbol function)\n" +
         "Installs a new compiler specialization for forms starting with the specified symbol.",

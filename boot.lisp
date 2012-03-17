@@ -91,6 +91,20 @@ Defines or redefines a regular function")
     ((= (length args) 2) (js-code "(d$$args[0]+d$$args[1])"))
     (true (js-code "(d$$args[0]+f$$$43$.apply(null,d$$args.slice(1)))"))))
 
+; Logical not
+(defun not (x)
+  "Logical negation of x"
+  (js-code "!d$$x"))
+
+(defmacro not (x)
+  "Logical negation of x"
+  (list 'js-code (+ "(!" (js-compile x) ")")))
+
+; Error throwing
+(defun error (x)
+  "Throws an error message (doesn't return)"
+  (js-code "((function(x){throw new String(x);})(d$$x))"))
+
 ; Function accessor
 (defmacro function (x)
   "Returns the function currently bound to the /unevaluated/ symbol x (including lexical bindings)"
