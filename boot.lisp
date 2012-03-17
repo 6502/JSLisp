@@ -273,7 +273,11 @@ Defines or redefines a regular function")
   (let ((doc (if (stringp (aref body 0))
                  (splice body 0 1)
                  (list))))
-    `(defun ,name ,args ,@doc (,name ,@args))))
+    `(progn
+       (defun ,name ,args (,name ,@args))
+       (set-documentation (symbol-function ',name)
+                          (documentation (symbol-macro ',name)))
+       ',name)))
 
 ;; Utilities
 (defmacro/f slice (x start size)
@@ -338,18 +342,21 @@ Defines or redefines a regular function")
 
 (defmacro defmathop-func (name)
   "Defines a math function based on a math operator macro defined with defmathop."
-  `(defun ,name (&rest args)
-     ,(documentation (symbol-macro name))
-     (cond
-       ((= (length args) 0) (,name))
-       ((= (length args) 1) (,name (aref args 0)))
-       ((= (length args) 2) (,name (aref args 0)
-                                   (aref args 1)))
-       (true
-        (let ((res (aref args 0)))
-          (dolist (x (slice args 1))
-            (setq res (,name res x)))
-          res)))))
+  `(progn
+     (defun ,name (&rest args)
+       (cond
+         ((= (length args) 0) (,name))
+         ((= (length args) 1) (,name (aref args 0)))
+         ((= (length args) 2) (,name (aref args 0)
+                                     (aref args 1)))
+         (true
+          (let ((res (aref args 0)))
+            (dolist (x (slice args 1))
+              (setq res (,name res x)))
+            res))))
+     (set-documentation (symbol-function ',name)
+                        (documentation (symbol-macro ',name)))
+     ',name))
 
 ; Math n-ary operators macros and functions
 
