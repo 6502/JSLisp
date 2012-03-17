@@ -57,12 +57,14 @@ function Symbol(name, interned)
 function Namespace()
 {
     this.vars = {};
+    this.props = {};
     this.stack = [];
 
     this.add = function(name, value)
     {
-        this.stack.push([name, this.vars[name]]);
+        this.stack.push([name, this.vars[name], this.props[name]]);
         this.vars[name] = value;
+        this.props[name] = {};
     };
 
     this.begin = function()
@@ -77,6 +79,7 @@ function Namespace()
         for (var x=this.stack.pop(); x; x=this.stack.pop())
         {
             this.vars[x[0]] = x[1];
+            this.props[x[0]] = x[2];
             if (this.stack.length == 0)
                 throw new String("Internal error: Stack underflow in Namespace.end()");
         }
@@ -945,8 +948,8 @@ deflisp("js-compile",
                         f$$warning("Undefined variable " + x.name);
                     v = "d" + x.name;
                     if (x.constant &&
-                        (typeof window["d" + x.name]) == "string" ||
-                        (typeof window["d" + x.name]) == "number")
+                        ((typeof window["d" + x.name]) == "string" ||
+                         (typeof window["d" + x.name]) == "number"))
                         v = stringify(window["d" + x.name]);
                 }
                 return v;
