@@ -23,7 +23,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>JSLisp reference </title>
+    <title>JsLisp reference </title>
     <style>
       .doc { border: solid 1px #000000;
              padding: 8px;
@@ -41,7 +41,7 @@
     </style>
   </head>
   <body>
-    <h1>JSLisp reference</h1>
+    <h1>JsLisp reference</h1>
 ")
     (dolist (group (list (list "Functions" functions)
                          (list "Macros" macros)
