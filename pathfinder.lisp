@@ -91,9 +91,9 @@
         (let ((x (first p))
               (y (second p)))
           (setf (aref maze y)
-                (+ (subseq (aref maze y) 0 x)
+                (+ (slice (aref maze y) 0 x)
                    "+"
-                   (subseq (aref maze y) (1+ x))))))
+                   (slice (aref maze y) (1+ x))))))
       (dolist (L maze)
         (display L)))
     elapsed))

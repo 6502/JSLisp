@@ -487,14 +487,6 @@
       "(abc (10 20) def 30 40 ghi () jlm nop)")
 
 (test (let ((x (list 1 2 3)))
-        (list (slice x)
-              (slice x 1)
-              (slice x 1 2)
-              (slice x 10)
-              (slice "abcdefg" 3 6)))
-      "((1 2 3) (2 3) (2) () \"def\")")
-
-(test (let ((x (list 1 2 3)))
         (list (nreverse x) x))
       "((3 2 1) #1)")
 
@@ -530,11 +522,11 @@
 
 (test (let ((x (range 10))
             (y "andrea"))
-        (list (subseq x 0 3)
-              (subseq x 4)
-              (subseq y 0 99)
-              (subseq y 5)
-              (subseq y 99)))
+        (list (slice x 0 3)
+              (slice x 4)
+              (slice y 0 99)
+              (slice y 5)
+              (slice y 99)))
       "((0 1 2) (4 5 6 7 8 9) \"andrea\" \"a\" \"\")")
 
 (test (list (+ 1 2 3) (+) (+ 1)) "(6 0 1)")

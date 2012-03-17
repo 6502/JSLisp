@@ -314,13 +314,6 @@ Defines or redefines a regular function")
                 (js-compile separator)
                 "))")))
 
-(defun subseq-count (x start count)
-  "Returns a partial copy of the list/string x starting from 'start' and with 'count' elements.
-If count is undefined then the subsequence will contain all elements from start to the end of the list/string."
-  (if (= count undefined)
-      (slice x start)
-      (slice x start (+ start count))))
-
 (defmacro defmathop (name comment none single jsname)
   "Defines a math operator macro with the given comment (comment), the value to use in case of no operands (none), the value in case of a single operand x (single) and the Javascript operator name (jsname) when more operands are present."
   `(defmacro ,name (&rest args)
@@ -786,8 +779,8 @@ The resulting list length is equal to the length of the shortest sequence."
                                     ,@body))
                         (let ((defaults (list))
                               (checks (list))
-                              (args (append (subseq-count args 0 i)
-                                            (subseq-count args (1+ i)))))
+                              (args (append (slice args 0 i)
+                                            (slice args (1+ i)))))
                           (unless (= i 0)
                             (push `(when (< (argument-count) ,i)
                                      (error "Invalid number of arguments"))
@@ -870,8 +863,8 @@ The resulting list length is equal to the length of the shortest sequence."
                       (let* ((n (symbol-name (if (symbolp f) f (first f))))
                              (i (index0 "/" n)))
                         (when (> i 0)
-                          (let ((ns (intern (subseq-count n 0 i)))
-                                (cf (intern (+ (subseq-count n (1+ i))))))
+                          (let ((ns (intern (slice n 0 i)))
+                                (cf (intern (+ (slice n (1+ i))))))
                             (push (list ns cf) checks)
                             (if (symbolp f)
                                 (setf (aref (second x) j) ns)
@@ -979,19 +972,6 @@ If only one parameter is passed it's assumed to be 'stop'."
   (if prefix
       `(gensym-prefix ,prefix)
       `(gensym-noprefix)))
-
-; Generic subseq
-(defmacro subseq (seq start &optional count)
-  (if count
-      `(subseq-count ,seq ,start ,count)
-      `(js-code ,(+ "("
-                    (js-compile seq)
-                    ").slice("
-                    (js-compile start)
-                    ")"))))
-
-(defun subseq (seq start &optional count)
-  (subseq-count seq start count))
 
 ; Generic index
 (defmacro index (x seq &optional start)
@@ -1237,13 +1217,11 @@ Each field is a list of an unevaluated atom as name and a value."
 (setf window (js-code "window"))
 (defun htm (x)
   "Escapes characters so that the content string x can be displayed correctly as HTML"
-  (dolist (c (list "&&amp;"
-                   "<&lt;"
-                   ">&gt;"
-                   "\"&quot;"))
-    (setf x (replace x (subseq c 0 1) (subseq c 1))))
+  (setf x (replace x "&" "&amp;"))
+  (setf x (replace x "<" "&lt;"))
+  (setf x (replace x ">" "&gt;"))
+  (setf x (replace x "\"" "&quot;"))
   x)
-
 
 (defun get-element-by-id (id)
   "Returns the DOM element with the specified id value"
@@ -1320,7 +1298,7 @@ Each field is a list of an unevaluated atom as name and a value."
     (let ((j (index "\n" str i)))
       (when (= j -1)
         (setf j (1+ n)))
-      (funcall f (subseq str i (- j i)))
+      (funcall f (slice str i (- j i)))
       (setf i (1+ j)))))
 
 (defmacro dolines ((var str) &rest body)
@@ -1381,9 +1359,9 @@ Each field is a list of an unevaluated atom as name and a value."
                      (1+ i)))
                  ((or (>= i (length x))
                       (/= -1 (index (aref x i) *spaces*)))
-                  (+ (subseq x 0 i) "\n"
+                  (+ (slice x 0 i) "\n"
                      (if (< i (length x))
-                         (doc (subseq x (1+ i)))
+                         (doc (slice x (1+ i)))
                          ""))))))
     (let ((found false))
       (when (compile-specialization name)
@@ -1540,13 +1518,13 @@ Each field is a list of an unevaluated atom as name and a value."
                          (if (listp kwa)
                              (first kwa)
                              kwa))
-                       (subseq args ai))))
+                       (slice args ai))))
         (do ()
             ((>= fi fn))
           (let ((k (aref form fi)))
             (when (and (symbolp k)
                        (= ":" (aref (symbol-name k) 0)))
-              (unless (find (intern (subseq (symbol-name k) 1)) keys)
+              (unless (find (intern (slice (symbol-name k) 1)) keys)
                 (warning ~"Invalid keyword parameter {k} in {(str-value form)}"))))
           (incf fi 2))))))
 
