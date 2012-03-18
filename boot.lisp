@@ -306,7 +306,7 @@ Defines or redefines a regular function")
 (defmacro/f sixth (x) "Sixth element of list/string" `(aref ,x 5))
 (defmacro/f seventh (x) "Seventh element of list/string" `(aref ,x 6))
 (defmacro/f eighth (x) "Eighth element of list/string" `(aref ,x 7))
-(defmacro/f nineth (x) "Nineth element of list/string" `(aref ,x 8))
+(defmacro/f ninth (x) "Ninth element of list/string" `(aref ,x 8))
 (defmacro/f tenth (x) "Tenth element of list/string" `(aref ,x 9))
 
 ;; String splitting

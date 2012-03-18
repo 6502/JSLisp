@@ -503,7 +503,7 @@
                     (incf (sixth x))
                     (incf (seventh x))
                     (incf (eighth x))
-                    (incf (nineth x))
+                    (incf (ninth x))
                     (incf (tenth x)))
               (map (lambda (i)
                      (funcall (aref (list #'first
@@ -514,7 +514,7 @@
                                           #'sixth
                                           #'seventh
                                           #'eighth
-                                          #'nineth
+                                          #'ninth
                                           #'tenth) i)
                               x))
                    (range 10))))
