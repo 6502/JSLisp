@@ -1159,8 +1159,27 @@ Evaluates expr and in case of exception evaluates the on-error form setting *exc
   (js-code "(new RegExp(d$$x,d$$options||\"\"))"))
 
 (defun replace (x a b)
-  "Replaces all instances of regular expression a with b."
-  (js-code "d$$x.replace(new RegExp(d$$a,'g'), d$$b)"))
+  "Replaces regular expression a with b in x. When using a string as regexp assumes global replacement."
+  (if (stringp a)
+      (js-code "d$$x.replace(new RegExp(d$$a,'g'), d$$b)")
+      (js-code "d$$x.replace(d$$a, d$$b)")))
+
+(defun regexp-escape (x)
+  "Returns a string with all regexp-meaningful characters escaped"
+  (replace x "([\\][()+*?\\\\])" "\\$1"))
+
+; Whitespace stripping
+(defun lstrip (x)
+  "Removes initial spaces from string x"
+  (replace x "^\\s+" ""))
+
+(defun rstrip (x)
+  "Removes final spaces from string x"
+  (replace x "\\s+$" ""))
+
+(defun strip (x)
+  "Remove both initial and final spaces from string x"
+  (replace x (regexp "^\\s*(.*?)\\s*$") "$1"))
 
 ; JS object access/creation
 (defmacro . (obj &rest fields)
