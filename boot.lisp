@@ -982,6 +982,7 @@ If only one parameter is passed it's assumed to be 'stop'."
 
 ; Generic index
 (defmacro index (x seq &optional start)
+  "Returns the index of element x in seq or -1 if not present, eventually starting from the specified position"
   (if start
       `(js-code ,(+ "("
                     (js-compile seq)
@@ -997,6 +998,7 @@ If only one parameter is passed it's assumed to be 'stop'."
                     "))"))))
 
 (defun index (x seq &optional start)
+  "Returns the index of element x in seq or -1 if not present, eventually starting from the specified position"
   (if start
       (js-code "(d$$seq.indexOf(d$$x,d$$start))")
       (js-code "(d$$seq.indexOf(d$$x))")))
@@ -1219,6 +1221,63 @@ Each field is a list of an unevaluated atom as name and a value."
   "Returns a list of all keys defined in the specified javascript object"
   (js-code "((function(){var res=[];for(var $i in d$$obj)res.push($i);return res})())"))
 
+; String interpolation reader
+(setf (reader "~")
+      (lambda (src)
+        (funcall src 1)
+        (let ((x (parse-value src))
+              (pieces (list))  ; list of parts
+              (part "")        ; current part
+              (expr false)     ; is current part an expression?
+              (escape false))  ; is next char verbatim ?
+          (unless (stringp x)
+            (error "string interpolation requires a string literal"))
+          (dolist (c x)
+            (cond
+              (escape
+               (setf escape false)
+               (incf part c))
+              ((= c "\\")
+               (setf escape true))
+              ((= c (if expr "}" "{"))
+               (when (> (length part) 0)
+                 (push (if expr (parse-value part) part) pieces)
+                 (setf part ""))
+               (setf expr (not expr)))
+              (true (incf part c))))
+          (if escape
+              (error "Invalid escaping"))
+          (if (> (length part) 0)
+              (push (if expr (parse-value part) part) pieces))
+          (cond
+            ((= 0 (length pieces)) "")
+            ((= 1 (length pieces)) (aref pieces 0))
+            (true `(+ ,@pieces))))))
+
+; Javscript simple function/method binding
+(defmacro bind-js-functions (&rest names)
+  "Creates a JsLisp wrapper for the provided function names or methods of singletons (e.g. (document.write 'hello'))"
+  `(progn
+      ,@(map (lambda (name)
+               (let* ((s (symbol-name name))
+                      (i (last-index "." s)))
+                 (if (= i -1)
+                     `(defun ,name (&rest args)
+                        ,~"Calls Javascript function {name} passing specified arguments"
+                        (js-code ,~"({s}.apply(window,d$$args))"))
+                     `(defun ,name (&rest args)
+                        (js-code ,~"({s}.apply({(slice s 0 i)},d$$args))")))))
+             names)))
+
+(defmacro bind-js-methods (&rest names)
+  "Creates a JsLisp wrapper for method call (e.g. (write document 'hello'))"
+  `(progn
+      ,@(map (lambda (name)
+               `(defun ,name (self &rest args)
+                  ,~"Calls Javascript method {name} on self object passing the specified arguments"
+                  (js-code ,~"(d$$self.{(symbol-name name)}.apply(d$$self,d$$args))")))
+             names)))
+
 ; DOM
 (setf document (js-code "document"))
 (setf window (js-code "window"))
@@ -1262,39 +1321,6 @@ Each field is a list of an unevaluated atom as name and a value."
 (defun clear-interval (id)
   "Stops a scheduled interval call."
   (js-code "clearInterval(d$$id)"))
-
-; String interpolation reader
-(setf (reader "~")
-      (lambda (src)
-        (funcall src 1)
-        (let ((x (parse-value src))
-              (pieces (list))  ; list of parts
-              (part "")        ; current part
-              (expr false)     ; is current part an expression?
-              (escape false))  ; is next char verbatim ?
-          (unless (stringp x)
-            (error "string interpolation requires a string literal"))
-          (dolist (c x)
-            (cond
-              (escape
-               (setf escape false)
-               (incf part c))
-              ((= c "\\")
-               (setf escape true))
-              ((= c (if expr "}" "{"))
-               (when (> (length part) 0)
-                 (push (if expr (parse-value part) part) pieces)
-                 (setf part ""))
-               (setf expr (not expr)))
-              (true (incf part c))))
-          (if escape
-              (error "Invalid escaping"))
-          (if (> (length part) 0)
-              (push (if expr (parse-value part) part) pieces))
-          (cond
-            ((= 0 (length pieces)) "")
-            ((= 1 (length pieces)) (aref pieces 0))
-            (true `(+ ,@pieces))))))
 
 ; Line split utility
 (defun maplines (f str)
