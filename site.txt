@@ -1,0 +1,105 @@
+@ About
+
+JsLisp is a Lisp(1) Compiler(3) targeting Javascript(3)
+
+In more detail...
+
+# (1) A Lisp
+
+JsLisp is a Lisp-2, similar to Common Lisp but is not Common Lisp
+
+- Symbols are case sensitive.
+- No cons cells. Lists are represented using Javascript lists.
+- Lists are first-class objects. [push] is a regular function.
+- No numeric tower. Numbers are double-precision floats (they provide
+  53 bits of integer numeric accuracy).
+- Dynamic and lexical variables.
+- There can be both a function and a macro with the same name. Macro
+  is used in explicit calls, function can be used for [funcall]/[apply].
+- [NaN], [null], [undefined], [false], [0] are present with their
+  Javascript value semantic.
+- No [NIL]/[T]. Truth values are Javscript [true]/[false].
+- [defmacro], [define-symbol-macro], [macrolet], [symbol-macrolet] are
+  present mimicking Common Lisp semantic. Quasiquoting.
+- Read macros.
+- Interpolated string literals.
+- No [loop] macro for now.
+
+# (2) Compiler
+
+JsLisp is a compile-only implementation and contains no interpreter,
+[eval] is implemented by compiling and executing.
+The core of the compiler is hand-written Javascript, everything else
+is written in JsLisp itself (boot.lisp).
+
+Compiled functions are regular Javscript functions, callable from
+Javascript code (with the exception of keyword arrugments) and that
+can call Javascript code.
+
+Javascript inlining is possibile and used heavily in the default
+runtime library. Name mangling is necessary when converting JsLisp
+symbol names to Javascript and viceversa [(mangle x)]/[(demangle x)].
+
+Support for docstrings, parameter checking (done at compile time on
+static calls), [&key]/[&optional]/[&rest] parameters.
+
+# (3) Targeting Javascript
+
+No attempt is made to create human-readable idiomatic Javascript,
+generated code is not meant to be manually maintained.
+
+Works with recent browsers and node.js.
+
+Any Javascript functions or methods can be called from JsLisp code by
+using the generic binding facility [bind-js-functions]/[bind-js-methods].
+
+@ Examples
+
+These are a few examples:
+
+[Fibonacci numbers (naive)
+(defun fibo (n)
+  "n-th Fibonacci number"
+  (if (< n 2)
+      1
+      (+ (fibo (- n 1))
+         (fibo (- n 2)))))
+
+(defun test-fibo (n)
+  "Displays the first n Fibonacci numbers"
+  (dotimes (i n)
+    (display ~"(fibo {i}) --> {(fibo i)}")))
+
+(time (test-fibo 20))
+]
+
+[Generic memoization
+(defun memoize (f)
+  "Returns a memoized version of function f"
+  (let ((cache (js-object)))
+    (lambda (&rest args)
+      (let ((result (aref cache args)))
+        (first (or result
+                   (setf (aref cache args)
+                         (list (apply f args)))))))))
+
+;; Let's memoize fibo
+(setf #'fibo (memoize #'fibo))
+(time (fibo 100))
+(fibo 100)
+]
+
+@ Give it a try!
+
+JsLisp runs in a web browser.
+
+Nothing to download.
+
+Nothing to install.
+
+You can start a new fresh JsLisp session in a separate
+window by clicking the following button.
+
+<<
+<input type=button value="Start JsLisp" onclick="window.open('jslisp.html', '_blank', 'width=800, height=800, left=100, top=100')"/>
+>>
