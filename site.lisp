@@ -139,6 +139,11 @@
         padding-left: 20px;
     }
 
+    span.output {
+        color: #606060;
+        font-weight: normal;
+    }
+
     span.code {
         font-family: 'Courier New', courier, monospace;
         font-weight: bold;
@@ -170,9 +175,10 @@ function show(x) {
     current_section.style.display = 'block';
 }
 
-function run(x) {
-    var content = document.getElementById(x).innerText;
-    alert(content);
+function showoutput(x) {
+    var nodes = document.getElementById(x).getElementsByClassName('output');
+    for (var i=0; i<nodes.length; i++)
+        nodes[i].style.display = (nodes[i].style.display == 'none' ? 'inline' : 'none');
 }
 
 show('About');
@@ -183,6 +189,14 @@ show('About');
 
 (defun id (x)
   (replace x "[^a-zA-Z0-9]" ""))
+
+(defun htmcode (x)
+  (replace
+   (replace (htm x)
+            "(^|\\n)((--&gt;|Ready\\.|WARNING:|\\*\\*ERROR\\*\\*:).*?)(?=\\n)"
+            "<span class=\"output\">$1$2</span>")
+   "(^|\\n)=(.*?)(?=\\n)"
+   "<span class=\"output\">$1$2</span>"))
 
 (defun generate-site ()
   (let ((result +PROLOGUE+)
@@ -217,9 +231,10 @@ show('About');
              (setf inside-list false)
              (incf result "</ul>"))
            (incf result ~"<pre><center>{(htm (code-section-title x))}")
-           ;(incf result ~"<span class=\"runcode\"><a onclick=\"run('{(id (code-section-title x))}')\">Run</a></span>")
+           (when (funcall (. (regexp "(^|\\n)(=|-->|Ready\.)") exec) (code-section-content x))
+             (incf result ~"<span class=\"runcode\"><a onclick=\"showoutput('{(id (code-section-title x))}')\">show/hide output</a></span>"))
            (incf result ~"<hr noshade size=1/></center>")
-           (incf result ~"<div id=\"{(id (code-section-title x))}\">{(htm (code-section-content x))}</div></pre>"))
+           (incf result ~"<div id=\"{(id (code-section-title x))}\">{(htmcode (code-section-content x))}</div></pre>"))
           (true (error "Unsupported element type"))))
       (incf result "</div>"))
     (when inside-list
