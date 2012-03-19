@@ -1,5 +1,5 @@
 (defstruct section
-  title content)
+  level title content)
 
 (defstruct paragraph
   content)
@@ -34,12 +34,15 @@
            next-line)
         ("@"
            ; A section
-           (setf current-section (make-section :title (strip (slice line+ 1))
-                                               :content (list)))
-           (push current-section *sections*))
+           (do ((i 1 (1+ i)))
+               ((/= (aref line i) "@")
+                (setf current-section (make-section :level i
+                                                    :title (strip (slice line+ i))
+                                                    :content (list)))
+                (push current-section *sections*))))
         ("#"
            ; An heading
-           (do ((i 0 (1+ i)))
+           (do ((i 1 (1+ i)))
                ((/= (aref line i) "#")
                   (push (make-heading :level (1+ i)
                                       :content (strip (slice line+ i)))
@@ -90,6 +93,7 @@
 <html>
   <head>
     <link href='http://fonts.googleapis.com/css?family=Droid+Serif:400,700' rel='stylesheet' type='text/css'>
+    <link href='http://fonts.googleapis.com/css?family=Droid+Mono:400,700' rel='stylesheet' type='text/css'>
     <title>JsLisp</title>
     <style type=\"text/css\">
     body {
@@ -100,7 +104,7 @@
     }
 
     pre {
-        font-family: 'Courier New', courier, monospace;
+        font-family: 'Droid Mono', courier, monospace;
         font-weight: bold;
         padding: 12px;
         color: #000080;
@@ -140,12 +144,11 @@
     }
 
     span.output {
-        color: #606060;
-        font-weight: normal;
+        color: #800000;
     }
 
     span.code {
-        font-family: 'Courier New', courier, monospace;
+        font-family: 'Droid Mono', courier, monospace;
         font-weight: bold;
         color: #000080;
     }
@@ -205,6 +208,8 @@ show('About');
     (dolist (section *sections*)
       (incf result ~"<div style=\"display:none;\" id=\"{(id (section-title section))}\">")
       (incf result ~"<h1>{(section-title section)}</h1><hr/>")
+      (dotimes (i (1- (section-level section)))
+        (incf index "<span style=\"display:inline-block; width:20px;\"></span>"))
       (incf index
             ~"<a onclick=\"show('{(id (section-title section))}')\">{(htmfix (section-title section))}</a><br/>")
       (dolist (x (section-content section))
