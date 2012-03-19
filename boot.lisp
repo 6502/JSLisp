@@ -117,6 +117,13 @@ Defines or redefines a regular function")
                     (js-compile value)
                     ")")))
 
+; Macro accessor
+(defmacro macro (x)
+  "Returns the macro currently bound to the /unevaluated/ symbol x (including lexical bindings)"
+  (list 'or
+        (list 'lexical-macro (list 'quote x))
+        (list 'symbol-macro (list 'quote x))))
+
 ; Javascript crazyness
 (defun boolp (x)
   "True if and only if x is a boolean"

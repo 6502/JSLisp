@@ -695,6 +695,34 @@
 
 (undefine-symbol-macro x)
 
+(defun func1 (x) (* x x))
+(test (let ((res (list)))
+        (labels ((func1 (x) (* x 2)))
+          (push (funcall #'func1 12) res)
+          (push (funcall (symbol-function 'func1) 12) res))
+        (push (funcall #'func1 12) res)
+        (push (funcall (symbol-function 'func1) 12) res)
+        res)
+      "(24 144 144 144)")
+
+(defmacro macro1 (x) `(* ,x ,x))
+(test (let ((res (list)))
+        (macrolet ((lmacro (&rest body)
+                     `(macrolet ((macro2a ()
+                                   `(push (macro1 12) res))
+                                 (macro2b ()
+                                   `(push ,(funcall (symbol-macro 'macro1) 12) res))
+                                 (macro2c ()
+                                   `(push ,(funcall (macro macro1) 12) res)))
+                        ,@body)))
+          (macrolet ((macro1 (x) `(* ,x 2)))
+            (lmacro
+             (macro2a) (macro2b) (macro2c)))
+          (lmacro
+           (macro2a) (macro2b) (macro2c))
+          res))
+      "(24 144 24 144 144 144)")
+
 (display (+ test-passed "/" test-total
             " tests passed in "
             (- (clock) test-start) "ms"))
