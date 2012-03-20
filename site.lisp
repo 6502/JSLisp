@@ -191,6 +191,10 @@
         text-align: center;
     }
 
+    li {
+        margin-bottom: 8px;
+    }
+
     </style>
   </head>
   <body>

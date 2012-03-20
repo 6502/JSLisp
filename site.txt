@@ -57,7 +57,7 @@ using the generic binding facility [bind-js-functions] and
 @ License
 
 I am not a lawyer and I just hope this is enough to leave me out
-of jail... if you think it's not the please drop me a line.
+of jail... if you think it's not, then please drop me a line.
 
 The intention is that you can use JsLisp for whatever you want
 (commercial or not) provided you just don't pretend you did something
@@ -230,28 +230,11 @@ Ready.
 --> 3628800
 ]
 
-I call these function anonymous even if indeed inside the function
+I call these functions anonymous even if indeed inside the function
 they have a name ([fibo] in the [labels] form or [recurse] in the
 [rlambda] macro forms) but this name disappears outside the function.
 
-@ Give it a try!
-
-JsLisp REPL can run in most recent web browsers.
-
-This means there is no program to download and to install.
-
-You can start a new fresh JsLisp session in a separate
-window by clicking the following button.
-
-<<
-<input type=button value="Start JsLisp" onclick="window.open('jslisp.html', '_blank', 'width=800, height=800, left=100, top=100')"/>
->>
-
-If you want to install JsLisp on your own computer unfortunately you
-need to use a local web server because for security reasons Ajax
-requests are not supported on local filesystem browsing.
-
-@ JsLisp / CL
+@ JsLisp <=> CL
 
 In this sections the differences between Common Lisp and JsLisp will
 be explained in more detail. This is not meant to be a tutorial on
@@ -453,3 +436,281 @@ Ready.
 --> (. document body style padding)
 Ready.
 ]
+
+@ JsLisp <=> Javascript
+
+Compared to the Javascript language there are many differences.  Most
+of the differences are on the syntax level and there are workarounds
+(like for example using anonymous functions immediately called to
+create local scopes) and this is exactly how the JsLisp compiler
+solves the problems.
+
+In other cases the workaround is way too annoying to be implemented
+manually in Javascript (due to the lack of macro capabilities) and the
+features provided by JsLisp are simply not used in manually written
+Javascript code.
+
+@@ Block scope
+
+In JsLisp you can define a variable that is visible only for a block
+of code, like in C/C++, without interferring with another variable
+with the same name in the containing block.
+
+[BLock scope
+// Javascript
+function foo ()
+{
+    var x = 1;
+    for (var y = 0; y < 4; y++)
+    {
+        var x = y * y;
+        // ... use x ...
+    }
+    // Here x content has been destroyed; no matter how many
+    // var declarations you put only one x per function
+    // instance is allocated.
+    // The commonly used approach is to use
+    //
+    //       (function(){var x = y*y; ... })();
+    //
+    // instead of just a block.
+}
+
+;; JsLisp
+(defun foo ()
+  (let ((x 1))
+    (dotimes (y 4)
+       (let ((x (* y y)))
+         ;; ... use x ...
+       ))
+    ;; Here x content is still 1. The x variable inside the
+    ;; loop is a different separate value from the external one.
+    ;; Every (let ...) form introduces a new scope shielding
+    ;; unwanted changes
+  ))
+]
+
+@@ Arguments
+
+JsLisp supports [&optional], [&rest] and [&key] arguments for functions.
+For both [&optional] and [&key] arguments it's possible to provide
+a default expression to be used.
+
+[Optional/keyword/rest
+(defun foo (x &optional y (z 42))
+  (list x y z))
+--> foo
+Ready.
+(foo 1)
+--> (1 undefined 42)
+Ready.
+(foo 1 2 3)
+--> (1 2 3)
+Ready.
+(defun bar (x &key y (z 42))
+  (list x y z))
+--> bar
+Ready.
+(bar 1)
+--> (1 undefined 42)
+Ready.
+(bar 1 :z 99)
+--> (1 undefined 99)
+Ready.
+(bar 1 :z 99 :y 33)
+--> (1 33 99)
+Ready.
+(defun baz (x y &rest z)
+  (list x y z))
+--> baz
+Ready.
+(baz 1 2 3 4 5)
+--> (1 2 (3 4 5))
+Ready.
+]
+
+@@ Static checks
+
+JsLisp can perform a few static (compile-time) checks that
+help avoiding typos in programs. A few of these checks are
+about the use of undefined variables or wrong parameters
+when calling a function.
+
+It is important to note that these checks are performed
+when the function containing the wrong call is compiled,
+not when (and no matter if) it's executed.
+
+The checks are also performed at runtime and in that case
+the result is an error and not a warning.
+
+[Undefined variables
+(defun foo (x)
+  (* x y))
+WARNING: Undefined variable y
+--> foo
+Ready.
+(foo 12)
+**ERROR**: ReferenceError: y is not defined
+Ready.
+(defvar z 99)
+--> 99
+Ready.
+(defun bar (x)
+  (* x z))
+--> bar
+Ready.
+(bar 33)
+--> 3267
+Ready.
+]
+
+[Undefined functions
+(defun bar (x)
+  (* x (foo (1+ x))))
+WARNING: Undefined function foo
+--> bar
+Ready.
+(bar 12)
+**ERROR**: ReferenceError: function foo is not defined
+Ready.
+(defun foo (x) (* x 2))
+--> foo
+Ready.
+(bar 12)
+--> 312
+Ready.
+]
+
+[Wrong parameters in static call
+(defun square (x) (* x x))
+--> square
+Ready.
+(defun bar ()
+  (square)
+  (square 12)
+  (square 1 2 3))
+WARNING: Not enough arguments in (square)
+WARNING: Unexpected arguments in (square 1 2 3)
+--> bar
+Ready.
+(defun foo (x &key y z)
+  (list x y z))
+--> foo
+Ready.
+(defun baz ()
+  (foo)
+  (foo 1)
+  (foo 1 :z 2)
+  (foo 1 :k 99))
+WARNING: Not enough arguments in (foo)
+WARNING: Invalid keyword parameter :k in (foo 1 :k 99)
+--> baz
+Ready.
+]
+
+@@ Structures
+
+JsLisp allows the definition of simple data structures
+using the [defstruct] macro:
+
+[Defstruct
+(defstruct p3d x y (z 99))
+--> p3d
+Ready.
+(make-p3d :x 10)
+--> (p3d 10 undefined 99)
+Ready.
+(let ((p (make-p3d :x 10
+                   :y 20))
+      (q "hmmm"))
+  (display (p3d-x p))
+  (incf (p3d-y p))
+  (display (str-value p))
+  (display (p3d? p))
+  (display (p3d? q)))
+10
+(p3d 10 21 99)
+true
+false
+--> false
+Ready.
+]
+
+@Javascript integration
+
+JsLisp compiled functions are regular Javascript functions and can
+call or be called from Javascript. The only problems are
+
+- Names of the functions defined in JsLisp are "mangled" because
+  they may contain characters that cannot be used in Javascript.
+  For example the JsLisp function [circle-area] will be seen from
+  Javascript as [f$$circle_area] and the predefined JsLisp
+  function [1+] is seen from Javascript as [f$$$49$$43$].
+
+- Keyword parameters cannot be easily passed from Javascript to
+  JsLisp functions
+
+@@ Simple interfacing
+
+There a simple tool to interface an external Javascript function from
+JsLisp:
+
+[Simple javascript interfacing
+Ready.
+(bind-js-functions Math.sin Math.cos Math.log)
+--> Math.log
+Ready.
+(Math.sin 2)
+--> 0.9092974268256817
+Ready.
+(Math.log 12)
+--> 2.4849066497880004
+Ready.
+(bind-js-functions JSON.stringify)
+--> JSON.stringify
+Ready.
+(JSON.stringify (list 1 2 3))
+--> "[1,2,3]"
+Ready.
+]
+
+@@ Inline Javascript
+
+It is possible to inline Javascript code from JsLisp, note however
+that the strings inlined must be string literals and not string
+expressions.
+
+Dynamically building Javascript code by string manipulation is done
+often in macros (it's actually how the compiler is implemented).
+In "leaf" cases the output of a macro is a single [js-code] form.
+
+[Inline Javascript code
+(display (+ "Hello "
+            (js-code "prompt('What is your name?')")
+            ",\nhow's going?"))
+Hello Andrea,
+how's going?
+--> "Hello Andrea,\nhow's going?"
+Ready.
+(macroexpand-1 '(set-aref x 1 42))
+WARNING: Undefined variable x
+--> (js-code "(d$$x[1]=42)")
+Ready.
+]
+
+@ Give it a try!
+
+JsLisp REPL can run in most recent web browsers.
+
+This means there is no program to download and to install.
+
+You can start a new fresh JsLisp session in a separate
+window by clicking the following button.
+
+<<
+<input type=button value="Start JsLisp" onclick="window.open('jslisp.html', '_blank', 'width=800, height=800, left=100, top=100')"/>
+>>
+
+If you want to install JsLisp on your own computer unfortunately you
+need to use a local web server because for security reasons Ajax
+requests are not supported on local filesystem browsing.
