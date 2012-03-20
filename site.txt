@@ -28,9 +28,9 @@ JsLisp is a Lisp-2, similar to Common Lisp but is not Common Lisp
 # (2) Compiler
 
 JsLisp is a compile-only implementation and contains no interpreter,
-[eval] is implemented by compiling and executing.
-The core of the compiler is hand-written Javascript, everything else
-is written in JsLisp itself (boot.lisp).
+[eval] is implemented by compiling and executing.  The core of the
+compiler is hand-written Javascript, everything else is written in
+JsLisp itself (boot.lisp).
 
 Compiled functions are regular Javscript functions, callable from
 Javascript code (with the exception of keyword arguments) and that
@@ -51,13 +51,53 @@ generated code is not meant to be manually maintained.
 Works with recent browsers and node.js.
 
 Any Javascript functions or methods can be called from JsLisp code by
-using the generic binding facility [bind-js-functions]/[bind-js-methods].
+using the generic binding facility [bind-js-functions] and
+[bind-js-methods].
+
+@ License
+
+I am not a lawyer and I just hope this is enough to leave me out
+of jail... if you think it's not the please drop me a line.
+
+The intention is that you can use JsLisp for whatever you want
+(commercial or not) provided you just don't pretend you did something
+that I did or that you blame me if you have any problem.
+
+<<
+<div style="border:solid 2px #000080; background-color:#EEEEFF;
+            padding:12px; font-size:120%">
+<p>Copyright (c) 2012 by Andrea Griffini</p>
+
+<p>Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:</p>
+
+<ol>
+<li style="margin-bottom:20px">
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.</li>
+
+<li style="font-weight:bold">
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+</li></ol>
+</div>
+>>
 
 @ Examples
 
-The following sections are small examples of JsLisp interactive sessions
-in the REPL. You can remove the output and copy/paste the content in
-an interactive session to experiment with them.
+The following sections are small examples of JsLisp interactive
+sessions in the REPL. You can remove the output and copy/paste the
+content in an interactive session to experiment with them.
 
 Some of them are quite long and some require external resources like
 graphics or data files that are on this server and that must be
@@ -116,6 +156,16 @@ Ready.
 ]
 
 @@ Memoization
+
+For many functions the result is only dependent on parameter value
+and for them it's possible to apply a technique called "memoization"
+that simply stores away in a cache the result of computation for
+each (or last n) values of the parameters. If the function takes
+a long time to compute this may be a big win.
+
+The following is a function that given a function returns a
+memoized version of the function...
+
 [Generic memoization
 (defun memoize (f)
   "Returns a memoized version of function f"
@@ -138,9 +188,55 @@ Ready.
 Ready.
 ]
 
+@@ Recursive lambdas
+
+If you need a recursive anonymous function the usual CL way
+is to just use for example a [labels] form:
+
+[Regular recursive anonymous function
+(funcall (labels ((fibo (x)
+                    (if (< x 2)
+                        1
+                        (+ (fibo (- x 1))
+                           (fibo (- x 2))))))
+           #'fibo)
+         30)
+--> 1346269
+Ready.
+]
+
+A simpler (and less powerful) syntax for the same could be added with
+a small macro form [rlambda]:
+
+[(rlambda <args> <body>)
+(defmacro rlambda (args &rest body)
+  `(labels ((recurse ,args ,@body))
+     #'recurse))
+--> rlambda
+Ready.
+(funcall (rlambda (x)
+           (if (< x 2)
+               1
+               (+ (recurse (- x 1))
+                  (recurse (- x 2)))))
+         30)
+--> 1346269
+Ready.
+(funcall (rlambda (x)
+           (* x (if (> x 1)
+                    (recurse (1- x))
+                    1)))
+         10)
+--> 3628800
+]
+
+I call these function anonymous even if indeed inside the function
+they have a name ([fibo] in the [labels] form or [recurse] in the
+[rlambda] macro forms) but this name disappears outside the function.
+
 @ Give it a try!
 
-JsLisp can happily run in a recent web browser.
+JsLisp REPL can run in most recent web browsers.
 
 This means there is no program to download and to install.
 
@@ -153,24 +249,27 @@ window by clicking the following button.
 
 If you want to install JsLisp on your own computer unfortunately you
 need to use a local web server because for security reasons Ajax
-requests are not supported on local filesystem browsing (I for one
-think this is a strange nonsensical limitation, but it's there
-anyway).
-
-It's also forbidden for a script to download resources from other
-sites that are not the same site from which the script is coming (same
-origin). This is also a dead stupid limitation in my opinion, but it's
-not going to disappear because of that.
-
-May be both these issues will be resolved in the future if I can find
-a reasonable way to circumnvent those "security" measures.
+requests are not supported on local filesystem browsing.
 
 @ JsLisp / CL
 
-In this sections the differences between Common Lisp and JsLisp
-will be explained in more detail. This is not meant to be a
-tutorial on Lisp and a fairly decent understanding of Lisp
-is assumed.
+In this sections the differences between Common Lisp and JsLisp will
+be explained in more detail. This is not meant to be a tutorial on
+Lisp and a fairly decent understanding of Lisp is assumed.
+
+## Main JsLisp philosophy
+
+The main idea behind JsLisp was to create a Lisp system starting from
+Javascript (instead of starting from IBM 704 instruction set) and
+trying to become similar to Common Lisp up to the point where the
+Javascript machine below would like to start complaining about that.
+
+So basically the target of JsLisp was to become "as close as
+reasonably possible to CL, but not closer".
+
+Please also consider that current state of JsLisp is extremely flux
+and subject to change. A few parts are departures from CL that I'm not
+fully convinced about.
 
 @@ No CAR / CDR
 
@@ -288,29 +387,39 @@ Reader customization can be done mainly in two ways:
 
 ### 1) Defining a reader function for a character
 
-Consider the classical example of customizing the reader so
-[{+ _ 1}] becomes [(lambda (_) (+ _ 1)] and so that
-[{x y -> (* x y)] becomes [(lamdba (x y) (+ x y))] ...
+Consider a classical example of customizing the reader so
+that lambda forms can be specified more succintly:
+
++--------------------+--------------------------+
+|        this        |  is interpreted as this  |
++--------------------+--------------------------+
+| [{x -> (* x 2)}]   | [(lambda (x) (* x 2))]   |
+| [{x y -> (+ x y)}] | [(lambda (x y) (+ x y))] |
+| [{+ x 1}]          | [(lambda (x) (+ x 1))]   |
++--------------------+--------------------------+
+
+If an application is using a lot of anonymous functions this
+transformation could lead to a subjectively more readable code.
 
 [Reader customization example 1
 (setf (reader "{")
       (lambda (src)
         (funcall src 1)
-        (let ((x (parse-delimited-list src "}")))
-          (let ((i (index '-> x)))
+        (let ((form (parse-delimited-list src "}")))
+          (let ((i (index '-> form)))
             (if (>= i 0)
-                `(lambda ,(slice x 0 i)
-                   ,@(slice x (1+ i)))
-                `(lambda (_) ,x))))))
+                `(lambda ,(slice form 0 i)
+                   ,@(slice form (1+ i)))
+                `(lambda (x) ,form))))))
 --> #CODE
 Ready.
-(parse-value "{+ _ 1}")
---> (lambda (_) (+ _ 1))
+(parse-value "{+ x 1}")
+--> (lambda (x) (+ x 1))
 Ready.
 (parse-value "{x y -> (* x y)}")
 --> (lambda (x y) (* x y))
 Ready.
-(map {* _ _} (range 10))
+(map {* x x} (range 10))
 --> (0 1 4 9 16 25 36 49 64 81)
 Ready.
 ]

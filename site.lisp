@@ -16,6 +16,9 @@
 (defstruct verbatim-html-section
   content)
 
+(defstruct table
+  rows)
+
 (defvar *sections* (list))
 
 (defun parse-site (txt)
@@ -54,6 +57,17 @@
                   (push (make-list-item :content para)
                         (section-content current-section)))
              (incf para line+)))
+        ("+"
+           ; A table
+           (do ((rows (list)))
+               ((and (/= first-char "+")
+                     (/= first-char "|"))
+                  (push (make-table :rows rows)
+                        (section-content current-section)))
+             (when (= first-char "|")
+               (push (map #'strip (split (slice line 1 (- (length line) 2)) "|"))
+                     rows))
+             next-line))
         ("<"
            ; A verbatim HTML section
            (unless (= line+ "<<")
@@ -157,6 +171,26 @@
         text-align: center;
     }
 
+    table {
+        border: solid 2px #000080;
+        border-collapse: collapse;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    td {
+        border: solid 1px #000080;
+        padding: 6px;
+    }
+
+    th {
+        border: solid 1px #000080;
+        padding: 6px;
+        background-color: #E0E0FF;
+        font-weight: bold;
+        text-align: center;
+    }
+
     </style>
   </head>
   <body>
@@ -231,6 +265,21 @@ show('About');
              (setf inside-list true)
              (incf result "<ul>"))
            (incf result ~"<li>{(htmfix (list-item-content x))}</li>"))
+          ((table? x)
+           (when inside-list
+             (setf inside-list false)
+             (incf result "</ul>"))
+           (incf result ~"<table>")
+           (let ((first-row true))
+             (dolist (row (table-rows x))
+               (incf result "<tr>")
+               (dolist (col row)
+                 (incf result (if first-row "<th>" "<td>"))
+                 (incf result (htmfix col))
+                 (incf result (if first-row "</th>" "</td>")))
+               (incf result "</tr>")
+               (setf first-row false)))
+           (incf result "</table>"))
           ((code-section? x)
            (when inside-list
              (setf inside-list false)
