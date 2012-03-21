@@ -1,4 +1,4 @@
-(load (http-get "heap.lisp"))
+(import heap)
 
 (defstruct state-info
   state

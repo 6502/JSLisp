@@ -1304,9 +1304,6 @@ Each field is a list of an unevaluated atom as name and a value."
                   (js-code ,~"(d$$self.{(symbol-name name)}.apply(d$$self,d$$args))")))
              names)))
 
-; DOM
-(setf document (js-code "document"))
-(setf window (js-code "window"))
 (defun htm (x)
   "Escapes characters so that the content string x can be displayed correctly as HTML"
   (setf x (replace x "&" "&amp;"))
@@ -1315,21 +1312,26 @@ Each field is a list of an unevaluated atom as name and a value."
   (setf x (replace x "\"" "&quot;"))
   x)
 
-(defun get-element-by-id (id)
-  "Returns the DOM element with the specified id value"
-  (funcall (. document getElementById) id))
+(unless node.js
+  ;; DOM
+  (defvar document (js-code "document"))
+  (defvar window (js-code "window"))
 
-(defun create-element (type)
-  "Creates a new DOM element with the specified type passed as a string"
-  (funcall (. document createElement) type))
+  (defun get-element-by-id (id)
+    "Returns the DOM element with the specified id value"
+    (funcall (. document getElementById) id))
 
-(defun append-child (parent child)
-  "Appends the DOM element 'child' as last (frontmost) children of the parent DOM element"
-  (funcall (. parent appendChild) child))
+  (defun create-element (type)
+    "Creates a new DOM element with the specified type passed as a string"
+    (funcall (. document createElement) type))
 
-(defun remove-child (parent child)
-  "Removes the DOM element child from the list of children of parent DOM element"
-  (funcall (. parent removeChild) child))
+  (defun append-child (parent child)
+    "Appends the DOM element 'child' as last (frontmost) children of the parent DOM element"
+    (funcall (. parent appendChild) child))
+
+  (defun remove-child (parent child)
+    "Removes the DOM element child from the list of children of parent DOM element"
+    (funcall (. parent removeChild) child)))
 
 ; Timer events
 (defun set-timeout (f delay)
@@ -1622,7 +1624,9 @@ Each field is a list of an unevaluated atom as name and a value."
 (defmacro import (name)
   `(unless (symbol-value ',(intern ~"+{name}.lisp.included+"))
      (defconstant ,(intern ~"+{name}.lisp.included+") true)
-     (load (http-get ,(+ (symbol-name name) ".lisp")))))
+     (load (if node.js
+               (get-file ,(+ (symbol-name name) ".lisp"))
+               (http-get ,(+ (symbol-name name) ".lisp"))))))
 
 ; Lexical symbol properties support
 (defun lexical-property (x name)

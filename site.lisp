@@ -295,9 +295,9 @@ show('About');
     (incf result +EPILOGUE+)
     (setf result (replace result "@index@"
                           (replace index "\\$" "$$")))
-    (set-timeout (lambda (&rest args)
-                   (funcall (. document write) result))
-                 0)))
+    result))
 
-(parse-site (http-get "site.txt"))
-(generate-site)
+(parse-site (get-file "site.txt"))
+
+(display (generate-site))
+

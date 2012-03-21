@@ -25,6 +25,8 @@
 ******************************************************************************
 \****************************************************************************/
 
+d$$node$46$js = false;
+
 if (typeof window == "undefined")
 {
     // node.js
@@ -34,10 +36,12 @@ if (typeof window == "undefined")
         return eval(f$$js_compile(f$$parse_value(x)));
     };
 
-    function f$$display(x)
+    window["f$$display"] = f$$display = function(x)
     {
         console.log(x);
-    }
+    };
+
+    d$$node$46$js = window.d$$node$46$js = true;
 }
 
 function stringify(x)
@@ -108,7 +112,7 @@ var lexsmacro = new Namespace();
 var specials = {};
 var jscompile = {};
 
-function f$$mangle(x)
+window["f$$mangle"] = f$$mangle = function(x)
 {
     var res = "";
     for (var i=0; i<x.length; i++)
@@ -136,6 +140,7 @@ f$$mangle.documentation = ("(mangle x:string) -> string\n" +
 function deflisp(name, doc, f)
 {
     window["f" + f$$mangle(name)] = f;
+    eval("f" + f$$mangle(name) + " = window['f" + f$$mangle(name) + "']");
     f.documentation = doc;
 }
 
@@ -203,7 +208,12 @@ deflisp("intern",
             if (x == undefined)
             {
                 x = window["s" + mname] = new Symbol(mname, true);
-                if (name[0] == ':') window["d" + mname] = x;
+                eval("s" + mname + " = window['s" + mname + "']");
+                if (name[0] == ':')
+                {
+                    window["d" + mname] = x;
+                    eval("d" + mname + " = window['d" + mname + "']");
+                }
             }
             return x;
         });
@@ -908,7 +918,7 @@ deflisp("warning",
             f$$display("WARNING: " + msg.replace(/\$\$[a-zA-Z_0-9\$]*/g, f$$demangle));
         });
 
-var d$$$42$error_location$42$ = null;
+d$$$42$error_location$42$ = null;
 
 function erl(x, f)
 {
@@ -925,7 +935,7 @@ function erl(x, f)
     }
 }
 
-var d$$$42$declarations$42$ = [];
+d$$$42$declarations$42$ = [];
 
 deflisp("js-compile",
         "(js-compile x) -> string\n" +
@@ -1053,8 +1063,8 @@ deflisp("js-compile",
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-var d$$$42$spaces$42$ = " \t\r\n";
-var d$$$42$stopchars$42$ = "()\"";
+d$$$42$spaces$42$ = " \t\r\n";
+d$$$42$stopchars$42$ = "()\"";
 
 deflisp("skip-spaces",
         "(skip-spaces src)\n" +
@@ -1519,3 +1529,22 @@ deflisp("http-get",
         {
             return f$$http("GET", url, null, onSuccess, onFailure);
         });
+
+deflisp("get-file",
+        "(get-file filename)\n" +
+        "Reads and returns the content of the specified ascii file",
+        function(name)
+        {
+            var fs = require("fs");
+            return fs.readFileSync(name, "ascii");
+        });
+
+if (d$$node$46$js)
+{
+    var fs = require("fs");
+    f$$load(f$$get_file("boot.lisp"));
+    for (var i=2; i<process.argv.length; i++)
+    {
+        f$$load(f$$get_file(process.argv[i]));
+    }
+}
