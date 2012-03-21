@@ -25,16 +25,20 @@
 ******************************************************************************
 \****************************************************************************/
 
-/* node.js
-
-var window = global;
-
-exports.eval = function (x)
+if (typeof window == "undefined")
 {
-    return eval(f$$js_compile(f$$parse_value(x)));
-}
+    // node.js
+    var window = global;
+    exports.eval = function (x)
+    {
+        return eval(f$$js_compile(f$$parse_value(x)));
+    };
 
-*/
+    function f$$display(x)
+    {
+        console.log(x);
+    }
+}
 
 function stringify(x)
 {
