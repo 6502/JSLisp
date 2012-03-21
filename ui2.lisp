@@ -136,8 +136,8 @@
         x y z))
 
 (defun scaling (x &optional y z)
-  (when (undefinedp y) (setf y x))
-  (when (undefinedp z) (setf z x))
+  (when (undefined? y) (setf y x))
+  (when (undefined? z) (setf z x))
   (list x 0 0
         0 y 0
         0 0 z

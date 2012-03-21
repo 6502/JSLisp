@@ -28,7 +28,7 @@
 (set-symbol-macro 'defmacro
                   (lambda (name args &rest body)
                     (let ((doc (str-value (append (list name) args))))
-                      (if (stringp (js-code "d$$body[0]"))
+                      (if (string? (js-code "d$$body[0]"))
                           (setq doc (js-code "d$$doc+\"\\n\"+d$$body.splice(0,1)[0]")))
                       (list 'progn
                             (list 'set-symbol-macro
@@ -50,7 +50,7 @@
   (unless (symbol-function name)
     (set-symbol-function name 42))
   (let ((doc (str-value (append (list name) args))))
-    (if (stringp (js-code "d$$body[0]"))
+    (if (string? (js-code "d$$body[0]"))
         (setq doc (js-code "d$$doc+\"\\n\"+d$$body.splice(0,1)[0]")))
     (list 'progn
           (list 'set-symbol-function
@@ -129,25 +129,25 @@ Defines or redefines a regular function")
   "True if and only if x is a boolean"
   (js-code "((typeof d$$x)=='boolean')"))
 
-(defun undefinedp (x)
+(defun undefined? (x)
   "True if and only if x is the undefined value"
   (js-code "((typeof d$$x)=='undefined')"))
 
-(defun nullp (x)
+(defun null? (x)
   "True if and only if x is the null value"
   (js-code "((typeof d$$x)=='object'&&!d$$x)"))
 
-(defun NaNp (x)
+(defun NaN? (x)
   "True if and only if x is the NaN value"
   (js-code "((typeof d$$x)=='number'&&!d$$x&&!(d$$x==0))"))
 
-(defun objectp (x)
+(defun object? (x)
   "True if and only if x is a javascript object"
   (js-code "((d$$x&&d$$x.constructor&&d$$x.constructor==Object)==true)"))
 
-(defun zerop (x)
+(defun zero? (x)
   "True if and only if x is the number zero"
-  (and (numberp x) (= x 0)))
+  (and (number? x) (= x 0)))
 
 (defmacro aref (x k)
   "Returns the k-th element of a list/string or the value associated to the key k in an object"
@@ -222,7 +222,7 @@ Defines or redefines a regular function")
 ; Quasiquoting
 (defun bqconst (x)
   "True if the form 'x' is constant in respect to backquoting"
-  (if (listp x)
+  (if (list? x)
       (if (or (= (aref x 0) '\,)
               (= (aref x 0) '\`)
               (= (aref x 0) '\,@))
@@ -235,11 +235,11 @@ Defines or redefines a regular function")
 (defun bquote (x)
   "Returns the backquote expansion of x"
   (cond
-   ((or (numberp x) (stringp x) (= x null))
+   ((or (number? x) (string? x) (= x null))
     x)
    ((bqconst x)
     (list 'quote x))
-   ((listp x)
+   ((list? x)
     (cond
      ((= (aref x 0) '\`)
       (list '\` (bquote (aref x 1))))
@@ -252,7 +252,7 @@ Defines or redefines a regular function")
             (clist (list 'list)))
         (dolist (el x)
           (cond
-           ((and (listp el) (= (aref el 0) '\,@))
+           ((and (list? el) (= (aref el 0) '\,@))
             (when (> (length clist) 1)
               (push clist res)
               (setq clist (list 'list)))
@@ -277,7 +277,7 @@ Defines or redefines a regular function")
   ;;       because we need the macro in place when
   ;;       defun is macroexpanded
   (eval `(defmacro ,name ,args ,@body))
-  (let ((doc (if (stringp (aref body 0))
+  (let ((doc (if (string? (aref body 0))
                  (splice body 0 1)
                  (list))))
     `(progn
@@ -290,9 +290,9 @@ Defines or redefines a regular function")
 (defmacro/f slice (x start size)
   "Returns size elements (or all remaining) from a given start point. Without args does a full shallow copy."
   (cond
-    ((and (undefinedp start) (undefinedp size))
+    ((and (undefined? start) (undefined? size))
      `(js-code ,(+ "(" (js-compile x) ").slice()")))
-    ((undefinedp size)
+    ((undefined? size)
      `(js-code ,(+ "(" (js-compile x) ").slice(" (js-compile start) ")")))
     (true
      `(js-code ,(+ "(" (js-compile x) ".slice(" (js-compile start) "," (js-compile size) "))")))))
@@ -399,7 +399,7 @@ Defines or redefines a regular function")
 
 (defmacro/f ash (x count)
   "Arithmetic shift left (> count 0) or right (< count 0)"
-  (if (numberp count)
+  (if (number? count)
       (if (> count 0)
           `(js-code ,(+ "((" (js-compile x) ")<<(" count "))"))
           `(js-code ,(+ "((" (js-compile x) ")>>(" (- count) "))")))
@@ -508,15 +508,15 @@ Defines or redefines a regular function")
 (defmacro setf (place value)
   "Sets the content of a place to be the specified value. A place is either a symbol or a form (e.g. (aref x i)) for which a corresponding setting form is defined (e.g. (set-aref x i value)) either as function or macro eventually after macro expansion."
   (do ()
-      ((or (not (symbolp place))
+      ((or (not (symbol? place))
            (and (not (lexical-symbol-macro place))
                 (not (js-code "d$$place.symbol_macro")))))
     (setq place (or (lexical-symbol-macro place)
                     (js-code "d$$place.symbol_macro"))))
   (cond
-    ((symbolp place)
+    ((symbol? place)
      `(setq ,place ,value))
-    ((listp place)
+    ((list? place)
      (let* ((f (first place))
             (sf (intern (+ "set-" (symbol-name f)))))
        (cond
@@ -538,15 +538,15 @@ Defines or redefines a regular function")
 A place is either a symbol or a form (e.g. (aref x i)) for which a corresponding increment form is defined (e.g. (inc-aref x i inc)) either as function or macro eventually after macro expansion."
   (if (= inc undefined) (setf inc 1))
   (do ()
-      ((or (not (symbolp place))
+      ((or (not (symbol? place))
            (and (not (lexical-symbol-macro place))
                 (not (js-code "d$$place.symbol_macro")))))
     (setq place (or (lexical-symbol-macro place)
                     (js-code "d$$place.symbol_macro"))))
   (cond
-    ((symbolp place)
+    ((symbol? place)
      `(setq ,place (+ ,place ,inc)))
-    ((listp place)
+    ((list? place)
      (let* ((f (first place))
             (sf (intern (+ "inc-" (symbol-name f)))))
        (cond
@@ -568,15 +568,15 @@ A place is either a symbol or a form (e.g. (aref x i)) for which a corresponding
 A place is either a symbol or a form (e.g. (aref x i)) for which a corresponding decrement form is defined (e.g. (dec-aref x i dec)) either as function or macro eventually after macro expansion."
   (if (= dec undefined) (setf dec 1))
   (do ()
-      ((or (not (symbolp place))
+      ((or (not (symbol? place))
            (and (not (lexical-symbol-macro place))
                 (not (js-code "d$$place.symbol_macro")))))
     (setq place (or (lexical-symbol-macro place)
                     (js-code "d$$place.symbol_macro"))))
   (cond
-    ((symbolp place)
+    ((symbol? place)
      `(setq ,place (- ,place ,dec)))
-    ((listp place)
+    ((list? place)
      (let* ((f (first place))
             (sf (intern (+ "dec-" (symbol-name f)))))
        (cond
@@ -774,7 +774,7 @@ The resulting list length is equal to the length of the shortest sequence."
              (f (lambda (whole)
                   (let* ((args (second whole))
                          (body (slice whole 2))
-                         (doc (if (stringp (first body))
+                         (doc (if (string? (first body))
                                   (js-code "d$$body.slice(0,1)")
                                   (list)))
                          (i (index0 '&optional args))
@@ -804,7 +804,7 @@ The resulting list length is equal to the length of the shortest sequence."
                                      (error "Invalid number of arguments"))
                                   checks))
                           (dotimes (i (length args))
-                            (when (listp (aref args i))
+                            (when (list? (aref args i))
                               (push `(when (< (argument-count) ,(1+ i))
                                        (setf ,(first (aref args i))
                                              ,(second (aref args i))))
@@ -840,7 +840,7 @@ The resulting list length is equal to the length of the shortest sequence."
                                    `(lambda (,@(slice args 0 i) &rest ,rest)
                                       (let ((,nrest (length ,rest))
                                             ,@(map (lambda (x)
-                                                     (if (listp x)
+                                                     (if (list? x)
                                                          `(,(first x) ',unassigned)
                                                          `(,x undefined)))
                                                    (slice args (1+ i))))
@@ -852,13 +852,13 @@ The resulting list length is equal to the length of the shortest sequence."
                                             ,@(append
                                                (map (lambda (x)
                                                       `((= (aref ,rest ,ix)
-                                                           ,(intern (+ ":" (symbol-name (if (listp x) (first x) x)))))
-                                                        (setf ,(if (listp x) (first x) x) (aref ,rest (1+ ,ix)))))
+                                                           ,(intern (+ ":" (symbol-name (if (list? x) (first x) x)))))
+                                                        (setf ,(if (list? x) (first x) x) (aref ,rest (1+ ,ix)))))
                                                     (slice args (1+ i)))
                                                `((true (error "Invalid parameters"))))))
                                         ,@(let ((res (list)))
                                                (dolist (x (slice args (1+ i)))
-                                                 (when (listp x)
+                                                 (when (list? x)
                                                    (push `(when (= ,(first x) ',unassigned)
                                                             (setf ,(first x) ,(second x)))
                                                          res)))
@@ -874,22 +874,22 @@ The resulting list length is equal to the length of the shortest sequence."
                   (let ((checks (list))
                         (j 0))
                     (dolist (f (second x))
-                      (let* ((n (symbol-name (if (symbolp f) f (first f))))
+                      (let* ((n (symbol-name (if (symbol? f) f (first f))))
                              (i (index0 "/" n)))
                         (when (> i 0)
                           (let ((ns (intern (slice n 0 i)))
                                 (cf (intern (+ (slice n (1+ i))))))
                             (push (list ns cf) checks)
-                            (if (symbolp f)
+                            (if (symbol? f)
                                 (setf (aref (second x) j) ns)
                                 (setf (first (aref (second x) j)) ns)))))
                       (incf j))
-                    (if (zerop (length checks))
+                    (if (zero? (length checks))
                         (funcall old x)
                         (let ((doc (list))
                               (args (second x))
                               (body (slice x 2)))
-                          (when (stringp (first body))
+                          (when (string? (first body))
                             (setf doc (list (first body)))
                             (setf body (rest body)))
                           (js-eval (js-compile `(lambda ,(second x)
@@ -913,25 +913,25 @@ The resulting list length is equal to the length of the shortest sequence."
              (f (lambda (whole)
                   (let* ((args (second whole))
                          (body (slice whole 2))
-                         (doc (if (stringp (first body))
+                         (doc (if (string? (first body))
                                   (js-code "d$$body.slice(0,1)")
                                   (list)))
                          (dslist (list)))
                     (do ((n (length args))
                          (i 0 (1+ i)))
                         ((or (= i n)
-                             (and (symbolp (aref args i))
+                             (and (symbol? (aref args i))
                                   (= "&" (aref (symbol-name (aref args i)) 0)))))
-                      (when (listp (aref args i))
+                      (when (list? (aref args i))
                         (let ((tname (gensym-noprefix)))
                           (push (list tname (aref args i)) dslist)
                           (setf (aref args i) tname))))
                     (when (> (length dslist) 0)
                       (labels ((expand (expr template)
                                  (cond
-                                   ((symbolp template)
+                                   ((symbol? template)
                                     `((,template ,expr)))
-                                   ((listp template)
+                                   ((list? template)
                                     (let ((res (list)))
                                       (dotimes (i (length template))
                                         (setf res (append res
@@ -1029,7 +1029,7 @@ If only one parameter is passed it's assumed to be 'stop'."
   "Defines a structure with the specified fields. Each field can be either a symbol or a list with a symbol
 and a default value form that will be used when instantiating the structure if no values are passed for
 that field. When absent the default value is assumed to be the undefined value."
-  (let ((fnames (map (lambda (f) (if (listp f)
+  (let ((fnames (map (lambda (f) (if (list? f)
                                      (first f)
                                      f))
                      fields)))
@@ -1039,7 +1039,7 @@ that field. When absent the default value is assumed to be the undefined value."
            (&key ,@fields)
          (list ',name ,@fnames))
        (defun ,(intern (+ (symbol-name name) #\?)) (self)
-         (and (listp self) (= ',name (aref self 0))))
+         (and (list? self) (= ',name (aref self 0))))
        (defvar ,(intern (+ "*" (symbol-name name) "-fields*"))
          ',fnames)
        ,@(let ((res (list))
@@ -1167,7 +1167,7 @@ Evaluates expr and in case of exception evaluates the on-error form setting *exc
 
 (defun replace (x a b)
   "Replaces regular expression a with b in x. When using a string as regexp assumes global replacement."
-  (if (stringp a)
+  (if (string? a)
       (js-code "d$$x.replace(new RegExp(d$$a,'g'), d$$b)")
       (js-code "d$$x.replace(d$$a, d$$b)")))
 
@@ -1195,8 +1195,8 @@ A field is either an unevaluated symbol, a number, a string or an (evaluated) fo
   (let ((res (js-compile obj)))
     (dolist (x fields)
       (setf res (cond
-                  ((symbolp x) (+ res "." (symbol-name x)))
-                  ((listp x) (+ res "[" (js-compile x) "]"))
+                  ((symbol? x) (+ res "." (symbol-name x)))
+                  ((list? x) (+ res "[" (js-compile x) "]"))
                   (true (+ res "[" (str-value x) "]")))))
     `(js-code ,res)))
 
@@ -1206,8 +1206,8 @@ A field is either an unevaluated symbol, a number, a string or an (evaluated) fo
   (let ((res (js-compile obj)))
     (dolist (x (slice fields 0 (1- (length fields))))
       (setf res (cond
-                  ((symbolp x) (+ res "." (symbol-name x)))
-                  ((listp x) (+ res "[" (js-compile x) "]"))
+                  ((symbol? x) (+ res "." (symbol-name x)))
+                  ((list? x) (+ res "[" (js-compile x) "]"))
                   (true (+ res "[" (str-value x) "]")))))
     (setf res (+ res "=" (js-compile (aref fields (1- (length fields))))))
     `(js-code ,res)))
@@ -1216,7 +1216,7 @@ A field is either an unevaluated symbol, a number, a string or an (evaluated) fo
 (setf (symbol-macro 'funcall)
       (let ((om (symbol-macro 'funcall)))
         (lambda (f &rest args)
-          (if (and (listp f)
+          (if (and (list? f)
                    (= (first f) '.)
                    (= (length f) 3))
               `(js-code ,(+ (js-compile (second f))
@@ -1256,7 +1256,7 @@ Each field is a list of an unevaluated atom as name and a value."
               (part "")        ; current part
               (expr false)     ; is current part an expression?
               (escape false))  ; is next char verbatim ?
-          (unless (stringp x)
+          (unless (string? x)
             (error "string interpolation requires a string literal"))
           (dolist (c x)
             (cond
@@ -1410,7 +1410,7 @@ Each field is a list of an unevaluated atom as name and a value."
 (defmacro help (name)
   "Displays any documentation for compile specialization, macro, function or value bound to the (unevaluated) specified symbol."
   (labels ((doc (x)
-             (unless (stringp x)
+             (unless (string? x)
                (setf x (or (documentation x) "- no documentation -")))
              (do ((i (if (/= -1 (index "\n" x))
                          (index "\n" x)
@@ -1453,7 +1453,7 @@ Each field is a list of an unevaluated atom as name and a value."
         (eesep "")
         (fragments (list (list))))
     (dolist (x body)
-      (if (symbolp x)
+      (if (symbol? x)
           (progn
             (setf tagdecl (+ tagdecl sep "$tag$" (mangle (symbol-name x)) "=[]"))
             (setf sep ",")
@@ -1491,7 +1491,7 @@ Each field is a list of an unevaluated atom as name and a value."
 (defvar ret@ (js-object))
 
 (defmacro return-from (name &optional value)
-  (when (undefinedp (aref ret@ name))
+  (when (undefined? (aref ret@ name))
     (error ~"(return-from {name} ...) can be used only inside (block {name} ...)"))
   (setf (aref ret@ name) true)
   `(progn
@@ -1520,7 +1520,7 @@ Each field is a list of an unevaluated atom as name and a value."
   (setf (symbol-macro 'defun)
         (let ((om (symbol-macro 'defun)))
           (lambda (name args &rest body)
-            (let ((doc (if (stringp (first body))
+            (let ((doc (if (string? (first body))
                            (js-code "d$$body.splice(0,1)")
                            (list))))
               (apply om `(,name ,args ,@doc (block ,name ,@body)))))))
@@ -1531,7 +1531,7 @@ Each field is a list of an unevaluated atom as name and a value."
         (lambda (x)
           (let* ((args (second x))
                  (body (slice x 2))
-                 (doc (if (stringp (first body))
+                 (doc (if (string? (first body))
                           (js-code "d$$body.splice(0,1)")
                           (list))))
             (apply om `((lambda ,args
@@ -1574,14 +1574,14 @@ Each field is a list of an unevaluated atom as name and a value."
         (warning ~"Odd number of arguments in keyword pairing in {(str-value form)}"))
       (incf ai)
       (let ((keys (map (lambda (kwa)
-                         (if (listp kwa)
+                         (if (list? kwa)
                              (first kwa)
                              kwa))
                        (slice args ai))))
         (do ()
             ((>= fi fn))
           (let ((k (aref form fi)))
-            (when (and (symbolp k)
+            (when (and (symbol? k)
                        (= ":" (aref (symbol-name k) 0)))
               (unless (find (intern (slice (symbol-name k) 1)) keys)
                 (warning ~"Invalid keyword parameter {k} in {(str-value form)}"))))
@@ -1589,7 +1589,7 @@ Each field is a list of an unevaluated atom as name and a value."
 
 ; Simple destructuring let
 (defmacro dlet (vars list &rest body)
-  (if (symbolp list)
+  (if (symbol? list)
       `(if (= (length ,list) ,(length vars))
            (let (,@(let ((res (list))
                          (index -1))

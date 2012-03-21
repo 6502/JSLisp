@@ -422,7 +422,7 @@ to DOM property values.
       (let ((oldf #'parse-value))
         (lambda (src)
           (let ((x (funcall oldf src)))
-            (when (and (symbolp x)
+            (when (and (symbol? x)
                        (find "." (symbol-name x)))
               (setf x `(. ,@(map #'intern
                                  (split (symbol-name x) ".")))))

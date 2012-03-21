@@ -93,7 +93,7 @@
         (otherwise
            ; A regular paragraph, ends at first blank line
            (do ((para (strip line+)))
-               ((undefinedp first-char)
+               ((undefined? first-char)
                   (push (make-paragraph :content para)
                         (section-content current-section)))
              (incf para (+ " " line+))))))))

@@ -8,9 +8,9 @@
          `(let (,@vars) ,@props))
       (let ((property (aref properties i))
             (value (aref properties (1+ i))))
-        (unless (or (stringp value)
-                    (numberp value)
-                    (symbolp value))
+        (unless (or (string? value)
+                    (number? value)
+                    (symbol? value))
           (let ((var (gensym)))
             (push `(,var ,value) vars)
             (setf value var)))
@@ -18,16 +18,16 @@
                        `(setf (. ,el style ,(intern (slice (symbol-name property) 3)))
                               (+ ,value "px"))
                        `(setf (. ,el style ,property) ,value))))
-          (push (if (symbolp value)
-                    `(unless (undefinedp ,value) ,cmd)
+          (push (if (symbol? value)
+                    `(unless (undefined? ,value) ,cmd)
                     cmd)
                 props))))))
 
 (defun element-pos (x)
   (let ((left 0) (top 0))
     (do ()
-        ((or (nullp x)
-             (undefinedp (. x offsetParent)))
+        ((or (null? x)
+             (undefined? (. x offsetParent)))
          (list left top))
       (incf left (. x offsetLeft))
       (incf top (. x offsetTop))
@@ -101,7 +101,7 @@
          (border (layout-node-border node))
          (spacing (layout-node-spacing node))
          (algo (layout-node-algorithm node)))
-    (when (nullp spacing)
+    (when (null? spacing)
       (setf spacing *spacing*))
     (when (layout-node-buddy node)
       (funcall (layout-node-buddy node) x0 y0 x1 y1))
@@ -116,7 +116,7 @@
                       (* 2 border)
                       (* (1- nchild) spacing))))
         (decf avail (reduce #'+ assigned))
-        (do () ((or (zerop (length active))
+        (do () ((or (zero? (length active))
                     (<= avail 0.0001))
                   (if (= algo :H)
                       (let ((x (+ x0 border))
@@ -181,7 +181,7 @@
        (defmacro ,type (&rest args)
          (do ((i 0 (+ i 2)))
              ((or (= i (length args))
-                  (not (symbolp (aref args i)))
+                  (not (symbol? (aref args i)))
                   (/= (aref (symbol-name (aref args i)) 0) ":"))
                 `(make-layout-node :algorithm ,,type
                                    ,@(slice args 0 i)
@@ -211,7 +211,7 @@
                backgroundColor "#FFFFFF"
                border "solid 1px #000000")
 
-    (unless (undefinedp title)
+    (unless (undefined? title)
       (let ((title-bar (create-element "div")))
         (set-style title-bar
                    position "absolute"
@@ -239,7 +239,7 @@
                                (first (event-pos event))
                                (second (event-pos event))))))
 
-    (unless (undefinedp layout)
+    (unless (undefined? layout)
       (let ((resizer (create-element "canvas")))
         (set-style resizer
                    position "absolute"
@@ -274,11 +274,11 @@
                                      (setf y0 y))
                                    (set-coords layout
                                                0
-                                               (if (undefinedp title) 0 20)
+                                               (if (undefined? title) 0 20)
                                                (. window clientWidth)
                                                (. window clientHeight))))))))
 
-    (unless (undefinedp close)
+    (unless (undefined? close)
       (let ((closer (create-element "canvas")))
         (set-style closer
                    position "absolute"

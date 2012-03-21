@@ -20,7 +20,7 @@ game goals."
             (progn
               (setf solution (list))
               (do ((x s (second x)))
-                  ((nullp x))
+                  ((null? x))
                 (push (first x) solution))
               (nreverse solution))
             (dolist (ns (funcall next-state (first s)))

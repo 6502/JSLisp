@@ -358,7 +358,7 @@
                                                         (ddx (- (x xhp) (- x0 cx (/ w 2))))
                                                         (ddy (- (y xhp) (- y0 cy (/ h 2))))
                                                         (m (+ (* dx ddx) (* dy ddy))))
-                                                   (when (or (nullp best)
+                                                   (when (or (null? best)
                                                              (> m (first best)))
                                                      (setf best (list m s aa)))))))
                                            (animate (second best)

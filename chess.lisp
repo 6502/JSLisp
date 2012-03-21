@@ -687,9 +687,9 @@
                 (let ((v (- (alpha-beta n -1000000 1000000))))
                   (undo)
                   (display ~"{(move-str m)} --> {v}")
-                  (when (or (nullp best) (> v (first best)))
+                  (when (or (null? best) (> v (first best)))
                     (setf best (list v m))))))
-    (unless (nullp best)
+    (unless (null? best)
       (play (second best))
       (display (ascii-board)))))
 

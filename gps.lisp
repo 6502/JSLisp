@@ -45,7 +45,7 @@
        (active (list start))
        (solution null))
       ((or solution
-           (zerop (length active)))
+           (zero? (length active)))
          solution)
     (let ((next-active (list)))
       (dolist (state active)
@@ -53,14 +53,14 @@
             (progn
               (setf solution (list))
               (do ((x (list "*goal*" state)))
-                  ((nullp (second x))
+                  ((null? (second x))
                      (nreverse solution))
                 (push x solution)
                 (setf x (aref seen (funcall key (second x))))))
             (dolist (action actions)
               (let ((result (funcall action state)))
                 (when (and result
-                           (undefinedp (aref seen (funcall key (second result)))))
+                           (undefined? (aref seen (funcall key (second result)))))
                   (setf (aref seen (funcall key (second result)))
                         (list (first result) state))
                   (push (second result) next-active))))))

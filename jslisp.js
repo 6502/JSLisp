@@ -204,16 +204,16 @@ deflisp("intern",
             return x;
         });
 
-deflisp("numberp", "(numberp x) -> bool\nReturns true if and only if x is a number (including NaN)",
+deflisp("number?", "(number? x) -> bool\nReturns true if and only if x is a number (including NaN)",
         function(x) { return (typeof x) == "number"; });
 
-deflisp("stringp", "(stringp x) -> bool\nReturns true if and only if x is a string",
+deflisp("string?", "(string? x) -> bool\nReturns true if and only if x is a string",
         function(x) { return (typeof x) == "string"; });
 
-deflisp("listp", "(listp x) -> bool\nReturns true if and only if x is a list",
+deflisp("list?", "(list? x) -> bool\nReturns true if and only if x is a list",
         function(x) { return (x && x.constructor == Array)  ? true : false; });
 
-deflisp("symbolp", "(symbolp x) -> bool\nReturns true if and only if x is a symbol",
+deflisp("symbol?", "(symbol? x) -> bool\nReturns true if and only if x is a symbol",
         function(x) { return (x && x.constructor == Symbol) ? true : false; });
 
 defcompile("js-code",
@@ -607,7 +607,7 @@ defcompile("setq",
            "is transformed in a corresponding (setf ...) form.",
            function(x)
            {
-               if (f$$symbolp(x[1]))
+               if (f$$symbol$63$(x[1]))
                {
                    return "(d" + x[1].name + "=" + f$$js_compile(x[2]) + ")";
                }
@@ -622,9 +622,9 @@ defcompile("quote",
            "Returns the unevaluated x as result.",
            function(x)
            {
-               if (f$$symbolp(x[1]) && x[1].interned)
+               if (f$$symbol$63$(x[1]) && x[1].interned)
                    return "s" + x[1].name;
-               if (f$$numberp(x[1]) || f$$stringp(x[1]))
+               if (f$$number$63$(x[1]) || f$$string$63$(x[1]))
                    return stringify(x[1]);
                lisp_literals.push(x[1]);
                return "lisp_literals[" + (lisp_literals.length-1) + "]";
@@ -644,9 +644,9 @@ deflisp("macroexpand-1",
         "it's neither a macro invocation nor a macro symbol. Lexical macro bindings are NOT considered.",
         function(x)
         {
-            if (f$$symbolp(x) && x.symbol_macro)
+            if (f$$symbol$63$(x) && x.symbol_macro)
                 x = x.symbol_macro;
-            else if (f$$listp(x) && f$$symbolp(x[0]) && window["m" + x[0].name])
+            else if (f$$list$63$(x) && f$$symbol$63$(x[0]) && window["m" + x[0].name])
                 x = window["m" + x[0].name].apply(window, x.slice(1));
             return x;
         });
@@ -658,9 +658,9 @@ deflisp("macroexpand",
         {
             for (;;)
             {
-                if (f$$symbolp(x) && x.symbol_macro)
+                if (f$$symbol$63$(x) && x.symbol_macro)
                     x = x.symbol_macro;
-                else if (f$$listp(x) && f$$symbolp(x[0]) && window["m" + x[0].name])
+                else if (f$$list$63$(x) && f$$symbol$63$(x[0]) && window["m" + x[0].name])
                     x = window["m" + x[0].name].apply(window, x.slice(1));
                 else break;
             }
@@ -929,7 +929,7 @@ deflisp("js-compile",
         "evaluation of the passed form 'x'.",
         function(x)
         {
-            if (f$$symbolp(x))
+            if (f$$symbol$63$(x))
             {
                 if (lexsmacro.vars[x.name])
                     return f$$js_compile(lexsmacro.vars[x.name]);
@@ -954,11 +954,11 @@ deflisp("js-compile",
                 }
                 return v;
             }
-            else if (f$$listp(x) && f$$symbolp(x[0]) && x[0].name == "$$declare")
+            else if (f$$list$63$(x) && f$$symbol$63$(x[0]) && x[0].name == "$$declare")
             {
                 d$$$42$declarations$42$.push(x);
             }
-            else if (f$$listp(x))
+            else if (f$$list$63$(x))
             {
                 try {
                     var decl = d$$$42$declarations$42$.length;
@@ -976,7 +976,7 @@ deflisp("js-compile",
                         };
                     }
                     var f = x[0];
-                    if (f$$symbolp(f))
+                    if (f$$symbol$63$(f))
                     {
                         var wf = jscompile[f.name];
                         if (wf && wf.constructor == Function)
@@ -1329,18 +1329,18 @@ deflisp("str-value",
         {
             if (circle_print == undefined)
                 circle_print = [];
-            if (f$$symbolp(x))
+            if (f$$symbol$63$(x))
             {
                 return f$$demangle(x.name);
             }
-            else if (f$$listp(x))
+            else if (f$$list$63$(x))
             {
-                if (x.length == 2 && f$$symbolp(x[0]))
+                if (x.length == 2 && f$$symbol$63$(x[0]))
                 {
                     if (x[0].name == "$$quote")
                         return "'" + f$$str_value(x[1], circle_print);
                     if (x[0].name == "$$function" &&
-                        f$$symbolp(x[1]))
+                        f$$symbol$63$(x[1]))
                         return "#'" + f$$demangle(x[1].name);
                 }
                 if (circle_print.indexOf(x) != -1)
@@ -1422,7 +1422,7 @@ deflisp("load",
         "one at a time in sequence. If name is passed and src is a string then source location information is attached to each parsed list.",
         function f$$load(src, name)
         {
-            if (f$$stringp(src))
+            if (f$$string$63$(src))
             {
                 var i = 0;
                 var src_org = src;

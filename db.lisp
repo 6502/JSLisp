@@ -3,7 +3,7 @@
   ;; name where each part is either a symbol itself or a literal
   (let ((res ""))
     (dolist (x args)
-      (incf res (if (symbolp x) (symbol-name x) x)))
+      (incf res (if (symbol? x) (symbol-name x) x)))
     (intern res)))
 
 (defmacro defrecord (name pkey &rest fields)
@@ -22,7 +22,7 @@
   ;;   - (field-1 record) as field accessor (including setter and pkey update handling)
   ;;
   (let ((fieldnames (map (lambda (f)
-                           (if (symbolp f) f (first f)))
+                           (if (symbol? f) f (first f)))
                          fields)))
     (eval `(defmacro ,(sym "*" name "*") (&rest key)
              (unless (= (length key) ,(length pkey))
@@ -42,8 +42,8 @@
                     `(defun ,f (,name) (,(sym name "-" f) ,name))))
               fieldnames)
        ,@(map (lambda (ff)
-                (let* ((f (if (symbolp ff) ff (first ff)))
-                       (tf (if (symbolp ff) undefined (second ff)))
+                (let* ((f (if (symbol? ff) ff (first ff)))
+                       (tf (if (symbol? ff) undefined (second ff)))
                        (setter (if (/= -1 (index f pkey))
                                    `(progn
                                       (when (/= * (,f ,name))
@@ -91,7 +91,7 @@
            (error ,~"new-{(symbol-name name)}: primary key duplication"))
          ,@(let ((res (list)))
                 (dolist (f fields)
-                  (when (listp f)
+                  (when (list? f)
                     (push `(unless (funcall ,(second f) ,(first f))
                              (error ,~"Incompatible value for {(symbol-name (first f))}"))
                           res)))

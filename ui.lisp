@@ -212,7 +212,7 @@
 
 (defun bbadj ((x y) bb)
   (macrolet ((fixwhen (test var value)
-               `(when (or (nullp (,var bb)) (,test (,var bb) ,value))
+               `(when (or (null? (,var bb)) (,test (,var bb) ,value))
                   (setf (,var bb) ,value))))
     (fixwhen > first  x)
     (fixwhen > second y)
@@ -313,7 +313,7 @@
   "Returns the total transformation matrix of a sprite"
   (do ((m (sprite-matrix sprite))
        (s (sprite-parent sprite) (sprite-parent s)))
-      ((nullp s) m)
+      ((null? s) m)
     (setf m (matmul m (sprite-matrix s)))))
 
 (defun bounding-box (sprite m)
@@ -363,7 +363,7 @@ Returns null for an empty sprite or (dx dy canvas) with delta being the translat
       (setf (sprite-dirty sprite) null)
       (let ((m (total-matrix sprite))
             (cm (and (sprite-cache sprite) (first (sprite-cache sprite)))))
-        (when (or (nullp cm)
+        (when (or (null? cm)
                   (/= [m 0] [cm 0])
                   (/= [m 1] [cm 1])
                   (/= [m 2] [cm 2])

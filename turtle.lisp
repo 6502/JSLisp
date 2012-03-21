@@ -61,7 +61,7 @@
 
 (defmacro defcommand (name args &rest body)
   (let ((doc (list)))
-    (when (stringp (first body))
+    (when (string? (first body))
       (setf doc (splice body 0 1)))
     `(defun ,name ,args ,@doc (push (lambda () ,@body) *turtle-commands*) 'Ok)))
 

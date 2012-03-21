@@ -23,7 +23,7 @@
         (setf (aref seen x) state-record)
         (heap-push state-record heap)))
     (do ((result null))
-        ((or result (zerop (heap-length heap)))
+        ((or result (zero? (heap-length heap)))
          result)
       (let* ((info (heap-pop heap))
              (state (state-info-state info)))
@@ -31,7 +31,7 @@
             (progn
               (setf result (list))
               (do ((x state (state-info-previous-state (aref seen x))))
-                  ((nullp x) (nreverse result))
+                  ((null? x) (nreverse result))
                 (push x result)))
             (dolist (nx (funcall next state))
               (let ((nh (first nx))

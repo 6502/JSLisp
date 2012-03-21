@@ -95,31 +95,31 @@
 (test (= (intern ":xx") (intern ":xx"))
       "true")
 
-(test (symbolp (intern "xx"))
+(test (symbol? (intern "xx"))
       "true")
 
 (test (= (symbol-value :xx) :xx)
       "true")
 
-(test (listp (list))
+(test (list? (list))
       "true")
 
-(test (listp 12)
+(test (list? 12)
       "false")
 
-(test (listp undefined)
+(test (list? undefined)
       "false")
 
-(test (symbolp 'x)
+(test (symbol? 'x)
       "true")
 
-(test (symbolp :x)
+(test (symbol? :x)
       "true")
 
-(test (symbolp 12)
+(test (symbol? 12)
       "false")
 
-(test (symbolp "foo")
+(test (symbol? "foo")
       "false")
 
 (test (= '|foo| 'foo)
@@ -128,34 +128,34 @@
 (test (= '|foo bar| 'foo\ bar)
       "true")
 
-(test (symbolp null)
+(test (symbol? null)
       "false")
 
-(test (symbolp undefined)
+(test (symbol? undefined)
       "false")
 
-(test (symbolp true)
+(test (symbol? true)
       "false")
 
-(test (symbolp false)
+(test (symbol? false)
       "false")
 
-(test (symbolp NaN)
+(test (symbol? NaN)
       "false")
 
-(test (numberp null)
+(test (number? null)
       "false")
 
-(test (numberp undefined)
+(test (number? undefined)
       "false")
 
-(test (numberp true)
+(test (number? true)
       "false")
 
-(test (numberp false)
+(test (number? false)
       "false")
 
-(test (numberp NaN)
+(test (number? NaN)
       "true")
 
 (test (js-eval "1+1")
@@ -164,7 +164,7 @@
 (test (symbol-function 'foo)
       "undefined")
 
-(test (symbol-function 'listp)
+(test (symbol-function 'list?)
       "#CODE")
 
 (test (set-symbol-function 'foo (lambda (x) (* x x)))
@@ -420,14 +420,14 @@
         res)
       "(1 1 1 (12 12 12 20))")
 
-(let ((pairs (list (list 'listp '(list))
-                   (list 'zerop '0)
-                   (list 'NaNp 'NaN)
-                   (list 'undefinedp 'undefined)
-                   (list 'nullp 'null)
-                   (list 'stringp '"")
+(let ((pairs (list (list 'list? '(list))
+                   (list 'zero? '0)
+                   (list 'NaN? 'NaN)
+                   (list 'undefined? 'undefined)
+                   (list 'null? 'null)
+                   (list 'string? '"")
                    (list 'boolp 'false)
-                   (list 'objectp '(js-object))))
+                   (list 'object? '(js-object))))
       (errors 0))
   (dotimes (i (length pairs))
     (dotimes (j (length pairs))
