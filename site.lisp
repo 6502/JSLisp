@@ -106,19 +106,17 @@
 (defconstant +PROLOGUE+ "<!DOCTYPE HTML>
 <html>
   <head>
-    <link href='http://fonts.googleapis.com/css?family=Droid+Serif:400,700' rel='stylesheet' type='text/css'>
-    <link href='http://fonts.googleapis.com/css?family=Droid+Mono:400,700' rel='stylesheet' type='text/css'>
     <title>JsLisp</title>
     <style type=\"text/css\">
     body {
-        font-family: 'Droid Serif', serif;
+        font-family: Arial, sans-serif;
         padding: 8px;
         color: #000000;
         background-color: #FFFFFF;
     }
 
     pre {
-        font-family: 'Droid Mono', courier, monospace;
+        font-family: 'Courier New', courier, monospace;
         font-weight: bold;
         padding: 12px;
         color: #000080;
@@ -162,7 +160,7 @@
     }
 
     span.code {
-        font-family: 'Droid Mono', courier, monospace;
+        font-family: 'Courier New', courier, monospace;
         font-weight: bold;
         color: #000080;
     }
