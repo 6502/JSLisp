@@ -13,6 +13,9 @@
 (defstruct code-section
   title content)
 
+(defstruct sample-code
+  title link)
+
 (defstruct verbatim-html-section
   content)
 
@@ -90,6 +93,13 @@
              (incf para (+ line+ "\n")))
            (when (= first-char "]")
              next-line))
+        ("!"
+           ; An example program
+           (let ((i (index ":" line)))
+             (push (make-sample-code :title (slice line 1 i)
+                                     :link (slice line (1+ i)))
+                   (section-content current-section)))
+           next-line)
         (otherwise
            ; A regular paragraph, ends at first blank line
            (do ((para (strip line+)))
@@ -216,6 +226,11 @@ function showoutput(x) {
         nodes[i].style.display = (nodes[i].style.display == 'none' ? 'inline' : 'none');
 }
 
+function sample(x) {
+    var w = window.open('jslisp.html?src=examples/'+x, '_blank',
+                        'width=800, height=800, left=100, top=100');
+}
+
 show('About');
 
     </script>
@@ -253,6 +268,11 @@ show('About');
              (setf inside-list false)
              (incf result "</ul>"))
            (incf result ~"<h{(heading-level x)}>{(htmfix (heading-content x))}</h{(heading-level x)}>"))
+          ((sample-code? x)
+           (when inside-list
+             (setf inside-list false)
+             (incf result "</ul>"))
+           (incf result ~"<a onclick=\"sample('{(sample-code-link x)}')\">{(htmfix (sample-code-title x))}</a><br/>"))
           ((paragraph? x)
            (when inside-list
              (setf inside-list false)
