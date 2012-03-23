@@ -376,6 +376,12 @@ try
         f$$display("Boot completed.");
         f$$display(prompt_message);
     }
+    if (args["src"]) {
+        var req = new XMLHttpRequest();
+        req.open("GET", args["src"], false);
+        req.send("");
+        repl.value = req.responseText;
+    }
 }
 catch(err)
 {
