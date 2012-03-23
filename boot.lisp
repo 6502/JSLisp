@@ -972,7 +972,7 @@ If only one parameter is passed it's assumed to be 'stop'."
       (push x res))
     res))
 
-(defun fp-range (n from to)
+(defun fp-range (from to n)
   "A list of <n> equally spaced floating point values starting with <from> and ending with <to>"
   (let ((result (list)))
     (dotimes (i (1- n))
