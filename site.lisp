@@ -297,7 +297,14 @@ show('About');
                           (replace index "\\$" "$$")))
     result))
 
-(parse-site (get-file "site.txt"))
+(if node.js
+    (progn
+      (parse-site (get-file "site.txt"))
+      (display (generate-site)))
+    (progn
+      (parse-site (http-get "site.txt"))
+      (set-timeout (lambda (&rest args)
+                     (funcall (. document write) (generate-site)))
+                   0)))
 
-(display (generate-site))
 

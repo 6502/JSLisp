@@ -234,6 +234,57 @@ I call these functions anonymous even if indeed inside the function
 they have a name ([fibo] in the [labels] form or [recurse] in the
 [rlambda] macro forms) but this name disappears outside the function.
 
+@@ Pie chart
+
+By using of the predefined module [fsg] (full-screen-graphics)
+this examples defines a pie chart function
+
+[Simple pie chart
+(import fsg)
+
+(defun random-color ()
+  "Returns a random color"
+  (let ((red (+ 128 (random-int 64)))
+        (green (+ 128 (random-int 64)))
+        (blue (+ 128 (random-int 64))))
+    ~"rgb({red},{green},{blue})"))
+
+(defun frange (x0 x1 n)
+  "Returns a list of n equally spaced values between x0 and x1"
+  (map (lambda (i)
+         (+ x0 (* (- x1 x0) (/ i (1- n)))))
+       (range n)))
+
+(defun pie-chart (x y r data)
+  "Draws a pie chart centered in (x,y) with radius r"
+  (let ((total (apply #'+ (map #'second data)))
+        (start-angle 0))
+    (dolist (item data)
+      (let* ((label (first item))
+             (value (second item))
+             (end-angle (+ start-angle
+                           (* 2 pi value (/ total))))
+             (avg (/ (+ start-angle end-angle) 2))
+             (cx (+ x (* (cos avg) (/ r 10))))
+             (cy (+ y (* (sin avg) (/ r 10)))))
+        (fill-style (random-color))
+        (begin-path)
+        (move-to cx cy)
+        (dolist (angle (frange start-angle end-angle 60))
+          (line-to (+ cx (* (cos angle) r))
+                   (+ cy (* (sin angle) r))))
+        (close-path)
+        (fill)
+        (setf start-angle end-angle)))))
+
+(pie-chart 300 300 200
+           '(("Italy" 10)
+             ("France" 20)
+             ("Germany" 30)
+             ("Spain" 40)
+             ("Great Britain" 30)))
+]
+
 @ JsLisp <=> CL
 
 In this sections the differences between Common Lisp and JsLisp will
