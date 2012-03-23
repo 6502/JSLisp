@@ -83,4 +83,40 @@
     "Fills a rectangle with current fill style"
     fillRect x0 y0 w h)
 
+(defun random-color ()
+  "Returns a random color"
+  (let ((red (+ 128 (random-int 64)))
+        (green (+ 128 (random-int 64)))
+        (blue (+ 128 (random-int 64))))
+    ~"rgb({red},{green},{blue})"))
+
+(defun font (x)
+  (setf (. *dc* font) x))
+
+(defgfx fill-text
+    "Draws the specified text using current fill style"
+    fillText text x y)
+
+(defgfx stroke-text
+    "Draws the specified text using current stroke style"
+    strokeText text x y)
+
+(defun text-width (text)
+    "Width of a text line"
+    (. (funcall (. *dc* measureText) text) width))
+
+(defun save ()
+  "Saves graphic context status"
+  (funcall (. *dc* save)))
+
+(defun restore ()
+  "Restores graphic context status"
+  (funcall (. *dc* restore)))
+
+(defun shadow (color dx dy blur)
+  (setf (. *dc* shadowColor) color)
+  (setf (. *dc* shadowOffsetX) dx)
+  (setf (. *dc* shadowOffsetY) dy)
+  (setf (. *dc* shadowBlur) blur))
+
 (clear)
