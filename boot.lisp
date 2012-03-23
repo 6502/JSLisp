@@ -1314,9 +1314,10 @@ Each field is a list of an unevaluated atom as name and a value."
 
 (unless node.js
   ;; DOM
-  (defvar document (js-code "document"))
-  (defvar window (js-code "window"))
+  (setf document (js-code "document"))
+  (setf window (js-code "window")))
 
+(unless node.js
   (defun get-element-by-id (id)
     "Returns the DOM element with the specified id value"
     (funcall (. document getElementById) id))
