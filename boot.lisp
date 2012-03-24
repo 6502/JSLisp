@@ -43,19 +43,31 @@
                             (list 'quote name)))))
 
 (defmacro defun (name args &rest body)
-  ;; Shut up warnings about unknown function in recursive definitions
-  ;; Must not set the function value unconditionally because of the
-  ;; double-stage bootstrap of some basic operators (the poor version
-  ;; must be available during macro expansion time of the better version)
-  (unless (symbol-function name)
-    (set-symbol-function name 42))
   (let ((doc (str-value (append (list name) args))))
     (if (string? (js-code "d$$body[0]"))
         (setq doc (js-code "d$$doc+\"\\n\"+d$$body.splice(0,1)[0]")))
     (list 'progn
+          ;; Shut up warnings about unknown function in recursive definitions
+          ;; Must not set the function value unconditionally because of the
+          ;; double-stage bootstrap of some basic operators (the poor version
+          ;; must be available during macro expansion time of the better version)
+          (list 'unless
+                (list 'symbol-function (list 'quote name))
+                (list 'set-symbol-function
+                      (list 'quote name)
+                      (list 'lambda args))
+                ;; Sets the arglist for this function so static check
+                ;; can be performed also on recursive functions
+                (list 'set-arglist
+                      (list 'symbol-function (list 'quote name))
+                      (list 'quote args)))
+          ;; Function definition delays compilation of lambda
+          ;; to wait the function declaration to be in place
           (list 'set-symbol-function
                 (list 'quote name)
-                (append (list 'lambda args) body))
+                (list 'eval
+                      (list 'quote
+                            (append (list 'lambda args) body))))
           (list 'set-documentation
                 (list 'symbol-function (list 'quote name))
                 doc)
