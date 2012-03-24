@@ -795,13 +795,10 @@ The resulting list length is equal to the length of the shortest sequence."
                         (funcall oldcf
                                  `(lambda ,args
                                     ,@doc
-                                    ,@(if (= r -1)
-                                          `((unless (= (argument-count) ,(length args))
+                                    ,@(if (> r 0)
+                                          `((when (< (argument-count) ,r)
                                               (error "Invalid number of arguments")))
-                                          (if (> r 0)
-                                              `((when (< (argument-count) ,r)
-                                                  (error "Invalid number of arguments")))
-                                              (list)))
+                                          (list))
                                     ,@body))
                         (let ((defaults (list))
                               (checks (list))

@@ -444,23 +444,29 @@ defcompile("lambda",
                    {
                        res += "var ";
                    }
-
-                   res += ("d" + rest + "=[]; "+
-                           "for (var $rest=" + nargs + "; $rest<arguments.length; $rest++){d" +
-                           rest + "[$rest-" + nargs + "] = arguments[$rest];}");
+                   res += "d" + rest + "=Array.prototype.slice.call(arguments,"+nargs+");";
                }
-               res += "var res=";
-               res += implprogn(x.slice(2));
-
-               lexvar.end();
-               lexsmacro.end();
-
-               res += ";"
-               for (var i=0; i<spe.length; i++)
+               if (spe.length == 0)
                {
-                   res += "d" + spe[i] + "=osd" + spe[i] + ";";
+                   res += "return " + implprogn(x.slice(2)) + ";})";
+                   lexvar.end();
+                   lexsmacro.end();
                }
-               res += "return res;})";
+               else
+               {
+                   res += "var res=";
+                   res += implprogn(x.slice(2));
+
+                   lexvar.end();
+                   lexsmacro.end();
+
+                   res += ";"
+                   for (var i=0; i<spe.length; i++)
+                   {
+                       res += "d" + spe[i] + "=osd" + spe[i] + ";";
+                   }
+                   res += "return res;})";
+               }
                return res;
            });
 
