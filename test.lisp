@@ -723,6 +723,12 @@
           res))
       "(24 144 24 144 144 144)")
 
+;; No warnings expected
+(test (labels ((rf1 (x) (if (< x 2) 1 (* x (rf2 (1- x)))))
+               (rf2 (x) (if (< x 2) 1 (* x (rf1 (1- x))))))
+        (rf1 10))
+      "3628800")
+
 (display (+ test-passed "/" test-total
             " tests passed in "
             (- (clock) test-start) "ms"))

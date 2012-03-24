@@ -508,6 +508,7 @@ defcompile("labels",
            function(x)
            {
                // First hide all macros and lexical macros named as defined functions
+               // and also adds immediately the functions to the lexical functions list
                lexfunc.begin();
                lexmacro.begin();
                var hmacros = [];
@@ -517,13 +518,14 @@ defcompile("labels",
                    lexmacro.add(v, undefined);
                    hmacros.push([v, window["m" + v]]);
                    window["m" + v] = undefined;
+                   lexfunc.add(v, "f" + v);
                }
 
+               // Compile function definitions
                var res = "((function(){";
                for (var i=0; i<x[1].length; i++)
                {
                    var v = x[1][i][0].name;
-                   lexfunc.add(v, "f" + v);
                    res += "var f" + v + "=" +
                        f$$js_compile([f$$intern("lambda")].concat(x[1][i].slice(1))) + ";";
                }
