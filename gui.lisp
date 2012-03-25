@@ -1,29 +1,29 @@
 (defmacro set-style (element &rest properties)
-  (let ((el (gensym))
-        (props (list))
-        (vars (list)))
-    (push `(,el ,element) vars)
-    (do ((i 0 (+ i 2)))
-        ((>= i (length properties))
-         `(let (,@vars) ,@props))
-      (let ((property (aref properties i))
-            (value (aref properties (1+ i))))
-        (unless (or (string? value)
-                    (number? value)
-                    (symbol? value))
-          (let ((var (gensym)))
-            (push `(,var ,value) vars)
-            (setf value var)))
-        (let ((cmd (if (= (slice (symbol-name property) 0 3) "px/")
-                       `(setf (. ,el style ,(intern (slice (symbol-name property) 3)))
-                              (+ ,value "px"))
-                       `(setf (. ,el style ,property) ,value))))
-          (push (if (symbol? value)
-                    `(unless (undefined? ,value) ,cmd)
-                    cmd)
-                props))))))
+  "Allows settings multiple style properties for a DOM node, example:[[
+     (set-style mynode
+                position \"absolute\"
+                px/left 0
+                px/top  0
+                px/width 200
+                px/height 300)
+]]
+  The [px/] prefix means a CSS unit that will be appended to the expression."
+  (let ((elstyle (gensym)))
+    `(let ((,elstyle (. ,element style)))
+       ,@(map (lambda (i)
+                (let* ((prop (aref properties i))
+                       (value (aref properties (1+ i)))
+                       (pname (symbol-name prop))
+                       (um (index "/" pname)))
+                  (if (= um -1)
+                      `(setf (. ,elstyle ,prop) ,value)
+                      `(setf (. ,elstyle ,(intern (slice pname (1+ um))))
+                             (+ ,value ,(slice pname 0 um))))))
+              (range 0 (length properties) 2))
+       ,elstyle)))
 
 (defun element-pos (x)
+  "Returns [(left top)] position of specified DOM element."
   (let ((left 0) (top 0))
     (do ()
         ((or (null? x)
@@ -34,6 +34,7 @@
       (setf x (. x offsetParent)))))
 
 (defun event-pos (event)
+  "Returns [(x y)] absolute position of the specified mouse event."
   (let ((x 0) (y 0))
     (cond
       ((or (. event pageX) (. event pageY))
@@ -49,15 +50,22 @@
     (list x y)))
 
 (defun show (x)
+  "Displays the specified DOM element by adding it to document body"
   (append-child (. document body) x))
 
 (defun hide (x)
+  "Removes the specified DOM element from its parent (hiding it)"
   (remove-child (. x parentNode) x))
 
 (defmacro set-handler (element event &rest body)
+  "Sets an event handler. Example:[[
+     (set-handler mywidget onmousedown
+                  (display ~\"Mouse pressed at {(event-pos event)}\"))
+]]"
   `(setf (. ,element ,event) (lambda (event) ,@body)))
 
 (defun tracking (f)
+  "Starts tracking mouse movements until mouseup"
   (let ((cover (create-element "div")))
     (set-style cover
                position "absolute"
@@ -75,6 +83,7 @@
     (show cover)))
 
 (defun dragging (div x0 y0)
+  "Starts dragging an absolute DOM element starting from position [(x0, y0)]"
   (tracking (lambda (x y)
               (let  ((dx (- x x0))
                      (dy (- y y0)))
@@ -96,6 +105,7 @@
   (children (list)))       ;; List of children nodes (if any)
 
 (defun set-coords (node x0 y0 x1 y1)
+  "Sets the coordinates of a layout node, possibly triggering recomputation of nested nodes"
   (let* ((children (layout-node-children node))
          (nchild (length children))
          (border (layout-node-border node))
@@ -199,9 +209,25 @@
 (deflayout :H)
 (deflayout :V)
 
-(defun window (x0 y0 w h &key title close layout)
-  (let ((window (create-element "div")))
-    (set-style window
+(defstruct window
+  frame            ;; DOM node
+  titlebar         ;; DOM node
+  resizer          ;; DOM node
+  closer           ;; DOM node
+  close-cback      ;; invoked after closing
+  resize-cback     ;; invoked after resizing
+  client)          ;; DOM node
+
+(defun window (x0 y0 w h &key title client (close true) (resize true))
+  "Creates an initially invisible window frame object"
+  (let ((frame (create-element "div"))
+        (titlebar (create-element "div"))
+        (resizer (create-element "canvas"))
+        (closer (create-element "canvas"))
+        (window null))
+    (unless client
+      (setf client (create-element "div")))
+    (set-style frame
                position "absolute"
                px/left x0
                px/top y0
@@ -210,104 +236,145 @@
                borderRadius "4px"
                backgroundColor "#FFFFFF"
                border "solid 1px #000000")
-
-    (unless (undefined? title)
-      (let ((title-bar (create-element "div")))
-        (set-style title-bar
-                   position "absolute"
-                   px/left 0
-                   px/top 0
-                   px/right 0
-                   px/height 20
-                   borderTopLeftRadius "4px"
-                   borderTopRightRadius "4px"
-                   backgroundColor "#6389b7"
-                   borderBottom "1px solid #000000"
-                   color "#FFFFFF"
-                   fontFamily "Arial"
-                   px/fontSize 16
-                   fontWeight "bold"
-                   textAlign "center"
-                   cursor "move")
-        (setf (. title-bar innerHTML) title)
-        (append-child window title-bar)
-        (set-handler title-bar onmousedown
-                     (funcall (. event preventDefault))
-                     (funcall (. event stopPropagation))
-                     (append-child (. document body) window)
-                     (dragging window
-                               (first (event-pos event))
-                               (second (event-pos event))))))
-
-    (unless (undefined? layout)
-      (let ((resizer (create-element "canvas")))
-        (set-style resizer
-                   position "absolute"
-                   px/right 0
-                   px/bottom 0
-                   px/width 12
-                   px/height 12
-                   cursor "se-resize")
-        (setf (. resizer width) 12)
-        (setf (. resizer height) 12)
-        (let ((ctx (funcall (. resizer getContext) "2d")))
-          (setf (. ctx strokeStyle) "#000000")
-          (setf (. ctx lineWidth) 1.0)
-          (dolist (i '(0 5))
-            (funcall (. ctx moveTo) 10 i)
-            (funcall (. ctx lineTo) i 10))
-          (funcall (. ctx stroke)))
-        (append-child window resizer)
-        (set-handler resizer onmousedown
-                     (funcall (. event preventDefault))
-                     (funcall (. event stopPropagation))
-                     (append-child (. document body) window)
-                     (let ((x0 (first (event-pos event)))
-                           (y0 (second (event-pos event))))
-                       (tracking (lambda (x y)
-                                   (let ((dx (- x x0))
-                                         (dy (- y y0)))
-                                     (set-style window
-                                                px/width (+ (. window clientWidth) dx)
-                                                px/height (+ (. window clientHeight) dy))
-                                     (setf x0 x)
-                                     (setf y0 y))
-                                   (set-coords layout
-                                               0
-                                               (if (undefined? title) 0 20)
-                                               (. window clientWidth)
-                                               (. window clientHeight))))))))
-    (unless (undefined? close)
-      (let ((closer (create-element "canvas")))
-        (set-style closer
-                   position "absolute"
-                   px/right 2
-                   px/top 2
-                   px/width 16
-                   px/height 16
-                   cursor "default")
-        (setf (. closer width) 16)
-        (setf (. closer height) 16)
-        (let ((ctx (funcall (. closer getContext) "2d")))
-          (setf (. ctx strokeStyle) "#000000")
-          (setf (. ctx lineWidth) 1.0)
-          (funcall (. ctx strokeRect) 0 0 16 16)
-          (setf (. ctx strokeStyle) "#FFFFFF")
-          (setf (. ctx lineWidth) 2.0)
-          (funcall (. ctx moveTo) 4 4)
-          (funcall (. ctx lineTo) 12 12)
-          (funcall (. ctx moveTo) 12 4)
-          (funcall (. ctx lineTo) 4 12)
-          (funcall (. ctx stroke)))
-        (append-child window closer)
-        (set-handler closer onmousedown
-                     (funcall (. event preventDefault))
-                     (funcall (. event stopPropagation))
-                     (hide window)
-                     (funcall close))))
+    (set-style titlebar
+               display (if (undefined? title) "none" "block")
+               position "absolute"
+               px/left 0
+               px/top 0
+               px/right 0
+               px/height 20
+               borderTopLeftRadius "4px"
+               borderTopRightRadius "4px"
+               backgroundColor "#6389b7"
+               borderBottom "1px solid #000000"
+               color "#FFFFFF"
+               fontFamily "Arial"
+               px/fontSize 16
+               fontWeight "bold"
+               textAlign "center"
+               cursor "move")
+    (setf (. titlebar innerHTML) title)
+    (append-child frame titlebar)
+    (set-handler titlebar onmousedown
+                 (funcall (. event preventDefault))
+                 (funcall (. event stopPropagation))
+                 (append-child (. document body) frame)
+                 (dragging frame
+                           (first (event-pos event))
+                           (second (event-pos event))))
+    (set-style client
+               position "absolute"
+               px/left 0
+               px/top (if (undefined? title) 0 20)
+               px/width w
+               px/height (- h
+                            (if (undefined? title) 0 20)
+                            (if resize 12 0))
+               overflow "auto")
+    (append-child frame client)
+    (set-style resizer
+               display (if resize "block" "none")
+               position "absolute"
+               px/right 0
+               px/bottom 0
+               px/width 12
+               px/height 12
+               cursor "se-resize")
+    (setf (. resizer width) 12)
+    (setf (. resizer height) 12)
+    (let ((ctx (funcall (. resizer getContext) "2d")))
+      (setf (. ctx lineWidth) 1.0)
+      (dolist (i '(0 5))
+        (setf (. ctx strokeStyle) "#000000")
+        (funcall (. ctx beginPath))
+        (funcall (. ctx moveTo) 10 i)
+        (funcall (. ctx lineTo) i 10)
+        (funcall (. ctx stroke))
+        (setf (. ctx strokeStyle) "#FFFFFF")
+        (funcall (. ctx beginPath))
+        (funcall (. ctx moveTo) 10 (1+ i))
+        (funcall (. ctx lineTo) (1+ i) 10)
+        (funcall (. ctx stroke))))
+    (append-child frame resizer)
+    (set-handler resizer onmousedown
+                 (funcall (. event preventDefault))
+                 (funcall (. event stopPropagation))
+                 (append-child (. document body) frame)
+                 (let ((x0 (first (event-pos event)))
+                       (y0 (second (event-pos event))))
+                   (tracking (lambda (x y)
+                               (let ((dx (- x x0))
+                                     (dy (- y y0)))
+                                 (set-style frame
+                                            px/width (+ (. frame clientWidth) dx)
+                                            px/height (+ (. frame clientHeight) dy))
+                                 (setf x0 x)
+                                 (setf y0 y))
+                               (set-style (window-client window)
+                                          px/width (. frame clientWidth)
+                                          px/height (- (. frame clientHeight)
+                                                       (if (undefined? title) 0 20)
+                                                       (if resize 12 0)))
+                               (when (window-resize-cback window)
+                                 (funcall (window-resize-cback window)
+                                          (. client offsetLeft)
+                                          (. client offsetTop)
+                                          (+ (. client offsetLeft)
+                                             (. client offsetWidth))
+                                          (+ (. client offsetTop)
+                                             (. client offsetHeight))))))))
+    (set-style closer
+               display (if close "block" "none")
+               position "absolute"
+               px/right 2
+               px/top 2
+               px/width 16
+               px/height 16
+               cursor "default")
+    (setf (. closer width) 16)
+    (setf (. closer height) 16)
+    (let ((ctx (funcall (. closer getContext) "2d")))
+      (setf (. ctx strokeStyle) "#000000")
+      (setf (. ctx lineWidth) 1.0)
+      (funcall (. ctx strokeRect) 0 0 16 16)
+      (setf (. ctx strokeStyle) "#FFFFFF")
+      (setf (. ctx lineWidth) 2.0)
+      (funcall (. ctx moveTo) 4 4)
+      (funcall (. ctx lineTo) 12 12)
+      (funcall (. ctx moveTo) 12 4)
+      (funcall (. ctx lineTo) 4 12)
+      (funcall (. ctx stroke)))
+    (append-child frame closer)
+    (set-handler closer onmousedown
+                 (funcall (. event preventDefault))
+                 (funcall (. event stopPropagation))
+                 (hide frame)
+                 (when (window-close-cback window)
+                   (funcall (window-close-cback window))))
+    (setf window (make-window :frame frame
+                              :titlebar titlebar
+                              :resizer resizer
+                              :closer closer
+                              :resize-cback null
+                              :close-cback null
+                              :client client))
     window))
 
+(defun show-window (w)
+  "Displays the specified window"
+  (show (window-frame w))
+  (when (window-resize-cback w)
+    (let ((client (window-client w)))
+      (funcall (window-resize-cback w)
+               (. client offsetLeft)
+               (. client offsetTop)
+               (+ (. client offsetLeft)
+                  (. client offsetWidth))
+               (+ (. client offsetTop)
+                  (. client offsetHeight))))))
+
 (defun button (text action)
+  "Creates a button DOM object with provided [text] and callback [action]"
   (let ((button (create-element "input")))
     (setf (. button type) "button")
     (setf (. button value) text)
@@ -315,4 +382,3 @@
                position "absolute")
     (setf (. button onclick) (lambda (&rest args) (funcall action)))
     button))
-
