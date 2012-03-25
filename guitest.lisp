@@ -10,8 +10,6 @@
                    (:H :max 30 (:H) (:Hdiv ok :max 80) (:H)))))
   (append-child (window-frame w) msg)
   (append-child (window-frame w) ok)
-  (set-style (window-frame w)
-             boxShadow "5px 5px 10px rgba(0,0,0,0.25)")
   (set-style (window-client w)
              overflow "hidden")
   (set-style msg
