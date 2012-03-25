@@ -160,9 +160,9 @@
           ;;
           ;; We're not going to loop forever.
           ;;
-          (let* ((minclass (min (map (lambda (i)
-                                       (layout-node-class (aref children i)))
-                                     active)))
+          (let* ((minclass (apply #'min (map (lambda (i)
+                                               (layout-node-class (aref children i)))
+                                             active)))
                  (selected (filter (lambda (i) (= (layout-node-class (aref children i))
                                                   minclass))
                                    active))
@@ -235,6 +235,7 @@
                px/height h
                borderRadius "4px"
                backgroundColor "#FFFFFF"
+               boxShadow "5px 5px 10px rgba(0,0,0,0.5)"
                border "solid 1px #000000")
     (set-style titlebar
                display (if (undefined? title) "none" "block")
