@@ -185,7 +185,8 @@ function updateClpar(text)
     catch(indent)
     {
         var ff = (window["f" + f$$mangle(indent[indent.length-1][3])] ||
-                  window["m" + f$$mangle(indent[indent.length-1][3])]);
+                  window["m" + f$$mangle(indent[indent.length-1][3])] ||
+                  jscompile[f$$mangle(indent[indent.length-1][3])]);
         if (ff && ff.documentation)
         {
             help.innerHTML= (ff.documentation

@@ -133,8 +133,8 @@ window["f$$mangle"] = f$$mangle = function(x)
     }
     return "$$" + res;
 }
-f$$mangle.documentation = ("(mangle x:string) -> string\n" +
-                           "Returns the javascript version of a lisp symbol name "+
+f$$mangle.documentation = ("[[(mangle x)]]\n" +
+                           "Returns the javascript version of a lisp symbol name [x] "+
                            "by quoting characters forbidden in javascript identifiers");
 
 function deflisp(name, doc, f)
@@ -151,40 +151,40 @@ function defcompile(name, doc, f)
 }
 
 deflisp("documentation",
-        "(documentation x:function) -> string/null\n" +
-        "Returns the documentation string for function 'x' or null if there's no documentation.",
+        "[[(documentation x)]]\n" +
+        "Returns the documentation string for function [x].",
         function(x)
         {
-            return x.documentation || null;
+            return x.documentation;
         });
 
 deflisp("set-documentation",
-        "(set-documentation x:function doc:string)\n" +
-        "Sets the documentation string for function 'x' to 'doc'.",
+        "[[(set-documentation x doc)]]\n" +
+        "Sets the documentation string for function [x] to [doc].",
         function(x, doc)
         {
             x.documentation = doc;
         });
 
 deflisp("arglist",
-        "(arglist function)\n" +
-        "Returns the argument list for function 'x' or null if unknown.",
+        "[[(arglist function)]]\n" +
+        "Returns the argument list for function [x].",
         function(x)
         {
             return x.arglist || null;
         });
 
 deflisp("set-arglist",
-        "(set-arglist function arglist)\n" +
-        "Sets the argument list for function 'x' to 'arglist'.",
+        "[[(set-arglist x arglist)]]\n" +
+        "Sets the argument list for function [x] to [arglist].",
         function(x, arglist)
         {
             x.arglist = arglist;
         });
 
 deflisp("demangle",
-        "(demangle x:string) -> string\n" +
-        "Returns a lisp name by decoding a javascript name produced by (mangle ...)",
+        "[[(demangle x)]]\n" +
+        "Returns a lisp name [x] by decoding a javascript name produced by [(mangle ...)]",
         function(x)
         {
             return x.substr(2)
@@ -197,8 +197,8 @@ deflisp("demangle",
         });
 
 deflisp("intern",
-        "(intern x:string) -> symbol\n" +
-        "Create and returns an interned symbol with the specified name or just returns that symbol if " +
+        "[[(intern x)]]\n" +
+        "Create and returns an interned symbol with the specified name [x] or just returns that symbol if " +
         "it has been already interned. If the name starts with a colon ':' character then the symbol value " +
         "cell of this symbol is also bound to the symbol itself.",
         function(name)
@@ -218,71 +218,71 @@ deflisp("intern",
             return x;
         });
 
-deflisp("number?", "(number? x) -> bool\nReturns true if and only if x is a number (including NaN)",
+deflisp("number?", "[[(number? x)]]\nReturns true if and only if [x] is a number (including [NaN])",
         function(x) { return (typeof x) == "number"; });
 
-deflisp("string?", "(string? x) -> bool\nReturns true if and only if x is a string",
+deflisp("string?", "[[(string? x)]]\nReturns true if and only if [x] is a string",
         function(x) { return (typeof x) == "string"; });
 
-deflisp("list?", "(list? x) -> bool\nReturns true if and only if x is a list",
+deflisp("list?", "[[(list? x)]]\nReturns true if and only if [x] is a list",
         function(x) { return (x && x.constructor == Array)  ? true : false; });
 
-deflisp("symbol?", "(symbol? x) -> bool\nReturns true if and only if x is a symbol",
+deflisp("symbol?", "[[(symbol? x)]]\nReturns true if and only if [x] is a symbol",
         function(x) { return (x && x.constructor == Symbol) ? true : false; });
 
 defcompile("js-code",
-           "(js-code x:string-literal)\n" +
-           "Verbatim javascript code generation.",
+           "[[(js-code x)]]\n" +
+           "Verbatim javascript code inlining. Note that [x] must be a string literal.",
            function(x) { return x[1]; });
 
 deflisp("js-eval",
-        "(js-eval x:string) -> result\n" +
+        "[[(js-eval x)]]\n" +
         "Javascript evaluation of a string at runtime.",
         function(x) { return eval(x); });
 
 deflisp("symbol-function",
-        "(symbol-function x:symbol) -> function\n" +
-        "Returns the function cell of a symbol or undefined if that function is not present. " +
-        "Lookup doesn't consider lexical function definitions (e.g. (labels ...)).",
-        function(x) { return x.interned ? window["f" + x.name] : x.d; });
+        "[[(symbol-function x)]]\n" +
+        "Returns the function cell of a symbol [x] or [undefined] if that function is not present. " +
+        "Lookup doesn't consider lexical function definitions (e.g. [(labels ...)]).",
+        function(x) { return x.interned ? window["f" + x.name] : x.f; });
 
 deflisp("set-symbol-function",
-        "(set-symbol-function x:symbol f:function)\n" +
-        "Sets the function cell of a symbol to the specified function. It doesn't affect "+
-        "lexical function definitions (e.g. (lables ...)).",
-        function(x, y) { return x.interned ? (window["f" + x.name] = y) : (x.d = y); });
+        "[[(set-symbol-function x f)]]\n" +
+        "Sets the function cell of a symbol [x] to the specified function [f]. It doesn't affect "+
+        "lexical function definitions (e.g. [(lables ...)]).",
+        function(x, y) { return x.interned ? (window["f" + x.name] = y) : (x.f = y); });
 
 deflisp("symbol-value",
-        "(symbol-value x:symbol) -> value)\n" +
-        "Returns the current value cell of a symbol or undefined if that symbol has no value. " +
+        "[[(symbol-value x:symbol)]]\n" +
+        "Returns the current value cell of a symbol [x] or [undefined] if that symbol has no value. " +
         "Lookup doesn't consider lexical symbols.",
         function(x) { return x.interned ? window["d" + x.name] : x.d; });
 
 deflisp("set-symbol-value",
-        "(set-symbol-value x:symbol y)\n" +
-        "Sets the current value cell of a symbol. It doesn't affect lexical bindings.",
+        "[[(set-symbol-value x y)]]\n" +
+        "Sets the current value cell of a symbol [x] to [y]. It doesn't affect lexical bindings.",
         function(x, y) { return x.interned ? (window["d" + x.name] = y) : (x.d = y); });
 
 deflisp("symbol-macro",
-        "(symbol-macro x:symbol) -> function\n" +
-        "Returns the current macro expander function cell of a symbol or undefined if that " +
+        "[[(symbol-macro x)]]\n" +
+        "Returns the current macro expander function cell of a symbol [x] or [undefined] if that " +
         "symbol has no macro expander function set. Lookup doesn't consider lexical macros.",
         function(x) { return x.interned ? window["m" + x.name] : x.m; });
 
 deflisp("set-symbol-macro",
-        "(set-symbol-macro x:symbol y:function)\n" +
-        "Sets the macro expander function cell of a symbol. It doesn't affect lexical macros.",
-        function(x, y) { return x.interned ? (window["m" + x.name] = y) : (x.m = y); });
+        "[[(set-symbol-macro x f)]]\n" +
+        "Sets the macro expander function cell of a symbol [x] to [y]. It doesn't affect lexical macros.",
+        function(x, f) { return x.interned ? (window["m" + x.name] = f) : (x.m = f); });
 
 deflisp("symbol-name",
-        "(symbol-name x:symbol) -> string\n" +
-        "Returns the lisp symbol name of a symbol as a string object.",
+        "[[(symbol-name x)]]\n" +
+        "Returns the lisp symbol name of a symbol [x] as a string object.",
         function(x) { return f$$demangle(x.name); });
 
 defcompile("if",
-           "(if condition then-part [else-part])\n" +
-           "Conditional evaluation form. Evaluates either then-part only or else-part only depending " +
-           "on wether the evaluation of condition returned a true value or not.",
+           "[[(if condition then-part &optional else-part)]]\n" +
+           "Conditional evaluation form. Evaluates either [then-part] only or [else-part] only (not both) "+
+           "depending on whether or not the evaluation of [condition] returned a true value.",
            function(x)
            {
                return ("(" +
@@ -294,8 +294,8 @@ defcompile("if",
            });
 
 defcompile("defvar",
-           "(defvar variable:symbol value)\n" +
-           "Sets the value cell of variable only if is not currenly undefined, and also marks the " +
+           "[[(defvar variable &optional value)]]\n" +
+           "Sets the value cell of [variable] only if is not already defined, and also marks the " +
            "symbol as 'special' so that future value bindings on this symbol will always be dynamic " +
            "and not lexical.",
            function(x)
@@ -325,18 +325,18 @@ function implprogn(x)
 }
 
 defcompile("progn",
-           "(progn form-1 form-2 ... form-n)\n" +
-           "Evaluates all the forms in sequence, returning as value the value of the last one.",
+           "[[(progn &rest body)]]\n" +
+           "Evaluates all the forms of [body] in sequence, returning as value the value of the last one.",
            function(x)
            {
                return implprogn(x.slice(1));
            });
 
 defcompile("let",
-           "(let ((x1 v1)(x2 v2) ... (xn vn)) f1 f2 ... fn)\n" +
-           "Evaluates a sequence of forms f1, f2 ... fn by first establishing lexical/dynamic bindings " +
-           "for the variables x1=v1, x2=v2 ... xn=vn. The evaluation of the forms v1 ... vn " +
-           "does /NOT/ consider the bindings that will be established by (let ...).",
+           "[[(let ((x1 v1)(x2 v2) ... (xn vn)) &rest body)\n" +
+           "Evaluates all the forms of [body] by first establishing lexical/dynamic bindings " +
+           "for the variables [x1=v1], [x2=v2] ... [xn=vn]. The evaluation of the forms [v1]...[vn] " +
+           "does /NOT/ consider the bindings that will be established by [(let ...)].",
            function(x)
            {
                lexvar.begin();
@@ -388,10 +388,10 @@ defcompile("let",
            });
 
 defcompile("lambda",
-           "(lambda (arg-1 ... arg-n) form-1 form-2 ... form-n)\n" +
+           "[[(lambda (arg-1 ... arg-n) &rest body)]]\n" +
            "Returns a function object that when called will lexically/dynamically bind " +
-           "parameters to arg1, arg2, ... arg-n and that will evaluate form-1 form-2 " +
-           "form-n in sequence returning the last evaluated form value as result",
+           "parameters to [arg1], [arg2], ... [arg-n] and that will evaluate all forms " +
+           "in [body] in sequence returning the last evaluated form value as result",
            function(x)
            {
                lexvar.begin();
@@ -471,8 +471,8 @@ defcompile("lambda",
            });
 
 deflisp("logcount",
-        "(logcount x:number) -> number\n" +
-        "Returns the number of bits set to 1 in the binary representation of the integer number x.",
+        "[[(logcount x)]]\n" +
+        "Returns the number of bits set to 1 in the binary representation of the integer number [x].",
         function(x)
         {
             var n = 0;
@@ -485,32 +485,27 @@ deflisp("logcount",
         });
 
 deflisp("list",
-        "(list x1 x2 ... xn) -> list\n" +
-        "Returns the list containing the value of the expressions x1, x2 ... xn.",
+        "[[(list &rest args)]]\n" +
+        "Returns the list containing the value of the expressions in [args].",
         function()
         {
-            var res = [];
-            for (var i=0; i<arguments.length; i++)
-                res.push(arguments[i]);
-            return res;
+            return Array.prototype.slice.call(arguments);
         });
 
 deflisp("funcall",
-        "(funcall f x1 x2 ... xn)\n" +
-        "Calls the function object f passing x1, x2, ... xn values as parameters.",
+        "[[(funcall f &rest args)]]\n" +
+        "Calls the function object [f] passing specified values as parameters.",
         function()
         {
-            var args = [];
-            for (var i=1; i<arguments.length; i++)
-                args.push(arguments[i]);
-            return arguments[0].apply(window, args);
+            return arguments[0].apply(window, Array.prototype.slice.call(arguments, 1));
         });
 
 defcompile("labels",
-           "(labels ((func1 (x1 x2 ... xn) f1 f2 .. fn)...) b1 b2 ... bn)\n" +
-           "Excutes the body forms b1, b2 ... bn by first establishing a lexical binding for the " +
-           "function names func1, func2 ... funcn. When compiling the body forms any macros defined outside " +
-           "the (labels ...) form with names func1, func2, ... funcn will be ignored.",
+           "[[(labels ((func1 (x1 x2 ... xn) f1 f2 .. fn)...) &rest body)]]\n" +
+           "Excutes the forms in [body] by first establishing a lexical binding for the " +
+           "function names [func1], [func2] ... [funcn]. When compiling the body forms any "+
+           "macros defined outside the [(labels ...)] form with names [func1], [func2], "+
+           "... [funcn] will be ignored.",
            function(x)
            {
                // First hide all macros and lexical macros named as defined functions
@@ -548,10 +543,10 @@ defcompile("labels",
            });
 
 defcompile("dotimes",
-           "(dotimes (var count) f1 f2 ... fn)\n" +
-           "Evaluates the body forms f1 f2 ... fn in sequence exactly 'count' times by setting " +
-           "the dynamically/lexically bound variable 'var' to 0, 1, ... count-1 before each iteration. "+
-           "The return value is null.",
+           "[[(dotimes (var count) &rest body)]]\n" +
+           "Evaluates the [body] forms in sequence exactly 'count' times by setting " +
+           "the dynamically/lexically bound variable [var] to 0, 1, ... [count-1] before " +
+           "each iteration. The return value is [null].",
            function(x)
            {
                lexsmacro.begin();
@@ -586,10 +581,10 @@ defcompile("dotimes",
            });
 
 defcompile("dolist",
-           "(dolist (var x:list) f1 f2 ... fn)\n" +
-           "Evaluates the body forms f1 f2 ... fn in sequence times by setting " +
-           "the dynamically/lexically bound variable 'var' to next element of list 'x' each time. "+
-           "The return value is null.",
+           "[[(dolist (var x) &rest body)\n" +
+           "Evaluates the [body] forms in sequence times by setting " +
+           "the dynamically/lexically bound variable [var] to next element of list [x] each time. " +
+           "The return value is [null].",
            function(x)
            {
                lexsmacro.begin();
@@ -624,9 +619,9 @@ defcompile("dolist",
            });
 
 defcompile("setq",
-           "(setq name value)\n" +
-           "Sets the current value of variable 'name'. When 'name' is currently bound to a symbol macro setq "+
-           "is transformed in a corresponding (setf ...) form.",
+           "[[(setq name value)]]\n" +
+           "Sets the current value of variable [name]. When [name] is currently bound to a symbol " +
+           "macro [setq] is transformed in a corresponding [(setf ...)] form.",
            function(x)
            {
                if (f$$symbol$63$(x[1]))
@@ -640,8 +635,8 @@ defcompile("setq",
            });
 
 defcompile("quote",
-           "(quote x)\n" +
-           "Returns the unevaluated x as result.",
+           "[[(quote x)]]\n" +
+           "Returns the unevaluated form [x] as result.",
            function(x)
            {
                if (f$$symbol$63$(x[1]) && x[1].interned)
@@ -653,16 +648,16 @@ defcompile("quote",
            });
 
 deflisp("eval",
-        "(eval x) -> result\n" +
-        "Evaluates the expression x without considering lexical bindings.",
+        "[[(eval x)]]\n" +
+        "Evaluates the expression [x] without considering lexical bindings.",
         function(x)
         {
             return eval(f$$js_compile(x));
         });
 
 deflisp("macroexpand-1",
-        "(macroexpand-1 x) -> result\n" +
-        "Expands the macro call or symbol in x or returns x unaltered if " +
+        "[[(macroexpand-1 x)]]\n" +
+        "Expands the macro call or symbol in [x] or returns [x] unaltered if " +
         "it's neither a macro invocation nor a macro symbol. Lexical macro bindings are NOT considered.",
         function(x)
         {
@@ -674,8 +669,8 @@ deflisp("macroexpand-1",
         });
 
 deflisp("macroexpand",
-        "(macroexpand x) -> result\n" +
-        "Repeats macro expansion process of macroexpand-1 on x until no more expansions are possible.",
+        "[[(macroexpand x)]]\n" +
+        "Repeats macro expansion process of [macroexpand-1] on [x] until no more expansions are possible.",
         function(x)
         {
             for (;;)
@@ -690,7 +685,7 @@ deflisp("macroexpand",
         });
 
 deflisp("append",
-        "(append list-1 list-2 ... list-n\n"+
+        "[[(append &rest lists)]]\n"+
         "Returns a list obtained by concatenating all specified lists.",
         function()
         {
@@ -701,40 +696,40 @@ deflisp("append",
         });
 
 deflisp("apply",
-        "(apply f args) -> result\n" +
-        "Calls the function 'f' passing the list 'args' as arguments",
+        "[[(apply f args)]]\n" +
+        "Calls the function [f] passing the list [args] as arguments",
         function(f, args)
         {
             return f.apply(null, args);
         });
 
 deflisp("lexical-macro",
-        "(lexical-macro x) -> result\n" +
-        "Returns the lexical macro function associated to symbol x if present or undefined otherwise",
+        "[[(lexical-macro x)]]\n" +
+        "Returns the lexical macro function associated to symbol [x] if present or undefined otherwise",
         function(x)
         {
             return lexmacro.vars[x.name];
         });
 
 deflisp("lexical-symbol-macro",
-        "(lexical-symbol-macro x:symbol) -> result\n" +
-        "Returns the lexical symbol-macro associated to symbol x if present or undefined otherwise",
+        "[[(lexical-symbol-macro x)]]\n" +
+        "Returns the lexical symbol-macro associated to symbol [x] if present or undefined otherwise",
         function(x)
         {
             return lexsmacro.vars[x.name];
         });
 
 deflisp("lexical-function",
-        "(lexical-function x:symbol) -> result\n" +
-        "Returns the lexical function associated to symbol x if present or undefined otherwise",
+        "[[(lexical-function x)]]\n" +
+        "Returns the lexical function associated to symbol [x] if present or undefined otherwise",
         function(x)
         {
             return lexfunc.vars[x.name];
         });
 
 defcompile("apply",
-           "(apply f args)\n",
-           "Calls the function 'f' passing the list 'args' as arguments",
+           "[[(apply f args)]]\n",
+           "Calls the function [f] passing the list [args] as arguments",
            function(x)
            {
                var res = f$$js_compile(x[1]);
@@ -742,8 +737,8 @@ defcompile("apply",
            });
 
 defcompile("and",
-           "(and x1 x2 ... xn)\n" +
-           "Returns the value of last form 'xn' if all forms evaluate to logically true or otherwise " +
+           "[[(and &rest expressions)]]\n" +
+           "Returns the value of last expression form if all forms evaluate to logically true or otherwise " +
            "returns the first logically false result without evaluating subsequent forms.",
            function(x)
            {
@@ -759,9 +754,9 @@ defcompile("and",
            });
 
 defcompile("or",
-           "(or x1 x2 ... xn)\n" +
-           "Returns the value of the first form that evaluates to logically true without evaluating " +
-           "subsequent forms, or otherwise returns the value of last form 'xn' if all of them evaluate " +
+           "[[(or &rest expressions)]]\n" +
+           "Returns the value of the first expression that evaluates to logically true without evaluating " +
+           "subsequent forms, or otherwise returns the value of last expression if all of them evaluate " +
            "to logicall false.",
            function(x)
            {
@@ -777,10 +772,10 @@ defcompile("or",
            });
 
 defcompile("cond",
-           "(cond ((t1 f1)(t2 f2)...(tn fn)))\n" +
-           "Evaluates in sequence t1, t2 ... tn and returns the value of the first corresponding form " +
-           "'f' when the value is logically true without evaluating subsequent conditions. " +
-           "Returns null if no condition t evaluates to logically true",
+           "[[(cond ((t1 f1)(t2 f2)...(tn fn)))]]\n" +
+           "Evaluates in sequence [t1], [t2] ... [tn] and returns the value of the first corresponding form " +
+           "[f] when the value is logically true without evaluating subsequent conditions. " +
+           "Returns [null] if no condition [t] evaluates to logically true",
            function(x)
            {
                var res = "(";
@@ -795,8 +790,8 @@ defcompile("cond",
            });
 
 defcompile("when",
-           "(when condition f1 f2 ... fn)\n" +
-           "If 'condition' evaluates to logically true evaluates the body forms f1, f2, ... fn in " +
+           "[[(when condition &rest body)]]\n" +
+           "If [condition] evaluates to logically true evaluates the body forms in " +
            "sequence an returns the value of last evaluated form, otherwise returns null without " +
            "evaluating any of the body forms.",
            function(x)
@@ -806,8 +801,8 @@ defcompile("when",
            });
 
 defcompile("unless",
-           "(unless condition f1 f2 ... fn)\n" +
-           "If 'condition' evaluates to logically false evaluates the body forms f1, f2, ... fn in " +
+           "[[(unless condition &rest body)]]\n" +
+           "If [condition] evaluates to logically false evaluates the body forms in " +
            "sequence an returns the value of last evaluated form, otherwise returns null without " +
            "evaluating any of the body forms.",
            function(x)
@@ -817,13 +812,13 @@ defcompile("unless",
            });
 
 defcompile("do",
-           "(do ((v1 init1 [inc1])...)(exit-test res1 res2 ...) b1 b2 ...)\n" +
-           "Loops over the body forms b1 b2 ... bn by first establishing a lexical/dynamic binding " +
-           "v1=init1, v2=init2, ... and by assigning the value of the increment forms inc1 to v1, " +
-           "inc2 to v2 ... where they are present after each iteration. " +
-           "Before entering each loop iteration the exit-test form is evaluated and if logically true the " +
-           "iteration is not performed and the result forms res1, res2 ... are evaluated in sequence "+
-           "with the value of last of them being used as the final result of the (do ...) form.",
+           "[[(do ((v1 init1 [inc1])...)(exit-test res1 res2 ...) &rest body)]]\n" +
+           "Loops over the body forms by first establishing a lexical/dynamic binding " +
+           "[v1=init1], [v2=init2], ... and by assigning the value of the increment forms [inc1] to [v1], " +
+           "[inc2] to [v2] ... where they are present after each iteration. " +
+           "Before entering each loop iteration the [exit-test] form is evaluated and if logically true the " +
+           "iteration is not performed and the result forms [res1], [res2] ... are evaluated in sequence "+
+           "with the value of last of them being used as the final result of the [(do ...)] form.",
            function(x)
            {
                lexsmacro.begin();
@@ -881,9 +876,9 @@ defcompile("do",
            });
 
 defcompile("macrolet",
-           "(macrolet ((m1 (x1 x2 ...) b1 b2 ...) ...) body1 body2 ... bodyn)\n" +
-           "Evaluates the body forms body1, body2, ... bodyn that are compiled by first installing " +
-           "the lexical macros m1, m2 ... mn. Global macros accessible with (symbol-macro x) are not " +
+           "[[(macrolet ((m1 (x1 x2 ...) b1 b2 ...) ...) &rest body)]]\n" +
+           "Evaluates the body forms that are compiled by first installing " +
+           "the lexical macros [m1], [m2] ... [mn]. Global macros accessible with [(symbol-macro x)] are not " +
            "affected by these local definitions.",
            function(x)
            {
@@ -901,9 +896,9 @@ defcompile("macrolet",
            });
 
 defcompile("symbol-macrolet",
-           "(symbol-macrolet ((x1 def1)(x2 def2)...) body1 body2 ... bodyn)\n" +
-           "Evaluates the body forms body1, body2 ... bodyn that are compiled by first installing "+
-           "the lexical symbol macros x1 x2 ... xn.",
+           "[[(symbol-macrolet ((x1 def1)(x2 def2)...) &rest body)]]\n" +
+           "Evaluates the body forms that are compiled by first installing "+
+           "the lexical symbol macros [x1=def1] [x2=def2] ... [xn=defn].",
            function(x)
            {
                lexsmacro.begin();
@@ -919,7 +914,7 @@ defcompile("symbol-macrolet",
            });
 
 deflisp("warning",
-        "(warning msg)\n" +
+        "[[(warning msg)]]\n" +
         "Function called by the compiler to emit warnings about possible logical errors in the compiled code.",
         function(msg)
         {
@@ -946,9 +941,9 @@ function erl(x, f)
 d$$$42$declarations$42$ = [];
 
 deflisp("js-compile",
-        "(js-compile x) -> string\n" +
+        "[[(js-compile x)]]\n" +
         "Returns a string containing Javascript code that when evaluated in javascript will perform the " +
-        "evaluation of the passed form 'x'.",
+        "evaluation of the passed form [x].",
         function(x)
         {
             if (f$$symbol$63$(x))
@@ -1075,9 +1070,9 @@ d$$$42$spaces$42$ = " \t\r\n";
 d$$$42$stopchars$42$ = "()\"";
 
 deflisp("skip-spaces",
-        "(skip-spaces src)\n" +
-        "Keeps consuming characters from the char source 'src' until it's exhausted or " +
-        "until the current character is not included in *spaces*.",
+        "[[(skip-spaces src)]]\n" +
+        "Keeps consuming characters from the char source [src] until it's exhausted or " +
+        "until the current character is not included in [*spaces*].",
         function(src)
         {
             while(true)
@@ -1097,8 +1092,8 @@ deflisp("skip-spaces",
         });
 
 deflisp("parse-spaced",
-        "(parse-spaced src) -> value\n" +
-        "Parses a value from a character source 'src' by first skipping any spacing character.",
+        "[[(parse-spaced src)]]\n" +
+        "Parses a value from a character source [src] by first skipping any spacing character.",
         function(src)
         {
             f$$skip_spaces(src);
@@ -1106,9 +1101,9 @@ deflisp("parse-spaced",
         });
 
 deflisp("parse-stopping",
-        "(parse-stopping x:char) -> bool\n" +
-        "True if symbol parsing should stop before character 'x' because x is undefined or " +
-        "it's listed in *stopchars*.",
+        "[[(parse-stopping x)]]\n" +
+        "True if symbol parsing should stop before character [x] because [x] is [undefined] or " +
+        "it's listed in [*stopchars*].",
         function f$$parse_stopping(c)
         {
             return (c == undefined ||
@@ -1117,8 +1112,8 @@ deflisp("parse-stopping",
         });
 
 deflisp("parse-number-or-symbol",
-        "(parse-number-or-symbol src) -> value\n" +
-        "Parses a number or a symbol from character source 'src' depending on if after the number "+
+        "[[(parse-number-or-symbol src)]]\n" +
+        "Parses a number or a symbol from character source [src] depending on if after the number "+
         "the next character is a stop character.",
         function(src)
         {
@@ -1141,8 +1136,8 @@ deflisp("parse-number-or-symbol",
         });
 
 deflisp("parse-delimited-list",
-        "(parse-delimited-list src stop) -> list\n" +
-        "Parses a list of values from character source 'src' stopping when next character is 'stop' " +
+        "[[(parse-delimited-list src stop)]]\n" +
+        "Parses a list of values from character source [src] stopping when next character is [stop] " +
         "also consuming this stopping character.",
         function(src, stop)
         {
@@ -1168,8 +1163,8 @@ deflisp("parse-delimited-list",
         });
 
 deflisp("reader-function",
-        "(reader-function x:string) -> character-source\n" +
-        "Creates a character source function that will produce the content of the specified string.",
+        "[[(reader-function x)]]\n" +
+        "Creates a character source function that will produce the content of the specified string [x].",
         function(s)
         {
             var i = 0;
@@ -1332,7 +1327,7 @@ var readers = { "|": function(src)
               };
 
 deflisp("parse-value",
-        "(parse-value src) -> value\n" +
+        "[[(parse-value src)]]\n" +
         "Parses a value from the given character source or string.",
         function(src)
         {
@@ -1345,8 +1340,8 @@ deflisp("parse-value",
         });
 
 deflisp("str-value",
-        "(str-value x) -> string\n" +
-        "Computes a string representation of the value x",
+        "[[(str-value x)]]\n" +
+        "Computes a string representation of the value [x]",
         function(x, circle_print)
         {
             if (circle_print == undefined)
@@ -1402,8 +1397,8 @@ deflisp("str-value",
         });
 
 deflisp("set-compile-specialization",
-        "(set-compile-specialization x:symbol function)\n" +
-        "Installs a new compiler specialization for forms starting with the specified symbol.",
+        "[[(set-compile-specialization x function)]]\n" +
+        "Installs a new compiler specialization [function] for forms starting with the specified symbol [x].",
         function(name, body)
         {
             jscompile[name.name] = body;
@@ -1419,8 +1414,8 @@ deflisp("compile-specialization",
         });
 
 deflisp("reader",
-        "(reader x:character) -> function\n" +
-        "Returns current reading function associated to the specified character or undefined if there's " +
+        "[[(reader x)]]\n" +
+        "Returns current reading function associated to the specified character [x] or undefined if there's " +
         "no reading function associated with it.",
         function(ch)
         {
@@ -1428,10 +1423,10 @@ deflisp("reader",
         });
 
 deflisp("set-reader",
-        "(set-reader x:character f:function)\n" +
-        "Sets a new reading function associated to the specified character that will be called by (parse-value src) " +
-        "when character x is met as current character in 'src'. The function will be called  passing the character " +
-        "source src as argument.",
+        "[[(set-reader x f)]]\n" +
+        "Sets a new reading function associated to the specified character that will be called by [(parse-value src)] " +
+        "when character [x] is met as current character in [src]. The function [f] will be called passing the character " +
+        "source [src] as argument.",
         function(ch, f)
         {
             readers[ch] = f;
@@ -1439,9 +1434,9 @@ deflisp("set-reader",
         });
 
 deflisp("load",
-        "(load src &optional name)\n" +
-        "Parses, compiles and evaluates all forms in the character source or string 'src' " +
-        "one at a time in sequence. If name is passed and src is a string then source location information is attached to each parsed list.",
+        "[[(load src &optional name)]]\n" +
+        "Parses, compiles and evaluates all forms in the character source or string [src] " +
+        "one at a time in sequence. If [name] is passed and [src] is a string then source location information is attached to each parsed list.",
         function f$$load(src, name)
         {
             if (f$$string$63$(src))
@@ -1491,9 +1486,9 @@ deflisp("load",
         });
 
 deflisp("http",
-        "(http verb url data [success-function [failure-function]]) -> result\n" +
-        "Executes the specified http request (\"GET\" or \"POST\") for the specified url " +
-        "either asynchronously (if success-function is specified) or synchronously if no " +
+        "[[(http verb url data &optional success-function failure-function)]]\n" +
+        "Executes the specified http request (\"GET\" or \"POST\") for the specified [url] " +
+        "either asynchronously (if [success-function] is specified) or synchronously if no " +
         "callback is specified. The success function if specified will be passed " +
         "the content, the url and the request object. The failure function if specified " +
         "will be passed the url and the request status code in case of an error.",
@@ -1527,9 +1522,9 @@ deflisp("http",
         });
 
 deflisp("http-get",
-        "(http-get url [success-function [failure-function]]) -> result\n" +
-        "Acquires the specified resource Executes " +
-        "either asynchronously (if success-function is specified) or synchronously if no " +
+        "[[(http-get url &optional success-function failure-function)]]\n" +
+        "Acquires the specified resource. Executes " +
+        "either asynchronously (if [success-function] is specified) or synchronously if no " +
         "callback is specified. The success function if specified will be passed " +
         "the content, the url and the request object. The failure function if specified " +
         "will be passed the url and the request status code in case of an error.",
@@ -1539,7 +1534,7 @@ deflisp("http-get",
         });
 
 deflisp("get-file",
-        "(get-file filename)\n" +
+        "[[(get-file filename)]]\n" +
         "Reads and returns the content of the specified ascii file",
         function(name)
         {

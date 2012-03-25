@@ -426,7 +426,7 @@
                    (list 'undefined? 'undefined)
                    (list 'null? 'null)
                    (list 'string? '"")
-                   (list 'boolp 'false)
+                   (list 'bool? 'false)
                    (list 'object? '(js-object))))
       (errors 0))
   (dotimes (i (length pairs))
@@ -662,17 +662,17 @@
 (undefine-symbol-macro z)
 
 (defun square (x)
-  "Computes the square of a number"
+  "Computes the square of a number [x]."
   (* x x))
 
 (test (documentation #'square)
-      "\"(square x)\\nComputes the square of a number\"")
+      "\"[[(square x)]]\\nComputes the square of a number [x].\"")
 
 (setf (documentation #'square)
-      "(square x)\nComputes the value of (* x x)")
+      "[[(square x)]]\nComputes the value of [(* x x)]")
 
 (test (documentation #'square)
-      "\"(square x)\\nComputes the value of (* x x)\"")
+      "\"[[(square x)]]\\nComputes the value of [(* x x)]\"")
 
 (test (list (length '(1 2 3 4))
             (length (list))
