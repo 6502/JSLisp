@@ -335,6 +335,7 @@
       (line-width 1)
       (rect 0 0 16 16)
       (stroke)
+      (stroke-style "#FFFFFF")
       (line-width 2)
       (line 4 4 12 12)
       (line 12 4 4 12))

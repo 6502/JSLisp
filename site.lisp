@@ -226,8 +226,13 @@ function showoutput(x) {
         nodes[i].style.display = (nodes[i].style.display == 'none' ? 'inline' : 'none');
 }
 
-function sample(x) {
+function samplesrc(x) {
     var w = window.open('jslisp.html?src=examples/'+x, '_blank',
+                        'width=800, height=800, left=100, top=100');
+}
+
+function samplerun(x) {
+    var w = window.open('jslisp.html?load=examples/'+x, '_blank',
                         'width=800, height=800, left=100, top=100');
 }
 
@@ -272,7 +277,9 @@ show('About');
            (when inside-list
              (setf inside-list false)
              (incf result "</ul>"))
-           (incf result ~"<a onclick=\"sample('{(sample-code-link x)}')\">{(htmfix (sample-code-title x))}</a><br/>"))
+           (incf result (htmfix (sample-code-title x)))
+           (incf result ~"<a class=\"code\" onclick=\"samplesrc('{(sample-code-link x)}')\">show-source</a>")
+           (incf result ~"<a class=\"code\" onclick=\"samplerun('{(sample-code-link x)}')\">run</a><br/>"))
           ((paragraph? x)
            (when inside-list
              (setf inside-list false)
