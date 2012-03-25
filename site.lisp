@@ -318,13 +318,11 @@ show('About');
     result))
 
 (if node.js
-    (progn
-      (parse-site (get-file "site.txt"))
-      (display (generate-site)))
-    (progn
-      (parse-site (http-get "site.txt"))
-      (set-timeout (lambda (&rest args)
-                     (funcall (. document write) (generate-site)))
-                   0)))
-
-
+    (eval '(progn
+            (parse-site (get-file "site.txt"))
+            (display (generate-site))))
+    (eval '(progn
+            (parse-site (http-get "site.txt"))
+            (set-timeout (lambda (&rest args)
+                           (funcall (. document write) (generate-site)))
+             0))))
