@@ -14,7 +14,7 @@
                   (line-to (x y)
                     `(funcall (. ,',ctx lineTo) ,x ,y))
                   (bez2-to (x1 y1 x2 y2)
-                    `(funcall (. ,',ctx quadraticArcTo) ,x1 ,y1 ,x2 ,y2))
+                    `(funcall (. ,',ctx quadraticCurveTo) ,x1 ,y1 ,x2 ,y2))
                   (bez3-to (x1 y1 x2 y2 x3 y3)
                     `(funcall (. ,',ctx bezierArcTo) ,x1 ,y1 ,x2 ,y2 ,x3 ,y3))
                   (fill-style (x)
