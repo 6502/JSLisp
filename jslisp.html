@@ -76,9 +76,12 @@ var indent_rules = {
     "dolist": [1],
     "lambda": [1],
     "labels": [1],
+    "macrolet": [1],
+    "symbol-macrolet": [1],
     "when": [1],
     "unless": [1],
     "cond": [1],
+    "case": [1],
     "": [0],
 };
 
@@ -185,7 +188,16 @@ function updateClpar(text)
                   window["m" + f$$mangle(indent[indent.length-1][3])]);
         if (ff && ff.documentation)
         {
-            help.innerText= ff.documentation;
+            help.innerHTML= (ff.documentation
+                             .replace(/&/g,"&amp;")
+                             .replace(/</g,"&lt;")
+                             .replace(/>/g,"&gt;")
+                             .replace(/"/g,"&quot;")
+                             .replace(/\n/g,"<br/>")
+                             .replace(/\[\[/g,"<pre style=\"font-weight:bold\">")
+                             .replace(/\]\]/g,"</pre>")
+                             .replace(/\[/g,"<span style=\"font-family:monospace; font-weight:bold\">")
+                             .replace(/\]/g,"</span>"));
             help.style.display = "block";
         }
         else
