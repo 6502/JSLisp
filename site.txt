@@ -103,7 +103,7 @@ a recent HTML5 browser is required.
 !An interactive 3d Rubik cube:3d.lisp
 !A pie chart builder:piechart.lisp
 !A simple messagebox:guitest.lisp
-!A graphic turtle:turtle.lisp
+!A turtle graphic implementation:turtle.lisp
 
 @ JsLisp <=> CL
 
@@ -559,8 +559,8 @@ In "leaf" cases the output of a macro is a single [js-code] form.
 (display (+ "Hello "
             (js-code "prompt('What is your name?')")
             ",\nhow's going?"))
-Hello Andrea,
-how's going?
+=Hello Andrea,
+=how's going?
 --> "Hello Andrea,\nhow's going?"
 Ready.
 (macroexpand-1 '(set-aref x 1 42))
