@@ -76,7 +76,7 @@
                      (:H :min 25 :max 25
                          (:H :min 20 :max 20)
                          (:Hdiv title :weight 300))))
-         (ok (button "Graph"
+         (ok (button "Show chart"
                      (lambda ()
                        (let ((data (list)))
                          (dolist (wl widgets)
