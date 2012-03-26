@@ -1404,7 +1404,7 @@ Each field is a list of an unevaluated atom as name and a value."
 
 ; Round formatting
 (defun to-fixed (x n)
-  "Formats a number using the specified amounts of decimals"
+  "Formats a number using the specified number of decimals"
   (js-code "(d$$x.toFixed(d$$n))"))
 
 ; Javascript blocking interaction
