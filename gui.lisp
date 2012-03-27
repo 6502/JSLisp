@@ -66,11 +66,12 @@
 ]]"
   `(setf (. ,element ,event) (lambda (event) ,@body)))
 
-(defun tracking (f)
-  "Starts tracking mouse movements until mouseup"
+(defun tracking (f &optional end)
+  "Starts tracking mouse movements with calls to [f] until mouseup and then call [end]"
   (let ((cover (create-element "div")))
     (set-style cover
                position "absolute"
+               zIndex 999999999
                px/left 0
                px/top 0
                px/right 0
@@ -81,7 +82,9 @@
                  (funcall (. event preventDefault))
                  (apply f (event-pos event)))
     (set-handler cover onmouseup
-                 (hide cover))
+                 (hide cover)
+                 (when end
+                   (apply end (event-pos event))))
     (show cover)))
 
 (defun dragging (div x0 y0)
@@ -319,7 +322,7 @@
                                           (+ (. client offsetLeft)
                                              (. client clientWidth))
                                           (+ (. client offsetTop)
-                                             (. client clienttHeight))))))))
+                                             (. client clientHeight))))))))
     (set-style closer
                display (if close "block" "none")
                position "absolute"
