@@ -317,9 +317,9 @@
                                           (. client offsetLeft)
                                           (. client offsetTop)
                                           (+ (. client offsetLeft)
-                                             (. client offsetWidth))
+                                             (. client clientWidth))
                                           (+ (. client offsetTop)
-                                             (. client offsetHeight))))))))
+                                             (. client clienttHeight))))))))
     (set-style closer
                display (if close "block" "none")
                position "absolute"
