@@ -170,6 +170,14 @@
   "True if and only if [x] is the number zero"
   (and (number? x) (= x 0)))
 
+(defun odd? (x)
+  "True if number [x] is odd"
+  (js-code "(!!(d$$x&1))"))
+
+(defun even? (x)
+  "True if number [x] is even"
+  (js-code "(!(d$$x&1))"))
+
 (defmacro aref (x k)
   "Returns the [k]-th element of a list/string [x] or the value associated to the key [k] in an object"
   (list 'js-code (+ "(" (js-compile x) "[" (js-compile k) "])")))
