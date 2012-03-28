@@ -33,7 +33,7 @@
   </head>
   <body style="margin:0px; padding:0px; border:none">
     <div style="position:absolute; left:0px; top:0px; right:0px; bottom:0px; padding:4px; background-color:#EEEEEE">
-      <textarea type=text wrap=off id="repl" style="white-space:pre; width:100%; height:100%; background-color:#EEEEEE; border:none; outline:none; padding:0px; margin:0px; font-family:Courier New; font-size:18px"
+      <textarea type=text wrap=off id="repl" style="resize:none; position:absolute; left:0px; top:0px; width:100%; height:100%; white-space:pre; background-color:#EEEEEE; border:none; outline:none; padding:0px; margin:0px; font-family:Courier New; font-size:18px"
         onkeydown = "keyDown(event)"
         onkeypress = "keyPress(event)"></textarea>
       <div id="clpar" style="position:absolute; width:22px; height:22px; border:solid 1px #FF0000"></div>
@@ -84,6 +84,41 @@ var indent_rules = {
     "case": [1],
     "": [0],
 };
+
+var lasthelp = null;
+
+setInterval(function() {
+    var o = parseFloat(help.style.opacity) + 0.05;
+    if (o > 1) o = 1;
+    help.style.opacity = o;
+}, 100);
+
+function setHelp(txt)
+{
+    if (txt != lasthelp)
+    {
+        help.style.opacity = 0;
+        lasthelp = txt;
+        if (txt)
+        {
+            help.innerHTML= (txt
+                             .replace(/&/g,"&amp;")
+                             .replace(/</g,"&lt;")
+                             .replace(/>/g,"&gt;")
+                             .replace(/"/g,"&quot;")
+                             .replace(/\n/g,"<br/>")
+                             .replace(/\[\[/g,"<pre style=\"font-weight:bold\">")
+                             .replace(/\]\]/g,"</pre>")
+                             .replace(/\[/g,"<span style=\"font-family:monospace; font-weight:bold\">")
+                             .replace(/\]/g,"</span>"));
+            help.style.display = "block";
+        }
+        else
+        {
+            help.style.display = "none";
+        }
+    }
+}
 
 function updateClpar(text)
 {
@@ -187,24 +222,7 @@ function updateClpar(text)
         var ff = (window["f" + f$$mangle(indent[indent.length-1][3])] ||
                   window["m" + f$$mangle(indent[indent.length-1][3])] ||
                   jscompile[f$$mangle(indent[indent.length-1][3])]);
-        if (ff && ff.documentation)
-        {
-            help.innerHTML= (ff.documentation
-                             .replace(/&/g,"&amp;")
-                             .replace(/</g,"&lt;")
-                             .replace(/>/g,"&gt;")
-                             .replace(/"/g,"&quot;")
-                             .replace(/\n/g,"<br/>")
-                             .replace(/\[\[/g,"<pre style=\"font-weight:bold\">")
-                             .replace(/\]\]/g,"</pre>")
-                             .replace(/\[/g,"<span style=\"font-family:monospace; font-weight:bold\">")
-                             .replace(/\]/g,"</span>"));
-            help.style.display = "block";
-        }
-        else
-        {
-            help.style.display = "none";
-        }
+        setHelp(ff && ff.documentation);
         if (!quote && text[text.length-1] == ")")
         {
             var s = indent[indent.length-1][0];
@@ -228,7 +246,7 @@ function updateClpar(text)
         return i - text.lastIndexOf("\n", i);
     }
     clpar.style.display = "none";
-    help.style.display = "none";
+    setHelp(null);
     return 0;
 }
 
@@ -299,6 +317,7 @@ function process()
 
 function keyDown(e)
 {
+    help.style.opacity = 0;
     if (e.which == 9)
     {
         e.preventDefault();
@@ -335,6 +354,7 @@ function keyDown(e)
 
 function keyPress(e)
 {
+    help.style.opacity = 0;
     if (e.which == 10 || (e.which == 13 && (e.ctrlKey || e.shiftKey)))
     {
         process();
