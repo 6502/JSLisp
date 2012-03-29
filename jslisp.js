@@ -333,7 +333,7 @@ defcompile("progn",
            });
 
 defcompile("let",
-           "[[(let ((x1 v1)(x2 v2) ... (xn vn)) &rest body)\n" +
+           "[[(let ((x1 v1)(x2 v2) ... (xn vn)) &rest body)]]\n" +
            "Evaluates all the forms of [body] by first establishing lexical/dynamic bindings " +
            "for the variables [x1=v1], [x2=v2] ... [xn=vn]. The evaluation of the forms [v1]...[vn] " +
            "does /NOT/ consider the bindings that will be established by [(let ...)].",
