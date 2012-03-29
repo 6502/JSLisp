@@ -128,18 +128,23 @@ fully convinced about.
 @@ No CAR / CDR
 
 In JsLisp there is no [cons], no [car] and no [cdr]. I'm not joking.
+I'm not talking about just the name [car]/[first] or
+[cdr]/[rest]... but about the very concept of linked list made of cons
+cells that is typical of most if not all other Lisp dialects.
 
 OK. Please start breathing again. This is not a fundamental departure
 from Lisp. Really.
 
-There is nothing "essential" into using cons-cells except a conceptual
+There is nothing "essential" into using cons cells except a conceptual
 and formal minimality that represents a model neither our human brain
 nor the today computer brain finds particularly simple.
 
 Don't get me wrong. I think this was a fantastic smart choice for the
 problem McCarthy was working on, but for both humans and most current
 computers the array is a much more fundamental block than a linked
-list.
+list. To understand a cons cell you need to conceive the idea of two
+parts stuck together, then why not thinking to several (any n >= 0)
+parts stuck together instead of building a chain?
 
 JsLisp uses Javascript array objects to represent lists and lists are
 mutable first-class objects. [push] in JsLisp can a be simple function
@@ -161,9 +166,10 @@ essential this approach is much more efficient than using cons cells
 to build lists and it's also the way the underlying "hardware" works
 (Javascript).
 
-Creating cells-based lists is of course possible for example using
-two-elements arrays and can be a sensible choice if the tail-sharing
-possibilities are playing an important role for your problem.
+Creating cells-based linked lists is of course possible for example
+using two-elements arrays and can be a sensible choice if the
+tail-sharing possibilities are playing an important role for your
+problem.
 
 @@ Lisp-3
 
