@@ -1652,6 +1652,21 @@ Each field is a list of an unevaluated atom as name and a value."
                (get-file ,(+ (symbol-name name) ".lisp"))
                (http-get ,(+ (symbol-name name) ".lisp"))))))
 
+; Uri decoding support
+(defun parse-hex (x)
+  "Integer value of hexadecimal string [x]"
+  (js-code "parseInt(d$$x,16)"))
+
+(defun char (x)
+  "Character from code"
+  (js-code "String.fromCharCode(d$$x)"))
+
+(defun uri-decode (x)
+  "Decode an uri-encoded string [x]"
+  (setf x (replace x "\\+" "%20"))
+  (setf x (replace x "%[0-9A-Fa-f]{2}"
+                   (lambda (x) (char (parse-hex (slice x 1)))))))
+
 ; Lexical symbol properties support
 (defun lexical-property (x name)
   (js-code "(lexvar.props[d$$x.name][d$$name])"))

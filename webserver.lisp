@@ -35,11 +35,8 @@
   (let ((value (parse-value x)))
     (* value value)))
 
-(defun cube (x)
-  (error "Doesn't work!")
-  (let ((value (parse-value x)))
-    (* value value value)))
-
+(defun lisp (x)
+  (eval (parse-value (uri-decode x))))
 
 (start-server "127.0.0.1" 1337
               #'my-handler)
