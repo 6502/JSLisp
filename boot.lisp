@@ -317,15 +317,15 @@
        ',name)))
 
 ;; Utilities
-(defmacro/f slice (x start size)
-  "Returns [size] elements (or all remaining) from a given [start] point. Without args does a full shallow copy."
+(defmacro/f slice (x start end)
+  "Returns elements of [x] from [start] to before [end] or all remaining if no [end] is specified. Without args does a full shallow copy."
   (cond
-    ((and (undefined? start) (undefined? size))
+    ((and (undefined? start) (undefined? end))
      `(js-code ,(+ "(" (js-compile x) ").slice()")))
-    ((undefined? size)
+    ((undefined? end)
      `(js-code ,(+ "(" (js-compile x) ").slice(" (js-compile start) ")")))
     (true
-     `(js-code ,(+ "(" (js-compile x) ".slice(" (js-compile start) "," (js-compile size) "))")))))
+     `(js-code ,(+ "(" (js-compile x) ".slice(" (js-compile start) "," (js-compile end) "))")))))
 
 (defmacro/f reverse (list)
   "Returns a copy of the elements in the opposite ordering"
@@ -1383,7 +1383,7 @@ Each field is a list of an unevaluated atom as name and a value."
     (let ((j (index "\n" str i)))
       (when (= j -1)
         (setf j (1+ n)))
-      (funcall f (slice str i (- j i)))
+      (funcall f (slice str i j))
       (setf i (1+ j)))))
 
 (defmacro dolines ((var str) &rest body)
