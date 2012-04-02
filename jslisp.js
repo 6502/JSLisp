@@ -1534,12 +1534,14 @@ deflisp("http-get",
         });
 
 deflisp("get-file",
-        "[[(get-file filename)]]\n" +
-        "Reads and returns the content of the specified ascii file",
-        function(name)
+        "[[(get-file filename &optional (encoding \"ascii\"))]]\n" +
+        "Reads and returns the content of the specified file",
+        function(name, encoding)
         {
+            if ((typeof encoding) == "undefined")
+                encoding = "ascii";
             var fs = require("fs");
-            return fs.readFileSync(name, "ascii");
+            return fs.readFileSync(name, encoding);
         });
 
 if (d$$node$46$js)
