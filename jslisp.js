@@ -25,6 +25,8 @@
 ******************************************************************************
 \****************************************************************************/
 
+d$$$42$current_module$42$ = "";
+
 d$$node$46$js = false;
 
 if (typeof window == "undefined")
@@ -98,12 +100,6 @@ function Namespace()
 
 var lisp_literals = [];
 
-var constants = {'$$null':'null',
-                 '$$true':'true',
-                 '$$false':'false',
-                 '$$undefined':'undefined',
-                 '$$NaN':'NaN'};
-
 var lexvar = new Namespace();
 var lexfunc = new Namespace();
 var lexmacro = new Namespace();
@@ -132,13 +128,52 @@ window["f$$mangle"] = f$$mangle = function(x)
         }
     }
     return "$$" + res;
-}
+};
 f$$mangle.documentation = ("[[(mangle x)]]\n" +
                            "Returns the javascript version of a lisp symbol name [x] "+
                            "by quoting characters forbidden in javascript identifiers");
 
+window["f$$intern"] = f$$intern = function(name, module)
+{
+    if (name[0] == ":")
+        module = "";
+    var m = (typeof module == "undefined") ? d$$$42$current_module$42$ : module;
+    var mname = m + f$$mangle(name);
+    var x = window["s" + mname];
+    if (x == undefined)
+    {
+        if (!module && (x = window["s" + f$$mangle(name)]))
+            return x;
+        x = window["s" + mname] = new Symbol(mname, true);
+        eval("s" + mname + " = window['s" + mname + "']");
+        if (name[0] == ':')
+        {
+            window["d" + mname] = x;
+            eval("d" + mname + " = window['d" + mname + "']");
+        }
+    }
+    return x;
+};
+f$$intern.documentation = ("[[(intern name &optional module)]]\n" +
+                           "Create and returns an interned symbol with the specified [name] into " +
+                           "[module] or just returns that symbol if it has been already interned. " +
+                           "If the name starts with a colon ':' character then the module is ignored " +
+                           "interning the symbol in the global module instead and the symbol value " +
+                           "cell is also bound to the symbol itself. If no module parameter is " +
+                           "specified and the symbol is not found in current module then before " +
+                           "performing the interning operation the symbol is first looked up also "+
+                           "in the global module.");
+
+var constants = {};
+constants[f$$intern('null').name] = 'null';
+constants[f$$intern('true').name] = 'true';
+constants[f$$intern('false').name] = 'false';
+constants[f$$intern('undefined').name] = 'undefined';
+constants[f$$intern('NaN').name] = 'NaN';
+
 function deflisp(name, doc, f)
 {
+    f$$intern(name);
     window["f" + f$$mangle(name)] = f;
     eval("f" + f$$mangle(name) + " = window['f" + f$$mangle(name) + "']");
     f.documentation = doc;
@@ -146,6 +181,7 @@ function deflisp(name, doc, f)
 
 function defcompile(name, doc, f)
 {
+    f$$intern(name);
     jscompile[f$$mangle(name)] = f;
     f.documentation = doc;
 }
@@ -187,7 +223,8 @@ deflisp("demangle",
         "Returns a lisp name [x] by decoding a javascript name produced by [(mangle ...)]",
         function(x)
         {
-            return x.substr(2)
+            var i = x.indexOf("$$");
+            return x.substr(i+2)
                 .replace(/_/g,"-")
                 .replace(/(\$[0-9]+\$)/g,
                          function(s)
@@ -196,26 +233,14 @@ deflisp("demangle",
                          });
         });
 
-deflisp("intern",
-        "[[(intern x)]]\n" +
-        "Create and returns an interned symbol with the specified name [x] or just returns that symbol if " +
-        "it has been already interned. If the name starts with a colon ':' character then the symbol value " +
-        "cell of this symbol is also bound to the symbol itself.",
-        function(name)
+deflisp("symbol-module",
+        "[[(symbol-module x)]]\n" +
+        "Returns the module name of symbol [x] or [undefined] if the symbol is uninterned.",
+        function(x)
         {
-            var mname = f$$mangle(name);
-            var x = window["s" + mname];
-            if (x == undefined)
-            {
-                x = window["s" + mname] = new Symbol(mname, true);
-                eval("s" + mname + " = window['s" + mname + "']");
-                if (name[0] == ':')
-                {
-                    window["d" + mname] = x;
-                    eval("d" + mname + " = window['d" + mname + "']");
-                }
-            }
-            return x;
+            if (x.interned)
+                return x.name.substr(0, x.name.indexOf("$$"));
+            return undefined;
         });
 
 deflisp("number?", "[[(number? x)]]\nReturns true if and only if [x] is a number (including [NaN])",

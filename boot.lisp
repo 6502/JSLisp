@@ -129,12 +129,12 @@
 ; Function accessor
 (defmacro function (x)
   "Returns the function currently bound to the unevaluated symbol [x] (including lexical bindings)"
-  (list 'js-code (+ "f" (mangle (symbol-name x)))))
+  (list 'js-code (+ "f" (js-code "d$$x.name"))))
 
 (defmacro set-function (x value)
   "Sets the function currently bound to the unevaluated symbol [x] (including lexical bindings)"
   (list 'js-code (+ "(f"
-                    (mangle (symbol-name x)) "="
+                    (js-code "d$$x.name") "="
                     (js-compile value)
                     ")")))
 
@@ -573,7 +573,7 @@
          ((symbol-macro f)
           `(setf ,(macroexpand-1 place) ,value))
          (true
-          (error "Unsupported setf place")))))
+          (error (+ "Unsupported setf place " (str-value place)))))))
     (true (error "Invalid setf place"))))
 
 (defmacro incf (place inc)
@@ -1641,16 +1641,16 @@ Each field is a list of an unevaluated atom as name and a value."
 
 (defmacro undefine-symbol-macro (x)
   `(js-code ,(+ "((function(){delete s"
-                (mangle (symbol-name x))
+                (js-code "d$$x.name")
                 ".symbol_macro;})())")))
 
 ; Import
 (defmacro import (name)
   `(unless (symbol-value ',(intern ~"+{name}.lisp.included+"))
      (defconstant ,(intern ~"+{name}.lisp.included+") true)
-     (load (if node.js
-               (get-file ,(+ (symbol-name name) ".lisp"))
-               (http-get ,(+ (symbol-name name) ".lisp"))))))
+     (load ,(if node.js
+                `(get-file ,(+ (symbol-name name) ".lisp"))
+                `(http-get ,(+ (symbol-name name) ".lisp"))))))
 
 ; Uri decoding support
 (defun parse-hex (x)
