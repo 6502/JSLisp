@@ -620,11 +620,14 @@ defcompile("dolist",
 
 defcompile("setq",
            "[[(setq name value)]]\n" +
-           "Sets the current value of variable [name]. When [name] is currently bound to a symbol " +
-           "macro [setq] is transformed in a corresponding [(setf ...)] form.",
+           "Sets the current value of variable [name]. When [name] is not a symbol or is " +
+           "currently globally or lexically bound to a symbol macro [setq] is transformed " +
+           "in a corresponding [(setf ...)] form.",
            function(x)
            {
-               if (f$$symbol$63$(x[1]))
+               if (f$$symbol$63$(x[1]) &&
+                   !x[1].symbol_macro &&
+                   !lexsmacro.vars[x[1].name])
                {
                    return "(d" + x[1].name + "=" + f$$js_compile(x[2]) + ")";
                }

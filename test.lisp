@@ -420,6 +420,14 @@
         res)
       "(1 1 1 (12 12 12 20))")
 
+(test (let ((x 10)
+            (y 20))
+        (list (symbol-macrolet ((x y))
+                (setq x 99)
+                x)
+              x y))
+      "(99 10 99)")
+
 (let ((pairs (list (list 'list? '(list))
                    (list 'zero? '0)
                    (list 'NaN? 'NaN)
