@@ -186,6 +186,43 @@ function defcompile(name, doc, f)
     f.documentation = doc;
 }
 
+deflisp("demangle",
+        "[[(demangle x)]]\n" +
+        "Returns a lisp name [x] by decoding a javascript name produced by [(mangle ...)]",
+        function(x)
+        {
+            var i = x.indexOf("$$");
+            return x.substr(i+2)
+                .replace(/_/g,"-")
+                .replace(/(\$[0-9]+\$)/g,
+                         function(s)
+                         {
+                             return String.fromCharCode(parseInt(s.substr(1, s.length-2)));
+                         });
+        });
+
+deflisp("symbol-module",
+        "[[(symbol-module x)]]\n" +
+        "Returns the module name of symbol [x] or [undefined] if the symbol is uninterned.",
+        function(x)
+        {
+            if (x.interned)
+                return x.name.substr(0, x.name.indexOf("$$"));
+            return undefined;
+        });
+
+deflisp("module-symbol",
+        "[[(module-symbol x &optional module)]]\n"+
+        "Returns a symbol with same name as symbol [x] after interning it " +
+        "in the specified [module] or in current module if no module is " +
+        "specified. If the symbol [x] is already interned in [module] then " +
+        "simply returns it.",
+        function(x, module)
+        {
+            return f$$intern(f$$demangle(x.name),
+                             (typeof module == "undefined" ? d$$$42$current_module$42$ : module));
+        });
+
 deflisp("documentation",
         "[[(documentation x)]]\n" +
         "Returns the documentation string for function [x].",
@@ -216,31 +253,6 @@ deflisp("set-arglist",
         function(x, arglist)
         {
             x.arglist = arglist;
-        });
-
-deflisp("demangle",
-        "[[(demangle x)]]\n" +
-        "Returns a lisp name [x] by decoding a javascript name produced by [(mangle ...)]",
-        function(x)
-        {
-            var i = x.indexOf("$$");
-            return x.substr(i+2)
-                .replace(/_/g,"-")
-                .replace(/(\$[0-9]+\$)/g,
-                         function(s)
-                         {
-                             return String.fromCharCode(parseInt(s.substr(1, s.length-2)));
-                         });
-        });
-
-deflisp("symbol-module",
-        "[[(symbol-module x)]]\n" +
-        "Returns the module name of symbol [x] or [undefined] if the symbol is uninterned.",
-        function(x)
-        {
-            if (x.interned)
-                return x.name.substr(0, x.name.indexOf("$$"));
-            return undefined;
         });
 
 deflisp("number?", "[[(number? x)]]\nReturns true if and only if [x] is a number (including [NaN])",
@@ -325,7 +337,7 @@ defcompile("defvar",
            "and not lexical.",
            function(x)
            {
-               var v = x[1].name;
+               var v = f$$module_symbol(x[1]).name;
                specials[v] = "d" + v;
                return "(d" + v + " = ((window['d" + v + "']!=undefined)?d" + v + ":" + f$$js_compile(x[2]) + "))";
            });
@@ -1160,6 +1172,8 @@ deflisp("parse-number-or-symbol",
                 return parseFloat(res);
             while (!f$$parse_stopping(src()))
                 res += src(1);
+            var ix = res.indexOf(":");
+            if (ix > 0) return f$$intern(res.substr(0, ix), res.substr(ix+1));
             return f$$intern(res);
         });
 
@@ -1350,6 +1364,8 @@ var readers = { "|": function(src)
                     }
                     if (res == "")
                         throw new String("Value expected");
+                    var ix = res.indexOf(":");
+                    if (ix > 0) return f$$intern(res.substr(ix+1), res.substr(0, ix));
                     return f$$intern(res);
                 }
               };

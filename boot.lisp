@@ -27,6 +27,7 @@
 
 (set-symbol-macro 'defmacro
                   (lambda (name args &rest body)
+                    (setq name (module-symbol name))
                     (let ((doc (str-value (append (list name) args))))
                       (setq doc (js-code "('[['+d$$doc+']]')"))
                       (if (string? (js-code "d$$body[0]"))
@@ -44,6 +45,7 @@
                             (list 'quote name)))))
 
 (defmacro defun (name args &rest body)
+  (setq name (module-symbol name))
   (let ((doc (str-value (append (list name) args))))
     (setq doc (js-code "('[['+d$$doc+']]')"))
     (if (string? (js-code "d$$body[0]"))
@@ -1600,16 +1602,16 @@ Each field is a list of an unevaluated atom as name and a value."
         (warning ~"Odd number of arguments in keyword pairing in {(str-value form)}"))
       (incf ai)
       (let ((keys (map (lambda (kwa)
-                         (if (list? kwa)
-                             (first kwa)
-                             kwa))
+                         (intern (+ ":" (symbol-name (if (list? kwa)
+                                                         (first kwa)
+                                                         kwa)))))
                        (slice args ai))))
         (do ()
             ((>= fi fn))
           (let ((k (aref form fi)))
             (when (and (symbol? k)
                        (= ":" (aref (symbol-name k) 0)))
-              (unless (find (intern (slice (symbol-name k) 1)) keys)
+              (unless (find k keys)
                 (warning ~"Invalid keyword parameter {k} in {(str-value form)}"))))
           (incf fi 2))))))
 
