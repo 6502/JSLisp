@@ -1,4 +1,5 @@
-(import gui)
+(import * from gui)
+(import * from graphics)
 
 (defun wedge-center (x y r start-angle end-angle)
   "Circular sector barycenter"

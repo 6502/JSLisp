@@ -56,7 +56,13 @@ function Symbol(name, interned)
     this.name = name;
     this.interned = interned;
 
-    this.toString = function () { return f$$demangle(this.name); };
+    this.toString = function () {
+        var ix = this.name.indexOf("$$");
+        var mod = this.name.substr(0, ix) + ":";
+        if (mod == ":" || mod == d$$$42$current_module$42$ + ":")
+            mod = "";
+        return mod + f$$demangle(this.name);
+    };
 
     // Cells (used only for uninterned symbols)
     this.d = undefined;
@@ -1304,6 +1310,12 @@ var readers = { "|": function(src)
                         src(1);
                         return [f$$intern(",@"), f$$parse_value(src)];
                     }
+                    else if (src() == "#")
+                    {
+                        src(1);
+                        return [f$$intern(","),
+                                [f$$intern("intern"), f$$demangle(f$$parse_value(src).name)]];
+                    }
                     else
                     {
                         return [f$$intern(","), f$$parse_value(src)];
@@ -1392,7 +1404,7 @@ deflisp("str-value",
                 circle_print = [];
             if (f$$symbol$63$(x))
             {
-                return f$$demangle(x.name);
+                return x + "";
             }
             else if (f$$list$63$(x))
             {

@@ -1,4 +1,4 @@
-(load (http-get "fsg.lisp"))
+(import * from fsg)
 
 (defvar *turtle* (create-element "img"))
 (setf (. *turtle* src) "turtle.png")

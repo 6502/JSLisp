@@ -1646,13 +1646,61 @@ Each field is a list of an unevaluated atom as name and a value."
                 (js-code "d$$x.name")
                 ".symbol_macro;})())")))
 
-; Import
-(defmacro import (name)
-  `(unless (symbol-value ',(intern ~"+{name}.lisp.included+"))
-     (defconstant ,(intern ~"+{name}.lisp.included+") true)
-     (load ,(if node.js
-                `(get-file ,(+ (symbol-name name) ".lisp"))
-                `(http-get ,(+ (symbol-name name) ".lisp"))))))
+; Module support
+(defmacro export (&rest symbols)
+  "Lists specified [symbols] as to be exported to who uses [(import * from <module>)] import syntax"
+  `(progn
+     ,@(map (lambda (n) `(push ',(intern (symbol-name n) *current-module*)
+                               ,(intern "*exports*" *current-module*)))
+            symbols)))
+
+(defmacro import (&rest args)
+  "Imports a module and optionally copies specific symbol values in current module:
+   [(import <module>)] simply imports a module without copying any symbol to current module.
+   [(import * from <module>)] imports a module and copies all exported symbols to current module.
+   [(import (...) from <module>)] imports a module and copies specific symbols to current module.
+   Copying a symbol means copying data, function and macro from their current values in the imported module."
+  (let ((names (list)))
+    (cond
+      ((= (first args) '*)
+       (unless (= (second args 'from))
+         (error "Syntax is (import * from <module>)"))
+       (setf names '*)
+       (setf args (slice args 2)))
+      ((list? (first args))
+       (unless (= (second args 'from))
+         (error "Syntax is (import (..names..) from <module>)"))
+       (setf names (first args))
+       (setf args (slice args 2))))
+    (unless (and (= (length args 1))
+                 (symbol? (first args)))
+      (error "Syntax is (import [*/(.. names..) from] <module>)"))
+    (let ((module (first args)))
+      `(unless (symbol-value ',(intern ~"+{module}.lisp.imported+"))
+         (defconstant ,(intern ~"+{module}.lisp.imported+") true)
+         (let ((cmod *current-module*))
+           (setf *current-module* ,(symbol-name module))
+           (setf ,(intern "*exports*" (symbol-name module)) (list))
+           (load ,(if node.js
+                      `(get-file ,(+ (symbol-name module) ".lisp"))
+                      `(http-get ,(+ (symbol-name module) ".lisp"))))
+           (setf *current-module* cmod)
+           ,(if (= names '*)
+                `(dolist (s (symbol-value ',(intern "*exports*" (symbol-name module))))
+                   (setf (symbol-value (intern (symbol-name s) cmod))
+                         (symbol-value s))
+                   (setf (symbol-function (intern (symbol-name s) cmod))
+                         (symbol-function s))
+                   (setf (symbol-macro (intern (symbol-name s) cmod))
+                         (symbol-macro s)))
+                `(progn ,@(let ((res (list)))
+                               (dolist (s names)
+                                 (let ((ms (intern (symbol-name s) *current-module*))
+                                       (xs (intern (symbol-name s) (symbol-name module))))
+                                   (push `(setf (symbol-value ',ms) (symbol-value ',xs)) res)
+                                   (push `(setf (symbol-function ',ms) (symbol-function ',xs)) res)
+                                   (push `(setf (symbol-macro ',ms) (symbol-macro ',xs)) res)))
+                               res))))))))
 
 ; Uri decoding support
 (defun parse-hex (x)

@@ -1,4 +1,4 @@
-(import gui)
+(import * from gui)
 
 (let* ((w (window 100 100 600 400
                   :title "Message Box"))

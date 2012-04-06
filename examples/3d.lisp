@@ -1,5 +1,6 @@
-(import gui)
-(import geo3d)
+(import * from gui)
+(import * from geo3d)
+(import * from graphics)
 
 (defun build-faces ()
   (let ((faces (list))

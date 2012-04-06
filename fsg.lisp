@@ -1,3 +1,13 @@
+(export clear fill-style stroke-style line-width
+        begin-path close-path
+        move-to line-to bez-2 bez-3 arc-to arc
+        fill stroke clip
+        fill-rect
+        random-color
+        font fill-text stroke-text text-width
+        save restore
+        shadow)
+
 (defvar *screen* (create-element "div"))
 (setf (. *screen* style position) "absolute")
 (setf (. *screen* style left) "0px")

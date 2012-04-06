@@ -1,4 +1,15 @@
-(import graphics)
+(export set-style
+        element-pos event-pos
+        show hide
+        set-handler
+        tracking dragging
+        layout-node layout-node-children set-layout-node-children
+        set-coords
+        window window-frame window-client set-window-resize-cback
+        show-window
+        button)
+
+(import * from graphics)
 
 (defmacro set-style (element &rest properties)
   "Allows settings multiple style properties for a DOM node, example:[[
@@ -64,7 +75,7 @@
      (set-handler mywidget onmousedown
                   (display ~\"Mouse pressed at {(event-pos event)}\"))
 ]]"
-  `(setf (. ,element ,event) (lambda (event) ,@body)))
+  `(setf (. ,element ,event) (lambda (,#event) ,@body)))
 
 (defun tracking (f &optional end)
   "Starts tracking mouse movements with calls to [f] until mouseup and then call [end]"
