@@ -1,10 +1,3 @@
-(export v x y z
-        v+ v- v* v/ v. vlen vdir v^
-        camera camera-v camera-o camera-n set-camera-o set-camera-n
-        camera-map camera-invmap camera-normalize
-        xrot yrot zrot
-        xform)
-
 (defun v (&rest coords) coords)
 
 (defun x (p) (first p))
@@ -119,3 +112,10 @@
           (* y (aref m 5))
           (* z (aref m 8))
           (aref m 11)))))
+
+(export v x y z
+        v+ v- v* v/ v. vlen vdir v^
+        camera "camera-" "set-camera-"
+        camera-map camera-invmap camera-normalize
+        xrot yrot zrot
+        xform)

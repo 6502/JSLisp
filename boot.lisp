@@ -1648,19 +1648,39 @@ Each field is a list of an unevaluated atom as name and a value."
 
 ; Module support
 (defmacro export (&rest symbols)
-  "Lists specified [symbols] as to be exported to who uses [(import * from <module>)] import syntax"
-  `(progn
-     ,@(map (lambda (n) `(push ',(intern (symbol-name n) *current-module*)
-                               ,(intern "*exports*" *current-module*)))
-            symbols)))
+  "Lists specified [symbols] as to be exported to who uses [(import * from <module>)] import syntax.
+   A string literal in the [symbols] list is assumed to be a start-with match for symbols already
+   interned in the module (therefore the [export] form should be the last form of the module)."
+  (let ((fullsymbols (filter #'symbol? symbols))
+        (wildcards (filter #'string? symbols)))
+    `(progn
+       ,@(map (lambda (n)
+                `(push ',(intern (symbol-name n) *current-module*)
+                       ,(intern "*exports*" *current-module*)))
+              fullsymbols)
+       ,@(let ((res (list)))
+              (when (> (length wildcards) 0)
+                (let ((re ""))
+                  (dolist (w wildcards)
+                    (incf re ~"|{(regexp-escape (slice (mangle w) 2))}"))
+                  (let ((regexp (regexp ~"^s{*current-module*}\\\\$\\\\$({(slice re 1)}.*)")))
+                    (dolist (k (keys (js-code "window")))
+                      (when (funcall (. regexp exec) k)
+                        (let ((name (demangle k)))
+                          (push `(push ',(intern name *current-module*)
+                                       ,(intern "*exports*" *current-module*))
+                                res)))))))
+              res))))
 
 (defmacro import (&rest args)
   "Imports a module and optionally copies specific symbol values in current module:
    [(import <module>)] simply imports a module without copying any symbol to current module.
    [(import * from <module>)] imports a module and copies all exported symbols to current module.
    [(import (...) from <module>)] imports a module and copies specific symbols to current module.
-   Copying a symbol means copying data, function and macro from their current values in the imported module."
-  (let ((names (list)))
+   Adding \"as <nick>\" after the module name allows defining a short nickname for the module.
+   Copying a symbol means copying associated data, function and macro from their current values in the imported module."
+  (let ((names (list))
+        (alias null))
     (cond
       ((= (first args) '*)
        (unless (= (second args 'from))
@@ -1672,26 +1692,39 @@ Each field is a list of an unevaluated atom as name and a value."
          (error "Syntax is (import (..names..) from <module>)"))
        (setf names (first args))
        (setf args (slice args 2))))
-    (unless (and (= (length args 1))
+    (when (and (= (length args) 3)
+               (= (second args) 'as)
+               (symbol? (third args)))
+      (setf alias (third args))
+      (setf args (slice args 0 1)))
+    (unless (and (= (length args) 1)
                  (symbol? (first args)))
-      (error "Syntax is (import [*/(.. names..) from] <module>)"))
+      (error "Syntax is (import [*/(.. names..) from] <module> [as <nick>])"))
     (let ((module (first args)))
-      `(unless (symbol-value ',(intern ~"+{module}.lisp.imported+"))
-         (defconstant ,(intern ~"+{module}.lisp.imported+") true)
-         (let ((cmod *current-module*))
-           (setf *current-module* ,(symbol-name module))
-           (setf ,(intern "*exports*" (symbol-name module)) (list))
-           (load ,(if node.js
-                      `(get-file ,(+ (symbol-name module) ".lisp"))
-                      `(http-get ,(+ (symbol-name module) ".lisp"))))
-           (setf *current-module* cmod)
+      `(progn
+         (unless (symbol-value ',(intern ~"+{module}.lisp.imported+"))
+           (defconstant ,(intern ~"+{module}.lisp.imported+") true)
+           (let ((cmod *current-module*)
+                 (calias *module-aliases*))
+             (setf *module-aliases* (js-object))
+             (setf *current-module* ,(symbol-name module))
+             (setf ,(intern "*exports*" (symbol-name module)) (list))
+             (load ,(if node.js
+                        `(get-file ,(+ (symbol-name module) ".lisp"))
+                        `(http-get ,(+ (symbol-name module) ".lisp"))))
+             (setf *current-module* cmod)
+             (setf *module-aliases* calias))
+           ,@(if alias
+                 (list `(setf (aref *module-aliases* ,(symbol-name alias))
+                              ,(symbol-name module)))
+                 (list))
            ,(if (= names '*)
                 `(dolist (s (symbol-value ',(intern "*exports*" (symbol-name module))))
-                   (setf (symbol-value (intern (symbol-name s) cmod))
+                   (setf (symbol-value (intern (symbol-name s)))
                          (symbol-value s))
-                   (setf (symbol-function (intern (symbol-name s) cmod))
+                   (setf (symbol-function (intern (symbol-name s)))
                          (symbol-function s))
-                   (setf (symbol-macro (intern (symbol-name s) cmod))
+                   (setf (symbol-macro (intern (symbol-name s)))
                          (symbol-macro s)))
                 `(progn ,@(let ((res (list)))
                                (dolist (s names)

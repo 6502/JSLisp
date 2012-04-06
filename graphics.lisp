@@ -1,6 +1,3 @@
-(export random-color
-        with-canvas)
-
 (defun random-color ()
   (let ((r (+ 128 (random-int 64)))
         (g (+ 128 (random-int 64)))
@@ -78,3 +75,6 @@
                          (,#line-to ,xa ,yb)
                          (,#close-path)))))
          ,@body))))
+
+(export random-color
+        with-canvas)

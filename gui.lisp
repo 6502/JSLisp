@@ -1,14 +1,3 @@
-(export set-style
-        element-pos event-pos
-        show hide
-        set-handler
-        tracking dragging
-        layout-node layout-node-children set-layout-node-children
-        set-coords
-        window window-frame window-client set-window-resize-cback
-        show-window
-        button)
-
 (import * from graphics)
 
 (defmacro set-style (element &rest properties)
@@ -391,3 +380,14 @@
                position "absolute")
     (setf (. button onclick) (lambda (&rest args) (funcall action)))
     button))
+
+(export set-style
+        element-pos event-pos
+        show hide
+        set-handler
+        tracking dragging
+        layout-node "layout-node-" "set-layout-node-"
+        set-coords
+        window "window-" "set-window-"
+        show-window
+        button)

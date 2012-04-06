@@ -26,6 +26,7 @@
 \****************************************************************************/
 
 d$$$42$current_module$42$ = "";
+d$$$42$module_aliases$42$ = {};
 
 d$$node$46$js = false;
 
@@ -143,7 +144,7 @@ window["f$$intern"] = f$$intern = function(name, module)
 {
     if (name[0] == ":")
         module = "";
-    var m = (typeof module == "undefined") ? d$$$42$current_module$42$ : module;
+    var m = (typeof module == "undefined") ? d$$$42$current_module$42$ : (d$$$42$module_aliases$42$[module]||module);
     var mname = m + f$$mangle(name);
     var x = window["s" + mname];
     if (x == undefined)
