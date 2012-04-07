@@ -135,3 +135,7 @@ currently are satisfying the heap invariant. Returns true if elements have been 
         (when (or (and (< c1 sz) (not (funcall bt (aref data i) (aref data c1))))
                   (and (< c2 sz) (not (funcall bt (aref data i) (aref data c2)))))
           (error "Invalid heap data"))))))
+
+(export heap
+        heap-length heap-push heap-pop heap-top
+        heap-fix heap-check)

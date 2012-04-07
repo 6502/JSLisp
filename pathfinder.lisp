@@ -1,4 +1,4 @@
-(import heap)
+(import * from heap)
 
 (defstruct state-info
   state
