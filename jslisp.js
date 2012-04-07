@@ -30,21 +30,27 @@ d$$$42$module_aliases$42$ = {};
 
 d$$node$46$js = false;
 
+var glob;
+
 if (typeof window == "undefined")
 {
     // node.js
-    var window = global;
+    var glob = global;
     exports.eval = function (x)
     {
         return eval(f$$js_compile(f$$parse_value(x)));
     };
 
-    window["f$$display"] = f$$display = function(x)
+    glob["f$$display"] = f$$display = function(x)
     {
         console.log(x);
     };
 
-    d$$node$46$js = window.d$$node$46$js = true;
+    d$$node$46$js = glob.d$$node$46$js = true;
+}
+else
+{
+    glob = window;
 }
 
 function stringify(x)
@@ -115,7 +121,7 @@ var lexsmacro = new Namespace();
 var specials = {};
 var jscompile = {};
 
-window["f$$mangle"] = f$$mangle = function(x)
+glob["f$$mangle"] = f$$mangle = function(x)
 {
     var res = "";
     for (var i=0; i<x.length; i++)
@@ -140,23 +146,23 @@ f$$mangle.documentation = ("[[(mangle x)]]\n" +
                            "Returns the javascript version of a lisp symbol name [x] "+
                            "by quoting characters forbidden in javascript identifiers");
 
-window["f$$intern"] = f$$intern = function(name, module)
+glob["f$$intern"] = f$$intern = function(name, module)
 {
     if (name[0] == ":")
         module = "";
     var m = (typeof module == "undefined") ? d$$$42$current_module$42$ : (d$$$42$module_aliases$42$[module]||module);
     var mname = m + f$$mangle(name);
-    var x = window["s" + mname];
+    var x = glob["s" + mname];
     if (x == undefined)
     {
-        if (!module && (x = window["s" + f$$mangle(name)]))
+        if (!module && (x = glob["s" + f$$mangle(name)]))
             return x;
-        x = window["s" + mname] = new Symbol(mname, true);
-        eval("s" + mname + " = window['s" + mname + "']");
+        x = glob["s" + mname] = new Symbol(mname, true);
+        eval("s" + mname + " = glob['s" + mname + "']");
         if (name[0] == ':')
         {
-            window["d" + mname] = x;
-            eval("d" + mname + " = window['d" + mname + "']");
+            glob["d" + mname] = x;
+            eval("d" + mname + " = glob['d" + mname + "']");
         }
     }
     return x;
@@ -181,8 +187,8 @@ constants[f$$intern('NaN').name] = 'NaN';
 function deflisp(name, doc, f)
 {
     f$$intern(name);
-    window["f" + f$$mangle(name)] = f;
-    eval("f" + f$$mangle(name) + " = window['f" + f$$mangle(name) + "']");
+    glob["f" + f$$mangle(name)] = f;
+    eval("f" + f$$mangle(name) + " = glob['f" + f$$mangle(name) + "']");
     f.documentation = doc;
 }
 
@@ -288,35 +294,35 @@ deflisp("symbol-function",
         "[[(symbol-function x)]]\n" +
         "Returns the function cell of a symbol [x] or [undefined] if that function is not present. " +
         "Lookup doesn't consider lexical function definitions (e.g. [(labels ...)]).",
-        function(x) { return x.interned ? window["f" + x.name] : x.f; });
+        function(x) { return x.interned ? glob["f" + x.name] : x.f; });
 
 deflisp("set-symbol-function",
         "[[(set-symbol-function x f)]]\n" +
         "Sets the function cell of a symbol [x] to the specified function [f]. It doesn't affect "+
         "lexical function definitions (e.g. [(lables ...)]).",
-        function(x, y) { return x.interned ? (window["f" + x.name] = y) : (x.f = y); });
+        function(x, y) { return x.interned ? (glob["f" + x.name] = y) : (x.f = y); });
 
 deflisp("symbol-value",
         "[[(symbol-value x:symbol)]]\n" +
         "Returns the current value cell of a symbol [x] or [undefined] if that symbol has no value. " +
         "Lookup doesn't consider lexical symbols.",
-        function(x) { return x.interned ? window["d" + x.name] : x.d; });
+        function(x) { return x.interned ? glob["d" + x.name] : x.d; });
 
 deflisp("set-symbol-value",
         "[[(set-symbol-value x y)]]\n" +
         "Sets the current value cell of a symbol [x] to [y]. It doesn't affect lexical bindings.",
-        function(x, y) { return x.interned ? (window["d" + x.name] = y) : (x.d = y); });
+        function(x, y) { return x.interned ? (glob["d" + x.name] = y) : (x.d = y); });
 
 deflisp("symbol-macro",
         "[[(symbol-macro x)]]\n" +
         "Returns the current macro expander function cell of a symbol [x] or [undefined] if that " +
         "symbol has no macro expander function set. Lookup doesn't consider lexical macros.",
-        function(x) { return x.interned ? window["m" + x.name] : x.m; });
+        function(x) { return x.interned ? glob["m" + x.name] : x.m; });
 
 deflisp("set-symbol-macro",
         "[[(set-symbol-macro x f)]]\n" +
         "Sets the macro expander function cell of a symbol [x] to [y]. It doesn't affect lexical macros.",
-        function(x, f) { return x.interned ? (window["m" + x.name] = f) : (x.m = f); });
+        function(x, f) { return x.interned ? (glob["m" + x.name] = f) : (x.m = f); });
 
 deflisp("symbol-name",
         "[[(symbol-name x)]]\n" +
@@ -346,7 +352,7 @@ defcompile("defvar",
            {
                var v = f$$module_symbol(x[1]).name;
                specials[v] = "d" + v;
-               return "(d" + v + " = ((window['d" + v + "']!=undefined)?d" + v + ":" + f$$js_compile(x[2]) + "))";
+               return "(d" + v + " = ((glob['d" + v + "']!=undefined)?d" + v + ":" + f$$js_compile(x[2]) + "))";
            });
 
 function implprogn(x)
@@ -541,7 +547,7 @@ deflisp("funcall",
         "Calls the function object [f] passing specified values as parameters.",
         function()
         {
-            return arguments[0].apply(window, Array.prototype.slice.call(arguments, 1));
+            return arguments[0].apply(glob, Array.prototype.slice.call(arguments, 1));
         });
 
 defcompile("labels",
@@ -561,8 +567,8 @@ defcompile("labels",
                {
                    var v = x[1][i][0].name;
                    lexmacro.add(v, undefined);
-                   hmacros.push([v, window["m" + v]]);
-                   window["m" + v] = undefined;
+                   hmacros.push([v, glob["m" + v]]);
+                   glob["m" + v] = undefined;
                    lexfunc.add(v, "f" + v);
                }
 
@@ -582,7 +588,7 @@ defcompile("labels",
                lexmacro.end();
                // Restore hidden global macros
                for (var i=0; i<hmacros.length; i++)
-                   window["m" + hmacros[i][0]] = hmacros[i][1];
+                   glob["m" + hmacros[i][0]] = hmacros[i][1];
                return res;
            });
 
@@ -710,8 +716,8 @@ deflisp("macroexpand-1",
         {
             if (f$$symbol$63$(x) && x.symbol_macro)
                 x = x.symbol_macro;
-            else if (f$$list$63$(x) && f$$symbol$63$(x[0]) && window["m" + x[0].name])
-                x = window["m" + x[0].name].apply(window, x.slice(1));
+            else if (f$$list$63$(x) && f$$symbol$63$(x[0]) && glob["m" + x[0].name])
+                x = glob["m" + x[0].name].apply(glob, x.slice(1));
             return x;
         });
 
@@ -724,8 +730,8 @@ deflisp("macroexpand",
             {
                 if (f$$symbol$63$(x) && x.symbol_macro)
                     x = x.symbol_macro;
-                else if (f$$list$63$(x) && f$$symbol$63$(x[0]) && window["m" + x[0].name])
-                    x = window["m" + x[0].name].apply(window, x.slice(1));
+                else if (f$$list$63$(x) && f$$symbol$63$(x[0]) && glob["m" + x[0].name])
+                    x = glob["m" + x[0].name].apply(glob, x.slice(1));
                 else break;
             }
             return x;
@@ -1008,13 +1014,13 @@ deflisp("js-compile",
                          constants[x.name]);
                 if ((typeof v) == "undefined")
                 {
-                    if ((typeof window["d" + x.name]) == "undefined")
+                    if ((typeof glob["d" + x.name]) == "undefined")
                         f$$warning("Undefined variable " + x.name);
                     v = "d" + x.name;
                     if (x.constant &&
-                        ((typeof window["d" + x.name]) == "string" ||
-                         (typeof window["d" + x.name]) == "number"))
-                        v = stringify(window["d" + x.name]);
+                        ((typeof glob["d" + x.name]) == "string" ||
+                         (typeof glob["d" + x.name]) == "number"))
+                        v = stringify(glob["d" + x.name]);
                 }
                 return v;
             }
@@ -1049,17 +1055,17 @@ deflisp("js-compile",
                         }
                         else if (lexmacro.vars[f.name])
                         {
-                            var macro_expansion = lexmacro.vars[f.name].apply(window, x.slice(1));
+                            var macro_expansion = lexmacro.vars[f.name].apply(glob, x.slice(1));
                             return wrapper(f$$js_compile(macro_expansion));
                         }
-                        else if (window["m" + f.name])
+                        else if (glob["m" + f.name])
                         {
-                            var macro_expansion = window["m" + f.name].apply(window, x.slice(1));
+                            var macro_expansion = glob["m" + f.name].apply(glob, x.slice(1));
                             return wrapper(f$$js_compile(macro_expansion));
                         }
                         else
                         {
-                            var gf = window["f" + f.name];
+                            var gf = glob["f" + f.name];
                             if (!lexfunc.vars[f.name])
                             {
                                 if (!gf)
@@ -1068,7 +1074,7 @@ deflisp("js-compile",
                                 }
                                 else if (gf.arglist)
                                 {
-                                    var caf = window["f$$static_check_args"];
+                                    var caf = glob["f$$static_check_args"];
                                     if (caf && caf!=42)
                                         caf(x, gf.arglist);
                                 }
