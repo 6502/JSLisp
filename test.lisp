@@ -648,8 +648,8 @@
 
 (test (let ((L1 (list 1 2 3 4))
             (L2 (list 5 6 7 8)))
-        (setf (aref L1 3 L2))
-        (setf (aref L2 3 L1))
+        (setf (aref L1 3) L2)
+        (setf (aref L2 3) L1)
         (str-value (list L2 L1 L2)))
       "\"((5 6 7 (1 2 3 #1)) #2 #1)\"")
 

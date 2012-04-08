@@ -328,6 +328,8 @@
      `(js-code ,(+ "(" (js-compile x) ").slice(" (js-compile start) ")")))
     (true
      `(js-code ,(+ "(" (js-compile x) ".slice(" (js-compile start) "," (js-compile end) "))")))))
+(set-arglist (symbol-function 'slice) '(x &optional start end))
+(set-arglist (symbol-macro 'slice) '(x &optional start end))
 
 (defmacro/f reverse (list)
   "Returns a copy of the elements in the opposite ordering"
@@ -609,6 +611,7 @@
          (true
           (error "Unsupported incf place")))))
     (true (error "Invalid incf place"))))
+(set-arglist (symbol-macro 'incf) '(place &optional (inc 1)))
 
 (defmacro decf (place dec)
   "Decrements the content of a place by the specified decrement or by 1 if not specified.
@@ -641,6 +644,7 @@
          (true
           (error "Unsupported decf place")))))
     (true (error "Invalid decf place"))))
+(set-arglist (symbol-macro 'decf) '(place &optional (dec 1)))
 
 (defmacro inc-js-code (x delta)
   "Increment of js literal lvalue"
@@ -815,10 +819,14 @@ The resulting list length is equal to the shortest input sequence."
   (if (= condition undefined)
       `(js-code ,(+ "(" (js-compile x) ").sort(function(a,b){return a<b?-1:1;})"))
       `(js-code ,(+ "(" (js-compile x) ").sort(function(a,b){return (" (js-compile condition) ")(a,b)?-1:1;})"))))
+(set-arglist (symbol-function 'nsort) '(x &optional (condition #'<)))
+(set-arglist (symbol-macro 'nsort) '(x &optional (condition #'<)))
 
 (defmacro/f sort (x condition)
   "Returns a copy of a sequence [x] with elements sorted according to the specified [condition] or [#'<] if no condition is given."
   `(nsort (slice ,x) ,condition))
+(set-arglist (symbol-function 'sort) '(x &optional (condition #'<)))
+(set-arglist (symbol-macro 'sort) '(x &optional (condition #'<)))
 
 ; &optional
 

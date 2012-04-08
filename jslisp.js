@@ -1055,12 +1055,26 @@ deflisp("js-compile",
                         }
                         else if (lexmacro.vars[f.name])
                         {
-                            var macro_expansion = lexmacro.vars[f.name].apply(glob, x.slice(1));
+                            var lmf = lexmacro.vars[f.name];
+                            if (lmf.arglist)
+                            {
+                                var caf = glob["f$$static_check_args"];
+                                if (caf && caf!=42)
+                                    caf(x, lmf.arglist);
+                            }
+                            var macro_expansion = lmf.apply(glob, x.slice(1));
                             return wrapper(f$$js_compile(macro_expansion));
                         }
                         else if (glob["m" + f.name])
                         {
-                            var macro_expansion = glob["m" + f.name].apply(glob, x.slice(1));
+                            var gmf = glob["m" + f.name];
+                            if (gmf.arglist)
+                            {
+                                var caf = glob["f$$static_check_args"];
+                                if (caf && caf!=42)
+                                    caf(x, gmf.arglist);
+                            }
+                            var macro_expansion = gmf.apply(glob, x.slice(1));
                             return wrapper(f$$js_compile(macro_expansion));
                         }
                         else
