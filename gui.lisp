@@ -221,7 +221,8 @@
   closer           ;; DOM node
   close-cback      ;; invoked after closing
   resize-cback     ;; invoked after resizing
-  client)          ;; DOM node
+  client           ;; DOM node
+  data)            ;; Opaque payload
 
 (defun window (x0 y0 w h &key title client (close true) (resize true))
   "Creates an initially invisible window frame object"
