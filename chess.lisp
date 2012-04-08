@@ -207,8 +207,8 @@
   (+ (sqname (move-x0 m))
      (if (= [move-x1 m] +EMPTY+) "-" "x")
      (sqname (move-x1 m))
-     (if (/= [move-x0 m] [move-np m])
-         ~"={(aref *pnames* (+ +WHITE+ (logand [move-np m] +PIECE+)))}"
+     (if (move-np m)
+         ~"={(aref *pnames* (+ +WHITE+ (logand (move-np m) +PIECE+)))}"
          "")))
 
 (defun play (move)
@@ -686,20 +686,35 @@
                 (play m)
                 (let ((v (- (alpha-beta n -1000000 1000000))))
                   (undo)
-                  (display ~"{(move-str m)} --> {v}")
                   (when (or (null? best) (> v (first best)))
                     (setf best (list v m))))))
     (unless (null? best)
-      (play (second best))
-      (display (ascii-board)))))
+      (play (second best)))))
 
-(init-board)
-(play (move e2 e4))
-(play (move e7 e5))
-(play (move g1 f3))
-(play (move b8 c6))
-(play (move f1 c4))
-(play (move g8 f6))
-(display (ascii-board))
-(display (alpha-beta 3 -1000000 1000000))
-(display (ascii-board))
+(defstruct chessboard
+  sq color ep-square flags history)
+
+(defun chessboard (&optional fen)
+  (if fen
+      (init-board fen)
+      (init-board))
+  (make-chessboard :sq *sq*
+                   :color *color*
+                   :ep-square *ep-square*
+                   :flags *flags*
+                   :history *history*))
+
+(defmacro with-board (b &rest body)
+  (let ((bb (gensym))
+        (res (gensym)))
+    `(let ((,bb ,b))
+       (let ((*sq* (chessboard-sq ,bb))
+             (*color* (chessboard-color ,bb))
+             (*ep-square* (chessboard-ep-square ,bb))
+             (*history* (chessboard-history ,bb)))
+         (let ((,res (progn ,@body)))
+           (setf (chessboard-sq ,bb) (slice *sq*))
+           (setf (chessboard-color ,bb) *color*)
+           (setf (chessboard-ep-square ,bb) *ep-square*)
+           (setf (chessboard-history ,bb) (slice *history*))
+           ,res)))))
