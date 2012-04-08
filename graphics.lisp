@@ -73,7 +73,17 @@
                          (,#line-to ,xb ,ya)
                          (,#line-to ,xb ,yb)
                          (,#line-to ,xa ,yb)
-                         (,#close-path)))))
+                         (,#close-path))))
+                  (,#image-smoothing (x)
+                    `(setf (. ,',ctx imageSmoothingEnabled) ,x))
+                  (,#image (src x y &optional w h sx sy sw sh)
+                    (cond
+                      ((undefined? w)
+                       `(funcall (. ,',ctx drawImage) ,src ,x ,y))
+                      ((undefined? sx)
+                       `(funcall (. ,',ctx drawImage) ,src ,x ,y ,w ,h))
+                      (true
+                       `(funcall (. ,',ctx drawImage) ,src ,sx ,sy ,sw ,sh ,x ,y ,w ,h)))))
          ,@body))))
 
 (export random-color
