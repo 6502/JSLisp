@@ -135,7 +135,12 @@ function updateClpar(text)
             while (i < text.length && text[i] != ')')
             {
                 ++ii[1];
-                if ((ff = (window["f" + f$$mangle(fname)] ||
+                if (fname == "")
+                {
+                    // List of forms (e.g. let bindings)
+                    ii[2] = ii[0];
+                }
+                else if ((ff = (window["f" + f$$mangle(fname)] ||
                            window["m" + f$$mangle(fname)] ||
                            jscompile[f$$mangle(fname)])) &&
                     ff.arglist &&
