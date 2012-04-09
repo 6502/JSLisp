@@ -65,26 +65,6 @@ var clpar = document.getElementById("clpar");
 var help = document.getElementById("help");
 repl.focus();
 
-var indent_rules = {
-    "defun": [1],
-    "defmacro": [1],
-    "defstruct": [1],
-    "let": [1],
-    "let*": [1],
-    "do": [3,3,1],
-    "dotimes": [1],
-    "dolist": [1],
-    "lambda": [1],
-    "labels": [1],
-    "macrolet": [1],
-    "symbol-macrolet": [1],
-    "when": [1],
-    "unless": [1],
-    "cond": [1],
-    "case": [1],
-    "": [0],
-};
-
 var lasthelp = null;
 
 setInterval(function() {
@@ -147,18 +127,24 @@ function updateClpar(text)
                                (text+"(").indexOf("(", i+1));
             if (fsp == -1) fsp = i+1;
             var fname = text.substr(i+1, fsp-i-1);
-            var rules = indent_rules[fname] || null;
             var ii = [i, 0, i+2, fname]; // Indent info: start, arg index, indent, function name
+            var ffi = null;
             indent.push(ii);
             ++i;
             skip_spaces();
             while (i < text.length && text[i] != ')')
             {
                 ++ii[1];
-                if (rules)
+                if ((ff = (window["f" + f$$mangle(fname)] ||
+                           window["m" + f$$mangle(fname)] ||
+                           jscompile[f$$mangle(fname)])) &&
+                    ff.arglist &&
+                    (ffi = ff.arglist.indexOf(s$$$38$rest)) != -1 &&
+                    ff.arglist[ffi+1] == s$$body &&
+                    ii[1] == ffi + 1)
                 {
-                    // Indentation as specified by the rule
-                    ii[2] = ii[0] + rules[Math.min(ii[1]-1, rules.length-1)];
+                    // &rest body aligns to function + 1
+                    ii[2] = ii[0] + 1;
                 }
                 else if (ii[1] == 2)
                 {

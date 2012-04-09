@@ -503,11 +503,11 @@
         (let ((p (logxor [x] *color*)))
           (cond
             ((= p +PAWN+)
-             (let ((y (+ x (if (= *color* +WHITE+ -10 10)))))
+             (let ((y (+ x (if (= *color* +WHITE+) -10 10))))
                (set (1- y) +MY+PAWN+)
                (set (1+ y) +MY+PAWN+)))
             ((= p #.(+ +COLOR+ +PAWN+))
-             (let ((y (+ x (if (= *color* +WHITE+ 10 -10)))))
+             (let ((y (+ x (if (= *color* +WHITE+) 10 -10))))
                (set (1- y) +OPP+PAWN+)
                (set (1+ y) +OPP+PAWN+)))
             ((= p +ROOK+)

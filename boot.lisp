@@ -1085,18 +1085,18 @@ If only one parameter is passed it's assumed to be [stop]."
             (true `(+ ,@pieces))))))
 
 ; Defstruct
-(defmacro defstruct (name &rest fields)
-  "Defines a structure with the specified [fields]. Each field can be either a symbol or a list with a symbol
+(defmacro defstruct (name &rest body)
+  "Defines a structure with the specified fields listed in [body]. Each field can be either a symbol or a list with a symbol
 and a default value form that will be used when instantiating the structure if no values are passed for
 that field. When absent the default value is assumed to be [undefined]."
   (let ((fnames (map (lambda (f) (if (list? f)
                                      (first f)
                                      f))
-                     fields)))
+                     body)))
     `(progn
        (defun
            ,(intern (+ "make-" (symbol-name name)))
-           (&key ,@fields)
+           (&key ,@body)
          ,~"Creates a new {name} structure instance"
          (list ',name ,@fnames))
        (defun ,(intern (+ (symbol-name name) #\?)) (self)
@@ -1298,13 +1298,13 @@ A field is either an unevaluated symbol, a number, a string or an (evaluated) fo
                             ")"))
               (apply om (append (list f) args))))))
 
-(defmacro js-object (&rest fields)
-  "Creates a javascript object and eventually assigns [fields].
+(defmacro js-object (&rest body)
+  "Creates a javascript object and eventually assigns fields in [body].
 Each field is a list of an unevaluated atom as name and a value."
   (let ((self (gensym)))
     `(let ((,self (js-code "({})")))
        ,@(let ((res (list)))
-           (dolist (f fields)
+           (dolist (f body)
              (push `(setf (. ,self ,(first f)) ,(second f)) res))
            res)
        ,self)))
@@ -1552,7 +1552,8 @@ Each field is a list of an unevaluated atom as name and a value."
         (setf (aref ret@ name) old-ret)
         mr))))
 
-(let ((odoc (documentation (symbol-macro 'defun))))
+(let ((odoc (documentation (symbol-macro 'defun)))
+      (oargs (arglist (symbol-macro 'defun))))
   (setf (symbol-macro 'defun)
         (let ((om (symbol-macro 'defun)))
           (lambda (name args &rest body)
@@ -1560,10 +1561,13 @@ Each field is a list of an unevaluated atom as name and a value."
                            (js-code "d$$body.splice(0,1)")
                            (list))))
               (apply om `(,name ,args ,@doc (block ,name ,@body)))))))
-  (setf (documentation (symbol-macro 'defun) odoc)))
+  (setf (documentation (symbol-macro 'defun) odoc))
+  (setf (arglist (symbol-macro 'defun)) oargs))
 
-(setf (compile-specialization 'lambda)
-      (let ((om (compile-specialization 'lambda)))
+(let ((om (compile-specialization 'lambda))
+      (odoc (documentation (compile-specialization 'lambda)))
+      (oargs (arglist (compile-specialization 'lambda))))
+  (setf (compile-specialization 'lambda)
         (lambda (x)
           (let* ((args (second x))
                  (body (slice x 2))
@@ -1572,7 +1576,9 @@ Each field is a list of an unevaluated atom as name and a value."
                           (list))))
             (apply om `((lambda ,args
                           ,@doc
-                          ,(append `(block null) body))))))))
+                          ,(append `(block null) body)))))))
+  (setf (documentation (compile-specialization 'lambda)) odoc)
+  (setf (arglist (compile-specialization 'lambda)) oargs))
 
 ;; Compile-time argument checking
 

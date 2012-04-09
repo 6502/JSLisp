@@ -176,6 +176,8 @@ f$$intern.documentation = ("[[(intern name &optional module)]]\n" +
                            "specified and the symbol is not found in current module then before " +
                            "performing the interning operation the symbol is first looked up also "+
                            "in the global module.");
+f$$intern.arglist = [f$$intern("name"), f$$intern("&optional"), f$$intern("module")];
+f$$mangle.arglist = [f$$intern("x")];
 
 var constants = {};
 constants[f$$intern('null').name] = 'null';
@@ -184,19 +186,21 @@ constants[f$$intern('false').name] = 'false';
 constants[f$$intern('undefined').name] = 'undefined';
 constants[f$$intern('NaN').name] = 'NaN';
 
-function deflisp(name, doc, f)
+function deflisp(name, doc, f, arglist)
 {
     f$$intern(name);
     glob["f" + f$$mangle(name)] = f;
     eval("f" + f$$mangle(name) + " = glob['f" + f$$mangle(name) + "']");
     f.documentation = doc;
+    f.arglist = arglist;
 }
 
-function defcompile(name, doc, f)
+function defcompile(name, doc, f, arglist)
 {
     f$$intern(name);
     jscompile[f$$mangle(name)] = f;
     f.documentation = doc;
+    f.arglist = arglist;
 }
 
 deflisp("demangle",
@@ -212,7 +216,8 @@ deflisp("demangle",
                          {
                              return String.fromCharCode(parseInt(s.substr(1, s.length-2)));
                          });
-        });
+        },
+        [f$$intern("x")]);
 
 deflisp("symbol-module",
         "[[(symbol-module x)]]\n" +
@@ -222,7 +227,8 @@ deflisp("symbol-module",
             if (x.interned)
                 return x.name.substr(0, x.name.indexOf("$$"));
             return undefined;
-        });
+        },
+        [s$$x]);
 
 deflisp("module-symbol",
         "[[(module-symbol x &optional module)]]\n"+
@@ -234,7 +240,8 @@ deflisp("module-symbol",
         {
             return f$$intern(f$$demangle(x.name),
                              (typeof module == "undefined" ? d$$$42$current_module$42$ : module));
-        });
+        },
+        [s$$x, f$$intern("&optional"), f$$intern("module")]);
 
 deflisp("documentation",
         "[[(documentation x)]]\n" +
@@ -242,7 +249,8 @@ deflisp("documentation",
         function(x)
         {
             return x.documentation;
-        });
+        },
+        [s$$x]);
 
 deflisp("set-documentation",
         "[[(set-documentation x doc)]]\n" +
@@ -250,15 +258,17 @@ deflisp("set-documentation",
         function(x, doc)
         {
             x.documentation = doc;
-        });
+        },
+        [s$$x, f$$intern("doc")]);
 
 deflisp("arglist",
-        "[[(arglist function)]]\n" +
+        "[[(arglist x)]]\n" +
         "Returns the argument list for function [x].",
         function(x)
         {
             return x.arglist || null;
-        });
+        },
+        [s$$x]);
 
 deflisp("set-arglist",
         "[[(set-arglist x arglist)]]\n" +
@@ -266,68 +276,69 @@ deflisp("set-arglist",
         function(x, arglist)
         {
             x.arglist = arglist;
-        });
+        },
+        [s$$x, f$$intern("arglist")]);
 
 deflisp("number?", "[[(number? x)]]\nReturns true if and only if [x] is a number (including [NaN])",
-        function(x) { return (typeof x) == "number"; });
+        function(x) { return (typeof x) == "number"; }, [s$$x]);
 
 deflisp("string?", "[[(string? x)]]\nReturns true if and only if [x] is a string",
-        function(x) { return (typeof x) == "string"; });
+        function(x) { return (typeof x) == "string"; }, [s$$x]);
 
 deflisp("list?", "[[(list? x)]]\nReturns true if and only if [x] is a list",
-        function(x) { return (x && x.constructor == Array)  ? true : false; });
+        function(x) { return (x && x.constructor == Array)  ? true : false; }, [s$$x]);
 
 deflisp("symbol?", "[[(symbol? x)]]\nReturns true if and only if [x] is a symbol",
-        function(x) { return (x && x.constructor == Symbol) ? true : false; });
+        function(x) { return (x && x.constructor == Symbol) ? true : false; }, [s$$x]);
 
 defcompile("js-code",
            "[[(js-code x)]]\n" +
            "Verbatim javascript code inlining. Note that [x] must be a string literal.",
-           function(x) { return x[1]; });
+           function(x) { return x[1]; }, [s$$x]);
 
 deflisp("js-eval",
         "[[(js-eval x)]]\n" +
         "Javascript evaluation of a string at runtime.",
-        function(x) { return eval(x); });
+        function(x) { return eval(x); }, [s$$x]);
 
 deflisp("symbol-function",
         "[[(symbol-function x)]]\n" +
         "Returns the function cell of a symbol [x] or [undefined] if that function is not present. " +
         "Lookup doesn't consider lexical function definitions (e.g. [(labels ...)]).",
-        function(x) { return x.interned ? glob["f" + x.name] : x.f; });
+        function(x) { return x.interned ? glob["f" + x.name] : x.f; }, [s$$x]);
 
 deflisp("set-symbol-function",
         "[[(set-symbol-function x f)]]\n" +
         "Sets the function cell of a symbol [x] to the specified function [f]. It doesn't affect "+
         "lexical function definitions (e.g. [(lables ...)]).",
-        function(x, y) { return x.interned ? (glob["f" + x.name] = y) : (x.f = y); });
+        function(x, y) { return x.interned ? (glob["f" + x.name] = y) : (x.f = y); }, [s$$x, f$$intern("f")]);
 
 deflisp("symbol-value",
-        "[[(symbol-value x:symbol)]]\n" +
+        "[[(symbol-value x)]]\n" +
         "Returns the current value cell of a symbol [x] or [undefined] if that symbol has no value. " +
         "Lookup doesn't consider lexical symbols.",
-        function(x) { return x.interned ? glob["d" + x.name] : x.d; });
+        function(x) { return x.interned ? glob["d" + x.name] : x.d; }, [s$$x]);
 
 deflisp("set-symbol-value",
         "[[(set-symbol-value x y)]]\n" +
         "Sets the current value cell of a symbol [x] to [y]. It doesn't affect lexical bindings.",
-        function(x, y) { return x.interned ? (glob["d" + x.name] = y) : (x.d = y); });
+        function(x, y) { return x.interned ? (glob["d" + x.name] = y) : (x.d = y); }, [s$$x, f$$intern("y")]);
 
 deflisp("symbol-macro",
         "[[(symbol-macro x)]]\n" +
         "Returns the current macro expander function cell of a symbol [x] or [undefined] if that " +
         "symbol has no macro expander function set. Lookup doesn't consider lexical macros.",
-        function(x) { return x.interned ? glob["m" + x.name] : x.m; });
+        function(x) { return x.interned ? glob["m" + x.name] : x.m; }, [s$$x]);
 
 deflisp("set-symbol-macro",
         "[[(set-symbol-macro x f)]]\n" +
         "Sets the macro expander function cell of a symbol [x] to [y]. It doesn't affect lexical macros.",
-        function(x, f) { return x.interned ? (glob["m" + x.name] = f) : (x.m = f); });
+        function(x, f) { return x.interned ? (glob["m" + x.name] = f) : (x.m = f); }, [s$$x, s$$f]);
 
 deflisp("symbol-name",
         "[[(symbol-name x)]]\n" +
         "Returns the lisp symbol name of a symbol [x] as a string object.",
-        function(x) { return f$$demangle(x.name); });
+        function(x) { return f$$demangle(x.name); }, [s$$x]);
 
 defcompile("if",
            "[[(if condition then-part &optional else-part)]]\n" +
@@ -341,7 +352,8 @@ defcompile("if",
                        f$$js_compile(x[2]) +
                        ":" +
                        f$$js_compile(x[3]) + ")");
-           });
+           },
+           [f$$intern("condition"), f$$intern("then-part"), f$$intern("&optional"), f$$intern("else-part")]);
 
 defcompile("defvar",
            "[[(defvar variable &optional value)]]\n" +
@@ -353,7 +365,8 @@ defcompile("defvar",
                var v = f$$module_symbol(x[1]).name;
                specials[v] = "d" + v;
                return "(d" + v + " = ((glob['d" + v + "']!=undefined)?d" + v + ":" + f$$js_compile(x[2]) + "))";
-           });
+           },
+           [f$$intern("variable"), f$$intern("&optional"), f$$intern("value")]);
 
 function implprogn(x)
 {
@@ -380,7 +393,8 @@ defcompile("progn",
            function(x)
            {
                return implprogn(x.slice(1));
-           });
+           },
+           [f$$intern("&rest"), f$$intern("body")]);
 
 defcompile("let",
            "[[(let ((x1 v1)(x2 v2) ... (xn vn)) &rest body)]]\n" +
@@ -435,7 +449,8 @@ defcompile("let",
                }
                res += "))";
                return res;
-           });
+           },
+           [f$$intern("bindings"), f$$intern("&rest"), f$$intern("body")]);
 
 defcompile("lambda",
            "[[(lambda (arg-1 ... arg-n) &rest body)]]\n" +
@@ -518,7 +533,8 @@ defcompile("lambda",
                    res += "return res;})";
                }
                return res;
-           });
+           },
+           [f$$intern("args"), f$$intern("&rest"), f$$intern("body")]);
 
 deflisp("logcount",
         "[[(logcount x)]]\n" +
@@ -532,7 +548,8 @@ deflisp("logcount",
                 n++;
             }
             return n;
-        });
+        },
+        [s$$x]);
 
 deflisp("list",
         "[[(list &rest args)]]\n" +
@@ -540,7 +557,8 @@ deflisp("list",
         function()
         {
             return Array.prototype.slice.call(arguments);
-        });
+        },
+        [f$$intern("&rest"), f$$intern("args")]);
 
 deflisp("funcall",
         "[[(funcall f &rest args)]]\n" +
@@ -548,7 +566,8 @@ deflisp("funcall",
         function()
         {
             return arguments[0].apply(glob, Array.prototype.slice.call(arguments, 1));
-        });
+        },
+        [f$$intern("f"), f$$intern("&rest"), f$$intern("args")]);
 
 defcompile("labels",
            "[[(labels ((func1 (x1 x2 ... xn) f1 f2 .. fn)...) &rest body)]]\n" +
@@ -590,7 +609,8 @@ defcompile("labels",
                for (var i=0; i<hmacros.length; i++)
                    glob["m" + hmacros[i][0]] = hmacros[i][1];
                return res;
-           });
+           },
+           [f$$intern("bindings"), f$$intern("&rest"), f$$intern("body")]);
 
 defcompile("dotimes",
            "[[(dotimes (var count) &rest body)]]\n" +
@@ -628,7 +648,8 @@ defcompile("dotimes",
                    res += "}return null;})(" + f$$js_compile(x[1][1]) + ")";
                }
                return res;
-           });
+           },
+           [f$$intern("var&count"), f$$intern("&rest"), f$$intern("body")]);
 
 defcompile("dolist",
            "[[(dolist (var x) &rest body)\n" +
@@ -666,7 +687,8 @@ defcompile("dolist",
                    res += "}return null;})(" + f$$js_compile(x[1][1]) + ")";
                }
                return res;
-           });
+           },
+           [f$$intern("var&list"), f$$intern("&rest"), f$$intern("body")]);
 
 defcompile("setq",
            "[[(setq name value)]]\n" +
@@ -685,7 +707,8 @@ defcompile("setq",
                {
                    return f$$js_compile([f$$intern("setf"), x[1], x[2]]);
                }
-           });
+           },
+           [f$$intern("name"), f$$intern("value")]);
 
 defcompile("quote",
            "[[(quote x)]]\n" +
@@ -698,7 +721,8 @@ defcompile("quote",
                    return stringify(x[1]);
                lisp_literals.push(x[1]);
                return "lisp_literals[" + (lisp_literals.length-1) + "]";
-           });
+           },
+           [s$$x]);
 
 deflisp("eval",
         "[[(eval x)]]\n" +
@@ -706,7 +730,8 @@ deflisp("eval",
         function(x)
         {
             return eval(f$$js_compile(x));
-        });
+        },
+        [s$$x]);
 
 deflisp("macroexpand-1",
         "[[(macroexpand-1 x)]]\n" +
@@ -719,7 +744,8 @@ deflisp("macroexpand-1",
             else if (f$$list$63$(x) && f$$symbol$63$(x[0]) && glob["m" + x[0].name])
                 x = glob["m" + x[0].name].apply(glob, x.slice(1));
             return x;
-        });
+        },
+        [s$$x]);
 
 deflisp("macroexpand",
         "[[(macroexpand x)]]\n" +
@@ -735,7 +761,8 @@ deflisp("macroexpand",
                 else break;
             }
             return x;
-        });
+        },
+        [s$$x]);
 
 deflisp("append",
         "[[(append &rest lists)]]\n"+
@@ -746,7 +773,8 @@ deflisp("append",
             for (var i=0; i<arguments.length; i++)
                 res = res.concat(arguments[i]);
             return res;
-        });
+        },
+        [f$$intern("&rest"), f$$intern("lists")]);
 
 deflisp("apply",
         "[[(apply f args)]]\n" +
@@ -754,7 +782,8 @@ deflisp("apply",
         function(f, args)
         {
             return f.apply(null, args);
-        });
+        },
+        [f$$intern("f"), f$$intern("args")]);
 
 deflisp("lexical-macro",
         "[[(lexical-macro x)]]\n" +
@@ -762,7 +791,8 @@ deflisp("lexical-macro",
         function(x)
         {
             return lexmacro.vars[x.name];
-        });
+        },
+        [s$$x]);
 
 deflisp("lexical-symbol-macro",
         "[[(lexical-symbol-macro x)]]\n" +
@@ -770,7 +800,8 @@ deflisp("lexical-symbol-macro",
         function(x)
         {
             return lexsmacro.vars[x.name];
-        });
+        },
+        [s$$x]);
 
 deflisp("lexical-function",
         "[[(lexical-function x)]]\n" +
@@ -778,7 +809,8 @@ deflisp("lexical-function",
         function(x)
         {
             return lexfunc.vars[x.name];
-        });
+        },
+        [s$$x]);
 
 defcompile("apply",
            "[[(apply f args)]]\n",
@@ -787,7 +819,8 @@ defcompile("apply",
            {
                var res = f$$js_compile(x[1]);
                return res + ".apply(null," + f$$js_compile(x[2]) + ")";
-           });
+           },
+           [f$$intern("f"), f$$intern("lists")]);
 
 defcompile("and",
            "[[(and &rest expressions)]]\n" +
@@ -804,7 +837,8 @@ defcompile("and",
                    res += f$$js_compile(x[i]);
                }
                return res + ")";
-           });
+           },
+           [f$$intern("&rest"), f$$intern("expressions")]);
 
 defcompile("or",
            "[[(or &rest expressions)]]\n" +
@@ -822,10 +856,11 @@ defcompile("or",
                    res += f$$js_compile(x[i]);
                }
                return res + ")";
-           });
+           },
+           [f$$intern("&rest"), f$$intern("expressions")]);
 
 defcompile("cond",
-           "[[(cond ((t1 f1)(t2 f2)...(tn fn)))]]\n" +
+           "[[(cond (t1 f1)(t2 f2)...(tn fn))]]\n" +
            "Evaluates in sequence [t1], [t2] ... [tn] and returns the value of the first corresponding form " +
            "[f] when the value is logically true without evaluating subsequent conditions. " +
            "Returns [null] if no condition [t] evaluates to logically true",
@@ -840,7 +875,8 @@ defcompile("cond",
                            implprogn(x[i].slice(1)));
                }
                return res + ":null)";
-           });
+           },
+           [f$$intern("&rest"), f$$intern("body")]);
 
 defcompile("when",
            "[[(when condition &rest body)]]\n" +
@@ -851,7 +887,8 @@ defcompile("when",
            {
                return ("(" + f$$js_compile(x[1]) + "?" +
                        implprogn(x.slice(2)) + ":null)");
-           });
+           },
+           [f$$intern("condition"), f$$intern("&rest"), f$$intern("body")]);
 
 defcompile("unless",
            "[[(unless condition &rest body)]]\n" +
@@ -862,7 +899,8 @@ defcompile("unless",
            {
                return ("(" + f$$js_compile(x[1]) + "?null:(" +
                        implprogn(x.slice(2)) + "))");
-           });
+           },
+           [f$$intern("condition"), f$$intern("&rest"), f$$intern("body")]);
 
 defcompile("do",
            "[[(do ((v1 init1 [inc1])...)(exit-test res1 res2 ...) &rest body)]]\n" +
@@ -926,7 +964,8 @@ defcompile("do",
                    res += f$$js_compile(x[1][i][1]);
                }
                return res + ")";
-           });
+           },
+           [f$$intern("init&step"), f$$intern("quit-condition"), f$$intern("&rest"), f$$intern("body")]);
 
 defcompile("macrolet",
            "[[(macrolet ((m1 (x1 x2 ...) b1 b2 ...) ...) &rest body)]]\n" +
@@ -946,7 +985,8 @@ defcompile("macrolet",
                var res = implprogn(x.slice(2));
                lexmacro.end();
                return res;
-           });
+           },
+           [f$$intern("bindings"), f$$intern("&rest"), f$$intern("body")]);
 
 defcompile("symbol-macrolet",
            "[[(symbol-macrolet ((x1 def1)(x2 def2)...) &rest body)]]\n" +
@@ -964,7 +1004,8 @@ defcompile("symbol-macrolet",
                var res = implprogn(x.slice(2));
                lexsmacro.end();
                return res;
-           });
+           },
+           [f$$intern("bindings"), f$$intern("&rest"), f$$intern("body")]);
 
 deflisp("warning",
         "[[(warning msg)]]\n" +
@@ -972,7 +1013,8 @@ deflisp("warning",
         function(msg)
         {
             f$$display("WARNING: " + msg.replace(/\$\$[a-zA-Z_0-9\$]*/g, f$$demangle));
-        });
+        },
+        [f$$intern("msg")]);
 
 d$$$42$error_location$42$ = null;
 
@@ -1051,6 +1093,12 @@ deflisp("js-compile",
                         var wf = jscompile[f.name];
                         if (wf && wf.constructor == Function)
                         {
+                            if (wf.arglist)
+                            {
+                                var caf = glob["f$$static_check_args"];
+                                if (caf && caf!=42)
+                                    caf(x, wf.arglist);
+                            }
                             return wrapper(wf(x));
                         }
                         else if (lexmacro.vars[f.name])
@@ -1129,7 +1177,8 @@ deflisp("js-compile",
                     return "<" + x.constructor.name + ">";
                 }
             }
-        });
+        },
+        [s$$x]);
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1156,7 +1205,8 @@ deflisp("skip-spaces",
                     break;
                 }
             }
-        });
+        },
+        [f$$intern("src")]);
 
 deflisp("parse-spaced",
         "[[(parse-spaced src)]]\n" +
@@ -1165,7 +1215,8 @@ deflisp("parse-spaced",
         {
             f$$skip_spaces(src);
             return f$$f$$parse_value(src);
-        });
+        },
+        [f$$intern("src")]);
 
 deflisp("parse-stopping",
         "[[(parse-stopping x)]]\n" +
@@ -1176,7 +1227,8 @@ deflisp("parse-stopping",
             return (c == undefined ||
                     d$$$42$spaces$42$.indexOf(c) != -1 ||
                     d$$$42$stopchars$42$.indexOf(c) !=-1);
-        });
+        },
+        [f$$intern("src")]);
 
 deflisp("parse-number-or-symbol",
         "[[(parse-number-or-symbol src)]]\n" +
@@ -1202,7 +1254,8 @@ deflisp("parse-number-or-symbol",
             var ix = res.indexOf(":");
             if (ix > 0) return f$$intern(res.substr(0, ix), res.substr(ix+1));
             return f$$intern(res);
-        });
+        },
+        [f$$intern("src")]);
 
 deflisp("parse-delimited-list",
         "[[(parse-delimited-list src stop)]]\n" +
@@ -1229,7 +1282,8 @@ deflisp("parse-delimited-list",
                 throw new String(stringify(stop) + " expected");
             src(1);
             return res;
-        });
+        },
+        [f$$intern("src"), f$$intern("stop")]);
 
 deflisp("reader-function",
         "[[(reader-function x)]]\n" +
@@ -1242,7 +1296,8 @@ deflisp("reader-function",
                 i+=(n|0);
                 return c;
             };
-        });
+        },
+        [s$$x]);
 
 var readers = { "|": function(src)
                 {
@@ -1414,7 +1469,8 @@ deflisp("parse-value",
             if (src() == undefined)
                 throw new String("Value expected");
             return (readers[src()] || readers["default"])(src);
-        });
+        },
+        [f$$intern("src")]);
 
 deflisp("str-value",
         "[[(str-value x)]]\n" +
@@ -1471,7 +1527,8 @@ deflisp("str-value",
                     return "#<" + x.constructor.name + ">";
                 }
             }
-        });
+        },
+        [s$$x]);
 
 deflisp("set-compile-specialization",
         "[[(set-compile-specialization x function)]]\n" +
@@ -1479,16 +1536,18 @@ deflisp("set-compile-specialization",
         function(name, body)
         {
             jscompile[name.name] = body;
-        });
+        },
+        [s$$x, f$$intern("function")]);
 
 deflisp("compile-specialization",
-        "(compile-specialization x:symbol) -> function\n" +
+        "(compile-specialization x)\n" +
         "Returns the current compile specialization for forms starting with the specified symbol or " +
         "undefined if there's no such a compiler specialization.",
         function(name)
         {
             return jscompile[name.name];
-        });
+        },
+        [s$$x]);
 
 deflisp("reader",
         "[[(reader x)]]\n" +
@@ -1497,7 +1556,8 @@ deflisp("reader",
         function(ch)
         {
             return readers[ch];
-        });
+        },
+        [s$$x]);
 
 deflisp("set-reader",
         "[[(set-reader x f)]]\n" +
@@ -1508,7 +1568,8 @@ deflisp("set-reader",
         {
             readers[ch] = f;
             return f;
-        });
+        },
+        [s$$x, f$$intern("f")]);
 
 deflisp("load",
         "[[(load src &optional name)]]\n" +
@@ -1560,7 +1621,8 @@ deflisp("load",
                 werr.location = err.location;
                 throw werr;
             }
-        });
+        },
+        [f$$intern("src"), f$$intern("&optional"), f$$intern("name")]);
 
 deflisp("http",
         "[[(http verb url data &optional success-function failure-function)]]\n" +
@@ -1596,7 +1658,9 @@ deflisp("http",
             req.open(verb, url, !!onSuccess);
             req.send(data);
             return onSuccess ? req : req.responseText;
-        });
+        },
+        [f$$intern("verb"), f$$intern("url"), f$$intern("data"), f$$intern("&optional"),
+         f$$intern("success-function"), f$$intern("failure-function")]);
 
 deflisp("http-get",
         "[[(http-get url &optional success-function failure-function)]]\n" +
@@ -1608,7 +1672,9 @@ deflisp("http-get",
         function(url, onSuccess, onFailure)
         {
             return f$$http("GET", url, null, onSuccess, onFailure);
-        });
+        },
+        [f$$intern("url"), f$$intern("&optional"),
+         f$$intern("success-function"), f$$intern("failure-function")]);
 
 deflisp("get-file",
         "[[(get-file filename &optional (encoding \"ascii\"))]]\n" +
@@ -1619,7 +1685,8 @@ deflisp("get-file",
                 encoding = "ascii";
             var fs = require("fs");
             return fs.readFileSync(name, encoding);
-        });
+        },
+        [f$$intern("filename"), f$$intern("&optional"), f$$intern("encoding")]);
 
 if (d$$node$46$js)
 {
