@@ -126,6 +126,10 @@ be called with start/end squares (two numbers between 0 and 63)."
       (show-window w)
       w)))
 
+(defun set-position (window position)
+  (setf (first (window-data window)) position)
+  (funcall (second (window-data window))))
+
 (defun main ()
   (let ((pnames (js-object))
         (w null))
@@ -142,7 +146,7 @@ be called with start/end squares (two numbers between 0 and 63)."
     (setf (aref pnames chess:+BQ+) "q")
     (setf (aref pnames chess:+BK+) "k")
     (setf (aref pnames chess:+EMPTY+) ".")
-    (chess:init-board "8/7P/8/8/8/8/pk5K/8 b - -")
+    (chess:init-board)
     (labels ((position ()
                (let ((res ""))
                  (dolist (x chess:*sq*)
@@ -152,19 +156,21 @@ be called with start/end squares (two numbers between 0 and 63)."
                100 100 400 400 "Chessboard"
                (position)
                (lambda (from to)
-                 (let ((mm null)
+                 (let ((mm (list))
                        (x0 (chess:tosq (ash from -3) (logand from 7)))
                        (x1 (chess:tosq (ash to -3) (logand to 7))))
                    (chess:move-map (lambda (m)
                                      (when (and (= (chess:move-x0 m) x0)
                                                 (= (chess:move-x1 m) x1))
-                                       (display (chess:move-str m))
-                                       (setf mm m))))
-                   (when mm
-                     (chess:play mm)
-                     ;;(chess:computer 1)
-                     (setf (first (window-data w)) (position))
-                     (funcall (second (window-data w)))))))))
+                                       (push m mm))))
+                   (when (> (length mm) 0)
+                     (chess:play (first mm))
+                     (set-position w (position))
+                     (when true
+                       (set-timeout (lambda ()
+                                      (chess:computer 1)
+                                      (set-position w (position)))
+                                    0))))))))
     w))
 
 (setf *piece-images*
