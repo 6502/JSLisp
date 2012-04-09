@@ -714,6 +714,7 @@ or that the captured piece is not defended."
                    (return-from alpha-beta beta)))))
       (if (and (< depth 0) (not (check)))
           (let ((v (static-value)))
+            (incf v (- (random-int 11) 5))
             (when (> v alpha)
               (setf alpha v))
             (when (>= v beta)
