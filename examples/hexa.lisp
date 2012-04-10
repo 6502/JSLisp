@@ -45,26 +45,38 @@
 (defun shortest-path (x y walls)
   "Returns the shortest path starting from hexagon [x] and arriving to
   hexagon [y] that avoids the forbidden hexagons defined in the [walls] map."
-  (do ((seen (js-object))
-       (active-list (list x)))
-      ((or (aref seen y)
-           (zero? (length active-list)))
-       (if (aref seen y)
-           (do ((result (list))
-                (p y))
-               ((= p x)
-                (push x result)
-                (reverse result))
-             (push p result)
-             (setf p (aref seen p)))))
-    (let ((new-active-list (list)))
-      (dolist (b active-list)
-        (dolist (nh (neighbors b))
-          (unless (or (aref seen nh)
-                      (aref walls nh))
-            (setf (aref seen nh) b)
-            (push nh new-active-list))))
-      (setf active-list new-active-list))))
+  (do ((to-x (js-object ((progn x) true)))
+       (to-y (js-object ((progn y) true)))
+       (common null)
+       (x-active-list (list x))
+       (y-active-list (list y)))
+      ((or common
+           (zero? (length x-active-list))
+           (zero? (length y-active-list)))
+         (if common
+             (do ((result (list))
+                  (p common))
+                 ((= p true)
+                    (nreverse result)
+                    (do ((p (aref to-y common)))
+                        ((= p true)
+                           result)
+                      (push p result)
+                      (setf p (aref to-y p))))
+               (push p result)
+               (setf p (aref to-x p)))))
+    (labels ((step (active-list map other-map)
+               (dolist (b (splice active-list 0 (length active-list)))
+                 (dolist (nh (neighbors b))
+                   (unless (or (aref map nh)
+                               (aref walls nh))
+                     (setf (aref map nh) b)
+                     (push nh active-list)
+                     (when (aref other-map nh)
+                       (setf common nh)))))))
+      (step x-active-list to-x to-y)
+      (unless common
+        (step y-active-list to-y to-x)))))
 
 (import * from gui)
 (import * from graphics)
@@ -126,28 +138,26 @@
              backgroundColor "#404040"
              fontFamily "Arial, sans-serif"
              fontWeight "bold"
-             px/fontSize 10
+             px/fontSize 20
+             textAlign "center"
+             display "table-cell"
+             verticalAlign "middle"
+             px/lineHeight "30"
              color "#00FF00")
   (labels ((redraw ()
              (let ((w (. c offsetWidth))
-                   (h (. c offsetHeight))
-                   (solmap (js-object)))
+                   (h (. c offsetHeight)))
                (setf (. c width) w)
                (setf (. c height) h)
-               (dolist (p solution)
-                 (setf (aref solmap p) true))
                (do ((drawn (js-object ([0 0] true)))
                     (todo (list [0 0]))
                     (i 0))
                    ((>= i (length todo)))
                  (let ((p (aref todo (1- (incf i)))))
                    (hexagon c p
-                            (cond
-                              ((h= p from) "#FF0000")
-                              ((h= p to) "#0000FF")
-                              ((aref solmap p) "#00FF00")
-                              ((aref wall p) "#808080")
-                              (true "#E0E0E0"))
+                            (if (aref wall p)
+                                "#808080"
+                                "#E0E0E0")
                             30)
                    (dolist (nh (neighbors p))
                      (unless (aref drawn nh)
@@ -155,7 +165,27 @@
                          (when (and (<= -30 (first xy) (+ w 30))
                                     (<= -30 (second xy) (+ h 30)))
                            (push nh todo)
-                           (setf (aref drawn nh) true)))))))))
+                           (setf (aref drawn nh) true)))))))
+               (with-canvas c
+                 (labels ((dot (center color)
+                            (let ((p (tilemap center 30)))
+                              (begin-path)
+                              (arc (first p) (second p) 10 0 (* 2 pi) true)
+                              (fill-style color)
+                              (fill))))
+                   (when from
+                     (dot from "#FF0000"))
+                   (when to
+                     (dot to "#0000FF"))
+                   (begin-path)
+                   (stroke-style "#00FF00")
+                   (line-width 4)
+                   (dotimes (i (length solution))
+                     (let ((p (tilemap (aref solution i) 30)))
+                       (if (zero? i)
+                           (move-to (first p) (second p))
+                           (line-to (first p) (second p)))))
+                   (stroke)))))
            (fixstyle ()
              (set-style wall-btn
                         backgroundColor (if (= mode "wall") "#FFFF00" "#E0E0E0"))
@@ -164,28 +194,25 @@
            (clear-solution ()
              (setf from null)
              (setf to null)
-             (setf solution (list))))
-    (setf clear-btn (button
-                     "Clear"
-                     (lambda ()
-                       (setf wall (js-object))
-                       (setf mode "wall")
-                       (clear-solution)
-                       (redraw))))
-    (setf wall-btn (button "Wall"
-                           (lambda ()
-                             (setf mode "wall")
-                             (clear-solution)
-                             (redraw)
-                             (fixstyle))))
-    (setf check-btn (button "Check"
-                            (lambda ()
-                              (setf mode "check")
-                              (fixstyle))))
+             (setf solution (list)))
+           (set-mode (x)
+             (setf mode x)
+             (clear-solution)
+             (redraw)
+             (fixstyle)))
+    (macrolet ((set-button (name caption &rest body)
+                 `(progn
+                    (setf ,name (button ,caption
+                                        (lambda () ,@body)))
+                    (append-child (window-frame w) ,name))))
+      (set-button clear-btn "Clear"
+                  (setf wall (js-object))
+                  (set-mode "wall"))
+      (set-button wall-btn "Wall"
+                  (set-mode "wall"))
+      (set-button check-btn "Check"
+                  (set-mode "check")))
     (append-child (window-frame w) c)
-    (append-child (window-frame w) clear-btn)
-    (append-child (window-frame w) wall-btn)
-    (append-child (window-frame w) check-btn)
     (append-child (window-frame w) display)
     (setf layout (:V :border 8 :spacing 8
                      (:Hdiv c)
@@ -197,9 +224,6 @@
                          (:Hdiv display :max 120)
                          (:H :class 2))))
     (fixstyle)
-    (dotimes (i 30)
-      (setf (aref wall [(random-int 20) (random-int 20)])
-            true))
     (setf (window-resize-cback w)
           (lambda (x0 y0 x1 y1)
             (set-coords layout x0 y0 x1 y1)
@@ -228,8 +252,7 @@
                                        (setf solution
                                              (or (shortest-path from to wall)
                                                  (list))))))
-                              (setf (. display innerText)
-                                    ~"len={(length solution)}, time={ct}ms"))
+                              (setf (. display textContent) ~"{ct}ms"))
                             (redraw))))))
         (set-handler c onmousedown
                      (let ((p (tile event)))
@@ -246,5 +269,4 @@
         (set-handler c onmouseup
                      (when (= mode "wall")
                        (setf walldraw null)))))
-
     (show-window w)))
