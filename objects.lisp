@@ -1,23 +1,19 @@
-(defmacro defgeneric (name args &rest body)
-  `(progn
-     (setf ,(intern ~"*{name}-methods*") `((true (progn ,',@body))))
-     (setf ,(intern ~"*{name}-methods-arglist*") ,(str-value args))
-     (defun ,name ,args ,@body)))
-
 (defmacro defmethod (name args test &rest body)
-  (unless (symbol-value (intern ~"*{name}-methods*"))
-    (error ~"[{name}] doesn't identify a generic function"))
-  (unless (= (str-value args) (symbol-value (intern ~"*{name}-methods-arglist*")))
-    (error ~"Generic [{name}] arglist mismatch"))
   `(progn
-     (push `(,',test (progn ,',@body)) ,(intern ~"*{name}-methods*"))
+     (defvar ,(intern ~"*{name}-methods*") '((true (error ,~"No matching method [{name}]"))))
+     (defvar ,(intern ~"*{name}-methods-arglist*") ,(str-value args))
+     (unless (= ,(str-value args) ,(intern ~"*{name}-methods-arglist*"))
+       (error ,~"Method [{name}] arglist mismatch"))
+     (push (append (list ',test) ',body) ,(intern ~"*{name}-methods*"))
      (defun ,name ,args
        (cond
-         (,test (progn ,@body))
-         ,@(reverse (symbol-value (intern ~"*{name}-methods*")))))))
+         (,test ,@body)
+         ,@(if (symbol-value (intern ~"*{name}-methods*"))
+               (reverse (symbol-value (intern ~"*{name}-methods*")))
+               `((true (error ,~"No matching methof [{name}]"))))))))
 
-(defgeneric fields (x) null)
-(defgeneric class (x) null)
+(defmethod fields (x) true null)
+(defmethod class (x) true null)
 
 (defmacro defobject (name fields)
   (unless (list? fields)
@@ -38,8 +34,18 @@
      (defmethod class (x) (,(intern ~"{name}?") x)
        ',name)
      ,@(map (lambda (f)
-              `(defmacro/f ,f (obj)
-                 ,~"Field [{f}] of an instance [obj] of [{name}]"
-                 (list 'aref obj ,(1+ (index f fields)))))
+              (let ((ix (1+ (index f fields)))
+                    (set (intern ~"set-{f}"))
+                    (inc (intern ~"inc-{f}"))
+                    (dec (intern ~"dec-{f}")))
+                `(progn
+                   (defmethod ,f (obj) (,(intern ~"{name}?") obj)
+                              (aref obj ,ix))
+                   (defmethod ,set (obj value) (,(intern ~"{name}?") obj)
+                              (setf (aref obj ,ix) value))
+                   (defmethod ,inc (obj inc) (,(intern ~"{name}?") obj)
+                              (incf (aref obj ,ix) inc))
+                   (defmethod ,dec (obj dec) (,(intern ~"{name}?") obj)
+                              (decf (aref obj ,ix) dec)))))
             fields)
      ',name))
