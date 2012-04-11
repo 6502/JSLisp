@@ -148,6 +148,10 @@
         (list 'symbol-macro (list 'quote x))))
 
 ; Javascript crazyness
+(defun callable? (x)
+  "True if [x] can be called"
+  (js-code "((typeof d$$x)=='function')"))
+
 (defun bool? (x)
   "True if and only if [x] is a boolean"
   (js-code "((typeof d$$x)=='boolean')"))
@@ -158,7 +162,15 @@
 
 (defun null? (x)
   "True if and only if [x] is the null value"
-  (js-code "((typeof d$$x)=='object'&&!d$$x)"))
+  (js-code "(d$$x===null)"))
+
+(defun infinity? (x)
+  "True if and only if [x] is the positive infinity value"
+  (js-code "(d$$x===Infinity)"))
+
+(defun -infinity? (x)
+  "True if and only if [x] is the negative infinity value"
+  (js-code "(d$$x===-Infinity)"))
 
 (defun NaN? (x)
   "True if and only if [x] is the NaN value"

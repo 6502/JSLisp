@@ -185,6 +185,8 @@ constants[f$$intern('true').name] = 'true';
 constants[f$$intern('false').name] = 'false';
 constants[f$$intern('undefined').name] = 'undefined';
 constants[f$$intern('NaN').name] = 'NaN';
+constants[f$$intern('infinity').name] = 'Infinity';
+constants[f$$intern('-infinity').name] = '-Infinity';
 
 function deflisp(name, doc, f, arglist)
 {
@@ -1515,6 +1517,14 @@ deflisp("str-value",
             else if ((typeof x) == "number" && isNaN(x))
             {
                 return "NaN";
+            }
+            else if (x === Infinity)
+            {
+                return "infinity";
+            }
+            else if (x === -Infinity)
+            {
+                return "-infinity";
             }
             else
             {

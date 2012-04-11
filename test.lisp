@@ -431,6 +431,8 @@
 (let ((pairs (list (list 'list? '(list))
                    (list 'zero? '0)
                    (list 'NaN? 'NaN)
+                   (list 'infinity? 'infinity)
+                   (list '-infinity? '-infinity)
                    (list 'undefined? 'undefined)
                    (list 'null? 'null)
                    (list 'string? '"")
