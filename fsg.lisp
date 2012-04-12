@@ -121,7 +121,8 @@
 
 (clear)
 
-(export clear fill-style stroke-style line-width
+(export *screen* *canvas* *dc*
+        clear fill-style stroke-style line-width
         begin-path close-path
         move-to line-to bez-2 bez-3 arc-to arc
         fill stroke clip
