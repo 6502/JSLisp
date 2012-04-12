@@ -320,6 +320,7 @@
   ;; Note: Defmacro must be done at macro expansion time
   ;;       because we need the macro in place when
   ;;       defun is macroexpanded
+  (setq name (module-symbol name))
   (eval `(defmacro ,name ,args ,@body))
   (let ((doc (if (string? (aref body 0))
                  (splice body 0 1)
