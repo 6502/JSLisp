@@ -1,19 +1,22 @@
 (defmacro defmethod (name args test &rest body)
-  `(progn
-     (defvar ,(intern ~"*{name}-methods*") '((true (error ,~"No matching method [{name}]"))))
-     (defvar ,(intern ~"*{name}-methods-arglist*") ,(str-value args))
-     (unless (= ,(str-value args) ,(intern ~"*{name}-methods-arglist*"))
-       (error ,~"Method [{name}] arglist mismatch"))
-     (push (append (list ',test) ',body) ,(intern ~"*{name}-methods*"))
-     (defun ,name ,args
+  (let ((mvar (intern ~"*{name}-methods*"))
+        (avar (intern ~"*{name}-arglist*")))
+    (unless (symbol-value mvar)
+      (setf (symbol-value mvar) `((true (error ,~"No matching method [{name}]")))))
+    (let ((sa (str-value args false)))
+      (if (symbol-value avar)
+          (unless (= sa (symbol-value avar))
+            (error ~"Method [{name}] arglist mismatch"))
+          (setf (symbol-value avar) sa)))
+    (push `(,test ,@body) (symbol-value mvar))
+    `(defun ,name ,args
        (cond
-         (,test ,@body)
-         ,@(if (symbol-value (intern ~"*{name}-methods*"))
-               (reverse (symbol-value (intern ~"*{name}-methods*")))
-               `((true (error ,~"No matching methof [{name}]"))))))))
+         ,@(reverse (symbol-value mvar))))))
 
 (defmethod fields (x) true null)
 (defmethod class (x) true null)
+(defmethod make-instance (class &rest args) true
+  (error "Undefined class"))
 
 (defmacro defobject (name fields)
   (unless (list? fields)
@@ -25,10 +28,10 @@
      (defun ,(intern ~"make-{name}") (&key ,@fields)
        ,~"Builds an instance of {name}"
        (list ',fields ,@fields))
+     (defmethod make-instance (class &rest args) (= class ',name)
+       (apply #',name args))
      (defun ,(intern ~"{name}?") (x)
-       ,~"True if and only if [x] is an instance of {name}"
-       (and (list? x)
-            (= (first x) ',fields)))
+       (and (list? x) (= (first x) ',fields)))
      (defmethod fields (x) (,(intern ~"{name}?") x)
        ',fields)
      (defmethod class (x) (,(intern ~"{name}?") x)

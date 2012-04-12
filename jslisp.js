@@ -1475,11 +1475,12 @@ deflisp("parse-value",
         [f$$intern("src")]);
 
 deflisp("str-value",
-        "[[(str-value x)]]\n" +
-        "Computes a string representation of the value [x]",
+        "[[(str-value x &optional (circle-print true))]]\n" +
+        "Computes a string representation of the value [x], handling back-references.",
         function(x, circle_print)
         {
-            if (circle_print == undefined)
+            if ((typeof circle_print) == "undefined" ||
+                ((typeof circle_print) == "boolean" && circle_print))
                 circle_print = [];
             if (f$$symbol$63$(x))
             {
@@ -1495,9 +1496,12 @@ deflisp("str-value",
                         f$$symbol$63$(x[1]))
                         return "#'" + f$$demangle(x[1].name);
                 }
-                if (circle_print.indexOf(x) != -1)
-                    return "#" + circle_print.indexOf(x);
-                circle_print.push(x);
+                if ((typeof circle_print) == "object")
+                {
+                    if (circle_print.indexOf(x) != -1)
+                        return "#" + circle_print.indexOf(x);
+                    circle_print.push(x);
+                }
                 var res = "(";
                 for (var i=0; i<x.length; i++)
                 {
@@ -1538,7 +1542,7 @@ deflisp("str-value",
                 }
             }
         },
-        [s$$x]);
+        [s$$x, f$$intern("&optional"), f$$intern("circle-print")]);
 
 deflisp("set-compile-specialization",
         "[[(set-compile-specialization x function)]]\n" +
