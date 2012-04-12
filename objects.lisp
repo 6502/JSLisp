@@ -1,4 +1,5 @@
 (defmacro defmethod (name args test &rest body)
+  (setf name (module-symbol name))
   (let ((mvar (intern ~"*{name}-methods*"))
         (avar (intern ~"*{name}-arglist*")))
     (unless (symbol-value mvar)
@@ -19,6 +20,7 @@
   (error "Undefined class"))
 
 (defmacro defobject (name fields)
+  (setf name (module-symbol name))
   (unless (list? fields)
     (error "Syntax is (defobject name (field1 field2 ... fieldn))"))
   `(progn
@@ -52,3 +54,6 @@
                               (decf (aref obj ,ix) dec)))))
             fields)
      ',name))
+
+(export defobject defmethod
+        field class make-instance)
