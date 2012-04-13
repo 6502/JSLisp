@@ -562,17 +562,23 @@
         (let* ,(rest bindings) ,@body))
      `(let ,bindings ,@body)))
 
+(defun symbol-macro-expand (x)
+  "Returns recursive expansion of [x] until it's not a symbol or there's no
+   associated [define-symbol-macro] or [symbol-macrolet]."
+  (do ()
+      ((or (not (symbol? x))
+           (and (not (lexical-symbol-macro x))
+                (not (js-code "d$$x.symbol_macro"))))
+       x)
+    (setq x (or (lexical-symbol-macro x)
+                (js-code "d$$x.symbol_macro")))))
+
 (defmacro setf (place value)
   "Sets the content of a place to be the specified value. A place is either a symbol
    or a form (e.g. [(aref x i)]) for which a corresponding setting form is defined
    (e.g. [(set-aref x i value)]) either as function or macro eventually after
    macro expansion."
-  (do ()
-      ((or (not (symbol? place))
-           (and (not (lexical-symbol-macro place))
-                (not (js-code "d$$place.symbol_macro")))))
-    (setq place (or (lexical-symbol-macro place)
-                    (js-code "d$$place.symbol_macro"))))
+  (setq place (symbol-macro-expand place))
   (cond
     ((symbol? place)
      `(setq ,place ,value))
