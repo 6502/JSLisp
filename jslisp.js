@@ -350,7 +350,7 @@ defmacro("if",
                                   "?" +
                                   f$$js_compile(then_part) +
                                   ":" +
-                                  (else_part ? f$$js_compile(else_part) : "undefined") +
+                                  f$$js_compile(else_part) +
                                   ")")];
          },
          [f$$intern("condition"), f$$intern("then-part"), f$$intern("&optional"), f$$intern("else-part")]);
@@ -873,32 +873,6 @@ defmacro("cond",
              return [s$$js_code, res + ":null)"];
          },
          [f$$intern("&rest"), f$$intern("body")]);
-
-defmacro("when",
-         "[[(when condition &rest body)]]\n" +
-         "If [condition] evaluates to logically true evaluates the body forms in " +
-         "sequence an returns the value of last evaluated form, otherwise returns null without " +
-         "evaluating any of the body forms.",
-         function(condition)
-         {
-             var body = Array.prototype.slice.call(arguments);
-             return [s$$js_code, ("(" + f$$js_compile(condition) + "?" +
-                                  implprogn(body) + ":null)")];
-         },
-         [f$$intern("condition"), f$$intern("&rest"), f$$intern("body")]);
-
-defmacro("unless",
-         "[[(unless condition &rest body)]]\n" +
-         "If [condition] evaluates to logically false evaluates the body forms in " +
-         "sequence an returns the value of last evaluated form, otherwise returns null without " +
-         "evaluating any of the body forms.",
-         function(condition)
-         {
-             var body = Array.prototype.slice.call(arguments);
-             return [s$$js_code, ("(" + f$$js_compile(condition) + "?null:(" +
-                                  implprogn(body) + "))")];
-         },
-         [f$$intern("condition"), f$$intern("&rest"), f$$intern("body")]);
 
 defmacro("do",
          "[[(do ((v1 init1 [inc1])...)(exit-test res1 res2 ...) &rest body)]]\n" +
@@ -1560,11 +1534,47 @@ defun("set-reader",
       },
       [s$$x, f$$intern("f")]);
 
+defun("toplevel-eval",
+      "[[(toplevel-eval x)]]\n"+
+      "Evaluates the form or symbol [x] by macroexpanding, compiling and executing it. If however the form is a [(progn ...)] "+
+      "form then recursively call toplevel-eval on each contained element. The difference between [toplevel-eval] and [eval] "+
+      "is only about eventual macro and code side effects that can influence compilation of subsequent forms in [(progn...)].",
+      function(x)
+      {
+          var f;
+          if (f$$symbol$63$(x))
+          {
+              if (x.symbol_macro)
+                  return f$$toplevel_eval(x.symbol_macro);
+              return f$$eval(x);
+          }
+          else if (f$$list$63$(x))
+          {
+              if (x[0] == s$$progn)
+              {
+                  var res = null;
+                  for (var i=1; i<x.length; i++)
+                      res = f$$toplevel_eval(x[i]);
+                  return res;
+              }
+              else if (f$$symbol$63$(x[0]) && (f = glob["m" + x[0].name]))
+              {
+                  return f$$toplevel_eval(f.apply(glob, x.slice(1)));
+              }
+              else return f$$eval(x);
+          }
+          else
+          {
+              return f$$eval(x);
+          }
+      },
+      [s$$x]);
+
 defun("load",
       "[[(load src &optional name)]]\n" +
       "Parses, compiles and evaluates all forms in the character source or string [src] " +
       "one at a time in sequence. If [name] is passed and [src] is a string then source location information is attached to each parsed list.",
-      function f$$load(src, name)
+      function(src, name)
       {
           if (f$$string$63$(src))
           {

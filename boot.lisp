@@ -44,6 +44,14 @@
                                   (list 'quote args))
                             (list 'quote name)))))
 
+(defmacro when (condition &rest body)
+  "Evaluates all forms in [body] returning last value only if [condition] evaluates to a true value, otherwise the value is [null]"
+  (list 'if condition (append (list 'progn) body) null))
+
+(defmacro unless (condition &rest body)
+  "Evaluates all forms in [body] returning last value only if [condition] evaluates to a false value, otherwise the value is [null]"
+  (list 'if condition null (append (list 'progn) body)))
+
 (defmacro defun (name args &rest body)
   (setq name (module-symbol name))
   (let ((doc (str-value (append (list name) args))))
@@ -1214,8 +1222,7 @@ that field. When absent the default value is assumed to be [undefined]."
 ; JS exception support
 (defvar *exception* null)
 (defmacro try (expr on-error)
-  "[[(try expr on-error)]]
-   Evaluates [expr] and in case of exception evaluates the [on-error] form setting [*exception*] to the current exception"
+  "Evaluates [expr] and in case of exception evaluates the [on-error] form setting [*exception*] to the current exception"
   `(js-code ,(+ "((function(){try{return("
                 (js-compile expr)
                 ");}catch(err){var olderr=d$$$42$exception$42$;d$$$42$exception$42$=err;var res=("
