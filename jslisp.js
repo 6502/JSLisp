@@ -119,7 +119,6 @@ var lexmacro = new Namespace();
 var lexsmacro = new Namespace();
 
 var specials = {};
-var jscompile = {};
 
 glob["f$$mangle"] = f$$mangle = function(x)
 {
@@ -188,187 +187,186 @@ constants[f$$intern('NaN').name] = 'NaN';
 constants[f$$intern('infinity').name] = 'Infinity';
 constants[f$$intern('-infinity').name] = '-Infinity';
 
-function deflisp(name, doc, f, arglist)
+f$$intern("js-code");
+
+function defun(name, doc, f, arglist)
 {
-    f$$intern(name);
-    glob["f" + f$$mangle(name)] = f;
-    eval("f" + f$$mangle(name) + " = glob['f" + f$$mangle(name) + "']");
+    var s = f$$intern(name);
+    glob["f" + s.name] = f;
+    eval("f" + s.name + " = glob['f" + s.name + "']");
     f.documentation = doc;
     f.arglist = arglist;
 }
 
-function defcompile(name, doc, f, arglist)
+function defmacro(name, doc, f, arglist)
 {
-    f$$intern(name);
-    jscompile[f$$mangle(name)] = f;
+    var s = f$$intern(name);
+    glob["m" + s.name] = f;
+    eval("f" + s.name + " = glob['m" + s.name + "'];");
     f.documentation = doc;
     f.arglist = arglist;
 }
 
-deflisp("demangle",
-        "[[(demangle x)]]\n" +
-        "Returns a lisp name [x] by decoding a javascript name produced by [(mangle ...)]",
-        function(x)
-        {
-            var i = x.indexOf("$$");
-            return x.substr(i+2)
-                .replace(/_/g,"-")
-                .replace(/(\$[0-9]+\$)/g,
-                         function(s)
-                         {
-                             return String.fromCharCode(parseInt(s.substr(1, s.length-2)));
-                         });
-        },
-        [f$$intern("x")]);
+defun("demangle",
+      "[[(demangle x)]]\n" +
+      "Returns a lisp name [x] by decoding a javascript name produced by [(mangle ...)]",
+      function(x)
+      {
+          var i = x.indexOf("$$");
+          return x.substr(i+2)
+              .replace(/_/g,"-")
+              .replace(/(\$[0-9]+\$)/g,
+                       function(s)
+                       {
+                           return String.fromCharCode(parseInt(s.substr(1, s.length-2)));
+                       });
+      },
+      [f$$intern("x")]);
 
-deflisp("symbol-module",
-        "[[(symbol-module x)]]\n" +
-        "Returns the module name of symbol [x] or [undefined] if the symbol is uninterned.",
-        function(x)
-        {
-            if (x.interned)
-                return x.name.substr(0, x.name.indexOf("$$"));
-            return undefined;
-        },
-        [s$$x]);
+defun("symbol-module",
+      "[[(symbol-module x)]]\n" +
+      "Returns the module name of symbol [x] or [undefined] if the symbol is uninterned.",
+      function(x)
+      {
+          if (x.interned)
+              return x.name.substr(0, x.name.indexOf("$$"));
+          return undefined;
+      },
+      [s$$x]);
 
-deflisp("module-symbol",
-        "[[(module-symbol x &optional module)]]\n"+
-        "Returns a symbol with same name as symbol [x] after interning it " +
-        "in the specified [module] or in current module if no module is " +
-        "specified. If the symbol [x] is already interned in [module] then " +
-        "simply returns it.",
-        function(x, module)
-        {
-            return f$$intern(f$$demangle(x.name),
-                             (typeof module == "undefined" ? d$$$42$current_module$42$ : module));
-        },
-        [s$$x, f$$intern("&optional"), f$$intern("module")]);
+defun("module-symbol",
+      "[[(module-symbol x &optional module)]]\n"+
+      "Returns a symbol with same name as symbol [x] after interning it " +
+      "in the specified [module] or in current module if no module is " +
+      "specified. If the symbol [x] is already interned in [module] then " +
+      "simply returns it.",
+      function(x, module)
+      {
+          return f$$intern(f$$demangle(x.name),
+                           (typeof module == "undefined" ? d$$$42$current_module$42$ : module));
+      },
+      [s$$x, f$$intern("&optional"), f$$intern("module")]);
 
-deflisp("documentation",
-        "[[(documentation x)]]\n" +
-        "Returns the documentation string for function [x].",
-        function(x)
-        {
-            return x.documentation;
-        },
-        [s$$x]);
+defun("documentation",
+      "[[(documentation x)]]\n" +
+      "Returns the documentation string for function [x].",
+      function(x)
+      {
+          return x.documentation;
+      },
+      [s$$x]);
 
-deflisp("set-documentation",
-        "[[(set-documentation x doc)]]\n" +
-        "Sets the documentation string for function [x] to [doc].",
-        function(x, doc)
-        {
-            x.documentation = doc;
-        },
-        [s$$x, f$$intern("doc")]);
+defun("set-documentation",
+      "[[(set-documentation x doc)]]\n" +
+      "Sets the documentation string for function [x] to [doc].",
+      function(x, doc)
+      {
+          x.documentation = doc;
+      },
+      [s$$x, f$$intern("doc")]);
 
-deflisp("arglist",
-        "[[(arglist x)]]\n" +
-        "Returns the argument list for function [x].",
-        function(x)
-        {
-            return x.arglist || null;
-        },
-        [s$$x]);
+defun("arglist",
+      "[[(arglist x)]]\n" +
+      "Returns the argument list for function [x].",
+      function(x)
+      {
+          return x.arglist || null;
+      },
+      [s$$x]);
 
-deflisp("set-arglist",
-        "[[(set-arglist x arglist)]]\n" +
-        "Sets the argument list for function [x] to [arglist].",
-        function(x, arglist)
-        {
-            x.arglist = arglist;
-        },
-        [s$$x, f$$intern("arglist")]);
+defun("set-arglist",
+      "[[(set-arglist x arglist)]]\n" +
+      "Sets the argument list for function [x] to [arglist].",
+      function(x, arglist)
+      {
+          x.arglist = arglist;
+      },
+      [s$$x, f$$intern("arglist")]);
 
-deflisp("number?", "[[(number? x)]]\nReturns true if and only if [x] is a number (including [NaN])",
-        function(x) { return (typeof x) == "number"; }, [s$$x]);
+defun("number?", "[[(number? x)]]\nReturns true if and only if [x] is a number (including [NaN])",
+      function(x) { return (typeof x) == "number"; }, [s$$x]);
 
-deflisp("string?", "[[(string? x)]]\nReturns true if and only if [x] is a string",
-        function(x) { return (typeof x) == "string"; }, [s$$x]);
+defun("string?", "[[(string? x)]]\nReturns true if and only if [x] is a string",
+      function(x) { return (typeof x) == "string"; }, [s$$x]);
 
-deflisp("list?", "[[(list? x)]]\nReturns true if and only if [x] is a list",
-        function(x) { return (x && x.constructor == Array)  ? true : false; }, [s$$x]);
+defun("list?", "[[(list? x)]]\nReturns true if and only if [x] is a list",
+      function(x) { return (x && x.constructor == Array)  ? true : false; }, [s$$x]);
 
-deflisp("symbol?", "[[(symbol? x)]]\nReturns true if and only if [x] is a symbol",
-        function(x) { return (x && x.constructor == Symbol) ? true : false; }, [s$$x]);
+defun("symbol?", "[[(symbol? x)]]\nReturns true if and only if [x] is a symbol",
+      function(x) { return (x && x.constructor == Symbol) ? true : false; }, [s$$x]);
 
-defcompile("js-code",
-           "[[(js-code x)]]\n" +
-           "Verbatim javascript code inlining. Note that [x] must be a string literal.",
-           function(x) { return x[1]; }, [s$$x]);
+defun("js-eval",
+      "[[(js-eval x)]]\n" +
+      "Javascript evaluation of a string at runtime.",
+      function(x) { return eval(x); }, [s$$x]);
 
-deflisp("js-eval",
-        "[[(js-eval x)]]\n" +
-        "Javascript evaluation of a string at runtime.",
-        function(x) { return eval(x); }, [s$$x]);
+defun("symbol-function",
+      "[[(symbol-function x)]]\n" +
+      "Returns the function cell of a symbol [x] or [undefined] if that function is not present. " +
+      "Lookup doesn't consider lexical function definitions (e.g. [(labels ...)]).",
+      function(x) { return x.interned ? glob["f" + x.name] : x.f; }, [s$$x]);
 
-deflisp("symbol-function",
-        "[[(symbol-function x)]]\n" +
-        "Returns the function cell of a symbol [x] or [undefined] if that function is not present. " +
-        "Lookup doesn't consider lexical function definitions (e.g. [(labels ...)]).",
-        function(x) { return x.interned ? glob["f" + x.name] : x.f; }, [s$$x]);
+defun("set-symbol-function",
+      "[[(set-symbol-function x f)]]\n" +
+      "Sets the function cell of a symbol [x] to the specified function [f]. It doesn't affect "+
+      "lexical function definitions (e.g. [(lables ...)]).",
+      function(x, y) { return x.interned ? (glob["f" + x.name] = y) : (x.f = y); }, [s$$x, f$$intern("f")]);
 
-deflisp("set-symbol-function",
-        "[[(set-symbol-function x f)]]\n" +
-        "Sets the function cell of a symbol [x] to the specified function [f]. It doesn't affect "+
-        "lexical function definitions (e.g. [(lables ...)]).",
-        function(x, y) { return x.interned ? (glob["f" + x.name] = y) : (x.f = y); }, [s$$x, f$$intern("f")]);
+defun("symbol-value",
+      "[[(symbol-value x)]]\n" +
+      "Returns the current value cell of a symbol [x] or [undefined] if that symbol has no value. " +
+      "Lookup doesn't consider lexical symbols.",
+      function(x) { return x.interned ? glob["d" + x.name] : x.d; }, [s$$x]);
 
-deflisp("symbol-value",
-        "[[(symbol-value x)]]\n" +
-        "Returns the current value cell of a symbol [x] or [undefined] if that symbol has no value. " +
-        "Lookup doesn't consider lexical symbols.",
-        function(x) { return x.interned ? glob["d" + x.name] : x.d; }, [s$$x]);
+defun("set-symbol-value",
+      "[[(set-symbol-value x y)]]\n" +
+      "Sets the current value cell of a symbol [x] to [y]. It doesn't affect lexical bindings.",
+      function(x, y) { return x.interned ? (glob["d" + x.name] = y) : (x.d = y); }, [s$$x, f$$intern("y")]);
 
-deflisp("set-symbol-value",
-        "[[(set-symbol-value x y)]]\n" +
-        "Sets the current value cell of a symbol [x] to [y]. It doesn't affect lexical bindings.",
-        function(x, y) { return x.interned ? (glob["d" + x.name] = y) : (x.d = y); }, [s$$x, f$$intern("y")]);
+defun("symbol-macro",
+      "[[(symbol-macro x)]]\n" +
+      "Returns the current macro expander function cell of a symbol [x] or [undefined] if that " +
+      "symbol has no macro expander function set. Lookup doesn't consider lexical macros.",
+      function(x) { return x.interned ? glob["m" + x.name] : x.m; }, [s$$x]);
 
-deflisp("symbol-macro",
-        "[[(symbol-macro x)]]\n" +
-        "Returns the current macro expander function cell of a symbol [x] or [undefined] if that " +
-        "symbol has no macro expander function set. Lookup doesn't consider lexical macros.",
-        function(x) { return x.interned ? glob["m" + x.name] : x.m; }, [s$$x]);
+defun("set-symbol-macro",
+      "[[(set-symbol-macro x f)]]\n" +
+      "Sets the macro expander function cell of a symbol [x] to [y]. It doesn't affect lexical macros.",
+      function(x, f) { return x.interned ? (glob["m" + x.name] = f) : (x.m = f); }, [s$$x, s$$f]);
 
-deflisp("set-symbol-macro",
-        "[[(set-symbol-macro x f)]]\n" +
-        "Sets the macro expander function cell of a symbol [x] to [y]. It doesn't affect lexical macros.",
-        function(x, f) { return x.interned ? (glob["m" + x.name] = f) : (x.m = f); }, [s$$x, s$$f]);
+defun("symbol-name",
+      "[[(symbol-name x)]]\n" +
+      "Returns the lisp symbol name of a symbol [x] as a string object.",
+      function(x) { return f$$demangle(x.name); }, [s$$x]);
 
-deflisp("symbol-name",
-        "[[(symbol-name x)]]\n" +
-        "Returns the lisp symbol name of a symbol [x] as a string object.",
-        function(x) { return f$$demangle(x.name); }, [s$$x]);
+defmacro("if",
+         "[[(if condition then-part &optional else-part)]]\n" +
+         "Conditional evaluation form. Evaluates either [then-part] only or [else-part] only (not both) "+
+         "depending on whether or not the evaluation of [condition] returned a true value.",
+         function(condition, then_part, else_part)
+         {
+             return [s$$js_code, ("(" +
+                                  f$$js_compile(condition) +
+                                  "?" +
+                                  f$$js_compile(then_part) +
+                                  ":" +
+                                  (else_part ? f$$js_compile(else_part) : "undefined") +
+                                  ")")];
+         },
+         [f$$intern("condition"), f$$intern("then-part"), f$$intern("&optional"), f$$intern("else-part")]);
 
-defcompile("if",
-           "[[(if condition then-part &optional else-part)]]\n" +
-           "Conditional evaluation form. Evaluates either [then-part] only or [else-part] only (not both) "+
-           "depending on whether or not the evaluation of [condition] returned a true value.",
-           function(x)
-           {
-               return ("(" +
-                       f$$js_compile(x[1]) +
-                       "?" +
-                       f$$js_compile(x[2]) +
-                       ":" +
-                       f$$js_compile(x[3]) + ")");
-           },
-           [f$$intern("condition"), f$$intern("then-part"), f$$intern("&optional"), f$$intern("else-part")]);
-
-defcompile("defvar",
-           "[[(defvar variable &optional value)]]\n" +
-           "Sets the value cell of [variable] only if is not already defined, and also marks the " +
-           "symbol as 'special' so that future value bindings on this symbol will always be dynamic " +
-           "and not lexical.",
-           function(x)
-           {
-               var v = f$$module_symbol(x[1]).name;
-               specials[v] = "d" + v;
-               return "(d" + v + " = ((glob['d" + v + "']!=undefined)?d" + v + ":" + f$$js_compile(x[2]) + "))";
-           },
-           [f$$intern("variable"), f$$intern("&optional"), f$$intern("value")]);
+defmacro("defvar",
+         "[[(defvar variable &optional value)]]\n" +
+         "Sets the value cell of [variable] only if is not already defined, and also marks the " +
+         "symbol as 'special' so that future value bindings on this symbol will always be dynamic " +
+         "and not lexical.",
+         function(name, value)
+         {
+             var v = f$$module_symbol(name).name;
+             specials[v] = "d" + v;
+             return [s$$js_code, "(d" + v + " = ((glob['d" + v + "']!=undefined)?d" + v + ":" + f$$js_compile(value) + "))"];
+         },
+         [f$$intern("variable"), f$$intern("&optional"), f$$intern("value")]);
 
 function implprogn(x)
 {
@@ -389,634 +387,635 @@ function implprogn(x)
     return res;
 }
 
-defcompile("progn",
-           "[[(progn &rest body)]]\n" +
-           "Evaluates all the forms of [body] in sequence, returning as value the value of the last one.",
-           function(x)
-           {
-               return implprogn(x.slice(1));
-           },
-           [f$$intern("&rest"), f$$intern("body")]);
+defmacro("progn",
+         "[[(progn &rest body)]]\n" +
+         "Evaluates all the forms of [body] in sequence, returning as value the value of the last one.",
+         function()
+         {
+             return [s$$js_code, implprogn(Array.prototype.slice.call(arguments))];
+         },
+         [f$$intern("&rest"), f$$intern("body")]);
 
-defcompile("let",
-           "[[(let ((x1 v1)(x2 v2) ... (xn vn)) &rest body)]]\n" +
-           "Evaluates all the forms of [body] by first establishing lexical/dynamic bindings " +
-           "for the variables [x1=v1], [x2=v2] ... [xn=vn]. The evaluation of the forms [v1]...[vn] " +
-           "does /NOT/ consider the bindings that will be established by [(let ...)].",
-           function(x)
-           {
-               lexvar.begin();
-               lexsmacro.begin();
+defmacro("let",
+         "[[(let ((x1 v1)(x2 v2) ... (xn vn)) &rest body)]]\n" +
+         "Evaluates all the forms of [body] by first establishing lexical/dynamic bindings " +
+         "for the variables [x1=v1], [x2=v2] ... [xn=vn]. The evaluation of the forms [v1]...[vn] " +
+         "does /NOT/ consider the bindings that will be established by [(let ...)].",
+         function(bindings)
+         {
+             var body = Array.prototype.slice.call(arguments, 1);
+             lexvar.begin();
+             lexsmacro.begin();
 
-               var spe = [];
-               var res = "((function(";
-               for (var i=0; i<x[1].length; i++)
-               {
-                   if (i > 0) res += ",";
-                   var name = x[1][i][0].name;
-                   if (specials[name])
-                   {
-                       res += "sd" + name;
-                       spe.push(name);
-                   }
-                   else
-                   {
-                       lexvar.add(name, "d" + name);
-                       res += "d" + name;
-                   }
-                   lexsmacro.add(name, undefined);
-               }
-               res += "){";
-               for (var i=0; i<spe.length; i++)
-               {
-                   res += "var osd" + spe[i] + "=d" + spe[i] + ";";
-                   res += "d" + spe[i] + "=sd" + spe[i] + ";";
-               }
-               res += "var res=";
-               res += implprogn(x.slice(2));
+             var spe = [];
+             var res = "((function(";
+             for (var i=0; i<bindings.length; i++)
+             {
+                 if (i > 0) res += ",";
+                 var name = bindings[i][0].name;
+                 if (specials[name])
+                 {
+                     res += "sd" + name;
+                     spe.push(name);
+                 }
+                 else
+                 {
+                     lexvar.add(name, "d" + name);
+                     res += "d" + name;
+                 }
+                 lexsmacro.add(name, undefined);
+             }
+             res += "){";
+             for (var i=0; i<spe.length; i++)
+             {
+                 res += "var osd" + spe[i] + "=d" + spe[i] + ";";
+                 res += "d" + spe[i] + "=sd" + spe[i] + ";";
+             }
+             res += "var res=";
+             res += implprogn(body);
 
-               lexsmacro.end();
-               lexvar.end();
+             lexsmacro.end();
+             lexvar.end();
 
-               res += ";";
-               for (var i=0; i<spe.length; i++)
-               {
-                   res += "d" + spe[i] + "=osd" + spe[i] + ";";
-               }
-               res += "return res;})(";
-               for (var i=0; i<x[1].length; i++)
-               {
-                   if (i > 0) res += ",";
-                   res += f$$js_compile(x[1][i][1]);
-               }
-               res += "))";
-               return res;
-           },
-           [f$$intern("bindings"), f$$intern("&rest"), f$$intern("body")]);
+             res += ";";
+             for (var i=0; i<spe.length; i++)
+             {
+                 res += "d" + spe[i] + "=osd" + spe[i] + ";";
+             }
+             res += "return res;})(";
+             for (var i=0; i<bindings.length; i++)
+             {
+                 if (i > 0) res += ",";
+                 res += f$$js_compile(bindings[i][1]);
+             }
+             res += "))";
+             return [s$$js_code, res];
+         },
+         [f$$intern("bindings"), f$$intern("&rest"), f$$intern("body")]);
 
-defcompile("lambda",
-           "[[(lambda (arg-1 ... arg-n) &rest body)]]\n" +
-           "Returns a function object that when called will lexically/dynamically bind " +
-           "parameters to [arg1], [arg2], ... [arg-n] and that will evaluate all forms " +
-           "in [body] in sequence returning the last evaluated form value as result",
-           function(x)
-           {
-               lexvar.begin();
-               lexsmacro.begin();
-               var spe = [];
-               var res = "(function(";
-               var rest = null;
-               var nargs = 0;
-               for (var i=0; i<x[1].length; i++)
-               {
-                   var v = x[1][i].name;
-                   if (v == "$$$38$rest" || v == "$$$38$body")
-                   {
-                       rest = x[1][i+1].name;
-                       if (!specials[rest])
-                           lexvar.add(rest, "d"+ rest);
-                       lexsmacro.add(rest, undefined);
-                   }
-                   else if (!rest)
-                   {
-                       if (i > 0) res += ",";
-                       if (specials[v])
-                       {
-                           res += "sd" + v;
-                           spe.push(v);
-                       }
-                       else
-                       {
-                           res += "d" + v;
-                           lexvar.add(v, "d" + v);
-                       }
-                       nargs++;
-                       lexsmacro.add(v, undefined);
-                   }
-               }
-               res += "){";
-               for (var i=0; i<spe.length; i++)
-               {
-                   res += "var osd" + spe[i] + "=d" + spe[i] + ";";
-                   res += "d" + spe[i] + "=sd" + spe[i] + ";";
-               }
-               if (rest)
-               {
-                   if (specials[rest])
-                   {
-                       spe.push(rest);
-                       res += "var osd" + rest + "=d" + rest + ";";
-                   }
-                   else
-                   {
-                       res += "var ";
-                   }
-                   res += "d" + rest + "=Array.prototype.slice.call(arguments,"+nargs+");";
-               }
-               if (spe.length == 0)
-               {
-                   res += "return " + implprogn(x.slice(2)) + ";})";
-                   lexvar.end();
-                   lexsmacro.end();
-               }
-               else
-               {
-                   res += "var res=";
-                   res += implprogn(x.slice(2));
+defmacro("lambda",
+         "[[(lambda (arg-1 ... arg-n) &rest body)]]\n" +
+         "Returns a function object that when called will lexically/dynamically bind " +
+         "parameters to [arg1], [arg2], ... [arg-n] and that will evaluate all forms " +
+         "in [body] in sequence returning the last evaluated form value as result",
+         function(args)
+         {
+             var body = Array.prototype.slice.call(arguments, 1);
+             lexvar.begin();
+             lexsmacro.begin();
+             var spe = [];
+             var res = "(function(";
+             var rest = null;
+             var nargs = 0;
+             for (var i=0; i<args.length; i++)
+             {
+                 var v = args[i].name;
+                 if (v == "$$$38$rest")
+                 {
+                     rest = args[i+1].name;
+                     if (!specials[rest])
+                         lexvar.add(rest, "d"+ rest);
+                     lexsmacro.add(rest, undefined);
+                 }
+                 else if (!rest)
+                 {
+                     if (i > 0) res += ",";
+                     if (specials[v])
+                     {
+                         res += "sd" + v;
+                         spe.push(v);
+                     }
+                     else
+                     {
+                         res += "d" + v;
+                         lexvar.add(v, "d" + v);
+                     }
+                     nargs++;
+                     lexsmacro.add(v, undefined);
+                 }
+             }
+             res += "){";
+             for (var i=0; i<spe.length; i++)
+             {
+                 res += "var osd" + spe[i] + "=d" + spe[i] + ";";
+                 res += "d" + spe[i] + "=sd" + spe[i] + ";";
+             }
+             if (rest)
+             {
+                 if (specials[rest])
+                 {
+                     spe.push(rest);
+                     res += "var osd" + rest + "=d" + rest + ";";
+                 }
+                 else
+                 {
+                     res += "var ";
+                 }
+                 res += "d" + rest + "=Array.prototype.slice.call(arguments,"+nargs+");";
+             }
+             if (spe.length == 0)
+             {
+                 res += "return " + implprogn(body) + ";})";
+                 lexvar.end();
+                 lexsmacro.end();
+             }
+             else
+             {
+                 res += "var res=";
+                 res += implprogn(body);
 
-                   lexvar.end();
-                   lexsmacro.end();
+                 lexvar.end();
+                 lexsmacro.end();
 
-                   res += ";"
-                   for (var i=0; i<spe.length; i++)
-                   {
-                       res += "d" + spe[i] + "=osd" + spe[i] + ";";
-                   }
-                   res += "return res;})";
-               }
-               return res;
-           },
-           [f$$intern("args"), f$$intern("&rest"), f$$intern("body")]);
+                 res += ";"
+                 for (var i=0; i<spe.length; i++)
+                 {
+                     res += "d" + spe[i] + "=osd" + spe[i] + ";";
+                 }
+                 res += "return res;})";
+             }
+             return [s$$js_code, res];
+         },
+         [f$$intern("args"), f$$intern("&rest"), f$$intern("body")]);
 
-deflisp("logcount",
-        "[[(logcount x)]]\n" +
-        "Returns the number of bits set to 1 in the binary representation of the integer number [x].",
-        function(x)
-        {
-            var n = 0;
-            while (x)
-            {
-                x &= x-1;
-                n++;
-            }
-            return n;
-        },
-        [s$$x]);
+defun("logcount",
+      "[[(logcount x)]]\n" +
+      "Returns the number of bits set to 1 in the binary representation of the integer number [x].",
+      function(x)
+      {
+          var n = 0;
+          while (x)
+          {
+              x &= x-1;
+              n++;
+          }
+          return n;
+      },
+      [s$$x]);
 
-deflisp("list",
-        "[[(list &rest args)]]\n" +
-        "Returns the list containing the value of the expressions in [args].",
-        function()
-        {
-            return Array.prototype.slice.call(arguments);
-        },
-        [f$$intern("&rest"), f$$intern("args")]);
+defun("list",
+      "[[(list &rest args)]]\n" +
+      "Returns the list containing the value of the expressions in [args].",
+      function()
+      {
+          return Array.prototype.slice.call(arguments);
+      },
+      [f$$intern("&rest"), f$$intern("args")]);
 
-deflisp("funcall",
-        "[[(funcall f &rest args)]]\n" +
-        "Calls the function object [f] passing specified values as parameters.",
-        function()
-        {
-            return arguments[0].apply(glob, Array.prototype.slice.call(arguments, 1));
-        },
-        [f$$intern("f"), f$$intern("&rest"), f$$intern("args")]);
+defun("funcall",
+      "[[(funcall f &rest args)]]\n" +
+      "Calls the function object [f] passing specified values as parameters.",
+      function()
+      {
+          return arguments[0].apply(glob, Array.prototype.slice.call(arguments, 1));
+      },
+      [f$$intern("f"), f$$intern("&rest"), f$$intern("args")]);
 
-defcompile("labels",
-           "[[(labels ((func1 (x1 x2 ... xn) f1 f2 .. fn)...) &rest body)]]\n" +
-           "Excutes the forms in [body] by first establishing a lexical binding for the " +
-           "function names [func1], [func2] ... [funcn]. When compiling the body forms any "+
-           "macros defined outside the [(labels ...)] form with names [func1], [func2], "+
-           "... [funcn] will be ignored.",
-           function(x)
-           {
-               // First hide all macros and lexical macros named as defined functions
-               // and also adds immediately the functions to the lexical functions list
-               lexfunc.begin();
-               lexmacro.begin();
-               var hmacros = [];
-               for (var i=0; i<x[1].length; i++)
-               {
-                   var v = x[1][i][0].name;
-                   lexmacro.add(v, undefined);
-                   hmacros.push([v, glob["m" + v]]);
-                   glob["m" + v] = undefined;
-                   lexfunc.add(v, "f" + v);
-               }
+defmacro("labels",
+         "[[(labels ((func1 (x1 x2 ... xn) f1 f2 .. fn)...) &rest body)]]\n" +
+         "Excutes the forms in [body] by first establishing a lexical binding for the " +
+         "function names [func1], [func2] ... [funcn]. When compiling the body forms any "+
+         "macros defined outside the [(labels ...)] form with names [func1], [func2], "+
+         "... [funcn] will be ignored.",
+         function(bindings)
+         {
+             var body = Array.prototype.slice.call(arguments, 1);
+             // First hide all macros and lexical macros named as defined functions
+             // and also adds immediately the functions to the lexical functions list
+             lexfunc.begin();
+             lexmacro.begin();
+             var hmacros = [];
+             for (var i=0; i<bindings.length; i++)
+             {
+                 var v = bindings[i][0].name;
+                 lexmacro.add(v, undefined);
+                 hmacros.push([v, glob["m" + v]]);
+                 glob["m" + v] = undefined;
+                 lexfunc.add(v, "f" + v);
+             }
 
-               // Compile function definitions
-               var res = "((function(){";
-               for (var i=0; i<x[1].length; i++)
-               {
-                   var v = x[1][i][0].name;
-                   res += "var f" + v + "=" +
-                       f$$js_compile([f$$intern("lambda")].concat(x[1][i].slice(1))) + ";";
-               }
-               res += "return ";
-               res += implprogn(x.slice(2));
-               res += ";})())";
+             // Compile function definitions
+             var res = "((function(){";
+             for (var i=0; i<bindings.length; i++)
+             {
+                 var v = bindings[i][0].name;
+                 res += "var f" + v + "=" +
+                     f$$js_compile([f$$intern("lambda")].concat(bindings[i].slice(1))) + ";";
+             }
+             res += "return ";
+             res += implprogn(body);
+             res += ";})())";
 
-               lexfunc.end();
-               lexmacro.end();
-               // Restore hidden global macros
-               for (var i=0; i<hmacros.length; i++)
-                   glob["m" + hmacros[i][0]] = hmacros[i][1];
-               return res;
-           },
-           [f$$intern("bindings"), f$$intern("&rest"), f$$intern("body")]);
+             lexfunc.end();
+             lexmacro.end();
+             // Restore hidden global macros
+             for (var i=0; i<hmacros.length; i++)
+                 glob["m" + hmacros[i][0]] = hmacros[i][1];
+             return [s$$js_code, res];
+         },
+         [f$$intern("bindings"), f$$intern("&rest"), f$$intern("body")]);
 
-defcompile("dotimes",
-           "[[(dotimes (var count) &rest body)]]\n" +
-           "Evaluates the [body] forms in sequence exactly 'count' times by setting " +
-           "the dynamically/lexically bound variable [var] to 0, 1, ... [count-1] before " +
-           "each iteration. The return value is [null].",
-           function(x)
-           {
-               lexsmacro.begin();
-               var v = x[1][0].name;
-               lexsmacro.add(v, undefined);
-               if (specials[v])
-               {
-                   var res = ("(function($$dotimes_count){var osd" + v + "=d" + v + ";for(d" + v +
-                              "=0; d" + v + "<$$dotimes_count; ++d" + v + "){");
-                   for (var j=2; j<x.length; j++)
-                   {
-                       res += f$$js_compile(x[j]) + ";";
-                   }
-                   lexsmacro.end();
-                   res += "};d" + v + "=osd" + v + ";return null;})(" + f$$js_compile(x[1][1]) + ")";
-               }
-               else
-               {
-                   lexvar.begin();
-                   lexvar.add(v, "d" + v);
-                   var res = ("(function($$dotimes_count){for(var d" + v +
-                              "=0; d" + v + "<$$dotimes_count; ++d" + v + "){");
-                   for (var j=2; j<x.length; j++)
-                   {
-                       res += f$$js_compile(x[j]) + ";";
-                   }
-                   lexvar.end();
-                   lexsmacro.end();
-                   res += "}return null;})(" + f$$js_compile(x[1][1]) + ")";
-               }
-               return res;
-           },
-           [f$$intern("var&count"), f$$intern("&rest"), f$$intern("body")]);
+defmacro("dotimes",
+         "[[(dotimes (var count) &rest body)]]\n" +
+         "Evaluates the [body] forms in sequence exactly 'count' times by setting " +
+         "the dynamically/lexically bound variable [var] to 0, 1, ... [count-1] before " +
+         "each iteration. The return value is [null].",
+         function(itvar)
+         {
+             var body = Array.prototype.slice.call(arguments, 1);
+             lexsmacro.begin();
+             var v = itvar[0].name;
+             lexsmacro.add(v, undefined);
+             if (specials[v])
+             {
+                 var res = ("(function($$dotimes_count){var osd" + v + "=d" + v + ";for(d" + v +
+                            "=0; d" + v + "<$$dotimes_count; ++d" + v + "){");
+                 res += implprogn(body);
+                 lexsmacro.end();
+                 res += "};d" + v + "=osd" + v + ";return null;})(" + f$$js_compile(itvar[1]) + ")";
+             }
+             else
+             {
+                 lexvar.begin();
+                 lexvar.add(v, "d" + v);
+                 var res = ("(function($$dotimes_count){for(var d" + v +
+                            "=0; d" + v + "<$$dotimes_count; ++d" + v + "){");
+                 res += implprogn(body);
+                 lexvar.end();
+                 lexsmacro.end();
+                 res += "}return null;})(" + f$$js_compile(itvar[1]) + ")";
+             }
+             return [s$$js_code, res];
+         },
+         [f$$intern("var&count"), f$$intern("&rest"), f$$intern("body")]);
 
-defcompile("dolist",
-           "[[(dolist (var x) &rest body)\n" +
-           "Evaluates the [body] forms in sequence times by setting " +
-           "the dynamically/lexically bound variable [var] to next element of list [x] each time. " +
-           "The return value is [null].",
-           function(x)
-           {
-               lexsmacro.begin();
-               var v = x[1][0].name;
-               lexsmacro.add(v, undefined);
-               if (specials[v])
-               {
-                   var res = ("(function($$dolist_L){var osd" + v + "=d" + v + ";for(var $$i=0; $$i < $$dolist_L.length; ++$$i){" +
-                              "d" + v + " = $$dolist_L[$$i]; ");
-                   for (var j=2; j<x.length; j++)
-                   {
-                       res += f$$js_compile(x[j]) + ";";
-                   }
-                   lexsmacro.end();
-                   res += "};d" + v + "=osd" + v + ";return null;})(" + f$$js_compile(x[1][1]) + ")";
-               }
-               else
-               {
-                   lexvar.begin();
-                   lexvar.add(v, "d" + v);
-                   var res = ("(function($$dolist_L){for(var $$i=0; $$i < $$dolist_L.length; ++$$i){" +
-                              "var d" + v + " = $$dolist_L[$$i]; ");
-                   for (var j=2; j<x.length; j++)
-                   {
-                       res += f$$js_compile(x[j]) + ";";
-                   }
-                   lexvar.end();
-                   lexsmacro.end();
-                   res += "}return null;})(" + f$$js_compile(x[1][1]) + ")";
-               }
-               return res;
-           },
-           [f$$intern("var&list"), f$$intern("&rest"), f$$intern("body")]);
+defmacro("dolist",
+         "[[(dolist (var x) &rest body)\n" +
+         "Evaluates the [body] forms in sequence times by setting " +
+         "the dynamically/lexically bound variable [var] to next element of list [x] each time. " +
+         "The return value is [null].",
+         function(itvar)
+         {
+             var body = Array.prototype.slice.call(arguments, 1);
+             lexsmacro.begin();
+             var v = itvar[0].name;
+             lexsmacro.add(v, undefined);
+             if (specials[v])
+             {
+                 var res = ("(function($$dolist_L){var osd" + v + "=d" + v + ";for(var $$i=0; $$i < $$dolist_L.length; ++$$i){" +
+                            "d" + v + " = $$dolist_L[$$i]; ");
+                 res += implprogn(body);
+                 lexsmacro.end();
+                 res += "};d" + v + "=osd" + v + ";return null;})(" + f$$js_compile(itvar[1]) + ")";
+             }
+             else
+             {
+                 lexvar.begin();
+                 lexvar.add(v, "d" + v);
+                 var res = ("(function($$dolist_L){for(var $$i=0; $$i < $$dolist_L.length; ++$$i){" +
+                            "var d" + v + " = $$dolist_L[$$i]; ");
+                 res += implprogn(body);
+                 lexvar.end();
+                 lexsmacro.end();
+                 res += "}return null;})(" + f$$js_compile(itvar[1]) + ")";
+             }
+             return [s$$js_code, res];
+         },
+         [f$$intern("var&list"), f$$intern("&rest"), f$$intern("body")]);
 
-defcompile("setq",
-           "[[(setq name value)]]\n" +
-           "Sets the current value of variable [name]. When [name] is not a symbol or is " +
-           "currently globally or lexically bound to a symbol macro [setq] is transformed " +
-           "in a corresponding [(setf ...)] form.",
-           function(x)
-           {
-               if (f$$symbol$63$(x[1]) &&
-                   !x[1].symbol_macro &&
-                   !lexsmacro.vars[x[1].name])
-               {
-                   return "(d" + x[1].name + "=" + f$$js_compile(x[2]) + ")";
-               }
-               else
-               {
-                   return f$$js_compile([f$$intern("setf"), x[1], x[2]]);
-               }
-           },
-           [f$$intern("name"), f$$intern("value")]);
+defmacro("setq",
+         "[[(setq name value)]]\n" +
+         "Sets the current value of variable [name]. When [name] is not a symbol or is " +
+         "currently globally or lexically bound to a symbol macro [setq] is transformed " +
+         "in a corresponding [(setf ...)] form.",
+         function(name, value)
+         {
+             if (f$$symbol$63$(name) &&
+                 !name.symbol_macro &&
+                 !lexsmacro.vars[name.name])
+             {
+                 return [s$$js_code, "(d" + name.name + "=" + f$$js_compile(value) + ")"];
+             }
+             else
+             {
+                 return [f$$intern("setf"), name, value];
+             }
+         },
+         [f$$intern("name"), f$$intern("value")]);
 
-defcompile("quote",
-           "[[(quote x)]]\n" +
-           "Returns the unevaluated form [x] as result.",
-           function(x)
-           {
-               if (f$$symbol$63$(x[1]) && x[1].interned)
-                   return "s" + x[1].name;
-               if (f$$number$63$(x[1]) || f$$string$63$(x[1]))
-                   return stringify(x[1]);
-               lisp_literals.push(x[1]);
-               return "lisp_literals[" + (lisp_literals.length-1) + "]";
-           },
-           [s$$x]);
+defmacro("quote",
+         "[[(quote x)]]\n" +
+         "Returns the unevaluated form [x] as result.",
+         function(x)
+         {
+             if (f$$symbol$63$(x) && x.interned)
+                 return [s$$js_code, "s" + x.name];
+             if (f$$number$63$(x) || f$$string$63$(x))
+                 return [s$$js_code, stringify(x)];
+             lisp_literals.push(x);
+             return [s$$js_code, "lisp_literals[" + (lisp_literals.length-1) + "]"];
+         },
+         [s$$x]);
 
-deflisp("eval",
-        "[[(eval x)]]\n" +
-        "Evaluates the expression [x] without considering lexical bindings.",
-        function(x)
-        {
-            return eval(f$$js_compile(x));
-        },
-        [s$$x]);
+defun("eval",
+      "[[(eval x)]]\n" +
+      "Evaluates the expression [x] without considering lexical bindings.",
+      function(x)
+      {
+          return eval(f$$js_compile(x));
+      },
+      [s$$x]);
 
-deflisp("macroexpand-1",
-        "[[(macroexpand-1 x)]]\n" +
-        "Expands the macro call or symbol in [x] or returns [x] unaltered if " +
-        "it's neither a macro invocation nor a macro symbol. Lexical macro bindings are NOT considered.",
-        function(x)
-        {
-            if (f$$symbol$63$(x) && x.symbol_macro)
-                x = x.symbol_macro;
-            else if (f$$list$63$(x) && f$$symbol$63$(x[0]) && glob["m" + x[0].name])
-                x = glob["m" + x[0].name].apply(glob, x.slice(1));
-            return x;
-        },
-        [s$$x]);
+defun("macroexpand-1",
+      "[[(macroexpand-1 x)]]\n" +
+      "Expands the macro call or symbol in [x] or returns [x] unaltered if " +
+      "it's neither a macro invocation nor a macro symbol. Lexical macro bindings are NOT considered.",
+      function(x)
+      {
+          if (f$$symbol$63$(x) && x.symbol_macro)
+              x = x.symbol_macro;
+          else if (f$$list$63$(x) && f$$symbol$63$(x[0]) && glob["m" + x[0].name])
+              x = glob["m" + x[0].name].apply(glob, x.slice(1));
+          return x;
+      },
+      [s$$x]);
 
-deflisp("macroexpand",
-        "[[(macroexpand x)]]\n" +
-        "Repeats macro expansion process of [macroexpand-1] on [x] until no more expansions are possible.",
-        function(x)
-        {
-            for (;;)
-            {
-                if (f$$symbol$63$(x) && x.symbol_macro)
-                    x = x.symbol_macro;
-                else if (f$$list$63$(x) && f$$symbol$63$(x[0]) && glob["m" + x[0].name])
-                    x = glob["m" + x[0].name].apply(glob, x.slice(1));
-                else break;
-            }
-            return x;
-        },
-        [s$$x]);
+defun("macroexpand",
+      "[[(macroexpand x)]]\n" +
+      "Repeats macro expansion process of [macroexpand-1] on [x] until no more expansions are possible.",
+      function(x)
+      {
+          for (;;)
+          {
+              if (f$$symbol$63$(x) && x.symbol_macro)
+                  x = x.symbol_macro;
+              else if (f$$list$63$(x) && f$$symbol$63$(x[0]) && glob["m" + x[0].name])
+                  x = glob["m" + x[0].name].apply(glob, x.slice(1));
+              else break;
+          }
+          return x;
+      },
+      [s$$x]);
 
-deflisp("append",
-        "[[(append &rest lists)]]\n"+
-        "Returns a list obtained by concatenating all specified lists.",
-        function()
-        {
-            res = [];
-            for (var i=0; i<arguments.length; i++)
-                res = res.concat(arguments[i]);
-            return res;
-        },
-        [f$$intern("&rest"), f$$intern("lists")]);
+defun("append",
+      "[[(append &rest lists)]]\n"+
+      "Returns a list obtained by concatenating all specified lists.",
+      function()
+      {
+          res = [];
+          for (var i=0; i<arguments.length; i++)
+              res = res.concat(arguments[i]);
+          return res;
+      },
+      [f$$intern("&rest"), f$$intern("lists")]);
 
-deflisp("apply",
-        "[[(apply f args)]]\n" +
-        "Calls the function [f] passing the list [args] as arguments",
-        function(f, args)
-        {
-            return f.apply(null, args);
-        },
-        [f$$intern("f"), f$$intern("args")]);
+defun("apply",
+      "[[(apply f args)]]\n" +
+      "Calls the function [f] passing the list [args] as arguments",
+      function(f, args)
+      {
+          return f.apply(null, args);
+      },
+      [f$$intern("f"), f$$intern("args")]);
 
-deflisp("lexical-macro",
-        "[[(lexical-macro x)]]\n" +
-        "Returns the lexical macro function associated to symbol [x] if present or undefined otherwise",
-        function(x)
-        {
-            return lexmacro.vars[x.name];
-        },
-        [s$$x]);
+defun("lexical-macro",
+      "[[(lexical-macro x)]]\n" +
+      "Returns the lexical macro function associated to symbol [x] if present or undefined otherwise",
+      function(x)
+      {
+          return lexmacro.vars[x.name];
+      },
+      [s$$x]);
 
-deflisp("lexical-symbol-macro",
-        "[[(lexical-symbol-macro x)]]\n" +
-        "Returns the lexical symbol-macro associated to symbol [x] if present or undefined otherwise",
-        function(x)
-        {
-            return lexsmacro.vars[x.name];
-        },
-        [s$$x]);
+defun("lexical-symbol-macro",
+      "[[(lexical-symbol-macro x)]]\n" +
+      "Returns the lexical symbol-macro associated to symbol [x] if present or undefined otherwise",
+      function(x)
+      {
+          return lexsmacro.vars[x.name];
+      },
+      [s$$x]);
 
-deflisp("lexical-function",
-        "[[(lexical-function x)]]\n" +
-        "Returns the lexical function associated to symbol [x] if present or undefined otherwise",
-        function(x)
-        {
-            return lexfunc.vars[x.name];
-        },
-        [s$$x]);
+defun("lexical-function",
+      "[[(lexical-function x)]]\n" +
+      "Returns the lexical function associated to symbol [x] if present or undefined otherwise",
+      function(x)
+      {
+          return lexfunc.vars[x.name];
+      },
+      [s$$x]);
 
-defcompile("apply",
-           "[[(apply f args)]]\n",
-           "Calls the function [f] passing the list [args] as arguments",
-           function(x)
-           {
-               var res = f$$js_compile(x[1]);
-               return res + ".apply(null," + f$$js_compile(x[2]) + ")";
-           },
-           [f$$intern("f"), f$$intern("lists")]);
+defmacro("apply",
+         "[[(apply f args)]]\n" +
+         "Calls the function [f] passing the list [args] as arguments",
+         function(f, args)
+         {
+             var res = f$$js_compile(f);
+             return [s$$js_code, res + ".apply(null," + f$$js_compile(args) + ")"];
+         },
+         [f$$intern("f"), f$$intern("args")]);
 
-defcompile("and",
-           "[[(and &rest expressions)]]\n" +
-           "Returns the value of last expression form if all forms evaluate to logically true or otherwise " +
-           "returns the first logically false result without evaluating subsequent forms.",
-           function(x)
-           {
-               if (x.length == 1)
-                   return "true";
-               var res = "(";
-               for (var i=1; i<x.length; i++)
-               {
-                   if (i > 1) res += "&&";
-                   res += f$$js_compile(x[i]);
-               }
-               return res + ")";
-           },
-           [f$$intern("&rest"), f$$intern("expressions")]);
+defmacro("and",
+         "[[(and &rest expressions)]]\n" +
+         "Returns the value of last expression form if all forms evaluate to logically true or otherwise " +
+         "returns the first logically false result without evaluating subsequent forms.",
+         function()
+         {
+             var x = Array.prototype.slice.call(arguments);
+             if (x.length == 0)
+                 return "true";
+             var res = "(";
+             for (var i=0; i<x.length; i++)
+             {
+                 if (i > 0) res += "&&";
+                 res += f$$js_compile(x[i]);
+             }
+             return [s$$js_code, res + ")"];
+         },
+         [f$$intern("&rest"), f$$intern("expressions")]);
 
-defcompile("or",
-           "[[(or &rest expressions)]]\n" +
-           "Returns the value of the first expression that evaluates to logically true without evaluating " +
-           "subsequent forms, or otherwise returns the value of last expression if all of them evaluate " +
-           "to logicall false.",
-           function(x)
-           {
-               if (x.length == 1)
-                   return "false";
-               var res = "(";
-               for (var i=1; i<x.length; i++)
-               {
-                   if (i > 1) res += "||";
-                   res += f$$js_compile(x[i]);
-               }
-               return res + ")";
-           },
-           [f$$intern("&rest"), f$$intern("expressions")]);
+defmacro("or",
+         "[[(or &rest expressions)]]\n" +
+         "Returns the value of the first expression that evaluates to logically true without evaluating " +
+         "subsequent forms, or otherwise returns the value of last expression if all of them evaluate " +
+         "to logicall false.",
+         function()
+         {
+             var x = Array.prototype.slice.call(arguments);
+             if (x.length == 0)
+                 return "false";
+             var res = "(";
+             for (var i=0; i<x.length; i++)
+             {
+                 if (i > 0) res += "||";
+                 res += f$$js_compile(x[i]);
+             }
+             return [s$$js_code, res + ")"];
+         },
+         [f$$intern("&rest"), f$$intern("expressions")]);
 
-defcompile("cond",
-           "[[(cond (t1 f1)(t2 f2)...(tn fn))]]\n" +
-           "Evaluates in sequence [t1], [t2] ... [tn] and returns the value of the first corresponding form " +
-           "[f] when the value is logically true without evaluating subsequent conditions. " +
-           "Returns [null] if no condition [t] evaluates to logically true",
-           function(x)
-           {
-               var res = "(";
-               for (var i=1; i<x.length; i++)
-               {
-                   if (i > 1)
-                       res += ":";
-                   res += (f$$js_compile(x[i][0]) + "?" +
-                           implprogn(x[i].slice(1)));
-               }
-               return res + ":null)";
-           },
-           [f$$intern("&rest"), f$$intern("body")]);
+defmacro("cond",
+         "[[(cond (t1 f1)(t2 f2)...(tn fn))]]\n" +
+         "Evaluates in sequence [t1], [t2] ... [tn] and returns the value of the first corresponding form " +
+         "[f] when the value is logically true without evaluating subsequent conditions. " +
+         "Returns [null] if no condition [t] evaluates to logically true",
+         function()
+         {
+             var x = Array.prototype.slice.call(arguments);
+             var res = "(";
+             for (var i=0; i<x.length; i++)
+             {
+                 if (i > 0)
+                     res += ":";
+                 res += (f$$js_compile(x[i][0]) + "?" +
+                         implprogn(x[i].slice(1)));
+             }
+             return [s$$js_code, res + ":null)"];
+         },
+         [f$$intern("&rest"), f$$intern("body")]);
 
-defcompile("when",
-           "[[(when condition &rest body)]]\n" +
-           "If [condition] evaluates to logically true evaluates the body forms in " +
-           "sequence an returns the value of last evaluated form, otherwise returns null without " +
-           "evaluating any of the body forms.",
-           function(x)
-           {
-               return ("(" + f$$js_compile(x[1]) + "?" +
-                       implprogn(x.slice(2)) + ":null)");
-           },
-           [f$$intern("condition"), f$$intern("&rest"), f$$intern("body")]);
+defmacro("when",
+         "[[(when condition &rest body)]]\n" +
+         "If [condition] evaluates to logically true evaluates the body forms in " +
+         "sequence an returns the value of last evaluated form, otherwise returns null without " +
+         "evaluating any of the body forms.",
+         function(condition)
+         {
+             var body = Array.prototype.slice.call(arguments);
+             return [s$$js_code, ("(" + f$$js_compile(condition) + "?" +
+                                  implprogn(body) + ":null)")];
+         },
+         [f$$intern("condition"), f$$intern("&rest"), f$$intern("body")]);
 
-defcompile("unless",
-           "[[(unless condition &rest body)]]\n" +
-           "If [condition] evaluates to logically false evaluates the body forms in " +
-           "sequence an returns the value of last evaluated form, otherwise returns null without " +
-           "evaluating any of the body forms.",
-           function(x)
-           {
-               return ("(" + f$$js_compile(x[1]) + "?null:(" +
-                       implprogn(x.slice(2)) + "))");
-           },
-           [f$$intern("condition"), f$$intern("&rest"), f$$intern("body")]);
+defmacro("unless",
+         "[[(unless condition &rest body)]]\n" +
+         "If [condition] evaluates to logically false evaluates the body forms in " +
+         "sequence an returns the value of last evaluated form, otherwise returns null without " +
+         "evaluating any of the body forms.",
+         function(condition)
+         {
+             var body = Array.prototype.slice.call(arguments);
+             return [s$$js_code, ("(" + f$$js_compile(condition) + "?null:(" +
+                                  implprogn(body) + "))")];
+         },
+         [f$$intern("condition"), f$$intern("&rest"), f$$intern("body")]);
 
-defcompile("do",
-           "[[(do ((v1 init1 [inc1])...)(exit-test res1 res2 ...) &rest body)]]\n" +
-           "Loops over the body forms by first establishing a lexical/dynamic binding " +
-           "[v1=init1], [v2=init2], ... and by assigning the value of the increment forms [inc1] to [v1], " +
-           "[inc2] to [v2] ... where they are present after each iteration. " +
-           "Before entering each loop iteration the [exit-test] form is evaluated and if logically true the " +
-           "iteration is not performed and the result forms [res1], [res2] ... are evaluated in sequence "+
-           "with the value of last of them being used as the final result of the [(do ...)] form.",
-           function(x)
-           {
-               lexsmacro.begin();
-               lexvar.begin();
-               var spe = [];
-               var res = "(function(";
-               for (var i=0; i<x[1].length; i++)
-               {
-                   var v = x[1][i][0].name;
-                   if (i > 0) res += ",";
-                   if (specials[v])
-                   {
-                       res += "sd" + v;
-                       spe.push(v);
-                   }
-                   else
-                   {
-                       res += "d" + v;
-                       lexvar.add(v, "d" + v);
-                   }
-                   lexsmacro.add(v, undefined);
-               }
-               res += "){";
-               for (var i=0; i<spe.length; i++)
-               {
-                   res += "var osd" + spe[i] + "=d" + spe[i] + ";";
-                   res += "d" + spe[i] + "=sd" + spe[i] + ";";
-               }
-               res += "for(;;){";
-               res += "if(" + f$$js_compile(x[2][0]) + "){";
-               res += "var res=" + implprogn(x[2].slice(1)) + ";";
-               for (var i=0; i<spe.length; i++)
-               {
-                   res += "d" + spe[i] + "=osd" + spe[i] + ";";
-               }
-               res += "return res;}";
-               res += implprogn(x.slice(3)) + ";";
-               for (var i=0; i<x[1].length; i++)
-               {
-                   if (x[1][i].length == 3)
-                   {
-                       var v = x[1][i][0].name;
-                       res += "d" + v + "=(" + f$$js_compile(x[1][i][2]) + ");";
-                   }
-               }
-               res += "}})(";
-               lexsmacro.end();
-               lexvar.end();
-               for (var i=0; i<x[1].length; i++)
-               {
-                   if (i > 0) res += ",";
-                   res += f$$js_compile(x[1][i][1]);
-               }
-               return res + ")";
-           },
-           [f$$intern("init&step"), f$$intern("quit-condition"), f$$intern("&rest"), f$$intern("body")]);
+defmacro("do",
+         "[[(do ((v1 init1 [inc1])...)(exit-test res1 res2 ...) &rest body)]]\n" +
+         "Loops over the body forms by first establishing a lexical/dynamic binding " +
+         "[v1=init1], [v2=init2], ... and by assigning the value of the increment forms [inc1] to [v1], " +
+         "[inc2] to [v2] ... where they are present after each iteration. " +
+         "Before entering each loop iteration the [exit-test] form is evaluated and if logically true the " +
+         "iteration is not performed and the result forms [res1], [res2] ... are evaluated in sequence "+
+         "with the value of last of them being used as the final result of the [(do ...)] form.",
+         function(vars, test)
+         {
+             var body = Array.prototype.slice.call(arguments, 2);
+             lexsmacro.begin();
+             lexvar.begin();
+             var spe = [];
+             var res = "(function(";
+             for (var i=0; i<vars.length; i++)
+             {
+                 var v = vars[i][0].name;
+                 if (i > 0) res += ",";
+                 if (specials[v])
+                 {
+                     res += "sd" + v;
+                     spe.push(v);
+                 }
+                 else
+                 {
+                     res += "d" + v;
+                     lexvar.add(v, "d" + v);
+                 }
+                 lexsmacro.add(v, undefined);
+             }
+             res += "){";
+             for (var i=0; i<spe.length; i++)
+             {
+                 res += "var osd" + spe[i] + "=d" + spe[i] + ";";
+                 res += "d" + spe[i] + "=sd" + spe[i] + ";";
+             }
+             res += "for(;;){";
+             res += "if(" + f$$js_compile(test[0]) + "){";
+             res += "var res=" + implprogn(test.slice(1)) + ";";
+             for (var i=0; i<spe.length; i++)
+             {
+                 res += "d" + spe[i] + "=osd" + spe[i] + ";";
+             }
+             res += "return res;}";
+             res += implprogn(body) + ";";
+             for (var i=0; i<vars.length; i++)
+             {
+                 if (vars[i].length == 3)
+                 {
+                     var v = vars[i][0].name;
+                     res += "d" + v + "=(" + f$$js_compile(vars[i][2]) + ");";
+                 }
+             }
+             res += "}})(";
+             lexsmacro.end();
+             lexvar.end();
+             for (var i=0; i<vars.length; i++)
+             {
+                 if (i > 0) res += ",";
+                 res += f$$js_compile(vars[i][1]);
+             }
+             return [s$$js_code, res + ")"];
+         },
+         [f$$intern("init&step"), f$$intern("quit-condition"), f$$intern("&rest"), f$$intern("body")]);
 
-defcompile("macrolet",
-           "[[(macrolet ((m1 (x1 x2 ...) b1 b2 ...) ...) &rest body)]]\n" +
-           "Evaluates the body forms that are compiled by first installing " +
-           "the lexical macros [m1], [m2] ... [mn]. Global macros accessible with [(symbol-macro x)] are not " +
-           "affected by these local definitions.",
-           function(x)
-           {
-               lexmacro.begin();
-               for (var i=0; i<x[1].length; i++)
-               {
-                   var name = x[1][i][0].name;
-                   var args = x[1][i][1];
-                   var body = x[1][i].slice(2);
-                   lexmacro.add(name, eval(f$$js_compile([f$$intern("lambda"), args].concat(body))));
-               }
-               var res = implprogn(x.slice(2));
-               lexmacro.end();
-               return res;
-           },
-           [f$$intern("bindings"), f$$intern("&rest"), f$$intern("body")]);
+defmacro("macrolet",
+         "[[(macrolet ((m1 (x1 x2 ...) b1 b2 ...) ...) &rest body)]]\n" +
+         "Evaluates the body forms that are compiled by first installing " +
+         "the lexical macros [m1], [m2] ... [mn]. Global macros accessible with [(symbol-macro x)] are not " +
+         "affected by these local definitions.",
+         function(bindings)
+         {
+             var body = Array.prototype.slice.call(arguments, 1);
+             lexmacro.begin();
+             for (var i=0; i<bindings.length; i++)
+             {
+                 var name = bindings[i][0].name;
+                 var args = bindings[i][1];
+                 var mbody = bindings[i].slice(2);
+                 lexmacro.add(name, eval(f$$js_compile([f$$intern("lambda"), args].concat(mbody))));
+             }
+             var res = implprogn(body);
+             lexmacro.end();
+             return [s$$js_code, res];
+         },
+         [f$$intern("bindings"), f$$intern("&rest"), f$$intern("body")]);
 
-defcompile("symbol-macrolet",
-           "[[(symbol-macrolet ((x1 def1)(x2 def2)...) &rest body)]]\n" +
-           "Evaluates the body forms that are compiled by first installing "+
-           "the lexical symbol macros [x1=def1] [x2=def2] ... [xn=defn].",
-           function(x)
-           {
-               lexsmacro.begin();
-               for (var i=0; i<x[1].length; i++)
-               {
-                   var name = x[1][i][0].name;
-                   var value = x[1][i][1];
-                   lexsmacro.add(name, value);
-               }
-               var res = implprogn(x.slice(2));
-               lexsmacro.end();
-               return res;
-           },
-           [f$$intern("bindings"), f$$intern("&rest"), f$$intern("body")]);
+defmacro("symbol-macrolet",
+         "[[(symbol-macrolet ((x1 def1)(x2 def2)...) &rest body)]]\n" +
+         "Evaluates the body forms that are compiled by first installing "+
+         "the lexical symbol macros [x1=def1] [x2=def2] ... [xn=defn].",
+         function(bindings)
+         {
+             var body = Array.prototype.slice.call(arguments, 1);
+             lexsmacro.begin();
+             for (var i=0; i<bindings.length; i++)
+             {
+                 var name = bindings[i][0].name;
+                 var value = bindings[i][1];
+                 lexsmacro.add(name, value);
+             }
+             var res = implprogn(body);
+             lexsmacro.end();
+             return [s$$js_code, res];
+         },
+         [f$$intern("bindings"), f$$intern("&rest"), f$$intern("body")]);
 
-deflisp("warning",
-        "[[(warning msg)]]\n" +
-        "Function called by the compiler to emit warnings about possible logical errors in the compiled code.",
-        function(msg)
-        {
-            f$$display("WARNING: " + msg.replace(/\$\$[a-zA-Z_0-9\$]*/g, f$$demangle));
-        },
-        [f$$intern("msg")]);
+defun("warning",
+      "[[(warning msg)]]\n" +
+      "Function called by the compiler to emit warnings about possible logical errors in the compiled code.",
+      function(msg)
+      {
+          f$$display("WARNING: " + msg.replace(/\$\$[a-zA-Z_0-9\$]*/g, f$$demangle));
+      },
+      [f$$intern("msg")]);
 
 d$$$42$error_location$42$ = null;
 
@@ -1037,269 +1036,264 @@ function erl(x, f)
 
 d$$$42$declarations$42$ = [];
 
-deflisp("js-compile",
-        "[[(js-compile x)]]\n" +
-        "Returns a string containing Javascript code that when evaluated in javascript will perform the " +
-        "evaluation of the passed form [x].",
-        function(x)
-        {
-            if (f$$symbol$63$(x))
-            {
-                if (lexsmacro.vars[x.name])
-                    return f$$js_compile(lexsmacro.vars[x.name]);
+defun("js-compile",
+      "[[(js-compile x)]]\n" +
+      "Returns a string containing Javascript code that when evaluated in javascript will perform the " +
+      "evaluation of the passed form [x].",
+      function(x)
+      {
+          if (f$$symbol$63$(x))
+          {
+              if (lexsmacro.vars[x.name])
+                  return f$$js_compile(lexsmacro.vars[x.name]);
 
-                if (lexvar.vars[x.name])
-                    return lexvar.vars[x.name];
+              if (lexvar.vars[x.name])
+                  return lexvar.vars[x.name];
 
-                if (x.symbol_macro)
-                    return f$$js_compile(x.symbol_macro);
+              if (x.symbol_macro)
+                  return f$$js_compile(x.symbol_macro);
 
-                var v = (specials[x.name] ||
-                         constants[x.name]);
-                if ((typeof v) == "undefined")
-                {
-                    if ((typeof glob["d" + x.name]) == "undefined")
-                        f$$warning("Undefined variable " + x.name);
-                    v = "d" + x.name;
-                    if (x.constant &&
-                        ((typeof glob["d" + x.name]) == "string" ||
-                         (typeof glob["d" + x.name]) == "number"))
-                        v = stringify(glob["d" + x.name]);
-                }
-                return v;
-            }
-            else if (f$$list$63$(x) && f$$symbol$63$(x[0]) && x[0].name == "$$declare")
-            {
-                d$$$42$declarations$42$.push(x);
-            }
-            else if (f$$list$63$(x))
-            {
-                try {
-                    var decl = d$$$42$declarations$42$.length;
+              var v = (specials[x.name] ||
+                       constants[x.name]);
+              if ((typeof v) == "undefined")
+              {
+                  if ((typeof glob["d" + x.name]) == "undefined")
+                      f$$warning("Undefined variable " + x.name);
+                  v = "d" + x.name;
+                  if (x.constant &&
+                      ((typeof glob["d" + x.name]) == "string" ||
+                       (typeof glob["d" + x.name]) == "number"))
+                      v = stringify(glob["d" + x.name]);
+              }
+              return v;
+          }
+          else if (f$$list$63$(x) && f$$symbol$63$(x[0]) && x[0].name == "$$declare")
+          {
+              d$$$42$declarations$42$.push(x);
+          }
+          else if (f$$list$63$(x))
+          {
+              try {
+                  var decl = d$$$42$declarations$42$.length;
 
-                    var wrapper = function(r) {
-                        return r;
-                    };
-                    if (x.location)
-                    {
-                        wrapper = function(r) {
-                            return ("erl(" +
-                                    stringify(x.location) +
-                                    ", function(){return(" +
-                                    r + ");})");
-                        };
-                    }
-                    var f = x[0];
-                    if (f$$symbol$63$(f))
-                    {
-                        var wf = jscompile[f.name];
-                        if (wf && wf.constructor == Function)
-                        {
-                            if (wf.arglist)
-                            {
-                                var caf = glob["f$$static_check_args"];
-                                if (caf && caf!=42)
-                                    caf(x, wf.arglist);
-                            }
-                            return wrapper(wf(x));
-                        }
-                        else if (lexmacro.vars[f.name])
-                        {
-                            var lmf = lexmacro.vars[f.name];
-                            if (lmf.arglist)
-                            {
-                                var caf = glob["f$$static_check_args"];
-                                if (caf && caf!=42)
-                                    caf(x, lmf.arglist);
-                            }
-                            var macro_expansion = lmf.apply(glob, x.slice(1));
-                            return wrapper(f$$js_compile(macro_expansion));
-                        }
-                        else if (glob["m" + f.name])
-                        {
-                            var gmf = glob["m" + f.name];
-                            if (gmf.arglist)
-                            {
-                                var caf = glob["f$$static_check_args"];
-                                if (caf && caf!=42)
-                                    caf(x, gmf.arglist);
-                            }
-                            var macro_expansion = gmf.apply(glob, x.slice(1));
-                            return wrapper(f$$js_compile(macro_expansion));
-                        }
-                        else
-                        {
-                            var gf = glob["f" + f.name];
-                            if (!lexfunc.vars[f.name])
-                            {
-                                if (!gf)
-                                {
-                                    f$$warning("Undefined function " + f.name);
-                                }
-                                else if (gf.arglist)
-                                {
-                                    var caf = glob["f$$static_check_args"];
-                                    if (caf && caf!=42)
-                                        caf(x, gf.arglist);
-                                }
-                            }
+                  var wrapper = function(r) {
+                      return r;
+                  };
+                  if (x.location)
+                  {
+                      wrapper = function(r) {
+                          return ("erl(" +
+                                  stringify(x.location) +
+                                  ", function(){return(" +
+                                  r + ");})");
+                      };
+                  }
+                  var f = x[0];
+                  if (f$$symbol$63$(f))
+                  {
+                      if (f == s$$js_code)
+                      {
+                          if (x.length != 2 || !f$$string$63$(x[1]))
+                              throw "js-code requires a string literal";
+                          return x[1];
+                      }
+                      if (lexmacro.vars[f.name])
+                      {
+                          var lmf = lexmacro.vars[f.name];
+                          if (lmf.arglist)
+                          {
+                              var caf = glob["f$$static_check_args"];
+                              if (caf && caf!=42)
+                                  caf(x, lmf.arglist);
+                          }
+                          var macro_expansion = lmf.apply(glob, x.slice(1));
+                          return wrapper(f$$js_compile(macro_expansion));
+                      }
+                      else if (glob["m" + f.name])
+                      {
+                          var gmf = glob["m" + f.name];
+                          if (gmf.arglist)
+                          {
+                              var caf = glob["f$$static_check_args"];
+                              if (caf && caf!=42)
+                                  caf(x, gmf.arglist);
+                          }
+                          var macro_expansion = gmf.apply(glob, x.slice(1));
+                          return wrapper(f$$js_compile(macro_expansion));
+                      }
+                      else
+                      {
+                          var gf = glob["f" + f.name];
+                          if (!lexfunc.vars[f.name])
+                          {
+                              if (!gf)
+                              {
+                                  f$$warning("Undefined function " + f.name);
+                              }
+                              else if (gf.arglist)
+                              {
+                                  var caf = glob["f$$static_check_args"];
+                                  if (caf && caf!=42)
+                                      caf(x, gf.arglist);
+                              }
+                          }
 
-                            var res = "f" + f.name + "(";
-                            for (var i=1; i<x.length; i++)
-                            {
-                                if (i > 1) res += ",";
-                                res += f$$js_compile(x[i]);
-                            }
-                            res += ")";
-                            return wrapper(res);
-                        }
-                    }
-                    else
-                    {
-                        throw new String("Invalid function call");
-                    }
-                }
-                finally
-                {
-                    d$$$42$declarations$42$.length = decl;
-                }
-            }
-            else if ((typeof x) == "undefined")
-            {
-                return "undefined";
-            }
-            else
-            {
-                try
-                {
-                    return stringify(x);
-                }
-                catch(err)
-                {
-                    return "<" + x.constructor.name + ">";
-                }
-            }
-        },
-        [s$$x]);
+                          var res = "f" + f.name + "(";
+                          for (var i=1; i<x.length; i++)
+                          {
+                              if (i > 1) res += ",";
+                              res += f$$js_compile(x[i]);
+                          }
+                          res += ")";
+                          return wrapper(res);
+                      }
+                  }
+                  else
+                  {
+                      throw new String("Invalid function call");
+                  }
+              }
+              finally
+              {
+                  d$$$42$declarations$42$.length = decl;
+              }
+          }
+          else if ((typeof x) == "undefined")
+          {
+              return "undefined";
+          }
+          else
+          {
+              try
+              {
+                  return stringify(x);
+              }
+              catch(err)
+              {
+                  return "<" + x.constructor.name + ">";
+              }
+          }
+      },
+      [s$$x]);
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 d$$$42$spaces$42$ = " \t\r\n";
 d$$$42$stopchars$42$ = "()\"";
 
-deflisp("skip-spaces",
-        "[[(skip-spaces src)]]\n" +
-        "Keeps consuming characters from the char source [src] until it's exhausted or " +
-        "until the current character is not included in [*spaces*].",
-        function(src)
-        {
-            while(true)
-            {
-                while (d$$$42$spaces$42$.indexOf(src()) != -1)
-                    src(1);
-                if (src() == ';')
-                {
-                    while (src() != undefined && src() != "\n")
-                        src(1);
-                }
-                else
-                {
-                    break;
-                }
-            }
-        },
-        [f$$intern("src")]);
+defun("skip-spaces",
+      "[[(skip-spaces src)]]\n" +
+      "Keeps consuming characters from the char source [src] until it's exhausted or " +
+      "until the current character is not included in [*spaces*].",
+      function(src)
+      {
+          while(true)
+          {
+              while (d$$$42$spaces$42$.indexOf(src()) != -1)
+                  src(1);
+              if (src() == ';')
+              {
+                  while (src() != undefined && src() != "\n")
+                      src(1);
+              }
+              else
+              {
+                  break;
+              }
+          }
+      },
+      [f$$intern("src")]);
 
-deflisp("parse-spaced",
-        "[[(parse-spaced src)]]\n" +
-        "Parses a value from a character source [src] by first skipping any spacing character.",
-        function(src)
-        {
-            f$$skip_spaces(src);
-            return f$$f$$parse_value(src);
-        },
-        [f$$intern("src")]);
+defun("parse-spaced",
+      "[[(parse-spaced src)]]\n" +
+      "Parses a value from a character source [src] by first skipping any spacing character.",
+      function(src)
+      {
+          f$$skip_spaces(src);
+          return f$$f$$parse_value(src);
+      },
+      [f$$intern("src")]);
 
-deflisp("parse-stopping",
-        "[[(parse-stopping x)]]\n" +
-        "True if symbol parsing should stop before character [x] because [x] is [undefined] or " +
-        "it's listed in [*stopchars*].",
-        function f$$parse_stopping(c)
-        {
-            return (c == undefined ||
-                    d$$$42$spaces$42$.indexOf(c) != -1 ||
-                    d$$$42$stopchars$42$.indexOf(c) !=-1);
-        },
-        [f$$intern("src")]);
+defun("parse-stopping",
+      "[[(parse-stopping x)]]\n" +
+      "True if symbol parsing should stop before character [x] because [x] is [undefined] or " +
+      "it's listed in [*stopchars*].",
+      function f$$parse_stopping(c)
+      {
+          return (c == undefined ||
+                  d$$$42$spaces$42$.indexOf(c) != -1 ||
+                  d$$$42$stopchars$42$.indexOf(c) !=-1);
+      },
+      [f$$intern("src")]);
 
-deflisp("parse-number-or-symbol",
-        "[[(parse-number-or-symbol src)]]\n" +
-        "Parses a number or a symbol from character source [src] depending on if after the number "+
-        "the next character is a stop character.",
-        function(src)
-        {
-            var res = "";
-            if (src() == "-")
-                res += src(1);
-            while (src() >= "0" && src() <= "9")
-                res += src(1);
-            if (src() == ".")
-            {
-                res += src(1);
-                while (src() >= "0" && src() <= "9")
-                    res += src(1);
-            }
-            if (res != "-" && f$$parse_stopping(src()))
-                return parseFloat(res);
-            while (!f$$parse_stopping(src()))
-                res += src(1);
-            var ix = res.indexOf(":");
-            if (ix > 0) return f$$intern(res.substr(0, ix), res.substr(ix+1));
-            return f$$intern(res);
-        },
-        [f$$intern("src")]);
+defun("parse-number-or-symbol",
+      "[[(parse-number-or-symbol src)]]\n" +
+      "Parses a number or a symbol from character source [src] depending on if after the number "+
+      "the next character is a stop character.",
+      function(src)
+      {
+          var res = "";
+          if (src() == "-")
+              res += src(1);
+          while (src() >= "0" && src() <= "9")
+              res += src(1);
+          if (src() == ".")
+          {
+              res += src(1);
+              while (src() >= "0" && src() <= "9")
+                  res += src(1);
+          }
+          if (res != "-" && f$$parse_stopping(src()))
+              return parseFloat(res);
+          while (!f$$parse_stopping(src()))
+              res += src(1);
+          var ix = res.indexOf(":");
+          if (ix > 0) return f$$intern(res.substr(0, ix), res.substr(ix+1));
+          return f$$intern(res);
+      },
+      [f$$intern("src")]);
 
-deflisp("parse-delimited-list",
-        "[[(parse-delimited-list src stop)]]\n" +
-        "Parses a list of values from character source [src] stopping when next character is [stop] " +
-        "also consuming this stopping character.",
-        function(src, stop)
-        {
-            var res = [];
-            f$$skip_spaces(src);
-            if (src.location)
-            {
-                // copy source location info if available
-                res.location = src.location.slice();
-            }
-            var oldstops = d$$$42$stopchars$42$;
-            d$$$42$stopchars$42$ += stop;
-            while (src() != undefined && src() != stop)
-            {
-                res.push(f$$parse_value(src));
-                f$$skip_spaces(src);
-            }
-            d$$$42$stopchars$42$ = oldstops;
-            if (src() != stop)
-                throw new String(stringify(stop) + " expected");
-            src(1);
-            return res;
-        },
-        [f$$intern("src"), f$$intern("stop")]);
+defun("parse-delimited-list",
+      "[[(parse-delimited-list src stop)]]\n" +
+      "Parses a list of values from character source [src] stopping when next character is [stop] " +
+      "also consuming this stopping character.",
+      function(src, stop)
+      {
+          var res = [];
+          f$$skip_spaces(src);
+          if (src.location)
+          {
+              // copy source location info if available
+              res.location = src.location.slice();
+          }
+          var oldstops = d$$$42$stopchars$42$;
+          d$$$42$stopchars$42$ += stop;
+          while (src() != undefined && src() != stop)
+          {
+              res.push(f$$parse_value(src));
+              f$$skip_spaces(src);
+          }
+          d$$$42$stopchars$42$ = oldstops;
+          if (src() != stop)
+              throw new String(stringify(stop) + " expected");
+          src(1);
+          return res;
+      },
+      [f$$intern("src"), f$$intern("stop")]);
 
-deflisp("reader-function",
-        "[[(reader-function x)]]\n" +
-        "Creates a character source function that will produce the content of the specified string [x].",
-        function(s)
-        {
-            var i = 0;
-            return function(n) {
-                var c = s[i];
-                i+=(n|0);
-                return c;
-            };
-        },
-        [s$$x]);
+defun("reader-function",
+      "[[(reader-function x)]]\n" +
+      "Creates a character source function that will produce the content of the specified string [x].",
+      function(s)
+      {
+          var i = 0;
+          return function(n) {
+              var c = s[i];
+              i+=(n|0);
+              return c;
+          };
+      },
+      [s$$x]);
 
 var readers = { "|": function(src)
                 {
@@ -1460,247 +1454,228 @@ var readers = { "|": function(src)
                 }
               };
 
-deflisp("parse-value",
-        "[[(parse-value src)]]\n" +
-        "Parses a value from the given character source or string.",
-        function(src)
-        {
-            if (src.constructor == String)
-                src = f$$reader_function(src);
-            f$$skip_spaces(src);
-            if (src() == undefined)
-                throw new String("Value expected");
-            return (readers[src()] || readers["default"])(src);
-        },
-        [f$$intern("src")]);
+defun("parse-value",
+      "[[(parse-value src)]]\n" +
+      "Parses a value from the given character source or string.",
+      function(src)
+      {
+          if (src.constructor == String)
+              src = f$$reader_function(src);
+          f$$skip_spaces(src);
+          if (src() == undefined)
+              throw new String("Value expected");
+          return (readers[src()] || readers["default"])(src);
+      },
+      [f$$intern("src")]);
 
-deflisp("str-value",
-        "[[(str-value x &optional (circle-print true))]]\n" +
-        "Computes a string representation of the value [x], handling back-references.",
-        function(x, circle_print)
-        {
-            if ((typeof circle_print) == "undefined" ||
-                ((typeof circle_print) == "boolean" && circle_print))
-                circle_print = [];
-            if (f$$symbol$63$(x))
-            {
-                return x + "";
-            }
-            else if (f$$list$63$(x))
-            {
-                if (x.length == 2 && f$$symbol$63$(x[0]))
-                {
-                    if (x[0].name == "$$quote")
-                        return "'" + f$$str_value(x[1], circle_print);
-                    if (x[0].name == "$$function" &&
-                        f$$symbol$63$(x[1]))
-                        return "#'" + f$$demangle(x[1].name);
-                }
-                if ((typeof circle_print) == "object")
-                {
-                    if (circle_print.indexOf(x) != -1)
-                        return "#" + circle_print.indexOf(x);
-                    circle_print.push(x);
-                }
-                var res = "(";
-                for (var i=0; i<x.length; i++)
-                {
-                    if (i > 0) res += " ";
-                    res += f$$str_value(x[i], circle_print);
-                }
-                return res + ")";
-            }
-            else if (x && x.constructor == Function)
-            {
-                return "#CODE";
-            }
-            else if ((typeof x) == "undefined")
-            {
-                return "undefined";
-            }
-            else if ((typeof x) == "number" && isNaN(x))
-            {
-                return "NaN";
-            }
-            else if (x === Infinity)
-            {
-                return "infinity";
-            }
-            else if (x === -Infinity)
-            {
-                return "-infinity";
-            }
-            else
-            {
-                try
-                {
-                    return stringify(x);
-                }
-                catch(err)
-                {
-                    return "#<" + x.constructor.name + ">";
-                }
-            }
-        },
-        [s$$x, f$$intern("&optional"), f$$intern("circle-print")]);
+defun("str-value",
+      "[[(str-value x &optional (circle-print true))]]\n" +
+      "Computes a string representation of the value [x], handling back-references.",
+      function(x, circle_print)
+      {
+          if ((typeof circle_print) == "undefined" ||
+              ((typeof circle_print) == "boolean" && circle_print))
+              circle_print = [];
+          if (f$$symbol$63$(x))
+          {
+              return x + "";
+          }
+          else if (f$$list$63$(x))
+          {
+              if (x.length == 2 && f$$symbol$63$(x[0]))
+              {
+                  if (x[0].name == "$$quote")
+                      return "'" + f$$str_value(x[1], circle_print);
+                  if (x[0].name == "$$function" &&
+                      f$$symbol$63$(x[1]))
+                      return "#'" + f$$demangle(x[1].name);
+              }
+              if ((typeof circle_print) == "object")
+              {
+                  if (circle_print.indexOf(x) != -1)
+                      return "#" + circle_print.indexOf(x);
+                  circle_print.push(x);
+              }
+              var res = "(";
+              for (var i=0; i<x.length; i++)
+              {
+                  if (i > 0) res += " ";
+                  res += f$$str_value(x[i], circle_print);
+              }
+              return res + ")";
+          }
+          else if (x && x.constructor == Function)
+          {
+              return "#CODE";
+          }
+          else if ((typeof x) == "undefined")
+          {
+              return "undefined";
+          }
+          else if ((typeof x) == "number" && isNaN(x))
+          {
+              return "NaN";
+          }
+          else if (x === Infinity)
+          {
+              return "infinity";
+          }
+          else if (x === -Infinity)
+          {
+              return "-infinity";
+          }
+          else
+          {
+              try
+              {
+                  return stringify(x);
+              }
+              catch(err)
+              {
+                  return "#<" + x.constructor.name + ">";
+              }
+          }
+      },
+      [s$$x, f$$intern("&optional"), f$$intern("circle-print")]);
 
-deflisp("set-compile-specialization",
-        "[[(set-compile-specialization x function)]]\n" +
-        "Installs a new compiler specialization [function] for forms starting with the specified symbol [x].",
-        function(name, body)
-        {
-            jscompile[name.name] = body;
-        },
-        [s$$x, f$$intern("function")]);
+defun("reader",
+      "[[(reader x)]]\n" +
+      "Returns current reading function associated to the specified character [x] or undefined if there's " +
+      "no reading function associated with it.",
+      function(ch)
+      {
+          return readers[ch];
+      },
+      [s$$x]);
 
-deflisp("compile-specialization",
-        "(compile-specialization x)\n" +
-        "Returns the current compile specialization for forms starting with the specified symbol or " +
-        "undefined if there's no such a compiler specialization.",
-        function(name)
-        {
-            return jscompile[name.name];
-        },
-        [s$$x]);
+defun("set-reader",
+      "[[(set-reader x f)]]\n" +
+      "Sets a new reading function associated to the specified character that will be called by [(parse-value src)] " +
+      "when character [x] is met as current character in [src]. The function [f] will be called passing the character " +
+      "source [src] as argument.",
+      function(ch, f)
+      {
+          readers[ch] = f;
+          return f;
+      },
+      [s$$x, f$$intern("f")]);
 
-deflisp("reader",
-        "[[(reader x)]]\n" +
-        "Returns current reading function associated to the specified character [x] or undefined if there's " +
-        "no reading function associated with it.",
-        function(ch)
-        {
-            return readers[ch];
-        },
-        [s$$x]);
+defun("load",
+      "[[(load src &optional name)]]\n" +
+      "Parses, compiles and evaluates all forms in the character source or string [src] " +
+      "one at a time in sequence. If [name] is passed and [src] is a string then source location information is attached to each parsed list.",
+      function f$$load(src, name)
+      {
+          if (f$$string$63$(src))
+          {
+              var i = 0;
+              var src_org = src;
+              src = function(d) {
+                  d |= 0;
+                  if (name && d && src_org[i] == "\n")
+                  {
+                      src.location[1]++;
+                      src.location[2] = 0;
+                  }
+                  i += d;
+                  if (name)
+                      src.location[2] += d;
+                  return src_org[i-d];
+              };
+              if (name)
+                  src.location = [name, 1, 1];
+          }
+          var nforms = 0;
+          try
+          {
+              f$$skip_spaces(src);
+              while (src())
+              {
+                  var phase = "parsing";
+                  var form = f$$parse_value(src);
+                  ++nforms;
+                  phase = "compiling";
+                  var js = f$$js_compile(form);
+                  phase = "executing";
+                  eval(js);
+                  f$$skip_spaces(src);
+              }
+          }
+          catch(err)
+          {
+              var werr = new String("Error during load (form=" + nforms + ", phase = " + phase + "):\n" +
+                                    err + "\n" +
+                                    ((phase == "executing" || phase == "compiling") ?
+                                     f$$macroexpand_$49$(f$$str_value(form)) : ""));
+              werr.location = err.location;
+              throw werr;
+          }
+      },
+      [f$$intern("src"), f$$intern("&optional"), f$$intern("name")]);
 
-deflisp("set-reader",
-        "[[(set-reader x f)]]\n" +
-        "Sets a new reading function associated to the specified character that will be called by [(parse-value src)] " +
-        "when character [x] is met as current character in [src]. The function [f] will be called passing the character " +
-        "source [src] as argument.",
-        function(ch, f)
-        {
-            readers[ch] = f;
-            return f;
-        },
-        [s$$x, f$$intern("f")]);
+defun("http",
+      "[[(http verb url data &optional success-function failure-function)]]\n" +
+      "Executes the specified http request (\"GET\" or \"POST\") for the specified [url] " +
+      "either asynchronously (if [success-function] is specified) or synchronously if no " +
+      "callback is specified. The success function if specified will be passed " +
+      "the content, the url and the request object. The failure function if specified " +
+      "will be passed the url and the request status code in case of an error.",
+      function(verb, url, data, onSuccess, onFail)
+      {
+          var req = new XMLHttpRequest();
+          if (onSuccess)
+          {
+              req.onreadystatechange = function()
+              {
+                  if (req.readyState == 4) {
+                      if (req.status == 200) {
+                          onSuccess(req.responseText, url, req);
+                      }
+                      else
+                      {
+                          if (onFail)
+                              onFail(url, req.status);
+                          else
+                              throw new String("Ajax request error (url=" +
+                                               url +
+                                               ", status=" +
+                                               req.status + ")");
+                      }
+                  }
+              }
+          }
+          req.open(verb, url, !!onSuccess);
+          req.send(data);
+          return onSuccess ? req : req.responseText;
+      },
+      [f$$intern("verb"), f$$intern("url"), f$$intern("data"), f$$intern("&optional"),
+       f$$intern("success-function"), f$$intern("failure-function")]);
 
-deflisp("load",
-        "[[(load src &optional name)]]\n" +
-        "Parses, compiles and evaluates all forms in the character source or string [src] " +
-        "one at a time in sequence. If [name] is passed and [src] is a string then source location information is attached to each parsed list.",
-        function f$$load(src, name)
-        {
-            if (f$$string$63$(src))
-            {
-                var i = 0;
-                var src_org = src;
-                src = function(d) {
-                    d |= 0;
-                    if (name && d && src_org[i] == "\n")
-                    {
-                        src.location[1]++;
-                        src.location[2] = 0;
-                    }
-                    i += d;
-                    if (name)
-                        src.location[2] += d;
-                    return src_org[i-d];
-                };
-                if (name)
-                    src.location = [name, 1, 1];
-            }
-            var nforms = 0;
-            try
-            {
-                f$$skip_spaces(src);
-                while (src())
-                {
-                    var phase = "parsing";
-                    var form = f$$parse_value(src);
-                    ++nforms;
-                    phase = "compiling";
-                    var js = f$$js_compile(form);
-                    phase = "executing";
-                    eval(js);
-                    f$$skip_spaces(src);
-                }
-            }
-            catch(err)
-            {
-                var werr = new String("Error during load (form=" + nforms + ", phase = " + phase + "):\n" +
-                                      err + "\n" +
-                                      ((phase == "executing" || phase == "compiling") ?
-                                       f$$macroexpand_$49$(f$$str_value(form)) : ""));
-                werr.location = err.location;
-                throw werr;
-            }
-        },
-        [f$$intern("src"), f$$intern("&optional"), f$$intern("name")]);
+defun("http-get",
+      "[[(http-get url &optional success-function failure-function)]]\n" +
+      "Acquires the specified resource. Executes " +
+      "either asynchronously (if [success-function] is specified) or synchronously if no " +
+      "callback is specified. The success function if specified will be passed " +
+      "the content, the url and the request object. The failure function if specified " +
+      "will be passed the url and the request status code in case of an error.",
+      function(url, onSuccess, onFailure)
+      {
+          return f$$http("GET", url, null, onSuccess, onFailure);
+      },
+      [f$$intern("url"), f$$intern("&optional"),
+       f$$intern("success-function"), f$$intern("failure-function")]);
 
-deflisp("http",
-        "[[(http verb url data &optional success-function failure-function)]]\n" +
-        "Executes the specified http request (\"GET\" or \"POST\") for the specified [url] " +
-        "either asynchronously (if [success-function] is specified) or synchronously if no " +
-        "callback is specified. The success function if specified will be passed " +
-        "the content, the url and the request object. The failure function if specified " +
-        "will be passed the url and the request status code in case of an error.",
-        function(verb, url, data, onSuccess, onFail)
-        {
-            var req = new XMLHttpRequest();
-            if (onSuccess)
-            {
-                req.onreadystatechange = function()
-                {
-                    if (req.readyState == 4) {
-                        if (req.status == 200) {
-                            onSuccess(req.responseText, url, req);
-                        }
-                        else
-                        {
-                            if (onFail)
-                                onFail(url, req.status);
-                            else
-                                throw new String("Ajax request error (url=" +
-                                                 url +
-                                                 ", status=" +
-                                                 req.status + ")");
-                        }
-                    }
-                }
-            }
-            req.open(verb, url, !!onSuccess);
-            req.send(data);
-            return onSuccess ? req : req.responseText;
-        },
-        [f$$intern("verb"), f$$intern("url"), f$$intern("data"), f$$intern("&optional"),
-         f$$intern("success-function"), f$$intern("failure-function")]);
-
-deflisp("http-get",
-        "[[(http-get url &optional success-function failure-function)]]\n" +
-        "Acquires the specified resource. Executes " +
-        "either asynchronously (if [success-function] is specified) or synchronously if no " +
-        "callback is specified. The success function if specified will be passed " +
-        "the content, the url and the request object. The failure function if specified " +
-        "will be passed the url and the request status code in case of an error.",
-        function(url, onSuccess, onFailure)
-        {
-            return f$$http("GET", url, null, onSuccess, onFailure);
-        },
-        [f$$intern("url"), f$$intern("&optional"),
-         f$$intern("success-function"), f$$intern("failure-function")]);
-
-deflisp("get-file",
-        "[[(get-file filename &optional (encoding \"ascii\"))]]\n" +
-        "Reads and returns the content of the specified file",
-        function(name, encoding)
-        {
-            if ((typeof encoding) == "undefined")
-                encoding = "ascii";
-            var fs = require("fs");
-            return fs.readFileSync(name, encoding);
-        },
-        [f$$intern("filename"), f$$intern("&optional"), f$$intern("encoding")]);
+defun("get-file",
+      "[[(get-file filename &optional (encoding \"ascii\"))]]\n" +
+      "Reads and returns the content of the specified file",
+      function(name, encoding)
+      {
+          if ((typeof encoding) == "undefined")
+              encoding = "ascii";
+          var fs = require("fs");
+          return fs.readFileSync(name, encoding);
+      },
+      [f$$intern("filename"), f$$intern("&optional"), f$$intern("encoding")]);
 
 if (d$$node$46$js)
 {

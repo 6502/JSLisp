@@ -467,12 +467,12 @@
 
 (defun gensym-prefix (prefix)
   "Returns a new uninterned unique symbol using the specified [prefix]"
-  (make-symbol (+ "G:" prefix "/"
+  (make-symbol (+ "G#" prefix "/"
                   (setq *gensym-count* (+ 1 *gensym-count*)))))
 
 (defun gensym-noprefix ()
   "Returns a new uninterned unique symbol"
-  (make-symbol (+ "G:" (setq *gensym-count* (+ 1 *gensym-count*)))))
+  (make-symbol (+ "G#" (setq *gensym-count* (+ 1 *gensym-count*)))))
 
 ; Comparisons
 (defmacro defrelop (name comment jsname)
@@ -853,26 +853,23 @@ The resulting list length is equal to the shortest input sequence."
   "Number of arguments passed to current function"
   `(js-code "arguments.length"))
 
-(setf (compile-specialization 'lambda)
-      (let* ((oldcf (compile-specialization 'lambda))
+(setf (symbol-macro 'lambda)
+      (let* ((oldcf (symbol-macro 'lambda))
              (olddoc (documentation oldcf))
-             (f (lambda (whole)
-                  (let* ((args (second whole))
-                         (body (slice whole 2))
-                         (doc (if (string? (first body))
+             (f (lambda (args &rest body)
+                  (let* ((doc (if (string? (first body))
                                   (js-code "d$$body.slice(0,1)")
                                   (list)))
                          (i (index0 '&optional args))
                          (r (index0 '&rest args)))
                     (if (= i -1)
-                        (funcall oldcf
-                                 `(lambda ,args
-                                    ,@doc
-                                    ,@(if (> r 0)
-                                          `((when (< (argument-count) ,r)
-                                              (error "Invalid number of arguments")))
-                                          (list))
-                                    ,@body))
+                        (apply oldcf `(,args
+                                       ,@doc
+                                       ,@(if (> r 0)
+                                             `((when (< (argument-count) ,r)
+                                                 (error "Invalid number of arguments")))
+                                             (list))
+                                       ,@body))
                         (let ((defaults (list))
                               (checks (list))
                               (args (append (slice args 0 i)
@@ -892,72 +889,66 @@ The resulting list length is equal to the shortest input sequence."
                                              ,(second (aref args i))))
                                     defaults)
                               (setf (aref args i) (first (aref args i)))))
-                          (funcall oldcf
-                                   `(lambda ,args
-                                      ,@doc
-                                      ,@checks
-                                      ,@defaults
-                                      ,@body))))))))
+                          (apply oldcf `(,args
+                                         ,@doc
+                                         ,@checks
+                                         ,@defaults
+                                         ,@body))))))))
         (setf (documentation f) olddoc)
         f))
 
 ; Keyword arguments
 
-(setf (compile-specialization 'lambda)
-      (let* ((oldcf (compile-specialization 'lambda))
-             (oldcomm (documentation (compile-specialization 'lambda)))
+(setf (symbol-macro 'lambda)
+      (let* ((oldcf (symbol-macro 'lambda))
+             (oldcomm (documentation oldcf))
              (unassigned (gensym-noprefix))
-             (f (lambda (whole)
-                  (let* ((args (second whole))
-                         (body (slice whole 2))
-                         (i (index0 '&key args)))
+             (f (lambda (args &rest body)
+                  (let ((i (index0 '&key args)))
                     (if (= i -1)
-                        (funcall oldcf whole)
+                        (apply oldcf (append (list args) body))
                         (let ((rest (gensym-prefix "rest"))
                               (nrest (gensym-prefix "nrest"))
                               (ix (gensym-prefix "ix")))
                           (unless (= -1 (index0 '&rest args))
                             (error "&key and &rest are incompatible"))
-                          (funcall oldcf
-                                   `(lambda (,@(slice args 0 i) &rest ,rest)
-                                      (let ((,nrest (length ,rest))
-                                            ,@(map (lambda (x)
-                                                     (if (list? x)
-                                                         `(,(first x) ',unassigned)
-                                                         `(,x undefined)))
+                          (apply oldcf `((,@(slice args 0 i) &rest ,rest)
+                                         (let ((,nrest (length ,rest))
+                                               ,@(map (lambda (x)
+                                                        (if (list? x)
+                                                            `(,(first x) ',unassigned)
+                                                            `(,x undefined)))
                                                    (slice args (1+ i))))
-                                        (do ((,ix 0 (+ ,ix 2)))
-                                            ((>= ,ix ,nrest)
-                                             (when (> ,ix ,nrest)
-                                               (error "Invalid number of parameters")))
-                                          (cond
-                                            ,@(append
-                                               (map (lambda (x)
-                                                      `((= (aref ,rest ,ix)
-                                                           ,(intern (+ ":" (symbol-name (if (list? x) (first x) x)))))
-                                                        (setf ,(if (list? x) (first x) x) (aref ,rest (1+ ,ix)))))
-                                                    (slice args (1+ i)))
-                                               `((true (error "Invalid parameters"))))))
-                                        ,@(let ((res (list)))
+                                           (do ((,ix 0 (+ ,ix 2)))
+                                               ((>= ,ix ,nrest)
+                                                  (when (> ,ix ,nrest)
+                                                    (error "Invalid number of parameters")))
+                                             (cond
+                                               ,@(append
+                                                  (map (lambda (x)
+                                                         `((= (aref ,rest ,ix)
+                                                              ,(intern (+ ":" (symbol-name (if (list? x) (first x) x)))))
+                                                           (setf ,(if (list? x) (first x) x) (aref ,rest (1+ ,ix)))))
+                                                       (slice args (1+ i)))
+                                                  `((true (error "Invalid parameters"))))))
+                                           ,@(let ((res (list)))
                                                (dolist (x (slice args (1+ i)))
                                                  (when (list? x)
                                                    (push `(when (= ,(first x) ',unassigned)
                                                             (setf ,(first x) ,(second x)))
                                                          res)))
                                                res)
-                                        ,@body)))))))))
+                                           ,@body)))))))))
         (setf (documentation f) oldcomm)
         f))
 
 ; Destructuring
 
-(setf (compile-specialization 'lambda)
-      (let* ((oldcf (compile-specialization 'lambda))
+(setf (symbol-macro 'lambda)
+      (let* ((oldcf (symbol-macro 'lambda))
              (olddoc (documentation oldcf))
-             (f (lambda (whole)
-                  (let* ((args (second whole))
-                         (body (slice whole 2))
-                         (doc (if (string? (first body))
+             (f (lambda (args &rest body)
+                  (let* ((doc (if (string? (first body))
                                   (js-code "d$$body.slice(0,1)")
                                   (list)))
                          (dslist (list)))
@@ -987,7 +978,7 @@ The resulting list length is equal to the shortest input sequence."
                               `((let (,@(apply #'append (map (lambda (x) (expand (first x) (second x)))
                                                              dslist)))
                                   ,@body)))))
-                    (funcall oldcf `(lambda ,args ,@doc ,@body))))))
+                    (apply oldcf `(,args ,@doc ,@body))))))
         (setf (documentation f) olddoc)
         f))
 
@@ -1222,16 +1213,14 @@ that field. When absent the default value is assumed to be [undefined]."
 
 ; JS exception support
 (defvar *exception* null)
-(setf (compile-specialization 'try)
-      (lambda (x)
-        (+ "((function(){try{return("
-           (js-compile (aref x 1))
-           ");}catch(err){var olderr=d$$$42$exception$42$;d$$$42$exception$42$=err;var res=("
-           (js-compile (aref x 2))
-           ");d$$$42$exception$42$=olderr;return res;}})())")))
-(setf (documentation (compile-specialization 'try))
-      "[[(try expr on-error)]]
-Evaluates [expr] and in case of exception evaluates the [on-error] form setting [*exception*] to the current exception")
+(defmacro try (expr on-error)
+  "[[(try expr on-error)]]
+   Evaluates [expr] and in case of exception evaluates the [on-error] form setting [*exception*] to the current exception"
+  `(js-code ,(+ "((function(){try{return("
+                (js-compile expr)
+                ");}catch(err){var olderr=d$$$42$exception$42$;d$$$42$exception$42$=err;var res=("
+                (js-compile on-error)
+                ");d$$$42$exception$42$=olderr;return res;}})())")))
 
 ; Timing
 (defun clock ()
@@ -1478,9 +1467,6 @@ Each field is a list of an unevaluated atom as name and a value."
                          (doc (slice x (1+ i)))
                          ""))))))
     (let ((found false))
-      (when (compile-specialization name)
-        (display ~"Compile specialization {(symbol-name name)}\n{(doc (compile-specialization name))}")
-        (setf found true))
       (when (symbol-macro name)
         (display ~"Macro {(symbol-name name)}\n{(doc (symbol-macro name))}")
         (setf found true))
@@ -1583,21 +1569,19 @@ Each field is a list of an unevaluated atom as name and a value."
   (setf (documentation (symbol-macro 'defun) odoc))
   (setf (arglist (symbol-macro 'defun)) oargs))
 
-(let ((om (compile-specialization 'lambda))
-      (odoc (documentation (compile-specialization 'lambda)))
-      (oargs (arglist (compile-specialization 'lambda))))
-  (setf (compile-specialization 'lambda)
-        (lambda (x)
-          (let* ((args (second x))
-                 (body (slice x 2))
-                 (doc (if (string? (first body))
-                          (js-code "d$$body.splice(0,1)")
-                          (list))))
-            (apply om `((lambda ,args
-                          ,@doc
-                          ,(append `(block null) body)))))))
-  (setf (documentation (compile-specialization 'lambda)) odoc)
-  (setf (arglist (compile-specialization 'lambda)) oargs))
+(let* ((om (symbol-macro 'lambda))
+       (odoc (documentation om))
+       (oargs (arglist om)))
+  (setf (symbol-macro 'lambda)
+        (lambda (args &rest body)
+          (let ((doc (if (string? (first body))
+                         (js-code "d$$body.splice(0,1)")
+                         (list))))
+            (apply om `(,args
+                        ,@doc
+                        ,(append `(block null) body))))))
+  (setf (documentation (symbol-macro 'lambda)) odoc)
+  (setf (arglist (symbol-macro 'lambda)) oargs))
 
 ;; Compile-time argument checking
 

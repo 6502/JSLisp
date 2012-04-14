@@ -141,8 +141,7 @@ function updateClpar(text)
                     ii[2] = ii[0];
                 }
                 else if ((ff = (window["f" + f$$mangle(fname)] ||
-                           window["m" + f$$mangle(fname)] ||
-                           jscompile[f$$mangle(fname)])) &&
+                           window["m" + f$$mangle(fname)])) &&
                     ff.arglist &&
                     (ffi = ff.arglist.indexOf(s$$$38$rest)) != -1 &&
                     ff.arglist[ffi+1] == s$$body &&
@@ -211,8 +210,7 @@ function updateClpar(text)
     catch(indent)
     {
         var ff = (window["f" + f$$mangle(indent[indent.length-1][3])] ||
-                  window["m" + f$$mangle(indent[indent.length-1][3])] ||
-                  jscompile[f$$mangle(indent[indent.length-1][3])]);
+                  window["m" + f$$mangle(indent[indent.length-1][3])]);
         setHelp(ff && ff.documentation);
         if (!quote && text[text.length-1] == ")")
         {
@@ -254,18 +252,18 @@ function htmlesc(x)
             .replace(/\n/g, "<br/>"));
 }
 
-deflisp("display",
-        "(display x)\n" +
-        "Displays the string x in the browser window",
-        function(x)
-        {
-            repl.value += x + "\n";
-            var i = repl.value.length;
-            repl.setSelectionRange(i, i);
-            repl.scrollTop = repl.scrollHeight;
-            repl.focus();
-            return x;
-        });
+defun("display",
+      "[[(display x)]]" +
+      "Displays the string [x] in the browser window",
+      function(x)
+      {
+          repl.value += x + "\n";
+          var i = repl.value.length;
+          repl.setSelectionRange(i, i);
+          repl.scrollTop = repl.scrollHeight;
+          repl.focus();
+          return x;
+      });
 
 function process()
 {
