@@ -80,5 +80,6 @@
                (pre ""))
           (out ~"<br/>{(htmfix doc)}</div>"))))
     (out "</body></html>"))
-  (let ((w (funcall (. window open) "" "reference" "width=800, height=800, left=100, top=100")))
-    (funcall (. w document write) result)))
+  (set-timeout (lambda (&rest args)
+                 (funcall (. document write) result))
+               0))

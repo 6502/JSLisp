@@ -577,6 +577,226 @@ WARNING: Undefined variable x
 Ready.
 ]
 
+@ Reference
+
+A reference generated from docstrings documenting al functions and
+macros defined can be obtained by clicking the following button:
+
+<<
+<input type=button value="JsLisp reference" onclick="window.open('jslisp.html?load=reference.lisp', '_blank', 'width=800, height=800, left=100, top=100')"/>
+>>
+
+In the subsections instead there will be a schematic
+per-topic description of how many parts of JsLisp are
+supposed to work.
+
+@@ Modules
+
+JsLisp allows partitioning the global namespace in modules
+where different modules can use the same name with distinct
+meanings.
+
+Importing a module simply sets a new current module name
+and [load]s a lisp source file. Then possibly adds to the current
+symbol alias table some or all of the exported names.
+
+[Modules
+; This imports all exported names from the objects module
+; into the current *symbol-aliases* table.
+(import * from objects)
+--> ("defobject" "defmethod" "class" "fields")
+Ready.
+'defobject
+--> objects:defobject
+Ready.
+
+; This imports (loads) the module and assigns a nickname,
+; but defines no symbol aliases
+(import graphics as g)
+--> ("random-color" "with-canvas")
+Ready.
+'random-color
+--> random-color
+Ready.
+(random-color)
+WARNING: Undefined function random-color
+**ERROR**: ReferenceError: function random-color is not defined
+Ready.
+(g:random-color)
+--> "rgb(179,150,140)"
+
+; This imports only specific names from a module
+(import (show set-style) from gui)
+--> ("set-style" "element-pos" "event-pos" "show" ... )
+Ready.
+'set-style
+--> gui:set-style
+Ready.
+'element-pos
+--> element-pos
+Ready.
+
+; All currently active symbol aliases are kept in the *symbol-aliases* map
+; and are checked first by the reader when interpreting a symbol
+(map #'display (keys *symbol-aliases*))
+=defobject
+=defmethod
+=class
+=fields
+=show
+=set-style
+Ready.
+]
+
+When defining a macro in a module that needs to intern symbols in
+the caller module the reader macro [,#<symbol>] can be handy expanding
+to [,(intern (symbol-name '<symbol>))] thus interning the literal
+[<symbol>] in the current module when the macro expansion is being
+performed.
+
+The utility function [(symbol-module x)] returns the module where
+a symbol has been interned.
+
+@@ Generic functions
+
+JsLisp implements a generic dispatching methods for functions that
+allow several implementations to be accessed using a single name
+performing the required multiplex at runtime on general conditions.
+
+[Generic functions
+(defun fact (x)
+  (* x (fact (1- x))))
+--> fact
+Ready.
+(defmethod fact (x) (< x 2)
+  1)
+--> #CODE
+Ready.
+(map #'fact (range 10))
+--> (1 1 2 6 24 120 720 5040 40320 362880)
+Ready.
+(defmethod fact (x) (symbol? x)
+  (intern ~"{x}!"))
+--> #CODE
+Ready.
+(fact 'x)
+--> x!
+Ready.
+(fact 10)
+--> 3628800
+]
+
+The macro [(defmethod name args test &rest body)] is similar to
+[defun] but adds a [test] condition that identifies when the
+provided implementation is to be used. When this condition is
+not satisfied then the previous definition of the function is
+used instead.
+
+@@ OOP support
+
+JsLisp implements supports for Object Oriented Programming
+paradigm with the [objects] module.
+
+The [(defobject name fields)] defines a new object class with
+the given name and also defines:
+
+- a constructor with the same name of the class
+
+- a constructor prefixed with "[make-]" accepting keyword arguments
+
+- a type-check function by appending "[?]" to the class name
+
+- a dynamic (late-binding) accessor for each field named like the
+  field. Accessor supports [setf]/[incf]/[decf].
+
+- a static accessor for each field named by prefixing the field name
+  with the class name and a dash (e.g. "[p2d-x]") that should be used
+  only when the type of the object is guaranteed to be correct
+  (they are macros expanding to a direct access to field data
+  data without any check or lookup).
+
+Also the module provides a [(fields x)] function returning the names
+of the fields available in the object instance [x] and a [(class x)]
+function to retrieve the class name (a symbol) of the object instance
+[x].
+
+Each field in the [(defobject ...)] form can be either a symbol or
+a list [(<symbol> <default>)] to specify values to be used if
+the field value is not passed to the constructor.
+
+Methods are implemented using the generic function dispatcher of
+JsLisp [(defmethod ...)] and this allows both multimethods and
+EQL-specializations of CLOS.
+
+[Object Oriented Programming support
+(import * from objects)
+--> null
+Ready.
+(defobject animal (name))
+--> animal
+Ready.
+(defobject dog (name))
+--> dog
+Ready.
+(defmethod animal? (x) (dog? x) true)
+--> #CODE
+Ready.
+(defobject cat (name))
+--> cat
+Ready.
+(defmethod animal? (x) (cat? x) true)
+--> #CODE
+Ready.
+(animal? (dog "fido"))
+--> true
+Ready.
+(defmethod run (x) (animal? x)
+  (display ~"{(name x)} is running"))
+--> #CODE
+Ready.
+(defmethod sing (x) (dog? x)
+  (display "woof!"))
+--> #CODE
+Ready.
+(defmethod sing (x) (cat? x)
+  (display "meow!"))
+--> #CODE
+Ready.
+(defvar *tobi* (cat "tobi"))
+--> ((cat name) "tobi")
+Ready.
+(defvar *fido* (dog "fido"))
+--> ((dog name) "fido")
+Ready.
+(run *tobi*)
+=tobi is running
+--> "tobi is running"
+Ready.
+(run *fido*)
+=fido is running
+--> "fido is running"
+Ready.
+(defmethod run (x) (= x *tobi*)
+  (display "no way..."))
+--> #CODE
+Ready.
+(run (cat "sissi"))
+=sissi is running
+--> "sissi is running"
+Ready.
+(run *tobi*)
+=no way...
+--> "no way..."
+Ready.
+(sing *fido*)
+=woof!
+--> "woof!"
+Ready.
+(sing *tobi*)
+=meow!
+--> "meow!"
+]
+
 @ Give it a try!
 
 JsLisp REPL can run in most recent web browsers.

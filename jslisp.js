@@ -27,6 +27,7 @@
 
 d$$$42$current_module$42$ = "";
 d$$$42$module_aliases$42$ = {};
+d$$$42$symbol_aliases$42$ = {};
 
 d$$node$46$js = false;
 
@@ -147,14 +148,18 @@ f$$mangle.documentation = ("[[(mangle x)]]\n" +
 
 glob["f$$intern"] = f$$intern = function(name, module)
 {
+    var x;
     if (name[0] == ":")
         module = "";
+    if ((typeof module == "undefined") && (x = d$$$42$symbol_aliases$42$[name]))
+        return x;
     var m = (typeof module == "undefined") ? d$$$42$current_module$42$ : (d$$$42$module_aliases$42$[module]||module);
-    var mname = m + f$$mangle(name);
-    var x = glob["s" + mname];
+    var mangled = f$$mangle(name);
+    var mname = m + mangled;
+    x = glob["s" + mname];
     if (x == undefined)
     {
-        if (!module && (x = glob["s" + f$$mangle(name)]))
+        if ((typeof module == "undefined") && (x = glob["s" + mangled]))
             return x;
         x = glob["s" + mname] = new Symbol(mname, true);
         eval("s" + mname + " = glob['s" + mname + "']");
@@ -172,7 +177,8 @@ f$$intern.documentation = ("[[(intern name &optional module)]]\n" +
                            "If the name starts with a colon ':' character then the module is ignored " +
                            "interning the symbol in the global module instead and the symbol value " +
                            "cell is also bound to the symbol itself. If no module parameter is " +
-                           "specified and the symbol is not found in current module then before " +
+                           "specified and the symbol is listed in [*symbol-aliases*] then that value "+
+                           "is returned, otherwise if it is not found in current module then before " +
                            "performing the interning operation the symbol is first looked up also "+
                            "in the global module.");
 f$$intern.arglist = [f$$intern("name"), f$$intern("&optional"), f$$intern("module")];

@@ -1698,11 +1698,10 @@ Each field is a list of an unevaluated atom as name and a value."
 
 (defmacro import (&rest args)
   "Imports a module and optionally copies specific symbol values in current module:
-   [(import <module>)] simply imports a module without copying any symbol to current module.
-   [(import * from <module>)] imports a module and copies all exported symbols to current module.
-   [(import (...) from <module>)] imports a module and copies specific symbols to current module.
-   Adding \"as <nick>\" after the module name allows defining a short nickname for the module.
-   Copying a symbol means copying associated data, function and macro from their current values in the imported module."
+   [(import <module>)] simply imports a module without defining any symbol alias.
+   [(import * from <module>)] imports a module and defines symbol aliases for all exported symbols.
+   [(import (...) from <module>)] imports a module and defines specified aliases.
+   Adding \"as <nick>\" after the module name allows defining a short nickname for the module."
   (let ((names (list))
         (alias null))
     (cond
@@ -1730,14 +1729,17 @@ Each field is a list of an unevaluated atom as name and a value."
          (unless (symbol-value ',guard)
            (setf ,guard true)
            (let ((cmod *current-module*)
-                 (calias *module-aliases*))
+                 (calias *module-aliases*)
+                 (salias *symbol-aliases*))
              (setf *module-aliases* (js-object))
+             (setf *symbol-aliases* (js-object))
              (setf *current-module* ,(symbol-name module))
              (setf ,(intern "*exports*" (symbol-name module)) (list))
              (load ,(if node.js
                         `(get-file ,(+ (symbol-name module) ".lisp"))
                         `(http-get ,(+ (symbol-name module) ".lisp"))))
              (setf *current-module* cmod)
+             (setf *symbol-aliases* salias)
              (setf *module-aliases* calias)))
          ,@(if alias
                (list `(setf (aref *module-aliases* ,(symbol-name alias))
@@ -1745,20 +1747,14 @@ Each field is a list of an unevaluated atom as name and a value."
                (list))
          ,(if (= names '*)
               `(dolist (s (symbol-value ',(intern "*exports*" (symbol-name module))))
-                 (setf (symbol-value (intern (symbol-name s)))
-                       (symbol-value s))
-                 (setf (symbol-function (intern (symbol-name s)))
-                       (symbol-function s))
-                 (setf (symbol-macro (intern (symbol-name s)))
-                       (symbol-macro s)))
+                 (setf (aref *symbol-aliases* (symbol-name s)) s))
               `(progn ,@(let ((res (list)))
                           (dolist (s names)
-                            (let ((ms (intern (symbol-name s) *current-module*))
-                                  (xs (intern (symbol-name s) (symbol-name module))))
-                              (push `(setf (symbol-value ',ms) (symbol-value ',xs)) res)
-                              (push `(setf (symbol-function ',ms) (symbol-function ',xs)) res)
-                              (push `(setf (symbol-macro ',ms) (symbol-macro ',xs)) res)))
-                          res)))))))
+                            (push `(setf (aref *symbol-aliases* ,(symbol-name s))
+                                         ',(intern (symbol-name s) (symbol-name module)))
+                                  res))
+                          res)))
+         (map #'symbol-name (symbol-value ',(intern "*exports*" (symbol-name module))))))))
 
 ; Uri decoding support
 (defun parse-hex (x)
