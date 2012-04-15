@@ -33,7 +33,7 @@
   </head>
   <body style="margin:0px; padding:0px; border:none">
     <div style="position:absolute; left:0px; top:0px; right:0px; bottom:0px; padding:4px; background-color:#EEEEEE">
-      <textarea type=text wrap=off id="repl" style="resize:none; position:absolute; left:0px; top:0px; width:100%; height:100%; white-space:pre; background-color:#EEEEEE; border:none; outline:none; padding:0px; margin:0px; font-family:Courier New; font-size:18px"
+      <textarea spellcheck=false type=text wrap=off id="repl" style="resize:none; position:absolute; left:0px; top:0px; width:100%; height:100%; white-space:pre; background-color:#EEEEEE; border:none; outline:none; padding:0px; margin:0px; font-family:Courier New; font-size:18px"
         onkeydown = "keyDown(event)"
         onkeypress = "keyPress(event)"></textarea>
       <div id="clpar" style="position:absolute; width:22px; height:22px; border:solid 1px #FF0000"></div>
@@ -66,11 +66,15 @@ var help = document.getElementById("help");
 repl.focus();
 
 var lasthelp = null;
+var last_key = 0;
 
 setInterval(function() {
-    var o = parseFloat(help.style.opacity) + 0.05;
-    if (o > 1) o = 1;
-    help.style.opacity = o;
+    if (last_key != 27)
+    {
+        var o = parseFloat(help.style.opacity) + 0.05;
+        if (o > 1) o = 1;
+        help.style.opacity = o;
+    }
 }, 100);
 
 function setHelp(txt)
@@ -277,8 +281,7 @@ function process()
         while (src() != undefined)
         {
             var parsed = f$$parse_value(src);
-            var compiled = f$$js_compile(parsed);
-            var result = eval(compiled);
+            var result = f$$toplevel_eval(parsed);
             f$$display("--> " + f$$str_value(result));
             f$$skip_spaces(src);
         }
@@ -307,6 +310,7 @@ function process()
 function keyDown(e)
 {
     help.style.opacity = 0;
+    last_key = e.which;
     if (e.which == 9)
     {
         e.preventDefault();
@@ -344,6 +348,7 @@ function keyDown(e)
 function keyPress(e)
 {
     help.style.opacity = 0;
+    last_key = e.which;
     if (e.which == 10 || (e.which == 13 && (e.ctrlKey || e.shiftKey)))
     {
         process();

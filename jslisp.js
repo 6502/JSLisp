@@ -1604,10 +1604,8 @@ defun("load",
                   var phase = "parsing";
                   var form = f$$parse_value(src);
                   ++nforms;
-                  phase = "compiling";
-                  var js = f$$js_compile(form);
-                  phase = "executing";
-                  eval(js);
+                  phase = "toplevel-evaluating";
+                  f$$toplevel_eval(form);
                   f$$skip_spaces(src);
               }
           }
