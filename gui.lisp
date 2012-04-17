@@ -103,6 +103,7 @@
 (defstruct layout-node
   (class 1) (weight 100)   ;; Weighted distribution when in the same class
   (min 0) (max 1000000)    ;; Minimum and maximum space
+  (size null)              ;; Min and max override if specified
   (buddy null)             ;; Someone to inform about the size
   (algorithm :H)           ;; Algorithm for children
   (border 0)               ;; Fixed border around space for children
@@ -121,70 +122,74 @@
     (when (layout-node-buddy node)
       (funcall (layout-node-buddy node) x0 y0 x1 y1))
     (when (> nchild 0)
-      (let ((assigned (map #'layout-node-min children))
-            (active (filter (lambda (i) (< (layout-node-min (aref children i))
-                                           (layout-node-max (aref children i))))
-                            (range nchild)))
-            (avail (- (if (= algo :H)
-                          (- x1 x0)
-                          (- y1 y0))
-                      (* 2 border)
-                      (* (1- nchild) spacing))))
-        (decf avail (reduce #'+ assigned))
-        (do () ((or (zero? (length active))
-                    (<= avail 0.0001))
-                  (if (= algo :H)
-                      (let ((x (+ x0 border))
-                            (ya (+ y0 border))
-                            (yb (- y1 border)))
-                        (dotimes (i nchild)
-                          (set-coords (aref children i)
-                                      x ya
-                                      (+ x (aref assigned i)) yb)
-                          (incf x (+ (aref assigned i) spacing))))
-                      (let ((y (+ y0 border))
-                            (xa (+ x0 border))
-                            (xb (- x1 border))
-                            (*spacing* spacing))
-                        (dotimes (i nchild)
-                          (set-coords (aref children i)
-                                      xa y
-                                      xb (+ y (aref assigned i)))
-                          (incf y (+ (aref assigned i) spacing))))))
-          ;;
-          ;; Algorithm:
-          ;;
-          ;; First select the highest priority class among all active
-          ;; nodes, then try to distribute the available space in
-          ;; proportion to weights but not exceeding the maximum for a
-          ;; given node.  Finally remove saturated nodes from the
-          ;; active list.
-          ;;
-          ;; At every step at least one node is saturated, or all
-          ;; available space is distributed.
-          ;;
-          ;; We're not going to loop forever.
-          ;;
-          (let* ((minclass (apply #'min (map (lambda (i)
-                                               (layout-node-class (aref children i)))
-                                             active)))
-                 (selected (filter (lambda (i) (= (layout-node-class (aref children i))
-                                                  minclass))
-                                   active))
-                 (selected-nodes (map (lambda (i) (aref children i))
-                                      selected))
-                 (total-weight (reduce #'+ (map #'layout-node-weight selected-nodes)))
-                 (share (/ avail total-weight)))
-            (dolist (i selected)
-              (let* ((n (aref children i))
-                     (quota (min (- (layout-node-max n) (aref assigned i))
-                                 (* share (layout-node-weight n)))))
-                (decf avail quota)
-                (incf (aref assigned i) quota)))
-            (setf active (filter (lambda (i)
-                                   (< (+ (aref assigned i) 0.0001)
-                                      (layout-node-max (aref children i))))
-                                 active))))))))
+      (labels ((lmin (x) (or (layout-node-size x)
+                             (layout-node-min x)))
+               (lmax (x) (or (layout-node-size x)
+                             (layout-node-max x))))
+        (let ((assigned (map #'lmin children))
+              (active (filter (lambda (i) (< (lmin (aref children i))
+                                             (lmax (aref children i))))
+                              (range nchild)))
+              (avail (- (if (= algo :H)
+                            (- x1 x0)
+                            (- y1 y0))
+                        (* 2 border)
+                        (* (1- nchild) spacing))))
+          (decf avail (reduce #'+ assigned))
+          (do () ((or (zero? (length active))
+                      (<= avail 0.0001))
+                    (if (= algo :H)
+                        (let ((x (+ x0 border))
+                              (ya (+ y0 border))
+                              (yb (- y1 border)))
+                          (dotimes (i nchild)
+                            (set-coords (aref children i)
+                                        x ya
+                                        (+ x (aref assigned i)) yb)
+                            (incf x (+ (aref assigned i) spacing))))
+                        (let ((y (+ y0 border))
+                              (xa (+ x0 border))
+                              (xb (- x1 border))
+                              (*spacing* spacing))
+                          (dotimes (i nchild)
+                            (set-coords (aref children i)
+                                        xa y
+                                        xb (+ y (aref assigned i)))
+                            (incf y (+ (aref assigned i) spacing))))))
+            ;;
+            ;; Algorithm:
+            ;;
+            ;; First select the highest priority class among all active
+            ;; nodes, then try to distribute the available space in
+            ;; proportion to weights but not exceeding the maximum for a
+            ;; given node.  Finally remove saturated nodes from the
+            ;; active list.
+            ;;
+            ;; At every step at least one node is saturated, or all
+            ;; available space is distributed.
+            ;;
+            ;; We're not going to loop forever.
+            ;;
+            (let* ((minclass (apply #'min (map (lambda (i)
+                                                 (layout-node-class (aref children i)))
+                                               active)))
+                   (selected (filter (lambda (i) (= (layout-node-class (aref children i))
+                                                    minclass))
+                                     active))
+                   (selected-nodes (map (lambda (i) (aref children i))
+                                        selected))
+                   (total-weight (reduce #'+ (map #'layout-node-weight selected-nodes)))
+                   (share (/ avail total-weight)))
+              (dolist (i selected)
+                (let* ((n (aref children i))
+                       (quota (min (- (lmax n) (aref assigned i))
+                                   (* share (layout-node-weight n)))))
+                  (decf avail quota)
+                  (incf (aref assigned i) quota)))
+              (setf active (filter (lambda (i)
+                                     (< (+ (aref assigned i) 0.0001)
+                                        (lmax (aref children i))))
+                                   active)))))))))
 
 (defmacro deflayout (type)
   (let ((x0 (gensym))
