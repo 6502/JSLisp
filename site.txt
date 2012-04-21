@@ -228,9 +228,9 @@ to [-/+ 9,007,199,254,740,992] (2 to the 53rd power, more than
 nine millions of billions).
 
 Also all math functions are simple wrappers of Javascript math
-functions and therefore the rules about [NaN] and [null] results
-of computations are dictated down there (e.g. [(/ 0) -> null]
-but [(log -1) -> NaN]).
+functions and therefore the rules about [NaN] and [infinity] results
+of computations are dictated down there (e.g. [(/ 0) -> infinity]
+and [(log -1) -> NaN]).
 
 @@ Reader
 
