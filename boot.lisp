@@ -200,21 +200,6 @@
   "True if number [x] is even"
   (js-code "(!(d$$x&1))"))
 
-(defmacro aref (x k)
-  "Returns the [k]-th element of a list/string [x] or the value associated to the key [k] in an object"
-  (list 'js-code (+ "(" (js-compile x) "[" (js-compile k) "])")))
-(defun aref (x k)
-  "Returns the [k]-th element of a list/string [x] or the value associated to the key [k] in an object"
-  (aref x k))
-
-(defmacro set-aref (x k value)
-  "Sets the [k]-th element of a list [x] or the value associated to the key [k] in an object"
-  (list 'js-code (+ "(" (js-compile x) "[" (js-compile k) "]=" (js-compile value) ")")))
-
-(defun set-aref (x k value)
-  "Sets the [k]-th element of a list [x] or the value associated to the key [k] in an object"
-  (set-aref x k value))
-
 ; Funcall macro
 (defmacro funcall (f &rest args)
   "Calls the function object [f] passing specified values as parameters."
@@ -270,6 +255,38 @@
 (defun insert (x i y)
   "Inserts element [y] into list [x] at index [i]"
   (js-code "(d$$x.splice(d$$i,0,d$$y),d$$y)"))
+
+; Indexing
+(defmacro aref (x &rest indexes)
+  "Returns the element of [x] indexed by the specified values."
+  (let ((res (js-compile x)))
+    (dolist (i indexes)
+      (setq res (+ res "[" (js-compile i) "]")))
+    (list 'js-code (+ "(" res ")"))))
+
+(defmacro set-aref (x &rest rest)
+  "Sets the element of [x] indexed by specified values (but the last one) to last of specified values."
+  (let ((res (js-compile x))
+        (n1 (- (length rest) 1)))
+    (dotimes (i n1)
+      (setq res (+ res "[" (js-compile (aref rest i)) "]")))
+    (list 'js-code (+ "(" res
+                      "="
+                      (js-compile (aref rest n1))
+                      ")"))))
+
+(defun aref (x &rest indexes)
+  "Returns the element of [x] indexed by the specified values."
+  (dolist (i indexes)
+    (setq x (aref x i)))
+  x)
+
+(defun set-aref (x &rest rest)
+  "Sets the element of [x] indexed by specified values (but the last one) to last of specified values."
+  (let ((n2 (- (length rest) 2)))
+    (dotimes (i n2)
+      (setq x (aref x (aref rest i))))
+    (set-aref x (aref rest n2) (aref rest (+ n2 1)))))
 
 ; Quasiquoting
 (defun bqconst (x)
@@ -993,11 +1010,34 @@ The resulting list length is equal to the shortest input sequence."
 ; Array construction
 
 (defun make-array (n &optional initial-value)
-  "Creates a list containing [n] elements all equal to the specified [initial-value]"
-  (let ((x (list)))
-    (dotimes (i n)
-      (setf (aref x i) initial-value))
-    x))
+  "Creates a list containing [n] elements all equal to the specified [initial-value].
+   Passing a list of dimensions as [n] creates a multidimensional matrix."
+  (unless (list? n)
+    (setf n (list n)))
+  (let ((sz (length n)))
+    (cond
+      ((= sz 0)
+       initial-value)
+      ((= sz 1)
+       (let ((result (list)))
+         (dotimes (i (first n))
+           (setf (aref result i) initial-value))
+         result))
+      (true
+       (let ((result (list)))
+         (dotimes (i (first n))
+           (setf (aref result i)
+                 (make-array (rest n) initial-value)))
+         result)))))
+
+(defmacro make-array (n &optional initial-value)
+  (if (and (number? n)
+           (< n 100)
+           (or (number? initial-value)
+               (string? initial-value)
+               (undefined? initial-value)))
+      `(list ,@(funcall #'make-array n initial-value))
+      `(funcall #'make-array ,n ,initial-value)))
 
 ; Range
 
@@ -1701,7 +1741,7 @@ Each field is a list of an unevaluated atom as name and a value."
    [(import <module>)] simply imports a module without defining any symbol alias.
    [(import * from <module>)] imports a module and defines symbol aliases for all exported symbols.
    [(import (...) from <module>)] imports a module and defines specified aliases.
-   Adding \"as <nick>\" after the module name allows defining a short nickname for the module."
+   Adding \"[as <nick>]\" after the module name allows defining a short nickname for the module."
   (let ((names (list))
         (alias null))
     (cond
