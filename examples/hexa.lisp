@@ -117,156 +117,159 @@
        (= (row a) (row b))
        (= (col a) (col b))))
 
-(let* ((c (create-element "canvas"))
-       (wall (js-object))
-       (from null)
-       (to null)
-       (solution (list))
-       (mode "wall")
-       (clear-btn null)
-       (wall-btn null)
-       (check-btn null)
-       (layout null)
-       (display (create-element "div"))
-       (w (window 100 100 400 400
-                  :title "Hextile shortest path")))
-  (set-style (window-client w)
-             overflow "hidden")
-  (set-style c position "absolute")
-  (set-style display
-             position "absolute"
-             backgroundColor "#404040"
-             fontFamily "Arial, sans-serif"
-             fontWeight "bold"
-             px/fontSize 20
-             textAlign "center"
-             display "table-cell"
-             verticalAlign "middle"
-             px/lineHeight "30"
-             color "#00FF00")
-  (labels ((redraw ()
-             (let ((w (. c offsetWidth))
-                   (h (. c offsetHeight)))
-               (setf (. c width) w)
-               (setf (. c height) h)
-               (do ((drawn (js-object ([0 0] true)))
-                    (todo (list [0 0]))
-                    (i 0))
-                   ((>= i (length todo)))
-                 (let ((p (aref todo (1- (incf i)))))
-                   (hexagon c p
-                            (if (aref wall p)
-                                "#808080"
-                                "#E0E0E0")
-                            30)
-                   (dolist (nh (neighbors p))
-                     (unless (aref drawn nh)
-                       (let ((xy (tilemap nh 30)))
-                         (when (and (<= -30 (first xy) (+ w 30))
-                                    (<= -30 (second xy) (+ h 30)))
-                           (push nh todo)
-                           (setf (aref drawn nh) true)))))))
-               (with-canvas c
-                 (labels ((dot (center color)
-                            (let ((p (tilemap center 30)))
-                              (begin-path)
-                              (arc (first p) (second p) 10 0 (* 2 pi) true)
-                              (fill-style color)
-                              (fill))))
-                   (when from
-                     (dot from "#FF0000"))
-                   (when to
-                     (dot to "#0000FF"))
-                   (begin-path)
-                   (stroke-style "#00FF00")
-                   (line-width 4)
-                   (dotimes (i (length solution))
-                     (let ((p (tilemap (aref solution i) 30)))
-                       (if (zero? i)
-                           (move-to (first p) (second p))
-                           (line-to (first p) (second p)))))
-                   (stroke)))))
-           (fixstyle ()
-             (set-style wall-btn
-                        backgroundColor (if (= mode "wall") "#FFFF00" "#E0E0E0"))
-             (set-style check-btn
-                        backgroundColor (if (= mode "check") "#FFFF00" "#E0E0E0")))
-           (clear-solution ()
-             (setf from null)
-             (setf to null)
-             (setf solution (list)))
-           (set-mode (x)
-             (setf mode x)
-             (clear-solution)
-             (redraw)
-             (fixstyle)))
-    (macrolet ((set-button (name caption &rest body)
-                 `(progn
-                    (setf ,name (button ,caption
-                                        (lambda () ,@body)))
-                    (append-child (window-frame w) ,name))))
-      (set-button clear-btn "Clear"
-                  (setf wall (js-object))
-                  (set-mode "wall"))
-      (set-button wall-btn "Wall"
-                  (set-mode "wall"))
-      (set-button check-btn "Check"
-                  (set-mode "check")))
-    (append-child (window-frame w) c)
-    (append-child (window-frame w) display)
-    (setf layout (:V :border 8 :spacing 8
-                     (:Hdiv c)
-                     (:H :max 30 :spacing 8
-                         (:H :class 2)
-                         (:Hdiv clear-btn :max 80)
-                         (:Hdiv wall-btn :max 80)
-                         (:Hdiv check-btn :max 80)
-                         (:Hdiv display :max 120)
-                         (:H :class 2))))
-    (fixstyle)
-    (setf (window-resize-cback w)
-          (lambda (x0 y0 x1 y1)
-            (set-coords layout x0 y0 x1 y1)
-            (redraw)))
+(defun main ()
+  (let* ((c (create-element "canvas"))
+         (wall (js-object))
+         (from null)
+         (to null)
+         (solution (list))
+         (mode "wall")
+         (clear-btn null)
+         (wall-btn null)
+         (check-btn null)
+         (layout null)
+         (display (create-element "div"))
+         (w (window 100 100 400 400
+                    :title "Hextile shortest path")))
+    (set-style (window-client w)
+               overflow "hidden")
+    (set-style c position "absolute")
+    (set-style display
+               position "absolute"
+               backgroundColor "#404040"
+               fontFamily "Arial, sans-serif"
+               fontWeight "bold"
+               px/fontSize 20
+               textAlign "center"
+               display "table-cell"
+               verticalAlign "middle"
+               px/lineHeight "30"
+               color "#00FF00")
+    (labels ((redraw ()
+               (let ((w (. c offsetWidth))
+                     (h (. c offsetHeight)))
+                 (setf (. c width) w)
+                 (setf (. c height) h)
+                 (do ((drawn (js-object ([0 0] true)))
+                      (todo (list [0 0]))
+                      (i 0))
+                     ((>= i (length todo)))
+                   (let ((p (aref todo (1- (incf i)))))
+                     (hexagon c p
+                              (if (aref wall p)
+                                  "#808080"
+                                  "#E0E0E0")
+                              30)
+                     (dolist (nh (neighbors p))
+                       (unless (aref drawn nh)
+                         (let ((xy (tilemap nh 30)))
+                           (when (and (<= -30 (first xy) (+ w 30))
+                                      (<= -30 (second xy) (+ h 30)))
+                             (push nh todo)
+                             (setf (aref drawn nh) true)))))))
+                 (with-canvas c
+                   (labels ((dot (center color)
+                              (let ((p (tilemap center 30)))
+                                (begin-path)
+                                (arc (first p) (second p) 10 0 (* 2 pi) true)
+                                (fill-style color)
+                                (fill))))
+                     (when from
+                       (dot from "#FF0000"))
+                     (when to
+                       (dot to "#0000FF"))
+                     (begin-path)
+                     (stroke-style "#00FF00")
+                     (line-width 4)
+                     (dotimes (i (length solution))
+                       (let ((p (tilemap (aref solution i) 30)))
+                         (if (zero? i)
+                             (move-to (first p) (second p))
+                             (line-to (first p) (second p)))))
+                     (stroke)))))
+             (fixstyle ()
+               (set-style wall-btn
+                          backgroundColor (if (= mode "wall") "#FFFF00" "#E0E0E0"))
+               (set-style check-btn
+                          backgroundColor (if (= mode "check") "#FFFF00" "#E0E0E0")))
+             (clear-solution ()
+               (setf from null)
+               (setf to null)
+               (setf solution (list)))
+             (set-mode (x)
+               (setf mode x)
+               (clear-solution)
+               (redraw)
+               (fixstyle)))
+      (macrolet ((set-button (name caption &rest body)
+                   `(progn
+                      (setf ,name (button ,caption
+                                          (lambda () ,@body)))
+                      (append-child (window-frame w) ,name))))
+        (set-button clear-btn "Clear"
+                    (setf wall (js-object))
+                    (set-mode "wall"))
+        (set-button wall-btn "Wall"
+                    (set-mode "wall"))
+        (set-button check-btn "Check"
+                    (set-mode "check")))
+      (append-child (window-frame w) c)
+      (append-child (window-frame w) display)
+      (setf layout (:V :border 8 :spacing 8
+                       (:Hdiv c)
+                       (:H :max 30 :spacing 8
+                           (:H :class 2)
+                           (:Hdiv clear-btn :max 80)
+                           (:Hdiv wall-btn :max 80)
+                           (:Hdiv check-btn :max 80)
+                           (:Hdiv display :max 120)
+                           (:H :class 2))))
+      (fixstyle)
+      (setf (window-resize-cback w)
+            (lambda (x0 y0 x1 y1)
+              (set-coords layout x0 y0 x1 y1)
+              (redraw)))
 
-    (let ((walldraw null))
-      (labels ((tile (event)
-                 (let ((xy (event-pos event))
-                       (xy0 (element-pos c)))
-                   (tilerevmap (list (- (first xy) (first xy0))
-                                     (- (second xy) (second xy0)))
-                               30))))
-        (set-handler c onmousemove
-                     (let ((p (tile event)))
-                       (cond
-                         ((= mode "wall")
-                          (when (bool? walldraw)
+      (let ((walldraw null))
+        (labels ((tile (event)
+                   (let ((xy (event-pos event))
+                         (xy0 (element-pos c)))
+                     (tilerevmap (list (- (first xy) (first xy0))
+                                       (- (second xy) (second xy0)))
+                                 30))))
+          (set-handler c onmousemove
+                       (let ((p (tile event)))
+                         (cond
+                           ((= mode "wall")
+                            (when (bool? walldraw)
+                              (setf (aref wall p) walldraw)
+                              (redraw)))
+                           ((= mode "check")
+                            (when (and from
+                                       (not (aref wall p))
+                                       (not (aref wall from)))
+                              (setf to p)
+                              (let ((ct (time
+                                         (setf solution
+                                               (or (shortest-path from to wall)
+                                                   (list))))))
+                                (setf (. display textContent) ~"{ct}ms"))
+                              (redraw))))))
+          (set-handler c onmousedown
+                       (let ((p (tile event)))
+                         (cond
+                           ((= mode "wall")
+                            (setf walldraw (not (aref wall p)))
                             (setf (aref wall p) walldraw)
-                            (redraw)))
-                         ((= mode "check")
-                          (when (and from
-                                     (not (aref wall p))
-                                     (not (aref wall from)))
-                            (setf to p)
-                            (let ((ct (time
-                                       (setf solution
-                                             (or (shortest-path from to wall)
-                                                 (list))))))
-                              (setf (. display textContent) ~"{ct}ms"))
-                            (redraw))))))
-        (set-handler c onmousedown
-                     (let ((p (tile event)))
-                       (cond
-                         ((= mode "wall")
-                          (setf walldraw (not (aref wall p)))
-                          (setf (aref wall p) walldraw)
-                          (redraw))
-                         ((= mode "check")
-                          (when (not (aref wall p))
-                            (clear-solution)
-                            (setf from p)
-                            (redraw))))))
-        (set-handler c onmouseup
-                     (when (= mode "wall")
-                       (setf walldraw null)))))
-    (show-window w)))
+                            (redraw))
+                           ((= mode "check")
+                            (when (not (aref wall p))
+                              (clear-solution)
+                              (setf from p)
+                              (redraw))))))
+          (set-handler c onmouseup
+                       (when (= mode "wall")
+                         (setf walldraw null)))))
+      (show-window w))))
+
+(main)
