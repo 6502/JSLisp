@@ -28,6 +28,8 @@
 d$$$42$current_module$42$ = "";
 d$$$42$module_aliases$42$ = {};
 d$$$42$symbol_aliases$42$ = {};
+d$$$42$outgoing_calls$42$ = {}
+d$$$42$anonymous_functions$42$ = 0;
 
 d$$node$46$js = false;
 
@@ -466,6 +468,8 @@ defmacro("lambda",
          "in [body] in sequence returning the last evaluated form value as result",
          function(args)
          {
+             var current_outgoing_calls = d$$$42$outgoing_calls$42$;
+             d$$$42$outgoing_calls$42$ = {};
              var body = Array.prototype.slice.call(arguments, 1);
              lexvar.begin();
              lexsmacro.begin();
@@ -540,6 +544,24 @@ defmacro("lambda",
                  }
                  res += "return res;})";
              }
+             var anon = f$$intern("$anf-" + (++d$$$42$anonymous_functions$42$), "");
+             var ocnames = "";
+             for (var k in d$$$42$outgoing_calls$42$)
+             {
+                 ocnames += "," + stringify(k);
+             }
+             current_outgoing_calls[anon.name] = true;
+             d$$$42$outgoing_calls$42$ = current_outgoing_calls;
+             res = ("((function(){" +
+                    anon.name + "=" +
+                    res +
+                    ";" +
+                    anon.name +
+                    ".outcalls=[" +
+                    ocnames.substr(1) +
+                    "];return " +
+                    anon.name +
+                    ";})())");
              return [s$$js_code, res];
          },
          [f$$intern("args"), f$$intern("&rest"), f$$intern("body")]);
@@ -728,7 +750,8 @@ defun("eval",
       "Evaluates the expression [x] without considering lexical bindings.",
       function(x)
       {
-          return eval(f$$js_compile(x));
+          var jscode = f$$js_compile(x);
+          return eval(jscode);
       },
       [s$$x]);
 
@@ -1106,6 +1129,7 @@ defun("js-compile",
                           var gf = glob["f" + f.name];
                           if (!lexfunc.vars[f.name])
                           {
+                              d$$$42$outgoing_calls$42$[f.name] = true;
                               if (!gf)
                               {
                                   f$$warning("Undefined function " + f.name);
