@@ -352,9 +352,9 @@
     (set-handler closer onmousedown
                  (funcall (. event preventDefault))
                  (funcall (. event stopPropagation))
-                 (hide frame)
                  (when (window-close-cback window)
-                   (funcall (window-close-cback window))))
+                   (funcall (window-close-cback window)))
+                 (hide frame))
     (setf window (make-window :frame frame
                               :titlebar titlebar
                               :resizer resizer
