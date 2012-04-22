@@ -739,6 +739,14 @@
   "Sets the last element of list/string [x] to [y]"
   (setf (aref x (1- (length x))) y))
 
+(defmacro last (x)
+  "Last element of list/string [x]."
+  (setq x (symbol-macro-expand x))
+  (if (symbol? x)
+      `(js-code ,(+ (js-compile x) "["
+                    (js-compile x) ".length-1]"))
+      `(funcall #'last ,x)))
+
 (defun reduce (f seq)
   "Reduces a sequence to a single value by repeating application of
    function [f] to pairs of elements in the sequence [seq]. For an empty
