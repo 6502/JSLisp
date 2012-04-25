@@ -29,7 +29,6 @@ d$$$42$current_module$42$ = "";
 d$$$42$module_aliases$42$ = {};
 d$$$42$symbol_aliases$42$ = {};
 d$$$42$outgoing_calls$42$ = {}
-d$$$42$anonymous_functions$42$ = 0;
 
 d$$node$46$js = false;
 
@@ -544,24 +543,21 @@ defmacro("lambda",
                  }
                  res += "return res;})";
              }
-             var anon = f$$intern("$anf-" + (++d$$$42$anonymous_functions$42$), "");
              var ocnames = "";
              for (var k in d$$$42$outgoing_calls$42$)
              {
                  ocnames += "," + stringify(k);
+                 current_outgoing_calls[k] = true;
              }
-             current_outgoing_calls[anon.name] = true;
              d$$$42$outgoing_calls$42$ = current_outgoing_calls;
              res = ("((function(){" +
-                    anon.name + "=" +
+                    "var f =" +
                     res +
                     ";" +
-                    anon.name +
-                    ".outcalls=[" +
+                    "f.outcalls=[" +
                     ocnames.substr(1) +
                     "];return " +
-                    anon.name +
-                    ";})())");
+                    "f;})())");
              return [s$$js_code, res];
          },
          [f$$intern("args"), f$$intern("&rest"), f$$intern("body")]);
@@ -1100,7 +1096,7 @@ defun("js-compile",
                               throw "js-code requires a string literal";
                           return x[1];
                       }
-                      if (lexmacro.vars[f.name])
+                      else if (lexmacro.vars[f.name])
                       {
                           var lmf = lexmacro.vars[f.name];
                           if (lmf.arglist)
@@ -1109,7 +1105,10 @@ defun("js-compile",
                               if (caf && caf!=42)
                                   caf(x, lmf.arglist);
                           }
+                          var ouc = d$$$42$outgoing_calls$42$;
+                          d$$$42$outgoing_calls$42$ = {};
                           var macro_expansion = lmf.apply(glob, x.slice(1));
+                          d$$$42$outgoing_calls$42$ = ouc;
                           return wrapper(f$$js_compile(macro_expansion));
                       }
                       else if (glob["m" + f.name])
@@ -1571,32 +1570,37 @@ defun("toplevel-eval",
       "is only about eventual macro and code side effects that can influence compilation of subsequent forms in [(progn...)].",
       function(x)
       {
-          var f;
+          // Ignore outgoing calls executed by toplevel
+          var outc = d$$$42$outgoing_calls$42$;
+          d$$$42$outgoing_calls$42$ = {};
+
+          var f, result;
           if (f$$symbol$63$(x))
           {
               if (x.symbol_macro)
                   return f$$toplevel_eval(x.symbol_macro);
-              return f$$eval(x);
+              result = f$$eval(x);
           }
           else if (f$$list$63$(x))
           {
               if (x[0] == s$$progn)
               {
-                  var res = null;
+                  result = null;
                   for (var i=1; i<x.length; i++)
-                      res = f$$toplevel_eval(x[i]);
-                  return res;
+                      result = f$$toplevel_eval(x[i]);
               }
               else if (f$$symbol$63$(x[0]) && (f = glob["m" + x[0].name]))
               {
-                  return f$$toplevel_eval(f.apply(glob, x.slice(1)));
+                  result = f$$toplevel_eval(f.apply(glob, x.slice(1)));
               }
-              else return f$$eval(x);
+              else result = f$$eval(x);
           }
           else
           {
-              return f$$eval(x);
+              result = f$$eval(x);
           }
+          d$$$42$outgoing_calls$42$ = outc;
+          return result;
       },
       [s$$x]);
 

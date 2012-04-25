@@ -63,8 +63,7 @@
           ;; Must not set the function value unconditionally because of the
           ;; double-stage bootstrap of some basic operators (the poor version
           ;; must be available during macro expansion time of the better version)
-          (list 'unless
-                (list 'symbol-function (list 'quote name))
+          (list 'unless (list 'symbol-function (list 'quote name))
                 (list 'set-symbol-function
                       (list 'quote name)
                       (list 'lambda args))
@@ -73,13 +72,9 @@
                 (list 'set-arglist
                       (list 'symbol-function (list 'quote name))
                       (list 'quote args)))
-          ;; Function definition delays compilation of lambda
-          ;; to wait the function declaration to be in place
           (list 'set-symbol-function
                 (list 'quote name)
-                (list 'eval
-                      (list 'quote
-                            (append (list 'lambda args) body))))
+                (append (list 'lambda args) body))
           (list 'set-documentation
                 (list 'symbol-function (list 'quote name))
                 doc)
@@ -139,6 +134,7 @@
 ; Function accessor
 (defmacro function (x)
   "Returns the function currently bound to the unevaluated symbol [x] (including lexical bindings)"
+  (js-code "(d$$$42$outgoing_calls$42$[d$$x.name]=true)")
   (list 'js-code (+ "f" (js-code "d$$x.name"))))
 
 (defmacro set-function (x value)

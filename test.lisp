@@ -619,17 +619,17 @@
         L)
       "(\"yfoo:before\" \"ybar:before\" 42)")
 
-(test (defun zfoo (n rf i out)
-        (if (> n 0)
-            (progn
-              (push (lambda () (return-from zfoo n)) rf)
-              (push n out)
-              (zfoo (1- n) rf i out)
-              (push (- n) out))
-            (progn
-              (push 999 out)
-              (funcall (aref rf i))
-              (push -999 out)))) "zfoo")
+(defun zfoo (n rf i out)
+  (if (> n 0)
+      (progn
+        (push (lambda () (return-from zfoo n)) rf)
+        (push n out)
+        (zfoo (1- n) rf i out)
+        (push (- n) out))
+      (progn
+        (push 999 out)
+        (funcall (aref rf i))
+        (push -999 out))))
 
 (test (let ((out (list))
             (rf (list)))
