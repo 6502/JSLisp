@@ -134,7 +134,7 @@
 ; Function accessor
 (defmacro function (x)
   "Returns the function currently bound to the unevaluated symbol [x] (including lexical bindings)"
-  (js-code "(d$$$42$outgoing_calls$42$[d$$x.name]=true)")
+  (js-code "(lexfunc.vars[d$$x.name]?null:(d$$$42$outgoing_calls$42$[d$$x.name]=true))")
   (list 'js-code (+ "f" (js-code "d$$x.name"))))
 
 (defmacro set-function (x value)
@@ -931,7 +931,7 @@ The resulting list length is equal to the shortest input sequence."
 (setf (symbol-macro 'lambda)
       (let* ((oldcf (symbol-macro 'lambda))
              (oldcomm (documentation oldcf))
-             (unassigned (gensym-noprefix))
+             (unassigned '#.(gensym-noprefix))
              (f (lambda (args &rest body)
                   (let ((i (index0 '&key args)))
                     (if (= i -1)
@@ -1404,11 +1404,10 @@ Each field is a list of an unevaluated atom as name and a value."
   (setf x (replace x "\"" "&quot;"))
   x)
 
+;; DOM
 (unless node.js
-  ;; DOM
-  (setf document (js-code "document"))
-  (setf window (js-code "window")))
-
+  (define-symbol-macro document (js-code "document"))
+  (define-symbol-macro window (js-code "window")))
 (unless node.js
   (defun get-element-by-id (id)
     "Returns the DOM element with the specified id value"
