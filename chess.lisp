@@ -145,7 +145,7 @@
       (let ((c (aref fen (1- (incf i)))))
         (cond
           ((<= "1" c "8")
-           (incf x (parse-value c))
+           (incf x (js-code "parseInt(d$$c)"))
            (unless (<= x 8) (error "Invalid FEN string")))
           ((find c "prnbqkPRNBQK")
            (unless (< x 8) (error "Invalid FEN string"))

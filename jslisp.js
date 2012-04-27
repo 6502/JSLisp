@@ -352,9 +352,14 @@ defmacro("define-symbol-macro",
          "Sets the global symbol-macro expansion of unevaluated symbol [x] to be the unevaluated form [y].",
          function(x, y)
          {
-             lisp_literals.push(y);
-             d$$$42$used_globals$42$["q"+(lisp_literals.length-1)] = true;
-             return [s$$js_code, "s" + x.name + ".symbol_macro=lisp_literals[" + (lisp_literals.length-1) + "]"];
+             var i = lisp_literals.indexOf(y);
+             if (i == -1)
+             {
+                 i = lisp_literals.length;
+                 lisp_literals.push(y);
+             }
+             d$$$42$used_globals$42$["q"+i] = true;
+             return [s$$js_code, "s" + x.name + ".symbol_macro=lisp_literals[" + i + "]"];
          },
          [f$$intern("x"), f$$intern("y")]);
 
@@ -770,12 +775,20 @@ defmacro("quote",
          function(x)
          {
              if (f$$symbol$63$(x) && x.interned)
+             {
+                 d$$$42$used_globals$42$["s" + x.name] = true;
                  return [s$$js_code, "s" + x.name];
+             }
              if (f$$number$63$(x) || f$$string$63$(x))
                  return [s$$js_code, stringify(x)];
-             lisp_literals.push(x);
-             d$$$42$used_globals$42$["q"+(lisp_literals.length-1)] = true;
-             return [s$$js_code, "lisp_literals[" + (lisp_literals.length-1) + "]"];
+             var i = lisp_literals.indexOf(x);
+             if (i == -1)
+             {
+                 i = lisp_literals.length;
+                 lisp_literals.push(x);
+             }
+             d$$$42$used_globals$42$["q"+i] = true;
+             return [s$$js_code, "lisp_literals[" + i + "]"];
          },
          [s$$x]);
 

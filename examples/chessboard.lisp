@@ -130,7 +130,7 @@ be called with start/end squares (two numbers between 0 and 63)."
   (setf (first (window-data window)) position)
   (funcall (second (window-data window))))
 
-(defun main ()
+(defun wmain ()
   (let ((pnames (js-object))
         (w null))
     (setf (aref pnames chess:+WP+) "P")
@@ -173,14 +173,17 @@ be called with start/end squares (two numbers between 0 and 63)."
                                     0))))))))
     w))
 
-(setf *piece-images*
-      (let ((images (js-object))
-            (count 0))
-        (dolist (x "PRNBQKprnbqk")
-          (let ((img (create-element "img")))
-            (setf (. img onload)
-                  (lambda () (when (= (incf count) 12)
-                               (main))))
-            (setf (. img src) (+ x ".png"))
-            (setf (aref images x) img)))
-        images))
+(defun main ()
+  (setf *piece-images*
+        (let ((images (js-object))
+              (count 0))
+          (dolist (x "PRNBQKprnbqk")
+            (let ((img (create-element "img")))
+              (setf (. img onload)
+                    (lambda () (when (= (incf count) 12)
+                                 (wmain))))
+              (setf (. img src) (+ x ".png"))
+              (setf (aref images x) img)))
+          images)))
+
+(main)

@@ -9,15 +9,26 @@
 (defun variable(k)
   (stringify (js-code "glob['d'+d$$k]")))
 
+(defun symbol(k)
+  (stringify (js-code "glob[d$$k]")))
+
 (defun fclosure (x)
   (do ((result (js-object))
        (vars (js-object))
-       (todo (list x)))
+       (todo (list x))
+       (litout false))
       ((empty todo)
          (dolist (k (sort (keys vars)))
-           (if (= (aref k 0) "q")
-               (display ~"lisp_literals[{(slice k 1)}]={(literal k)};")
-               (display ~"d{k}={(variable k)};")))
+           (cond
+             ((= (aref k 0) "q")
+              (unless litout
+                (setf litout true)
+                (display "lisp_literals=[];"))
+              (display ~"lisp_literals[{(slice k 1)}]={(literal k)};"))
+             ((= (aref k 0) "s")
+              (display ~"{k}={(symbol k)};"))
+             (true
+              (display ~"d{k}={(variable k)};"))))
          (dolist (k (sort (keys result)))
            (display ~"f{k}={(aref result k)};"))
          result)
