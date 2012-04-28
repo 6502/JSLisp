@@ -36,7 +36,7 @@
       (dolist (x todo)
         (setf (aref result (. x name))
               (or (and (symbol-function x)
-                       (. (symbol-function x) src))
+                       (+ (symbol-function x) ""))
                   "**N/A**"))
         (dolist (v (or (and (symbol-function x)
                             (. (symbol-function x) usedglobs))

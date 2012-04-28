@@ -593,7 +593,6 @@ defmacro("lambda",
                     "var f =" +
                     res +
                     ";" +
-                    "f.src=" + stringify(res) + ";" +
                     "f.usedglobs=[" +
                     ugnames.substr(1) +
                     "];f.outcalls=[" +
@@ -1030,7 +1029,13 @@ defmacro("macrolet",
                  var name = bindings[i][0].name;
                  var args = bindings[i][1];
                  var mbody = bindings[i].slice(2);
+                 var ouc = d$$$42$outgoing_calls$42$;
+                 var oug = d$$$42$used_globals$42$;
+                 d$$$42$outgoing_calls$42$ = {};
+                 d$$$42$used_globals$42$ = {};
                  lexmacro.add(name, eval(f$$js_compile([f$$intern("lambda"), args].concat(mbody))));
+                 d$$$42$outgoing_calls$42$ = ouc;
+                 d$$$42$used_globals$42$ = oug;
              }
              var res = implprogn(body);
              lexmacro.end();
