@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <script>
+      var aa = document.location.href;
+      if (aa.indexOf("?") != -1) {
+        var s = document.createElement("script");
+        s.src = aa.substr(aa.indexOf("?")+1);
+        document.body.appendChild(s);
+      }
+    </script>
+  </body>
+</html>
