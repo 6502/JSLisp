@@ -18,20 +18,21 @@
        (todo (list x))
        (litout false))
       ((empty todo)
-         (dolist (k (sort (keys vars)))
-           (cond
-             ((= (aref k 0) "q")
-              (unless litout
-                (setf litout true)
-                (display "lisp_literals=[];"))
-              (display ~"lisp_literals[{(slice k 1)}]={(literal k)};"))
-             ((= (aref k 0) "s")
-              (display ~"{k}={(symbol k)};"))
-             (true
-              (display ~"d{k}={(variable k)};"))))
-         (dolist (k (sort (keys result)))
-           (display ~"f{k}={(aref result k)};"))
-         result)
+         (let ((output (list)))
+           (dolist (k (sort (keys vars)))
+             (cond
+               ((= (aref k 0) "q")
+                (unless litout
+                  (setf litout true)
+                  (push "lisp_literals=[];" output))
+                (push ~"lisp_literals[{(slice k 1)}]={(literal k)};" output))
+               ((= (aref k 0) "s")
+                (push ~"{k}={(symbol k)};" output))
+               ((not (undefined? (js-code "glob['d'+d$$k]")))
+                (push ~"d{k}={(variable k)};" output))))
+           (dolist (k (sort (keys result)))
+             (push ~"f{k}={(aref result k)};" output))
+           output))
     (let ((new-todo (list)))
       (dolist (x todo)
         (setf (aref result (. x name))
@@ -50,3 +51,11 @@
                    (y (intern (demangle fn) (slice fn 0 i))))
               (push y new-todo)))))
       (setf todo new-todo))))
+
+(setf (symbol-macro (intern "main" ""))
+      (lambda (&rest args)
+        `(progn
+           (dolist (x (fclosure ',#main))
+             (display x))
+           (display (js-compile '(funcall #',#main ,@args)))
+           null)))

@@ -1737,7 +1737,7 @@ defun("load",
           {
               var werr = new String("Error during load (form=" + nforms + ", phase = " + phase + "):\n" +
                                     err + "\n" +
-                                    ((phase == "executing" || phase == "compiling") ?
+                                    ((phase != "parsing") ?
                                      f$$macroexpand_$49$(f$$str_value(form)) : ""));
               werr.location = err.location;
               throw werr;

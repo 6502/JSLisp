@@ -1405,25 +1405,20 @@ Each field is a list of an unevaluated atom as name and a value."
   x)
 
 ;; DOM
-(unless node.js
-  (define-symbol-macro document (js-code "document"))
-  (define-symbol-macro window (js-code "window")))
-(unless node.js
-  (defun get-element-by-id (id)
-    "Returns the DOM element with the specified id value"
-    (funcall (. document getElementById) id))
-
-  (defun create-element (type)
-    "Creates a new DOM element with the specified type passed as a string"
-    (funcall (. document createElement) type))
-
-  (defun append-child (parent child)
-    "Appends the DOM element 'child' as last (frontmost) children of the parent DOM element"
-    (funcall (. parent appendChild) child))
-
-  (defun remove-child (parent child)
-    "Removes the DOM element child from the list of children of parent DOM element"
-    (funcall (. parent removeChild) child)))
+(define-symbol-macro document (js-code "document"))
+(define-symbol-macro window (js-code "window"))
+(defmacro get-element-by-id (id)
+  "Returns the DOM element with the specified id value"
+  `(js-code ,(+ "(document.getElementById(" (js-compile id) "))")))
+(defmacro create-element (type)
+  "Creates a new DOM element with the specified type passed as a string"
+  `(js-code ,(+ "(document.createElement(" (js-compile type) "))")))
+(defmacro append-child (parent child)
+  "Appends the DOM element [child] as last (frontmost) children of the [parent] DOM element"
+  `(js-code ,(+ "(" (js-compile parent) ".appendChild(" (js-compile child) "))")))
+(defmacro remove-child (parent child)
+  "Removes the DOM element [child] from the list of children of [parent] DOM element"
+  `(js-code ,(+ "(" (js-compile parent) ".removeChild(" (js-compile child) "))")))
 
 ; Timer events
 (defun set-timeout (f delay)
@@ -1714,6 +1709,9 @@ Each field is a list of an unevaluated atom as name and a value."
                 ".symbol_macro;})())")))
 
 ; Module support
+
+(defvar *exports* (list))
+
 (defmacro export (&rest symbols)
   "Lists specified [symbols] as to be exported to who uses [(import * from <module>)] import syntax.
    A string literal in the [symbols] list is assumed to be a start-with match for symbols already
@@ -1731,7 +1729,7 @@ Each field is a list of an unevaluated atom as name and a value."
                   (dolist (w wildcards)
                     (incf re ~"|{(regexp-escape (slice (mangle w) 2))}"))
                   (let ((regexp (regexp ~"^s{*current-module*}\\\\$\\\\$({(slice re 1)}.*)")))
-                    (dolist (k (keys (js-code "window")))
+                    (dolist (k (keys (js-code "glob")))
                       (when (funcall (. regexp exec) k)
                         (let ((name (demangle k)))
                           (push `(push ',(intern name *current-module*)
