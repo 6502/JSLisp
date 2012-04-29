@@ -1636,9 +1636,14 @@ defun("set-reader",
 
 defun("toplevel-eval",
       "[[(toplevel-eval x)]]\n"+
-      "Evaluates the form or symbol [x] by macroexpanding, compiling and executing it. If however the form is a [(progn ...)] "+
-      "form then recursively call toplevel-eval on each contained element. The difference between [toplevel-eval] and [eval] "+
-      "is only about eventual macro and code side effects that can influence compilation of subsequent forms in [(progn...)].",
+      "Evaluates the form or symbol [x] by macroexpanding, compiling and "+
+      "executing it. If however the form is a [(progn/if ...)]"+
+      "form then conditions are evaluated immediately and recursive calls "+
+      "to toplevel-eval are used for evaluation. "+
+      "The main difference between [toplevel-eval] and [eval]"+
+      "is about eventual macro and code side effects that can influence "+
+      "compilation of subsequent forms in [(progn...)] and that code in "+
+      "top-level conditional parts not being evaluated is also not compiled.",
       function(x)
       {
           // Ignore outgoing calls and used globals at toplevel
@@ -1661,6 +1666,17 @@ defun("toplevel-eval",
                   result = null;
                   for (var i=1; i<x.length; i++)
                       result = f$$toplevel_eval(x[i]);
+              }
+              else if (x[0] == s$$if)
+              {
+                  if (f$$js_eval(f$$toplevel_eval(x[1])))
+                  {
+                      result = f$$toplevel_eval(x[2]);
+                  }
+                  else
+                  {
+                      result = f$$toplevel_eval(x[3]);
+                  }
               }
               else if (f$$symbol$63$(x[0]) && (f = glob["m" + x[0].name]))
               {
