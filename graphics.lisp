@@ -22,7 +22,7 @@
                   (,#bez2-to (x1 y1 x2 y2)
                     `(funcall (. ,',ctx quadraticCurveTo) ,x1 ,y1 ,x2 ,y2))
                   (,#bez3-to (x1 y1 x2 y2 x3 y3)
-                    `(funcall (. ,',ctx bezierArcTo) ,x1 ,y1 ,x2 ,y2 ,x3 ,y3))
+                    `(funcall (. ,',ctx bezierCurveTo) ,x1 ,y1 ,x2 ,y2 ,x3 ,y3))
                   (,#fill-style (x)
                     `(setf (. ,',ctx fillStyle) ,x))
                   (,#stroke-style (x)
