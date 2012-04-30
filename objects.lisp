@@ -1,17 +1,18 @@
 (defmacro defmethod (name args test &rest body)
   "Defines a conditioned implementation of a function; when [test] doesn't match the previous implementation is called instead"
-  (let ((of '#.(gensym)))
+  (let ((of (gensym)))
     `(progn
-       (unless (symbol-function ',name)
-         (setf (symbol-function ',name)
-               (lambda (&rest args)
+       ,@(if (symbol-function name)
+             (list)
+             `((defun ,name ,args
                  (error ,~"No matching method [{name}]"))))
-       (setf (symbol-function ',name)
-             (let ((,of (symbol-function ',name)))
-               (lambda ,args
-                 (if ,test
-                     (progn ,@body)
-                     (funcall ,of ,@args))))))))
+       (setf #',of #',name)
+       (setf #',name
+             (lambda ,args
+               (if ,test
+                   (progn ,@body)
+                   (,of ,@args))))
+       (list ',name ',test))))
 
 (defun fields (x)
   "Returns the fields associated to object instance [x]"
