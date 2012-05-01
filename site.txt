@@ -797,6 +797,50 @@ Ready.
 --> "meow!"
 ]
 
+@@ Treeshaker
+
+JsLisp provides the ability to deploy a compiled program that contains
+only the code that can possibly be executed explicitly from its main
+function, leaving the code for all unused functions, macros and the
+compiler itself out.
+
+Also the produced Javascript code is minimized and this provides a
+smaller download size, a faster startup and some protection of the
+source code.
+
+The easiest way to use the deploy function is to invoke jslisp from
+[node] command line program:
+
+[node jslisp.js deploy.lisp myprogram.lisp > myprogram.js
+]
+
+As an example consider the chess playing program:
+
++--------------------------+-------+--------+------------+
+|         filename         | lines |  bytes | startup(s) |
++--------------------------+-------+--------+------------+
+| examples/chessboard.lisp |   189 |   8818 |            |
+| examples/chess.lisp      |   843 |  31672 |            |
+| gui.lisp                 |   399 |  16081 |            |
+| graphics.lisp            |    90 |   3966 |            |
+| boot.lisp                |  1874 |  72549 |            |
+| jslisp.js                |  1819 |  66050 |            |
+|                          |       |        |            |
+| TOTAL                    |  5214 | 199136 |            |
+| Download size (gzip)     |       |  40993 |            |
+| Startup time             |       |        |      1.513 |
+|                          |       |        |            |
+| deploy.lisp output       |     1 |  33584 |            |
+| Download size (gzip)     |       |   7822 |            |
+| Startup time             |       |        |      0.034 |
++--------------------------+-------+--------+------------+
+
+The compiled and minified version is a single line of javascript with
+a total length of 33584 that gizipped is a download of 7822 bytes.
+The deployed file has no dependencies (except in the specific the
+PNG images for the chess pieces), just loading it in a page will
+pop-up the chessboard.
+
 @ Give it a try!
 
 JsLisp REPL can run in most recent web browsers.

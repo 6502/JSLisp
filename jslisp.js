@@ -25,6 +25,8 @@
 ******************************************************************************
 \****************************************************************************/
 
+d$$$42$start_time$42$ = (new Date).getTime();
+
 d$$$42$current_module$42$ = "";
 d$$$42$module_aliases$42$ = {};
 d$$$42$symbol_aliases$42$ = {};
@@ -156,6 +158,7 @@ glob["f$$intern"] = f$$intern = function(name, module)
     if ((typeof module == "undefined") && (x = d$$$42$symbol_aliases$42$[name]))
         return x;
     var m = (typeof module == "undefined") ? d$$$42$current_module$42$ : (d$$$42$module_aliases$42$[module]||module);
+    m = m.replace("/","__");
     var mangled = f$$mangle(name);
     var mname = m + mangled;
     x = glob["s" + mname];
@@ -237,7 +240,7 @@ defun("symbol-module",
       function(x)
       {
           if (x.interned)
-              return x.name.substr(0, x.name.indexOf("$$"));
+              return x.name.substr(0, x.name.indexOf("$$")).replace(/__/g, "/");
           return undefined;
       },
       [s$$x]);

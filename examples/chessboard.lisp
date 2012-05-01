@@ -1,6 +1,6 @@
-(import chess)
 (import * from gui)
 (import * from graphics)
+(import examples/chess as chess)
 
 (defvar *piece-images* (js-object))
 
