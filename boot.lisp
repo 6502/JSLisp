@@ -30,7 +30,8 @@
                     (setq name (module-symbol name))
                     (let ((doc (str-value (append (list name) args))))
                       (setq doc (js-code "('[['+d$$doc+']]')"))
-                      (if (string? (js-code "d$$body[0]"))
+                      (if (and (string? (js-code "d$$body[0]"))
+                               (js-code "(d$$body.length>1)"))
                           (setq doc (js-code "d$$doc+\"\\n\"+d$$body.splice(0,1)[0]")))
                       (list 'progn
                             (list 'set-symbol-macro
@@ -56,7 +57,8 @@
   (setq name (module-symbol name))
   (let ((doc (str-value (append (list name) args))))
     (setq doc (js-code "('[['+d$$doc+']]')"))
-    (if (string? (js-code "d$$body[0]"))
+    (if (and (string? (js-code "d$$body[0]"))
+             (js-code "(d$$body.length>1)"))
         (setq doc (js-code "d$$doc+\"\\n\"+d$$body.splice(0,1)[0]")))
     (list 'progn
           ;; Shut up warnings about unknown function in recursive definitions
@@ -343,7 +345,8 @@
   ;;       defun is macroexpanded
   (setq name (module-symbol name))
   (eval `(defmacro ,name ,args ,@body))
-  (let ((doc (if (string? (aref body 0))
+  (let ((doc (if (and (> (length body) 1)
+                      (string? (aref body 0)))
                  (splice body 0 1)
                  (list))))
     `(progn
@@ -829,6 +832,44 @@ The resulting list length is equal to the shortest input sequence."
       (unless (= x y)
         (push y res)))
     res))
+
+(defun nremove (x L)
+  "Removes all elements [x] from [L] and returns how many elements have been removed"
+  (let ((wp 0)
+        (n (length L)))
+    (dotimes (rp n)
+      (unless (= (aref L rp) x)
+        (setf (aref L (1- (incf wp))) (aref L rp))))
+    (setf (length L) wp)
+    (- n wp)))
+
+(defun remove-first (x L)
+  "Returns a copy of [L] after removing first instance of [x] if present"
+  (let ((i (index0 x L)))
+    (if (>= i 0)
+        (append (slice L 0 i) (slice L (1+ i)))
+        (slice L))))
+
+(defun nremove-first (x L)
+  "Remove first element [x] from list [L] if present. Returns true if found."
+  (let ((i (index0 x L)))
+    (when (>= i 0)
+      (splice L i 1))
+    (>= i 0)))
+
+(defun remove-last (x L)
+  "Returns a copy of [L] after removing first instance of [x] if present"
+  (let ((i (last-index x L)))
+    (if (>= i 0)
+        (append (slice L 0 i) (slice L (1+ i)))
+        (slice L))))
+
+(defun nremove-last (x L)
+  "Remove first element [x] from list [L] if present. Returns true if found."
+  (let ((i (last-index x L)))
+    (when (>= i 0)
+      (splice L i 1))
+    (>= i 0)))
 
 (defun subset (L1 L2)
   "True if every element in [L1] is also in [L2]"
@@ -1607,7 +1648,8 @@ Each field is a list of an unevaluated atom as name and a value."
   (setf (symbol-macro 'defun)
         (let ((om (symbol-macro 'defun)))
           (lambda (name args &rest body)
-            (let ((doc (if (string? (first body))
+            (let ((doc (if (and (> (length body) 1)
+                                (string? (first body)))
                            (js-code "d$$body.splice(0,1)")
                            (list))))
               (apply om `(,name ,args ,@doc (block ,name ,@body)))))))
@@ -1619,7 +1661,8 @@ Each field is a list of an unevaluated atom as name and a value."
        (oargs (arglist om)))
   (setf (symbol-macro 'lambda)
         (lambda (args &rest body)
-          (let ((doc (if (string? (first body))
+          (let ((doc (if (and (> (length body) 1)
+                              (string? (first body)))
                          (js-code "d$$body.splice(0,1)")
                          (list))))
             (apply om `(,args
