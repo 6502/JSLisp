@@ -9,9 +9,10 @@
        (setf #',of #',name)
        (setf #',name
              (lambda ,args
-               (if ,test
-                   (progn ,@body)
-                   (,of ,@args))))
+               (block ,name
+                 (if ,test
+                     (progn ,@body)
+                     (,of ,@args)))))
        (list ',name ',test))))
 
 (defun fields (x)
