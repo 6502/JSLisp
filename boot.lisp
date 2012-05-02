@@ -399,26 +399,32 @@
 (defmacro defmathop (name comment none single jsname)
   "Defines a math operator macro with the given [comment], the value [none]
    to use in case of no operands, the value [single] in case of a single operand
-   and the Javascript operator name [jsname] when more operands are present."
+   and the Javascript operator name [jsname] when more operands are present.
+   For numeric or string literals operands the computation is perfomed compile time."
   `(defmacro ,name (&rest args)
      ,comment
-     (cond
-       ((= (length args) 0)
-        ,none)
-       ((= (length args) 1)
-        ,single)
-       ((= (length args) 2)
-        `(js-code ,(+ "(("
-                      (js-compile (aref args 0))
-                      ")" ,jsname "("
-                      (js-compile (aref args 1))
-                      "))")))
-       (true
-        `(js-code ,(+ "(("
-                      (js-compile `(,',name ,@(slice args 0 (- (length args) 1))))
-                      ")" ,jsname "("
-                      (js-compile (aref args (- (length args) 1)))
-                      "))"))))))
+     (let ((res (cond
+                  ((= (length args) 0)
+                   ,none)
+                  ((= (length args) 1)
+                   ,single)
+                  ((= (length args) 2)
+                   `(js-code ,(+ "(("
+                                 (js-compile (aref args 0))
+                                 ")" ,jsname "("
+                                 (js-compile (aref args 1))
+                                 "))")))
+                  (true
+                   `(js-code ,(+ "(("
+                                 (js-compile `(,',name ,@(slice args 0 (- (length args) 1))))
+                                 ")" ,jsname "("
+                                 (js-compile (aref args (- (length args) 1)))
+                                 "))"))))))
+       (when (and (list? res)
+                  (= (first res) 'js-code)
+                  (js-code "d$$res[1].match(/\\(\\((-?[0-9]+\\.?[0-9]*|\"([^\"]|\\\\.)*\")\\).\\((-?[0-9]+\\.?[0-9]*|\"([^\"]|\\\\.)*\")\\)\\)/)"))
+         (js-code "(d$$res[1]=JSON.stringify(eval(d$$res[1])))"))
+       res)))
 
 (defmacro defmathop-func (name)
   "Defines a math function based on a math operator macro defined with [defmathop]."
@@ -1412,6 +1418,13 @@ Each field is a list of an unevaluated atom as name and a value."
 (defun keys (obj)
   "Returns a list of all keys defined in the specified javascript object [obj]."
   (js-code "((function(){var res=[];for(var $i in d$$obj)res.push($i);return res})())"))
+
+(defun copy-js-object (x)
+  "Returns a shallow copy of the javascript object [x]"
+  (let ((res (js-object)))
+    (dolist (k (keys x))
+      (setf (aref res k) (aref x k)))
+    res))
 
 ; Javscript simple function/method binding
 (defmacro bind-js-functions (&rest names)
