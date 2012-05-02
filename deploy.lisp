@@ -128,6 +128,7 @@ reverse engineering point of view.
         (setf s (replace s "(\\(|,)\\(([^(),]+)\\)(\\)|,)" "$1$2$3")))
       (setf s (replace s "([^-])(--)+([^-])" "$1+$3"))
       (setf s (replace s "([^-])-(--)+([^-])" "$1-$3"))
+      (setf s (replace s "([^-+])\\+-([^-+])" "$1-$2"))
       ; Unneeded semicolon and space removal
       (setf s (replace s ";}" "}"))
       (setf s (replace s " *([;\\({=]) *" "$1"))
