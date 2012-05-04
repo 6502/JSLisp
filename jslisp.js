@@ -150,11 +150,16 @@ f$$mangle.documentation = ("[[(mangle x)]]\n" +
                            "Returns the javascript version of a lisp symbol name [x] "+
                            "by quoting characters forbidden in javascript identifiers");
 
-glob["f$$intern"] = f$$intern = function(name, module)
+glob["f$$intern"] = f$$intern = function(name, module, lookup_only)
 {
     var x;
     if (name[0] == ":")
         module = "";
+    if ((typeof module == "undefined") && (x = name.indexOf(":")) > 0)
+    {
+        module = name.substr(0, x);
+        name = name.substr(x + 1);
+    }
     if ((typeof module == "undefined") && (x = d$$$42$symbol_aliases$42$[name]))
         return x;
     var m = (typeof module == "undefined") ? d$$$42$current_module$42$ : (d$$$42$module_aliases$42$[module]||module);
@@ -166,6 +171,7 @@ glob["f$$intern"] = f$$intern = function(name, module)
     {
         if ((typeof module == "undefined") && (x = glob["s" + mangled]))
             return x;
+        if (lookup_only) return null;
         x = glob["s" + mname] = new Symbol(mname, true);
         eval("s" + mname + " = glob['s" + mname + "']");
         if (name[0] == ':')
@@ -176,7 +182,7 @@ glob["f$$intern"] = f$$intern = function(name, module)
     }
     return x;
 };
-f$$intern.documentation = ("[[(intern name &optional module)]]\n" +
+f$$intern.documentation = ("[[(intern name &optional module lookup-only)]]\n" +
                            "Create and returns an interned symbol with the specified [name] into " +
                            "[module] or just returns that symbol if it has been already interned. " +
                            "If the name starts with a colon ':' character then the module is ignored " +
@@ -185,7 +191,8 @@ f$$intern.documentation = ("[[(intern name &optional module)]]\n" +
                            "specified and the symbol is listed in [*symbol-aliases*] then that value "+
                            "is returned, otherwise if it is not found in current module then before " +
                            "performing the interning operation the symbol is first looked up also "+
-                           "in the global module.");
+                           "in the global module. If [lookup-only] is true then no symbol creation "+
+                           "is performed and [null] is returned if no symbol can be found.");
 f$$intern.arglist = [f$$intern("name"), f$$intern("&optional"), f$$intern("module")];
 f$$mangle.arglist = [f$$intern("x")];
 
