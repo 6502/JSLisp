@@ -109,14 +109,13 @@
                  (a (fourth color))
                  (y y0 (1+ y))
                  (yend (+ y1 ph))
-                 (left (+ 0.5 (if (< x0 x1) (- x0 dx) x0)) (+ left k))
-                 (right (+ 0.5 (if (< x0 x1) (+ x0 pw) (+ x0 pw dx))) (+ right k)))
+                 (left (+ (/ k 2) 0.5 (if (< x0 x1) (- x0 dx) x0)) (+ left k))
+                 (right (+ (/ k 2) 0.5 (if (< x0 x1) (+ x0 pw) (+ x0 pw dx))) (+ right k)))
                 ((>= y yend))
-              (hline data
-                     (max (floor left) xa)
-                     (min (floor right) xb)
-                     y
-                     r g b a)))))))
+              (let ((x0 (max (floor left) xa))
+                    (x1 (min (floor right) xb)))
+                (when (< x0 x1)
+                  (hline data x0 x1 y r g b a)))))))))
 
 (defstruct paint
   frame
@@ -138,7 +137,14 @@
     (dotimes (i (* width height 4))
       (setf (aref dst-data i) (aref src-data i)))))
 
-(defun pen-tool (pw)
+(defvar *tools* (list))
+
+(defmacro deftool (name &rest body)
+  `(progn
+     (defun ,name (pw) ,@body)
+     (push ',name *tools*)))
+
+(deftool Pen
   (let ((p0 null))
     (lambda (msg p btn)
       (cond
@@ -157,7 +163,7 @@
                    (if (= btn 2) (paint-bg pw) (paint-fg pw))))
            (setf p0 p)))))))
 
-(defun line-tool (pw)
+(deftool Line
   (let ((p0 null))
     (lambda (msg p btn)
       (cond
@@ -176,7 +182,7 @@
                    sz sz
                    (if (= btn 2) (paint-bg pw) (paint-fg pw))))))))))
 
-(defun box-tool (pw)
+(deftool Box
   (let ((p0 null))
     (lambda (msg p btn)
       (cond
@@ -194,7 +200,7 @@
                 (max (second p0) (second p))
                 (if (= btn 2) (paint-bg pw) (paint-fg pw)))))))))
 
-(defun frame-tool (pw)
+(deftool Frame
   (let ((p0 null))
     (lambda (msg p btn)
       (cond
@@ -213,7 +219,7 @@
                   (paint-pen pw) (paint-pen pw)
                   (if (= btn 2) (paint-bg pw) (paint-fg pw)))))))))
 
-(defun fill-tool (pw)
+(deftool Fill
   (lambda (msg p btn)
     (when (= msg 'down)
       (let* ((src (. (paint-old-data pw) data))
@@ -264,16 +270,38 @@
                             (setf look-below true))))
                     (incf x)))))))))))
 
+(defmacro deftoolbar ()
+  `(defun toolbar (parent cols w h callback)
+     "Builds a toolbar with all self-registered tool functions"
+     (let (,@(map (lambda (x)
+                    `(,x (button ,(symbol-name x)
+                                 (lambda () (funcall callback #',x)))))
+               *tools*))
+       ,@(map (lambda (x)
+                `(append-child parent ,x))
+              *tools*)
+       (:H (:V :spacing 4 :size w
+               ,@(map (lambda (x)
+                        `(:Hdiv ,x :size h))
+                      *tools*))
+           (:H)))))
+
+(deftoolbar)
+
 (defun paint (x y w h title)
   (let* ((frame (window x y w h :title title))
          (pic (create-element "canvas"))
+         (ctool null)
          (pw (make-paint :frame w
                          :pic pic))
          (palette (palette (window-client frame) 2 30 30
                            (lambda (color button div)
                              (if (= button 2)
                                  (setf (paint-bg pw) color)
-                                 (setf (paint-fg pw) color))))))
+                                 (setf (paint-fg pw) color)))))
+         (toolbar (toolbar (window-client frame) 1 80 30
+                           (lambda (f)
+                             (setf ctool (funcall f pw))))))
     (setf (. pic width) 520)
     (setf (. pic height) 340)
     (set-style pic
@@ -289,30 +317,14 @@
            (height (. pic height))
            (ctx (funcall (. pic getContext) "2d"))
            (data (funcall (. ctx getImageData) 0 0 width height))
-           (old-data (funcall (. ctx getImageData) 0 0 width height))
-           (ctool null)
-           (line-btn (button "Line" (lambda () (setf ctool (line-tool pw)))))
-           (box-btn (button "Box" (lambda () (setf ctool (box-tool pw)))))
-           (frame-btn (button "Frame" (lambda () (setf ctool (frame-tool pw)))))
-           (pen-btn (button "Pen" (lambda () (setf ctool (pen-tool pw)))))
-           (fill-btn (button "Fill" (lambda () (setf ctool (fill-tool pw)))))
-           (tools (:V :spacing 4 :border 4
-                      (:H :size 30 (:H) (:Hdiv line-btn :size 80))
-                      (:H :size 30 (:H) (:Hdiv box-btn :size 80))
-                      (:H :size 30 (:H) (:Hdiv frame-btn :size 80))
-                      (:H :size 30 (:H) (:Hdiv pen-btn :size 80))
-                      (:H :size 30 (:H) (:Hdiv fill-btn :size 80)))))
-
-      (dolist (tool (list line-btn box-btn frame-btn pen-btn fill-btn))
-        (append-child (window-client frame) tool))
+           (old-data (funcall (. ctx getImageData) 0 0 width height)))
 
       (setf (window-resize-cback frame)
             (lambda (x0 y0 x1 y1)
               (set-coords palette 8 8 (- x1 x0 8) (- y1 y0 8))
-              (set-coords tools 8 8 (- x1 x0 8) (- y1 y0 8))
+              (set-coords toolbar 8 8 (- x1 x0 8) (- y1 y0 8))
               (set-style pic
-                         border "solid 1px #000000"
-                         px/left 8
+                         px/left 96
                          px/top 8
                          px/width (* (paint-zoom pw) (. pic width))
                          px/height (* (paint-zoom pw) (. pic height)))))
@@ -338,31 +350,19 @@
                             (z (paint-zoom pw)))
                        (when ctool
                          (funcall ctool 'down (list (floor (/ x z)) (floor (/ y z))) (. event button))
-                         (update))))
-
-        (set-handler pic onmousemove
-                     (funcall (. event preventDefault))
-                     (funcall (. event stopPropagation))
-                     (let* ((p (event-pos event))
-                            (p0 (element-pos pic))
-                            (x (- (first p) (first p0)))
-                            (y (- (second p) (second p0)))
-                            (z (paint-zoom pw)))
-                       (when ctool
                          (funcall ctool 'move (list (floor (/ x z)) (floor (/ y z))) (. event button))
-                         (update))))
-
-        (set-handler pic onmouseup
-                     (funcall (. event preventDefault))
-                     (funcall (. event stopPropagation))
-                     (let* ((p (event-pos event))
-                            (p0 (element-pos pic))
-                            (x (- (first p) (first p0)))
-                            (y (- (second p) (second p0)))
-                            (z (paint-zoom pw)))
-                       (when ctool
-                         (funcall ctool 'up (list (floor (/ x z)) (floor (/ y z))) (. event button))
-                         (update))))
+                         (update)
+                         (tracking (lambda (xx yy)
+                                     (let ((x (- xx (first p0)))
+                                           (y (- yy (second p0))))
+                                       (funcall ctool 'move (list (floor (/ x z)) (floor (/ y z))) (. event button))
+                                       (update)))
+                                   (lambda (xx yy)
+                                     (let ((x (- xx (first p0)))
+                                           (y (- yy (second p0))))
+                                       (funcall ctool 'up (list (floor (/ x z)) (floor (/ y z))) (. event button))
+                                       (update)))
+                                   "crosshair"))))
 
         (clear data (list 255 255 255 255))
         (update)
