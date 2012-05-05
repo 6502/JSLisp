@@ -66,18 +66,22 @@
 ]]"
   `(setf (. ,element ,event) (lambda (,#event) ,@body)))
 
-(defun tracking (f &optional end)
+(defun tracking (f &optional end cursor)
   "Starts tracking mouse movements with calls to [f] until mouseup and then call [end]"
   (let ((cover (create-element "div")))
     (set-style cover
                position "absolute"
                zIndex 999999999
+               cursor cursor
                px/left 0
                px/top 0
                px/right 0
                px/bottom 0
                opacity 0.001
                backgroundColor "#000000")
+    (set-handler cover oncontextmenu
+                 (funcall (. event preventDefault))
+                 (funcall (. event stopPropagation)))
     (set-handler cover onmousemove
                  (funcall (. event preventDefault))
                  (apply f (event-pos event)))
