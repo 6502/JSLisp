@@ -123,10 +123,10 @@
   pic
   data
   old-data
-  (zoom 2)
+  (zoom 1)
   (bg (list 255 255 255 255))
   (fg (list   0   0   0 255))
-  (pen 16)
+  (pen 2)
   (selection null))
 
 (defun copy-pixels (dst src)
@@ -213,44 +213,112 @@
                   (paint-pen pw) (paint-pen pw)
                   (if (= btn 2) (paint-bg pw) (paint-fg pw)))))))))
 
+(defun fill-tool (pw)
+  (lambda (msg p btn)
+    (when (= msg 'down)
+      (let* ((src (. (paint-old-data pw) data))
+             (width (. (paint-data pw) width))
+             (height (. (paint-data pw) height))
+             (color (if (= btn 2) (paint-bg pw) (paint-fg pw)))
+             (r (first color))
+             (g (second color))
+             (b (third color))
+             (a (fourth color)))
+        (labels ((get-pixel (x y)
+                   (let ((i (ash (+ (* y width) x) 2)))
+                     (+ (aref src i)
+                        (ash (aref src (+ i 1)) 8)
+                        (ash (aref src (+ i 2)) 16)
+                        (ash (aref src (+ i 3)) 24)))))
+          (let* ((test-color (get-pixel (first p) (second p)))
+                 (diff-color (logxor test-color 1))
+                 (r1 (logand diff-color 255)))
+            (do ((todo (list p)))
+                ((= 0 (length todo)))
+              (let* ((p (pop todo))
+                     (x (first p))
+                     (y (second p)))
+                (when (= test-color (get-pixel x y))
+                  ;; Move to left if you can
+                  (do () ((or (= x 0) (/= test-color (get-pixel (1- x) y)))) (decf x))
+                  ;; Horizontal line fill
+                  (do ((look-above true)
+                       (look-below true)
+                       (x0 x))
+                      ((or (= x width) (/= test-color (get-pixel x y)))
+                       (hline (paint-data pw) x0 x y r g b a)
+                       (hline (paint-old-data pw) x0 x y r1 g b a))
+                    (when (> y 0)
+                      (if look-above
+                          (when (= test-color (get-pixel x (1- y)))
+                            (push (list x (1- y)) todo)
+                            (setf look-above false))
+                          (when (/= test-color (get-pixel x (1- y)))
+                            (setf look-above true))))
+                    (when (< y (1- height))
+                      (if look-below
+                          (when (= test-color (get-pixel x (1+ y)))
+                            (push (list x (1+ y)) todo)
+                            (setf look-below false))
+                          (when (/= test-color (get-pixel x (1+ y)))
+                            (setf look-below true))))
+                    (incf x)))))))))))
+
 (defun paint (x y w h title)
   (let* ((frame (window x y w h :title title))
          (pic (create-element "canvas"))
          (pw (make-paint :frame w
                          :pic pic))
-         (palette (palette (window-client frame) 1 30 30
+         (palette (palette (window-client frame) 2 30 30
                            (lambda (color button div)
                              (if (= button 2)
                                  (setf (paint-bg pw) color)
                                  (setf (paint-fg pw) color))))))
-    (setf (. pic width) 320)
-    (setf (. pic height) 240)
+    (setf (. pic width) 520)
+    (setf (. pic height) 340)
     (set-style pic
-               position "absolute")
+               position "absolute"
+               cursor "crosshair")
     (set-style (window-client frame)
                backgroundColor "#CCCCCC")
     (set-style (window-frame frame)
                backgroundColor "#CCCCCC")
     (append-child (window-client frame) pic)
-    (setf (window-resize-cback frame)
-          (lambda (x0 y0 x1 y1)
-            (set-coords palette 8 8 (- x1 x0 8) (- y1 y0 8))
-            (set-style pic
-                       border "solid 1px #000000"
-                       px/left 8
-                       px/top 8
-                       px/width (* (paint-zoom pw) (. pic width))
-                       px/height (* (paint-zoom pw) (. pic height)))))
+
     (let* ((width (. pic width))
            (height (. pic height))
            (ctx (funcall (. pic getContext) "2d"))
            (data (funcall (. ctx getImageData) 0 0 width height))
            (old-data (funcall (. ctx getImageData) 0 0 width height))
-           (ctool null))
+           (ctool null)
+           (line-btn (button "Line" (lambda () (setf ctool (line-tool pw)))))
+           (box-btn (button "Box" (lambda () (setf ctool (box-tool pw)))))
+           (frame-btn (button "Frame" (lambda () (setf ctool (frame-tool pw)))))
+           (pen-btn (button "Pen" (lambda () (setf ctool (pen-tool pw)))))
+           (fill-btn (button "Fill" (lambda () (setf ctool (fill-tool pw)))))
+           (tools (:V :spacing 4 :border 4
+                      (:H :size 30 (:H) (:Hdiv line-btn :size 80))
+                      (:H :size 30 (:H) (:Hdiv box-btn :size 80))
+                      (:H :size 30 (:H) (:Hdiv frame-btn :size 80))
+                      (:H :size 30 (:H) (:Hdiv pen-btn :size 80))
+                      (:H :size 30 (:H) (:Hdiv fill-btn :size 80)))))
+
+      (dolist (tool (list line-btn box-btn frame-btn pen-btn fill-btn))
+        (append-child (window-client frame) tool))
+
+      (setf (window-resize-cback frame)
+            (lambda (x0 y0 x1 y1)
+              (set-coords palette 8 8 (- x1 x0 8) (- y1 y0 8))
+              (set-coords tools 8 8 (- x1 x0 8) (- y1 y0 8))
+              (set-style pic
+                         border "solid 1px #000000"
+                         px/left 8
+                         px/top 8
+                         px/width (* (paint-zoom pw) (. pic width))
+                         px/height (* (paint-zoom pw) (. pic height)))))
 
       (setf (paint-data pw) data)
       (setf (paint-old-data pw) old-data)
-      (setf ctool (frame-tool pw))
 
       (labels ((update ()
                  (funcall (. ctx putImageData) data 0 0)))
@@ -302,6 +370,6 @@
         pw))))
 
 (defun main ()
-  (paint 100 100 640 480 "Test"))
+  (paint 100 100 640 480 "MyPaint"))
 
 (main)
