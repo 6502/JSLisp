@@ -127,7 +127,7 @@ reverse engineering point of view.
       (setf s (replace s "\"([^\"\\\\]|\\\\.)*\"" #'newlit))
       (setf s (replace s "'([^'\\\\]|\\\\.)*'" #'newlit))
       ; Name shortening
-      (setf s (replace s "[a-zA-Z0-9]*\\$\\$[a-zA-Z0-9_$]*" #'newname))
+      (setf s (replace s "[a-zA-Z0-9_]*\\$\\$[a-zA-Z0-9_$]*" #'newname))
       ; Lisp literals renaming
       (setf s (replace s "lisp_literals\\[[0-9]+\\]*" #'newname))
       (setf s (replace s "lisp_literals=\\[\\];" ""))
