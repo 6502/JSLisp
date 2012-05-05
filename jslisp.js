@@ -71,7 +71,7 @@ function Symbol(name, interned)
     this.toString = function () {
         var ix = this.name.indexOf("$$");
         var mod = this.name.substr(0, ix) + ":";
-        if (mod == ":" || mod == d$$$42$current_module$42$ + ":")
+        if (mod == ":" || mod == d$$$42$current_module$42$.replace("/","__") + ":")
             mod = "";
         return mod + f$$demangle(this.name);
     };
