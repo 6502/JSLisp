@@ -163,7 +163,7 @@ reverse engineering point of view.
           (when (find key s)
             (setf ldef ~"{key}={(aref rlits key)};{ldef}")))
         (setf s (+ ldef s)))
-      s)))
+      (+ s "//JsLisp"))))
 
 (setf (symbol-macro (intern "main" ""))
       (lambda (&rest args)
