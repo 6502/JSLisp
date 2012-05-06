@@ -220,7 +220,7 @@ function defmacro(name, doc, f, arglist)
 {
     var s = f$$intern(name);
     glob["m" + s.name] = f;
-    eval("f" + s.name + " = glob['m" + s.name + "'];");
+    eval("m" + s.name + " = glob['m" + s.name + "'];");
     f.documentation = doc;
     f.arglist = arglist;
 }
