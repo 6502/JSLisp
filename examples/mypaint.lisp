@@ -1,5 +1,6 @@
 (import * from gui)
 (import * from graphics)
+(import * from examples/raster)
 
 (defun color-button (parent color callback)
   (let ((div (create-element "div")))
@@ -43,80 +44,6 @@
         (:V layout)
         (:H))))
 
-(defun hline (data x0 x1 y r g b a)
-  "Draws an horizontal line on canvas image [data] from [x0] to [x1] at height [y] with color [r g b a]"
-  (let ((width (. data width))
-        (height (. data height))
-        (pixels (. data data)))
-    (do ((p (* (+ (* y width) x0) 4) (+ p 4))
-         (count (- x1 x0) (1- count)))
-        ((= count 0))
-      (setf (aref pixels p)       r)
-      (setf (aref pixels (+ p 1)) g)
-      (setf (aref pixels (+ p 2)) b)
-      (setf (aref pixels (+ p 3)) a))))
-
-(defun box (data x0 y0 x1 y1 color)
-  "Fills a box on canvas image [data] from [x0 y0] to [x1 y1] with [color]"
-  (let ((width (. data width))
-        (height (. data height)))
-    (when (< x0 0) (setf x0 0))
-    (when (> x1 width) (setf x1 width))
-    (when (< y0 0) (setf y0 0))
-    (when (> y1 height) (setf y1 height))
-    (when (< x0 x1)
-      (do ((y y0 (1+ y))
-           (r (first color))
-           (g (second color))
-           (b (third color))
-           (a (fourth color)))
-          ((>= y y1))
-        (hline data x0 x1 y r g b a)))))
-
-(defun clear (data color)
-  "Clears the whole canvas image [data] with specified [color]"
-  (box data 0 0 (. data width) (. data height) color))
-
-(defun frame (data x0 y0 x1 y1 pw ph color)
-  "Draws a rectangular frame with specified pen size [pw ph] and [color]"
-  (let ((width (. data width))
-        (height (. data height)))
-    (if (or (>= (+ x0 pw) (- x1 pw))
-            (>= (+ y0 ph) (- y1 ph)))
-        (box data x0 y0 x1 y1 color)
-        (progn
-          (box data x0 y0 x1 (+ y0 ph) color)
-          (box data x0 (+ y0 ph) (+ x0 pw) (- y1 ph) color)
-          (box data (- x1 pw) (+ y0 ph) x1 (- y1 ph) color)
-          (box data x0 (- y1 ph) x1 y1 color)))))
-
-(defun line (data x0 y0 x1 y1 pw ph color)
-  "Draws a line fro [x0 y0] to [x1 y1] with specified pen size [pw ph] and [color]"
-  (let ((width (. data width))
-        (height (. data height)))
-    (when (> y0 y1)
-      (swap y0 y1)
-      (swap x0 x1))
-    (let ((xa (max 0 (min x0 x1)))
-          (xb (min width (+ pw (max x0 x1)))))
-      (if (or (= x0 x1) (= y0 y1))
-          (box data xa y0 xb (+ y1 ph) color)
-          (let* ((k (/ (- x1 x0) (- y1 y0)))
-                 (dx (abs (* ph k))))
-            (do ((r (first color))
-                 (g (second color))
-                 (b (third color))
-                 (a (fourth color))
-                 (y y0 (1+ y))
-                 (yend (+ y1 ph))
-                 (left (+ (/ k 2) 0.5 (if (< x0 x1) (- x0 dx) x0)) (+ left k))
-                 (right (+ (/ k 2) 0.5 (if (< x0 x1) (+ x0 pw) (+ x0 pw dx))) (+ right k)))
-                ((>= y yend))
-              (let ((x0 (max (floor left) xa))
-                    (x1 (min (floor right) xb)))
-                (when (< x0 x1)
-                  (hline data x0 x1 y r g b a)))))))))
-
 (defstruct paint
   frame
   pic
@@ -128,7 +55,7 @@
   (zoom 1)
   (bg (list 255 255 255 255))
   (fg (list   0   0   0 255))
-  (pen 1)
+  (pen 4)
   (selection null))
 
 (defun copy-pixels (dst src)
@@ -217,7 +144,7 @@
                         (max (second p0) (second p))
                         color))))))))
 
-(deftool Frame
+(deftool Box*
   (let ((p0 null))
     (lambda (msg p btn)
       (cond
@@ -239,109 +166,16 @@
                         sz sz
                         color))))))))
 
-(defun byte-array (n)
-  "Creates an byte array of size [n]"
-  (js-code "(new Uint8Array(d$$n))"))
-
 (deftool Fill
     (lambda (msg p btn)
       (when (= msg 'down)
-        (let* ((dst (. (paint-data pw) data))
-               (width (. (paint-data pw) width))
-               (height (. (paint-data pw) height))
-               (color (if (= btn 2) (paint-bg pw) (paint-fg pw)))
-               (r (first color))
-               (g (second color))
-               (b (third color))
-               (a (fourth color))
-               (i0 (ash (+ (* (second p) width) (first p)) 2))
-               (tr (aref dst i0))
-               (tg (aref dst (+ i0 1)))
-               (tb (aref dst (+ i0 2)))
-               (ta (aref dst (+ i0 3))))
-          (exec (p tr tg tb ta r g b a)
-                (let ((src (byte-array (* width height))))
-                  ;; Compute fillable areas
-                  (let ((rp 0))
-                    (dotimes (i (* width height))
-                      (setf (aref src i)
-                            (if (and (= (aref dst (+ rp 0)) tr)
-                                     (= (aref dst (+ rp 1)) tg)
-                                     (= (aref dst (+ rp 2)) tb)
-                                     (= (aref dst (+ rp 3)) ta))
-                                1 0))
-                      (incf rp 4)))
-                  (do ((todo (list p)))
-                      ((= 0 (length todo)))
-                    (let* ((p (pop todo))
-                           (x (first p))
-                           (y (second p))
-                           (i (+ (* y width) x)))
-                      (when (aref src i)
-                        ;; Move to left if you can
-                        (do () ((or (= x 0) (not (aref src (1- i)))))
-                          (decf x)
-                          (decf i))
-                        ;; Horizontal line fill
-                        (do ((look-above true)
-                             (look-below true))
-                            ((or (= x width) (not (aref src i))))
-
-                          ;; Check for holes above
-                          (when (> y 0)
-                            (if look-above
-                                (when (aref src (- i width))
-                                  (push (list x (1- y)) todo)
-                                  (setf look-above false))
-                                (unless (aref src (- i width))
-                                  (setf look-above true))))
-
-                          ;; Check for holes below
-                          (when (< y (1- height))
-                            (if look-below
-                                (when (aref src (+ i width))
-                                  (push (list x (1+ y)) todo)
-                                  (setf look-below false))
-                                (unless (aref src (+ i width))
-                                  (setf look-below true))))
-
-                          ;; Paint the pixel
-                          (let ((i4 (* i 4)))
-                            (setf (aref dst i4) r)
-                            (setf (aref dst (+ i4 1)) g)
-                            (setf (aref dst (+ i4 2)) b)
-                            (setf (aref dst (+ i4 3)) a))
-
-                          ;; Ensure this will not be painted again
-                          (setf (aref src i) 0)
-
-                          ;; Move to next pixel
-                          (incf x)
-                          (incf i)))))))))))
+        (let ((color (if (= btn 2) (paint-bg pw) (paint-fg pw))))
+          (exec (p color)
+                (fill (paint-data pw) (first p) (second p) color))))))
 
 (deftool Curve
     (let ((pts (make-array 4))
           (n 0))
-      (let* ((sz (paint-pen pw))
-             (hsz (ash sz -1)))
-        (labels ((avg (a b)
-                   (list (/ (+ (first a) (first b)) 2)
-                         (/ (+ (second a) (second b)) 2)))
-                 (bezdraw (color a b c d levels)
-                   (if (= levels 0)
-                       (line (paint-data pw)
-                             (floor (- (first a) hsz)) (floor (- (second a) hsz))
-                             (floor (- (first d) hsz)) (floor (- (second d) hsz))
-                             sz sz
-                             color)
-                       (let* ((ab (avg a b))
-                              (bc (avg b c))
-                              (cd (avg c d))
-                              (abc (avg ab bc))
-                              (bcd (avg bc cd))
-                              (abcd (avg abc bcd)))
-                         (bezdraw color a ab abc abcd (1- levels))
-                         (bezdraw color abcd bcd cd d (1- levels))))))
           (lambda (msg p btn)
             (cond
               ((= msg 'down)
@@ -377,9 +211,10 @@
                      (p0 (aref pts 0))
                      (p1 (aref pts 1))
                      (p2 (aref pts 2))
-                     (p3 (aref pts 3)))
+                     (p3 (aref pts 3))
+                     (sz (paint-pen pw)))
                  (exec (color p0 p1 p2 p3)
-                       (bezdraw color p0 p1 p2 p3 5))))))))))
+                       (bezier (paint-data pw) p0 p1 p2 p3 sz sz color))))))))
 
 (deftool Ellipse
     (let ((p0 null))
@@ -397,28 +232,28 @@
                    (let ((x0 (min (first p0) (first p)))
                          (x1 (max (first p0) (first p)))
                          (y0 (min (second p0) (second p)))
-                         (y1 (max (second p0) (second p)))
-                         (width (. (paint-data pw) width))
-                         (height (. (paint-data pw) height))
-                         (r (first color))
-                         (g (second color))
-                         (b (third color))
-                         (a (fourth color)))
-                     (when (< y0 y1)
-                       (let ((cx (/ (+ x0 x1) 2))
-                             (cy (/ (+ y0 y1) 2))
-                             (ya (max 0 y0))
-                             (yb (min height y1))
-                             (r2 (* (- y1 y0) (- y1 y0) 0.25))
-                             (ratio (/ (- x1 x0) (- y1 y0))))
-                         (do ((y ya (1+ y)))
-                             ((= y yb))
-                           (let* ((dy (- (+ y 0.5) cy))
-                                  (dx (* ratio (sqrt (- r2 (* dy dy)))))
-                                  (xa (max 0 (floor (- cx dx -0.5))))
-                                  (xb (min width (floor (+ cx dx 0.5)))))
-                             (when (< xa xb)
-                               (hline (paint-data pw) xa xb y r g b a))))))))))))))
+                         (y1 (max (second p0) (second p))))
+                     (ellipse (paint-data pw) x0 y0 x1 y1 color)))))))))
+
+(deftool Ellipse*
+    (let ((p0 null))
+      (lambda (msg p btn)
+        (cond
+          ((= msg 'down)
+           (setf p0 p)
+           (copy-pixels (paint-old-data pw) (paint-data pw))
+           (push null (paint-commands pw)))
+          ((= msg 'move)
+           (let ((color (if (= btn 2) (paint-bg pw) (paint-fg pw)))
+                 (sz (paint-pen pw)))
+             (copy-pixels (paint-data pw) (paint-old-data pw))
+             (pop (paint-commands pw))
+             (exec (p0 p color sz)
+                   (let ((x0 (min (first p0) (first p)))
+                         (x1 (max (first p0) (first p)))
+                         (y0 (min (second p0) (second p)))
+                         (y1 (max (second p0) (second p))))
+                     (ellipse-frame (paint-data pw) x0 y0 x1 y1 sz sz color)))))))))
 
 (deftool Undo-redo
     (lambda (msg p btn)
@@ -449,10 +284,10 @@
 
 (deftoolbar)
 
-(defun paint (x y w h title)
+(defun paint (x y w h title pic)
   (let* ((frame (window x y w h :title title))
-         (pic (create-element "canvas"))
-         (ctool null)
+         (view (create-element "canvas"))
+         (current-tool null)
          (pw (make-paint :frame w
                          :pic pic))
          (palette (palette (window-client frame) 2 30 30
@@ -462,75 +297,131 @@
                                  (setf (paint-fg pw) color)))))
          (toolbar (toolbar (window-client frame) 1 80 30
                            (lambda (f)
-                             (setf ctool (funcall f pw))))))
-    (setf (. pic width) 520)
-    (setf (. pic height) 340)
-    (set-style pic
+                             (setf current-tool (funcall f pw)))))
+         (layout (:V :spacing 8 :border 8
+                     (:H :spacing 8
+                         (:H :size 80 toolbar)
+                         (:Hdiv view))
+                     (:V :size 68 palette))))
+
+    (setf (paint-zoom pw) 1)
+    (setf (paint-pen pw) 1)
+
+    (set-style view
                position "absolute"
                cursor "crosshair")
+
     (set-style (window-client frame)
-               backgroundColor "#CCCCCC")
+               backgroundColor "#CCCCCC"
+               overflow "hidden")
+
     (set-style (window-frame frame)
                backgroundColor "#CCCCCC")
-    (append-child (window-client frame) pic)
 
-    (let* ((width (. pic width))
-           (height (. pic height))
-           (ctx (funcall (. pic getContext) "2d"))
-           (data (funcall (. ctx getImageData) 0 0 width height)))
+    (append-child (window-client frame) view)
 
+    (let ((ctx (funcall (. pic getContext) "2d"))
+          (width (. pic width))
+          (height (. pic height)))
+
+      (setf (paint-data pw) (funcall (. ctx getImageData) 0 0 width height))
+      (setf (paint-old-data pw) (funcall (. ctx getImageData) 0 0 width height))
+      (setf (paint-start-data pw) (funcall (. ctx getImageData) 0 0 width height)))
+
+    (labels ((update ()
+               (let ((view-width (. view offsetWidth))
+                     (view-height (. view offsetHeight))
+                     (zoom (paint-zoom pw)))
+                 (when (or (/= (. view width) view-width)
+                           (/= (. view height) view-height))
+                   (setf (. view width) view-width)
+                   (setf (. view height) view-height))
+                 (if (= zoom 1)
+                     ;; 1:1, just blit
+                     (let ((ctx (funcall (. view getContext) "2d")))
+                       (setf (. ctx fillStyle) "#DDDDDD")
+                       (funcall (. ctx fillRect) 0 0 view-width view-height)
+                       (funcall (. ctx putImageData) (paint-data pw) 0 0))
+
+                     ;; Zoomed. Unfortunately there's no way to turn off reilably antialiasing
+                     ;; Draw by hand one pixel at a time.
+                     (let* ((ctx (funcall (. view getContext) "2d"))
+                            (view-data (funcall (. ctx getImageData) 0 0 view-width view-height))
+                            (dst (. view-data data))
+                            (src (. (paint-data pw) data))
+                            (pic-width (. (paint-pic pw) width))
+                            (pic-height (. (paint-pic pw) height))
+                            (maxy (min pic-height (floor (/ view-height zoom))))
+                            (maxx (min pic-width (floor (/ view-width zoom))))
+                            (zoom4 (* zoom 4))
+                            (up (* view-width zoom 4)))
+                       (dotimes (i maxy)
+                         (let ((wp (* i view-width zoom 4))
+                               (rp (* i pic-width 4))
+                               (next (* (- view-width zoom) 4)))
+                           (dotimes (j maxx)
+                             (let ((r (aref src rp))
+                                   (g (aref src (+ rp 1)))
+                                   (b (aref src (+ rp 2)))
+                                   (a (aref src (+ rp 3))))
+                               (when (or (/= r (aref dst wp))
+                                         (/= g (aref dst (+ wp 1)))
+                                         (/= b (aref dst (+ wp 2)))
+                                         (/= a (aref dst (+ wp 3))))
+                                 (dotimes (ii zoom)
+                                   (dotimes (jj zoom)
+                                     (setf (aref dst wp) r)
+                                     (setf (aref dst (+ wp 1)) g)
+                                     (setf (aref dst (+ wp 2)) b)
+                                     (setf (aref dst (+ wp 3)) a)
+                                     (incf wp 4))
+                                   (incf wp next))
+                                 (decf wp up))
+                               (incf wp zoom4)
+                               (incf rp 4)))))
+                       (funcall (. ctx putImageData) view-data 0 0))))))
+
+      (set-handler view oncontextmenu
+                   (funcall (. event preventDefault))
+                   (funcall (. event stopPropagation)))
+      (set-handler view onmousedown
+                   (funcall (. event preventDefault))
+                   (funcall (. event stopPropagation))
+                   (let* ((p (event-pos event))
+                          (p0 (element-pos view))
+                          (x (- (first p) (first p0)))
+                          (y (- (second p) (second p0)))
+                          (z (paint-zoom pw)))
+                     (when current-tool
+                       (funcall current-tool 'down (list (floor (/ x z)) (floor (/ y z))) (. event button))
+                       (funcall current-tool 'move (list (floor (/ x z)) (floor (/ y z))) (. event button))
+                       (update)
+                       (tracking (lambda (xx yy)
+                                   (let ((x (- xx (first p0)))
+                                         (y (- yy (second p0))))
+                                     (funcall current-tool 'move (list (floor (/ x z)) (floor (/ y z))) (. event button))
+                                     (update)))
+                                 (lambda (xx yy)
+                                   (let ((x (- xx (first p0)))
+                                         (y (- yy (second p0))))
+                                     (funcall current-tool 'up (list (floor (/ x z)) (floor (/ y z))) (. event button))
+                                     (update)))
+                                 "crosshair"))))
       (setf (window-resize-cback frame)
             (lambda (x0 y0 x1 y1)
-              (set-coords palette 8 8 (- x1 x0 8) (- y1 y0 8))
-              (set-coords toolbar 8 8 (- x1 x0 8) (- y1 y0 8))
-              (set-style pic
-                         px/left 96
-                         px/top 8
-                         px/width (* (paint-zoom pw) (. pic width))
-                         px/height (* (paint-zoom pw) (. pic height)))))
+              (set-coords layout 0 0 (- x1 x0) (- y1 y0))
+              (update)))
+      (show-window frame)
+      pw)))
 
-      (labels ((update ()
-                 (funcall (. ctx putImageData) data 0 0)))
+(defun main (w h)
+  (let ((pic (create-element "canvas")))
+    (setf (. pic width) w)
+    (setf (. pic height) h)
+    (let* ((ctx (funcall (. pic getContext) "2d"))
+           (data (funcall (. ctx getImageData) 0 0 w h)))
+      (clear data (list 255 255 255 255))
+      (funcall (. ctx putImageData) data 0 0))
+    (paint 100 100 640 480 "MyPaint" pic)))
 
-        (set-handler pic oncontextmenu
-                     (funcall (. event preventDefault))
-                     (funcall (. event stopPropagation)))
-
-        (set-handler pic onmousedown
-                     (funcall (. event preventDefault))
-                     (funcall (. event stopPropagation))
-                     (let* ((p (event-pos event))
-                            (p0 (element-pos pic))
-                            (x (- (first p) (first p0)))
-                            (y (- (second p) (second p0)))
-                            (z (paint-zoom pw)))
-                       (when ctool
-                         (funcall ctool 'down (list (floor (/ x z)) (floor (/ y z))) (. event button))
-                         (funcall ctool 'move (list (floor (/ x z)) (floor (/ y z))) (. event button))
-                         (update)
-                         (tracking (lambda (xx yy)
-                                     (let ((x (- xx (first p0)))
-                                           (y (- yy (second p0))))
-                                       (funcall ctool 'move (list (floor (/ x z)) (floor (/ y z))) (. event button))
-                                       (update)))
-                                   (lambda (xx yy)
-                                     (let ((x (- xx (first p0)))
-                                           (y (- yy (second p0))))
-                                       (funcall ctool 'up (list (floor (/ x z)) (floor (/ y z))) (. event button))
-                                       (update)))
-                                   "crosshair"))))
-
-        (setf (paint-data pw) data)
-
-        (clear data (list 255 255 255 255))
-        (update)
-        (setf (paint-old-data pw) (funcall (. ctx getImageData) 0 0 width height))
-        (setf (paint-start-data pw) (funcall (. ctx getImageData) 0 0 width height))
-
-        (show-window frame)
-        pw))))
-
-(defun main ()
-  (paint 100 100 640 480 "MyPaint"))
-
-(main)
+(main 320 200)
