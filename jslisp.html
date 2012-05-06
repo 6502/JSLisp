@@ -218,7 +218,7 @@ function updateClpar(text)
         var ff = (s &&
                   (window["f" + s.name] ||
                    window["m" + s.name]));
-        setHelp(ff && ff.documentation, f$$symbol_module(s));
+        setHelp(ff && ff.documentation, ff && f$$symbol_module(s));
         if (!quote && text[text.length-1] == ")")
         {
             var s = indent[indent.length-1][0];
