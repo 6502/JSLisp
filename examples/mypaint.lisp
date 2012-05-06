@@ -239,11 +239,14 @@
                         sz sz
                         color))))))))
 
+(defun byte-array (n)
+  "Creates an byte array of size [n]"
+  (js-code "(new Uint8Array(d$$n))"))
+
 (deftool Fill
     (lambda (msg p btn)
       (when (= msg 'down)
-        (let* ((src (. (paint-old-data pw) data))
-               (dst (. (paint-data pw) data))
+        (let* ((dst (. (paint-data pw) data))
                (width (. (paint-data pw) width))
                (height (. (paint-data pw) height))
                (color (if (= btn 2) (paint-bg pw) (paint-fg pw)))
@@ -255,62 +258,66 @@
                (tr (aref dst i0))
                (tg (aref dst (+ i0 1)))
                (tb (aref dst (+ i0 2)))
-               (ta (aref dst (+ i0 3)))
-               (xx (logxor tr 1))
-               (width4 (* width 4)))
-          (exec (p tr tg tb ta xx r g b a)
-                (copy-pixels (paint-old-data pw) (paint-data pw))
-                (labels ((free (i)
-                           (and (= (aref src i) tr)
-                                (= (aref src (+ i 1)) tg)
-                                (= (aref src (+ i 2)) tb)
-                                (= (aref src (+ i 3)) ta))))
+               (ta (aref dst (+ i0 3))))
+          (exec (p tr tg tb ta r g b a)
+                (let ((src (byte-array (* width height))))
+                  ;; Compute fillable areas
+                  (let ((rp 0))
+                    (dotimes (i (* width height))
+                      (setf (aref src i)
+                            (if (and (= (aref dst (+ rp 0)) tr)
+                                     (= (aref dst (+ rp 1)) tg)
+                                     (= (aref dst (+ rp 2)) tb)
+                                     (= (aref dst (+ rp 3)) ta))
+                                1 0))
+                      (incf rp 4)))
                   (do ((todo (list p)))
                       ((= 0 (length todo)))
                     (let* ((p (pop todo))
                            (x (first p))
                            (y (second p))
-                           (i (ash (+ (* y width) x) 2)))
-                      (when (free i)
+                           (i (+ (* y width) x)))
+                      (when (aref src i)
                         ;; Move to left if you can
-                        (do () ((or (= x 0) (not (free (- i 4)))))
+                        (do () ((or (= x 0) (not (aref src (1- i)))))
                           (decf x)
-                          (decf i 4))
+                          (decf i))
                         ;; Horizontal line fill
                         (do ((look-above true)
                              (look-below true))
-                            ((or (= x (1- width)) (not (free i))))
+                            ((or (= x (1- width)) (not (aref src i))))
 
                           ;; Check for holes above
                           (when (> y 0)
                             (if look-above
-                                (when (free (- i width4))
+                                (when (aref src (- i width))
                                   (push (list x (1- y)) todo)
                                   (setf look-above false))
-                                (when (not (free (- i width4)))
+                                (unless (aref src (- i width))
                                   (setf look-above true))))
 
                           ;; Check for holes below
                           (when (< y (1- height))
                             (if look-below
-                                (when (free (+ i width4))
+                                (when (aref src (+ i width))
                                   (push (list x (1+ y)) todo)
                                   (setf look-below false))
-                                (when (not (free (+ i width4)))
+                                (unless (aref src (+ i width))
                                   (setf look-below true))))
 
                           ;; Paint the pixel
-                          (setf (aref dst i) r)
-                          (setf (aref dst (+ i 1)) g)
-                          (setf (aref dst (+ i 2)) b)
-                          (setf (aref dst (+ i 3)) a)
+                          (let ((i4 (* i 4)))
+                            (setf (aref dst i4) r)
+                            (setf (aref dst (+ i4 1)) g)
+                            (setf (aref dst (+ i4 2)) b)
+                            (setf (aref dst (+ i4 3)) a))
 
                           ;; Ensure this will not be painted again
-                          (setf (aref src i) xx)
+                          (setf (aref src i) 0)
 
                           ;; Move to next pixel
                           (incf x)
-                          (incf i 4)))))))))))
+                          (incf i)))))))))))
 
 (deftool Curve
     (let ((pts (make-array 4))
@@ -345,15 +352,15 @@
                   (setf (aref pts 1) p)
                   (setf (aref pts 2) p)
                   (setf (aref pts 3) p)
-                  (setf n 2))
+                  (setf n 2)
+                  (push null (paint-commands pw)))
                  ((= n 2)
                   (setf (aref pts 1) p)
                   (setf (aref pts 2) p)
                   (setf n 3))
                  (true
                   (setf (aref pts 2) p)
-                  (setf n 4)))
-               (push null (paint-commands pw)))
+                  (setf n 4))))
               ((= msg 'move)
                (cond
                  ((= n 2)
@@ -372,18 +379,19 @@
                      (p2 (aref pts 2))
                      (p3 (aref pts 3)))
                  (exec (color p0 p1 p2 p3)
-                       (bezdraw color p0 p1 p2 p3 4))))))))))
+                       (bezdraw color p0 p1 p2 p3 5))))))))))
 
 (deftool Undo-redo
     (lambda (msg p btn)
       (when (= msg 'down)
         (if (/= btn 2)
             (when (length (paint-commands pw))
-              (push (pop (paint-commands pw)) (paint-undone pw)))
+              (push (pop (paint-commands pw)) (paint-undone pw))
+              (copy-pixels (paint-data pw) (paint-start-data pw))
+              (dolist (f (paint-commands pw)) (funcall f)))
             (when (length (paint-undone pw))
-              (push (pop (paint-undone pw)) (paint-commands pw))))
-        (copy-pixels (paint-data pw) (paint-start-data pw))
-        (dolist (f (paint-commands pw)) (funcall f)))))
+              (push (pop (paint-undone pw)) (paint-commands pw))
+              (funcall (last (paint-commands pw))))))))
 
 (defmacro deftoolbar ()
   `(defun toolbar (parent cols w h callback)
@@ -470,7 +478,6 @@
                                      (let ((x (- xx (first p0)))
                                            (y (- yy (second p0))))
                                        (funcall ctool 'up (list (floor (/ x z)) (floor (/ y z))) (. event button))
-                                       (display (length (paint-commands pw)))
                                        (update)))
                                    "crosshair"))))
 
