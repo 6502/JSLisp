@@ -1679,6 +1679,9 @@ defun("toplevel-eval",
               }
               else if (x[0] == s$$if)
               {
+                  var caf = glob["f$$static_check_args"];
+                  if (caf && caf!=42)
+                      caf(x, m$$if.arglist);
                   if (f$$js_eval(f$$toplevel_eval(x[1])))
                   {
                       result = f$$toplevel_eval(x[2]);
@@ -1690,6 +1693,12 @@ defun("toplevel-eval",
               }
               else if (f$$symbol$63$(x[0]) && (f = glob["m" + x[0].name]))
               {
+                  if (f.arglist)
+                  {
+                      var caf = glob["f$$static_check_args"];
+                      if (caf && caf!=42)
+                          caf(x, f.arglist);
+                  }
                   result = f$$toplevel_eval(f.apply(glob, x.slice(1)));
               }
               else result = f$$eval(x);
