@@ -106,6 +106,7 @@ a recent HTML5 browser is required.
 !A turtle graphic implementation:turtle.lisp
 !A chess playing program:chessboard.lisp
 !An hexagonal tiling pathfinder:hexa.lisp
+!A Mandelbrot fractal explorer:mandelbrot.lisp
 
 @ JsLisp <=> CL
 
