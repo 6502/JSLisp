@@ -1360,14 +1360,21 @@ that field. When absent the default value is assumed to be [undefined]."
   "Remove both initial and final spaces from string [x]"
   (replace x (regexp "^\\s*(.*?)\\s*$") "$1"))
 
-; JS object access/creation
+; Anonymous JS object access/creation
+(defun valid-js-name (x)
+  "True if and only if string [x] is a valid identifier for Javascript"
+  (not (not (js-code "d$$x.match(/^[a-zA-Z_$][a-zA-Z_$0-9]*$/)"))))
+
 (defmacro . (obj &rest fields)
   "Returns the javascript object value selected by traversing the specified chain of [fields].
 A field is either an unevaluated symbol, a number, a string or an (evaluated) form."
   (let ((res (js-compile obj)))
     (dolist (x fields)
       (setf res (cond
-                  ((symbol? x) (+ res "." (symbol-name x)))
+                  ((symbol? x)
+                   (if (valid-js-name (symbol-name x))
+                       (+ res "." (symbol-name x))
+                       (+ res "[" (str-value (symbol-name x)) "]")))
                   ((list? x) (+ res "[" (js-compile x) "]"))
                   (true (+ res "[" (str-value x) "]")))))
     `(js-code ,res)))
@@ -1378,7 +1385,10 @@ A field is either an unevaluated symbol, a number, a string or an (evaluated) fo
   (let ((res (js-compile obj)))
     (dolist (x (slice fields 0 (1- (length fields))))
       (setf res (cond
-                  ((symbol? x) (+ res "." (symbol-name x)))
+                  ((symbol? x)
+                   (if (valid-js-name (symbol-name x))
+                       (+ res "." (symbol-name x))
+                       (+ res "[" (str-value (symbol-name x)) "]")))
                   ((list? x) (+ res "[" (js-compile x) "]"))
                   (true (+ res "[" (str-value x) "]")))))
     (setf res (+ res "=" (js-compile (aref fields (1- (length fields))))))
@@ -1425,6 +1435,69 @@ Each field is a list of an unevaluated atom as name and a value."
     (dolist (k (keys x))
       (setf (aref res k) (aref x k)))
     res))
+
+;; Named JS object creation, dot reader
+
+(defmacro defobject (name fields)
+  "Defines a new object type named [name] and with specified
+   [fields]. Each field is either a symbol or a list of a symbol and a
+   default value. This macro will define a function named as the
+   object type working as a positional constructor, a function named
+   [make-{name}] as a keyword constructor and a function named
+   [{name}?] as a type-testing predicate.  Each instance will inherit
+   a [class] field containing the symbol associated to the class and a
+   [fields] field containing (as symbols) the names of the fields."
+  (let ((fieldnames (map (lambda (x)
+                           (if (list? x)
+                               (first x)
+                               x))
+                         fields)))
+    `(progn
+       (defun ,(intern ~"{name}-constructor") ,fieldnames
+         ,@(map (lambda (f)
+                  (if (valid-js-name (symbol-name f))
+                      `(js-code ,~"this.{f}=d{(. f name)}")
+                      `(js-code ,~"this[{(str-value (symbol-name f))}]=d{(. f name)}")))
+                fieldnames)
+         (js-code "this"))
+       (setf (. #',(intern ~"{name}-constructor") prototype class) ',name)
+       (setf (. #',(intern ~"{name}-constructor") prototype fields) ',fieldnames)
+       (defun ,name (&optional ,@fields)
+         ,~"Creates a new instance of {name}"
+         (js-code ,(let ((res "(new f")
+                         (sep ""))
+                        (incf res (. (intern ~"{name}-constructor") name))
+                        (incf res "(")
+                        (dolist (f fieldnames)
+                          (incf res sep)
+                          (incf res "d")
+                          (incf res (. f name))
+                          (setf sep ","))
+                        (incf res "))")
+                        res)))
+       (defmacro/f ,(intern ~"{name}?") (x)
+         ,~"True if and only if [x] is an instance of [{name}]"
+         `(== (. ,x class) ',',name))
+       (defun ,(intern ~"make-{name}") (&key ,@fieldnames)
+         ,~"Creates a new instance of {name}"
+         (,name ,@fieldnames))
+       ',name)))
+
+(setf #'parse-value
+      (let ((oldf #'parse-value))
+        (lambda (src)
+          (when (string? src)
+            (setf src (reader-function src)))
+          (if (= (funcall src) ".")
+              (progn
+                (funcall src 1)
+                '.)
+              (do ((x (funcall oldf src)))
+                  ((/= (funcall src) ".") x)
+                (funcall src 1)
+                (setf x `(. ,x ,(funcall oldf src))))))))
+
+(incf *stopchars* ".")
 
 ; Javscript simple function/method binding
 (defmacro bind-js-functions (&rest names)
@@ -1832,7 +1905,7 @@ Each field is a list of an unevaluated atom as name and a value."
              (setf *symbol-aliases* (js-object))
              (setf *current-module* ,(symbol-name module))
              (setf ,(intern "*exports*" (symbol-name module)) (list))
-             (load ,(if node.js
+             (load ,(if node-js
                         `(get-file ,(+ (symbol-name module) ".lisp"))
                         `(http-get ,(+ (symbol-name module) ".lisp"))))
              (setf *current-module* cmod)

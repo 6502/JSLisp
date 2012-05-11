@@ -33,7 +33,7 @@ d$$$42$symbol_aliases$42$ = {};
 d$$$42$outgoing_calls$42$ = {};
 d$$$42$used_globals$42$ = {};
 
-d$$node$46$js = false;
+d$$node_js = false;
 
 var glob;
 
@@ -51,7 +51,7 @@ if (typeof window == "undefined")
         console.log(x);
     };
 
-    d$$node$46$js = glob.d$$node$46$js = true;
+    d$$node_js = glob.d$$node_js = true;
 }
 else
 {
@@ -1828,7 +1828,7 @@ defun("get-file",
       },
       [f$$intern("filename"), f$$intern("&optional"), f$$intern("encoding")]);
 
-if (d$$node$46$js)
+if (d$$node_js)
 {
     var fs = require("fs");
     f$$load(f$$get_file("boot.lisp"));

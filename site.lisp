@@ -329,7 +329,7 @@ show('About');
                           (replace index "\\$" "$$")))
     result))
 
-(if node.js
+(if node-js
     (eval '(progn
             (parse-site (get-file "site.txt"))
             (display (generate-site))))

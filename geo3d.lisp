@@ -16,11 +16,11 @@
 (defun v/ (v k)
   (map (lambda (x) (/ x k)) v))
 
-(defun v. (a b)
+(defun vdot (a b)
   (reduce #'+ (mapn #'* a b)))
 
 (defun vlen (x)
-  (sqrt (v. x x)))
+  (sqrt (vdot x x)))
 
 (defun vdir (x)
   (v/ x (vlen x)))
@@ -44,10 +44,10 @@
 
 (defun camera-map (camera p)
   (let* ((x (v- p (camera-o camera)))
-         (z (v. x (camera-n camera)))
+         (z (vdot x (camera-n camera)))
          (zs (/ z))
-         (xs (* (v. x (camera-u camera)) zs))
-         (ys (* (v. x (camera-v camera)) zs)))
+         (xs (* (vdot x (camera-u camera)) zs))
+         (ys (* (vdot x (camera-v camera)) zs)))
     (v xs ys zs)))
 
 (defun camera-invmap (camera xs ys)
@@ -63,7 +63,7 @@
          (v (camera-v camera))
          (dist (vlen u)))
     (setf (camera-n camera) (vdir n))
-    (setf u (v- u (v* n (v. u n))))
+    (setf u (v- u (v* n (vdot u n))))
     (setf (camera-u camera) (v* (vdir u) dist))
     (setf (camera-v camera)
           (v^ (camera-n camera)
@@ -114,7 +114,7 @@
           (aref m 11)))))
 
 (export v x y z
-        v+ v- v* v/ v. vlen vdir v^
+        v+ v- v* v/ vdot vlen vdir v^
         camera "camera-" "set-camera-"
         camera-map camera-invmap camera-normalize
         xrot yrot zrot

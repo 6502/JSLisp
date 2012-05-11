@@ -65,7 +65,7 @@
 (defun face-in-section (face section)
   (let ((m (v/ (reduce #'v+ (rest face)) (1- (length face))))
         (n (section-n section)))
-    (<= (section-k0 section) (v. m n) (section-k1 section))))
+    (<= (section-k0 section) (vdot m n) (section-k1 section))))
 
 (defvar *running-animation* false)
 
@@ -115,13 +115,13 @@
             (setf inside (not inside))))))))
 
 (defun hit3d (p0 p1 face)
-  ; <p0 + t(p1 - p0), n> = k
-  ; <p0, n> + t<p1 - p0, n> = k
-  ; t = (k - <p0, n>) / <p1 - p0, n>
+                                        ; <p0 + t(p1 - p0), n> = k
+                                        ; <p0, n> + t<p1 - p0, n> = k
+                                        ; t = (k - <p0, n>) / <p1 - p0, n>
   (let* ((n (v^ (v- (third face) (second face))
                 (v- (fourth face) (third face))))
-         (k (v. (third face) n))
-         (t (/ (- k (v. p0 n)) (v. (v- p1 p0) n))))
+         (k (vdot (third face) n))
+         (t (/ (- k (vdot p0 n)) (vdot (v- p1 p0) n))))
     (v+ p0 (v* (v- p1 p0) t))))
 
 (let* ((canvas (create-element "canvas"))
@@ -142,9 +142,9 @@
                                           f)))
                                 (filter (lambda (f)
                                           (> 0
-                                             (v. (v- (camera-o cam) (third f))
-                                                 (v^ (v- (third f) (second f))
-                                                     (v- (fourth f) (third f))))))
+                                             (vdot (v- (camera-o cam) (third f))
+                                                   (v^ (v- (third f) (second f))
+                                                       (v- (fourth f) (third f))))))
                                         faces))))
                (nsort xfaces (lambda (a b) (< (first a) (first b))))
                xfaces))
@@ -160,9 +160,9 @@
                    (let ((r (first (second xf)))
                          (g (second (second xf)))
                          (b (third (second xf)))
-                         (k (v. (vdir (v^ (v- (third (fourth xf)) (second (fourth xf)))
-                                          (v- (fourth (fourth xf)) (third (fourth xf)))))
-                                (vdir (camera-n cam)))))
+                         (k (vdot (vdir (v^ (v- (third (fourth xf)) (second (fourth xf)))
+                                            (v- (fourth (fourth xf)) (third (fourth xf)))))
+                                  (vdir (camera-n cam)))))
                      (setf k (+ 0.5 (* 0.5 k k)))
                      (fill-style ~"rgb({(floor (* 255 r k))},{(floor (* 255 g k))},{(floor (* 255 b k))})")
                      (begin-path)
