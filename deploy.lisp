@@ -48,19 +48,19 @@ reverse engineering point of view.
   (let ((x (js-code "lisp_literals[parseInt(d$$k.substr(1))]")))
     (if (or names (not (symbol? x)))
         (stringify x)
-        "[]")))
+        "{}")))
 
 (defun variable (k names)
   (let ((x (js-code "glob['d'+d$$k]")))
     (if (or names (not (symbol? x)))
         (stringify x)
-        "[]")))
+        "{}")))
 
 (defun symbol (k names)
   (let ((x (js-code "glob[d$$k]")))
     (if (or names (not (symbol? x)))
         (stringify x)
-        "[]")))
+        "{}")))
 
 (defun fclosure (x)
   (do ((result (js-object))
