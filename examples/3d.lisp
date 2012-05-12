@@ -52,15 +52,7 @@
 
 (defstruct section n k0 k1)
 
-(defvar *sections* (list (make-section :n (v 1 0 0) :k0 -160 :k1 -40)
-                         (make-section :n (v 1 0 0) :k0 -60 :k1 60)
-                         (make-section :n (v 1 0 0) :k0 40 :k1 160)
-                         (make-section :n (v 0 1 0) :k0 -160 :k1 -40)
-                         (make-section :n (v 0 1 0) :k0 -60 :k1 60)
-                         (make-section :n (v 0 1 0) :k0 40 :k1 160)
-                         (make-section :n (v 0 0 1) :k0 -160 :k1 -40)
-                         (make-section :n (v 0 0 1) :k0 -60 :k1 60)
-                         (make-section :n (v 0 0 1) :k0 40 :k1 160)))
+(defvar *sections* (list))
 
 (defun face-in-section (face section)
   (let ((m (v/ (reduce #'v+ (rest face)) (1- (length face))))
@@ -125,6 +117,16 @@
     (v+ p0 (v* (v- p1 p0) t))))
 
 (defun main ()
+  (setf *sections* (list (make-section :n (v 1 0 0) :k0 -160 :k1 -40)
+                         (make-section :n (v 1 0 0) :k0 -60 :k1 60)
+                         (make-section :n (v 1 0 0) :k0 40 :k1 160)
+                         (make-section :n (v 0 1 0) :k0 -160 :k1 -40)
+                         (make-section :n (v 0 1 0) :k0 -60 :k1 60)
+                         (make-section :n (v 0 1 0) :k0 40 :k1 160)
+                         (make-section :n (v 0 0 1) :k0 -160 :k1 -40)
+                         (make-section :n (v 0 0 1) :k0 -60 :k1 60)
+                         (make-section :n (v 0 0 1) :k0 40 :k1 160)))
+
   (let* ((canvas (create-element "canvas"))
          (faces (build-faces))
          (frame (window 100 100 350 450

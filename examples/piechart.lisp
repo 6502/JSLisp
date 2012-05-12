@@ -132,12 +132,15 @@
             (set-coords layout 0 0 (- x1 x0) (- y1 y0))))
     (show-window w)))
 
-(pie-chart-window '(("C++" 10)
-                    ("Java" 20)
-                    ("Lisp" 30)
-                    ("Python" 40)
-                    ("Ruby" 30))
-                  100 100 400 400
-                  "Pie chart window")
+(defun main ()
+  (pie-chart-window '(("C++" 10)
+                      ("Java" 20)
+                      ("Lisp" 30)
+                      ("Python" 40)
+                      ("Ruby" 30))
+                    100 100 400 400
+                    "Pie chart window")
 
-(data-window 200 200 350 350 "Data window")
+  (data-window 200 200 350 350 "Data window"))
+
+(main)
