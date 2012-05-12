@@ -1397,8 +1397,8 @@ Each field is a list of an unevaluated atom as name and a value."
    the object type working as a positional constructor, a function named
    [make-{name}] as a keyword constructor and a function named
    [{name}?] as a type-testing predicate.  Each instance will inherit
-   a [class] field containing the symbol associated to the class and a
-   [fields] field containing (as symbols) the names of the fields."
+   a [%class] field containing the symbol associated to the class and a
+   [%fields] field containing (as symbols) the names of the fields."
   (dotimes (i fields)
     (if (list? (aref fields i))
         (setf (first (aref fields i)) (module-symbol (first (aref fields i))))
@@ -1417,10 +1417,11 @@ Each field is a list of an unevaluated atom as name and a value."
                       `(js-code ,~"this[{(str-value (symbol-name f))}]=d{(. f name)}")))
                 fieldnames)
          (js-code "this"))
-       (setf (. #',(intern ~"{name}-constructor") prototype class) ',name)
-       (setf (. #',(intern ~"{name}-constructor") prototype fields) ',fieldnames)
+       (setf (. #',(intern ~"{name}-constructor") prototype %class) ',name)
+       (setf (. #',(intern ~"{name}-constructor") prototype %fields) ',fieldnames)
        (defun ,(intern ~"new-{name}") (&optional ,@fields)
          ,~"Creates a new instance of {name}"
+         #',(intern ~"{name}-constructor") ;; for deploy
          (js-code ,(let ((res "(new f")
                          (sep ""))
                         (incf res (. (intern ~"{name}-constructor") name))
@@ -1434,8 +1435,8 @@ Each field is a list of an unevaluated atom as name and a value."
                         res)))
        (defmacro/f ,(intern ~"{name}?") (x)
          ,~"True if and only if [x] is an instance of [{name}]"
-         `(== (. ,x class) ',',name))
-       (defun ,(intern ~"make-{name}") (&key ,@fieldnames)
+         `(== (. ,x %class) ',',name))
+       (defun ,(intern ~"make-{name}") (&key ,@fields)
          ,~"Creates a new instance of {name}"
          (,(intern ~"new-{name}") ,@fieldnames))
        ',name)))
