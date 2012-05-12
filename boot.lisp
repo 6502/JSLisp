@@ -1399,10 +1399,7 @@ Each field is a list of an unevaluated atom as name and a value."
    [{name}?] as a type-testing predicate.  Each instance will inherit
    a [%class] field containing the symbol associated to the class and a
    [%fields] field containing (as symbols) the names of the fields."
-  (dotimes (i fields)
-    (if (list? (aref fields i))
-        (setf (first (aref fields i)) (module-symbol (first (aref fields i))))
-        (setf (aref fields i) (module-symbol (aref fields i)))))
+  (setf name (module-symbol name))
   (let ((fieldnames (map (lambda (x)
                            (if (list? x)
                                (first x)
@@ -1413,15 +1410,17 @@ Each field is a list of an unevaluated atom as name and a value."
        (defun ,(intern ~"{name}-constructor") ,fieldnames
          ,@(map (lambda (f)
                   (if (valid-js-name (symbol-name f))
-                      `(js-code ,~"this.{f}=d{(. f name)}")
+                      `(js-code ,~"this.{(symbol-name f)}=d{(. f name)}")
                       `(js-code ,~"this[{(str-value (symbol-name f))}]=d{(. f name)}")))
                 fieldnames)
          (js-code "this"))
-       (setf (. #',(intern ~"{name}-constructor") prototype %class) ',name)
-       (setf (. #',(intern ~"{name}-constructor") prototype %fields) ',fieldnames)
+       (defun ,(intern ~"{name}-prototype-setup") ()
+         (setf (. #',(intern ~"{name}-constructor") prototype %class) ',name)
+         (setf (. #',(intern ~"{name}-constructor") prototype %fields) ',fieldnames))
+       (,(intern ~"{name}-prototype-setup"))
        (defun ,(intern ~"new-{name}") (&optional ,@fields)
          ,~"Creates a new instance of {name}"
-         #',(intern ~"{name}-constructor") ;; for deploy
+         #',(intern ~"{name}-prototype-setup") ;; for deploy
          (js-code ,(let ((res "(new f")
                          (sep ""))
                         (incf res (. (intern ~"{name}-constructor") name))
