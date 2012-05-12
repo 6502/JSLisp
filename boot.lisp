@@ -1193,54 +1193,6 @@ If only one parameter is passed it's assumed to be [stop]."
             ((= 1 (length pieces)) (aref pieces 0))
             (true `(+ ,@pieces))))))
 
-; Defstruct
-(defmacro defstruct (name &rest body)
-  "Defines a structure with the specified fields listed in [body]. Each field can be either a symbol or a list with a symbol
-and a default value form that will be used when instantiating the structure if no values are passed for
-that field. When absent the default value is assumed to be [undefined]."
-  (let ((fnames (map (lambda (f) (if (list? f)
-                                     (first f)
-                                     f))
-                     body)))
-    `(progn
-       (defun
-           ,(intern (+ "make-" (symbol-name name)))
-           (&key ,@body)
-         ,~"Creates a new {name} structure instance"
-         (list ',name ,@fnames))
-       (defun ,(intern (+ (symbol-name name) #\?)) (self)
-         ,~"True iff [self] is a {name} structure instance"
-         (and (list? self) (= ',name (aref self 0))))
-       (defvar ,(intern (+ "*" (symbol-name name) "-fields*"))
-         ',fnames)
-       ,@(let ((res (list))
-               (index 1))
-           (dolist (f fnames)
-             (let ((fn (intern (+ (symbol-name name) "-" (symbol-name f)))))
-               (push `(defun ,fn (self)
-                        ,~"Retrieves the [{f}] field of a [{name}] instance"
-                        (unless (,(intern (+ (symbol-name name) #\?)) self)
-                          (error ,(+ "Not a " (symbol-name name) " instance")))
-                        (aref self ,index)) res)
-               (push `(defun ,(intern (+ "set-" (symbol-name fn))) (self value)
-                        ,~"Sets the [{f}] field of a [{name}] instance"
-                        (unless (,(intern (+ (symbol-name name) #\?)) self)
-                          (error ,(+ "Not a " (symbol-name name) " instance")))
-                        (setf (aref self ,index) value)) res)
-               (push `(defun ,(intern (+ "inc-" (symbol-name fn))) (self value)
-                        ,~"Increments the [{f}] field of a [{name}] instance"
-                        (unless (,(intern (+ (symbol-name name) #\?)) self)
-                          (error ,(+ "Not a " (symbol-name name) " instance")))
-                        (incf (aref self ,index) value)) res)
-               (push `(defun ,(intern (+ "dec-" (symbol-name fn))) (self value)
-                        ,~"Decrements the [{f}] field of a [{name}] instance"
-                        (unless (,(intern (+ (symbol-name name) #\?)) self)
-                          (error ,(+ "Not a " (symbol-name name) " instance")))
-                        (decf (aref self ,index) value)) res)
-               (incf index)))
-           res)
-       ',name)))
-
 ; Math functions
 (defmacro/f sqrt (x) "Square root of [x]"
   `(js-code ,(+ "Math.sqrt(" (js-compile x) ")")))
@@ -1441,17 +1393,22 @@ Each field is a list of an unevaluated atom as name and a value."
 (defmacro defobject (name fields)
   "Defines a new object type named [name] and with specified
    [fields]. Each field is either a symbol or a list of a symbol and a
-   default value. This macro will define a function named as the
-   object type working as a positional constructor, a function named
+   default value. This macro will define a function named [new-{name}] as
+   the object type working as a positional constructor, a function named
    [make-{name}] as a keyword constructor and a function named
    [{name}?] as a type-testing predicate.  Each instance will inherit
    a [class] field containing the symbol associated to the class and a
    [fields] field containing (as symbols) the names of the fields."
+  (dotimes (i fields)
+    (if (list? (aref fields i))
+        (setf (first (aref fields i)) (module-symbol (first (aref fields i))))
+        (setf (aref fields i) (module-symbol (aref fields i)))))
   (let ((fieldnames (map (lambda (x)
                            (if (list? x)
                                (first x)
                                x))
                          fields)))
+    (setf name (module-symbol name))
     `(progn
        (defun ,(intern ~"{name}-constructor") ,fieldnames
          ,@(map (lambda (f)
@@ -1462,7 +1419,7 @@ Each field is a list of an unevaluated atom as name and a value."
          (js-code "this"))
        (setf (. #',(intern ~"{name}-constructor") prototype class) ',name)
        (setf (. #',(intern ~"{name}-constructor") prototype fields) ',fieldnames)
-       (defun ,name (&optional ,@fields)
+       (defun ,(intern ~"new-{name}") (&optional ,@fields)
          ,~"Creates a new instance of {name}"
          (js-code ,(let ((res "(new f")
                          (sep ""))
@@ -1480,7 +1437,7 @@ Each field is a list of an unevaluated atom as name and a value."
          `(== (. ,x class) ',',name))
        (defun ,(intern ~"make-{name}") (&key ,@fieldnames)
          ,~"Creates a new instance of {name}"
-         (,name ,@fieldnames))
+         (,(intern ~"new-{name}") ,@fieldnames))
        ',name)))
 
 (setf #'parse-value
@@ -1498,6 +1455,41 @@ Each field is a list of an unevaluated atom as name and a value."
                 (setf x `(. ,x ,(funcall oldf src))))))))
 
 (incf *stopchars* ".")
+
+; CL-like structures
+(defmacro defstruct (name &rest body)
+  "Defines a structure with the specified fields listed in [body]. Each field can be either a symbol or a list with a symbol
+and a default value form that will be used when instantiating the structure if no values are passed for
+that field. When absent the default value is assumed to be [undefined]."
+  (setf name (module-symbol name))
+  `(progn
+     (defobject ,name ,body)
+     ,@(let ((res (list)))
+         (dolist (field-def body)
+           (let ((f (if (list? field-def) (first field-def) field-def)))
+             (let ((fn (intern (+ (symbol-name name) "-" (symbol-name f)))))
+               (push `(defun ,fn (self)
+                        ,~"Retrieves the [{f}] field of a [{name}] instance"
+                        (unless (,(intern (+ (symbol-name name) #\?)) self)
+                          (error ,(+ "Not a " (symbol-name name) " instance")))
+                        (. self ,f)) res)
+               (push `(defun ,(intern (+ "set-" (symbol-name fn))) (self value)
+                        ,~"Sets the [{f}] field of a [{name}] instance"
+                        (unless (,(intern (+ (symbol-name name) #\?)) self)
+                          (error ,(+ "Not a " (symbol-name name) " instance")))
+                        (setf (. self ,f) value)) res)
+               (push `(defun ,(intern (+ "inc-" (symbol-name fn))) (self value)
+                        ,~"Increments the [{f}] field of a [{name}] instance"
+                        (unless (,(intern (+ (symbol-name name) #\?)) self)
+                          (error ,(+ "Not a " (symbol-name name) " instance")))
+                        (incf (. self ,f) value)) res)
+               (push `(defun ,(intern (+ "dec-" (symbol-name fn))) (self value)
+                        ,~"Decrements the [{f}] field of a [{name}] instance"
+                        (unless (,(intern (+ (symbol-name name) #\?)) self)
+                          (error ,(+ "Not a " (symbol-name name) " instance")))
+                        (decf (. self ,f) value)) res))))
+         res)
+     ',name))
 
 ; Javscript simple function/method binding
 (defmacro bind-js-functions (&rest names)
