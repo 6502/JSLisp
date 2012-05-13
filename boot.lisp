@@ -1432,9 +1432,9 @@ Each field is a list of an unevaluated atom as name and a value."
                           (setf sep ","))
                         (incf res "))")
                         res)))
-       (defmacro/f ,(intern ~"{name}?") (x)
+       (defun ,(intern ~"{name}?") (x)
          ,~"True if and only if [x] is an instance of [{name}]"
-         `(== (. ,x %class) ',',name))
+         (== (. x %class) ',name))
        (defun ,(intern ~"make-{name}") (&key ,@fields)
          ,~"Creates a new instance of {name}"
          (,(intern ~"new-{name}") ,@fieldnames))
@@ -1490,6 +1490,24 @@ that field. When absent the default value is assumed to be [undefined]."
                         (decf (. self ,f) value)) res))))
          res)
      ',name))
+
+; Generic condition dispatching
+(defmacro defmethod (name args test &rest body)
+  "Defines a conditioned implementation of a function; when [test] doesn't match the previous implementation is called instead"
+  (let ((of (gensym)))
+    `(progn
+       ,@(if (symbol-function name)
+             (list)
+             `((defun ,name ,args
+                 (error ,~"No matching method [{name}]"))))
+       (setf #',of #',name)
+       (setf #',name
+             (lambda ,args
+               (block ,name
+                 (if ,test
+                     (progn ,@body)
+                     (,of ,@args)))))
+       (list ',name ',test))))
 
 ; Javscript simple function/method binding
 (defmacro bind-js-functions (&rest names)
