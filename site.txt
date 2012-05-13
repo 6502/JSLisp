@@ -604,11 +604,12 @@ symbol alias table some or all of the exported names.
 [Modules
 ; This imports all exported names from the objects module
 ; into the current *symbol-aliases* table.
-(import * from objects)
---> ("defobject" "defmethod" "class" "fields")
+(import * from examples/raster)
+--> ("hline" "box" "clear" "frame" "line" "bezier"
+=     "ellipse" "ellipse-frame" "fill")
 Ready.
-'defobject
---> objects:defobject
+'hline
+--> examples__raster:hline
 Ready.
 
 ; This imports (loads) the module and assigns a nickname,
@@ -640,10 +641,15 @@ Ready.
 ; All currently active symbol aliases are kept in the *symbol-aliases* map
 ; and are checked first by the reader when interpreting a symbol
 (map #'display (keys *symbol-aliases*))
-=defobject
-=defmethod
-=class
-=fields
+=hline
+=box
+=clear
+=frame
+=line
+=bezier
+=ellipse
+=ellipse-frame
+=fill
 =show
 =set-style
 Ready.
@@ -696,43 +702,30 @@ used instead.
 @@ OOP support
 
 JsLisp implements supports for Object Oriented Programming
-paradigm with the [objects] module.
+paradigm using named JS objects and generic dispatching.
 
 The [(defobject name fields)] defines a new object class with
 the given name and also defines:
 
-- a constructor with the same name of the class
+- a constructor prefixed with "[new-]" accepting positional arguments
 
 - a constructor prefixed with "[make-]" accepting keyword arguments
 
 - a type-check function by appending "[?]" to the class name
 
-- a dynamic (late-binding) accessor for each field named like the
-  field. Accessor supports [setf]/[incf]/[decf].
-
-- a static accessor for each field named by prefixing the field name
-  with the class name and a dash (e.g. "[p2d-x]") that should be used
-  only when the type of the object is guaranteed to be correct
-  (they are macros expanding to a direct access to field data
-  data without any check or lookup).
-
-Also the module provides a [(fields x)] function returning the names
-of the fields available in the object instance [x] and a [(class x)]
-function to retrieve the class name (a symbol) of the object instance
-[x].
+Also each instance of an object provides two meta-fields named
+"[%class]" and "[%fields]". The first is a symbol named after the
+object class defined and the second is a list of all fields defined.
 
 Each field in the [(defobject ...)] form can be either a symbol or
-a list [(<symbol> <default>)] to specify values to be used if
-the field value is not passed to the constructor.
+a list [(<symbol> <default>)] to specify values to be used instead of
+[undefined] if the field value is not passed to the constructor.
 
 Methods are implemented using the generic function dispatcher of
 JsLisp [(defmethod ...)] and this allows both multimethods and
 EQL-specializations of CLOS.
 
 [Object Oriented Programming support
-(import * from objects)
---> null
-Ready.
 (defobject animal (name))
 --> animal
 Ready.
@@ -740,34 +733,34 @@ Ready.
 --> dog
 Ready.
 (defmethod animal? (x) (dog? x) true)
---> #CODE
+--> (animal? (dog? x))
 Ready.
 (defobject cat (name))
 --> cat
 Ready.
 (defmethod animal? (x) (cat? x) true)
---> #CODE
+--> (animal? (cat? x))
 Ready.
-(animal? (dog "fido"))
+(animal? (new-dog "fido"))
 --> true
 Ready.
 (defmethod run (x) (animal? x)
-  (display ~"{(name x)} is running"))
---> #CODE
+  (display ~"{x.name} is running"))
+--> (run (animal? x))
 Ready.
 (defmethod sing (x) (dog? x)
   (display "woof!"))
---> #CODE
+--> (sing (dog? x))
 Ready.
 (defmethod sing (x) (cat? x)
   (display "meow!"))
---> #CODE
+--> (sing (cat? x))
 Ready.
-(defvar *tobi* (cat "tobi"))
---> ((cat name) "tobi")
+(defvar *tobi* (new-cat "tobi"))
+--> {"name":"tobi"}
 Ready.
-(defvar *fido* (dog "fido"))
---> ((dog name) "fido")
+(defvar *fido* (new-dog "fido"))
+--> {"name":"fido"}
 Ready.
 (run *tobi*)
 =tobi is running
@@ -779,9 +772,9 @@ Ready.
 Ready.
 (defmethod run (x) (= x *tobi*)
   (display "no way..."))
---> #CODE
+--> (run (= x *tobi*))
 Ready.
-(run (cat "sissi"))
+(run (new-cat "sissi"))
 =sissi is running
 --> "sissi is running"
 Ready.
@@ -796,6 +789,7 @@ Ready.
 (sing *tobi*)
 =meow!
 --> "meow!"
+Ready.
 ]
 
 @@ Treeshaker
