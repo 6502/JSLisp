@@ -1936,20 +1936,23 @@ that field. When absent the default value is assumed to be [undefined]."
                           res)))
          (map #'symbol-name (symbol-value ',(intern "*exports*" (symbol-name module))))))))
 
-; Uri decoding support
-(defun parse-hex (x)
-  "Integer value of hexadecimal string [x]"
-  (js-code "parseInt(d$$x,16)"))
-
+; Char <-> numeric code conversion
 (defun char (x)
-  "Character from code"
+  "Character associated to code [x]"
   (js-code "String.fromCharCode(d$$x)"))
 
+(defun char-code (x)
+  "Numeric code of character [x]"
+  (js-code "d$$x.charCodeAt(0)"))
+
+; Uri encoding/decoding support
 (defun uri-decode (x)
   "Decode an uri-encoded string [x]"
-  (setf x (replace x "\\+" "%20"))
-  (setf x (replace x "%[0-9A-Fa-f]{2}"
-                   (lambda (x) (char (parse-hex (slice x 1)))))))
+  (js-code "decodeURIComponent(d$$x.replace(/\\+/g,\"%20\"))"))
+
+(defun uri-encode (x)
+  "Returns uri-encoding of string [x]"
+  (js-code "encodeURIComponent(d$$x).replace(/%20/g,\"+\")"))
 
 ; Lexical symbol properties support
 (defun lexical-property (x name)

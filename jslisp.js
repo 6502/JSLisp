@@ -1084,10 +1084,21 @@ defun("warning",
 
 d$$$42$error_location$42$ = null;
 
+d$$$42$debugger$42$ = false;
+
 function erl(x, f)
 {
     try
     {
+        if (d$$$42$debugger$42$)
+        {
+            for (;;)
+            {
+                var dbg = f$$http_get("http://127.0.0.1:1337/cmd?" + encodeURIComponent(x+""));
+                if (dbg == "cont") break;
+                eval(dbg);
+            }
+        }
         return f()
     }
     catch (err)
@@ -1345,11 +1356,6 @@ defun("parse-delimited-list",
       {
           var res = [];
           f$$skip_spaces(src);
-          if (src.location)
-          {
-              // copy source location info if available
-              res.location = src.location.slice();
-          }
           var oldstops = d$$$42$stopchars$42$;
           d$$$42$stopchars$42$ += stop;
           while (src() != undefined && src() != stop)
@@ -1501,8 +1507,20 @@ var readers = { "|": function(src)
 
                 "(": function(src)
                 {
+                    var srcstart;
+                    if (src.location)
+                    {
+                        // copy source location info if available
+                        srcstart = src.location.slice();
+                    }
                     src(1);
-                    return f$$parse_delimited_list(src, ")");
+                    var result = f$$parse_delimited_list(src, ")");
+                    if (src.location)
+                    {
+                        // copy end of list source location info if available
+                        result.location = srcstart.concat(src.location.slice(1))
+                    }
+                    return result;
                 },
 
                 "0": f$$parse_number_or_symbol,
@@ -1739,6 +1757,7 @@ defun("load",
                   src.location = [name, 1, 1];
           }
           var nforms = 0;
+          var last = null;
           try
           {
               f$$skip_spaces(src);
@@ -1748,7 +1767,7 @@ defun("load",
                   var form = f$$parse_value(src);
                   ++nforms;
                   phase = "toplevel-evaluating";
-                  f$$toplevel_eval(form);
+                  last = f$$toplevel_eval(form);
                   f$$skip_spaces(src);
               }
           }
@@ -1761,6 +1780,7 @@ defun("load",
               werr.location = err.location;
               throw werr;
           }
+          return last;
       },
       [f$$intern("src"), f$$intern("&optional"), f$$intern("name")]);
 
