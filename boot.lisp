@@ -967,10 +967,11 @@ The resulting list length is equal to the shortest input sequence."
                               (setf (aref args i) (first (aref args i)))))
                           (apply oldcf `(,args
                                          ,@doc
-                                         ,@checks
+2                                         ,@checks
                                          ,@defaults
                                          ,@body))))))))
         (setf (documentation f) olddoc)
+        (setf (arglist f) (arglist oldcf))
         f))
 
 ; Keyword arguments
@@ -1016,6 +1017,7 @@ The resulting list length is equal to the shortest input sequence."
                                                res)
                                            ,@body)))))))))
         (setf (documentation f) oldcomm)
+        (setf (arglist f) (arglist oldcf))
         f))
 
 ; Destructuring
@@ -1056,6 +1058,7 @@ The resulting list length is equal to the shortest input sequence."
                                   ,@body)))))
                     (apply oldcf `(,args ,@doc ,@body))))))
         (setf (documentation f) olddoc)
+        (setf (arglist f) (arglist oldcf))
         f))
 
 ; Array construction
