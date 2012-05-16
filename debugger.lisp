@@ -21,7 +21,8 @@
 (defun source-window (name)
   (let ((source (split (http-get name) "\n"))
         (w (window 100 100 800 600 :title name))
-        (selection-markers (list)))
+        (selection-markers (list))
+        (lines (list)))
     (dotimes (i (length source))
       (let ((line (create-element "div"))
             (num (create-element "span"))
@@ -56,8 +57,9 @@
         (append-child line num)
         (append-child line text)
         (append-child (window-client w) line)
-        (push select selection-markers)))
-    (setf (window-data w) selection-markers)
+        (push select selection-markers)
+        (push line lines)))
+    (setf (window-data w) (list lines selection-markers))
     (show-window w)
     w))
 
@@ -66,7 +68,11 @@
         (from-col (1- (third location)))
         (to-line (1- (fourth location)))
         (to-col (1- (fifth location)))
-        (markers (window-data w)))
+        (lines (first (window-data w)))
+        (markers (second (window-data w))))
+    (setf (window-client w).scrollTop
+          (max 0 (- (aref lines from-line).offsetTop
+                    (/ (window-client w).offsetHeight 2))))
     (dotimes (i (length markers))
       (let ((m (aref markers i)))
         (cond
@@ -97,7 +103,7 @@
                       px/width (* cw (- to-col from-col)))))))))
 
 (defun main-window ()
-  (let* ((w (window 50 50 400 150 :title "Debugger"))
+  (let* ((w (window 300 640 400 100 :title "Debugger"))
          (step (button "Step" (lambda () (debug 'step))))
          (continue (button "Continue" (lambda () (debug 'continue))))
          (source null)

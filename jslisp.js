@@ -1090,14 +1090,11 @@ function erl(x, f)
 {
     try
     {
-        if (d$$$42$debugger$42$)
+        while(d$$$42$debugger$42$)
         {
-            for (;;)
-            {
-                var dbg = f$$http_get("http://127.0.0.1:1337/cmd?" + encodeURIComponent(x+""));
-                if (dbg == "cont") break;
-                eval(dbg);
-            }
+            var dbg = f$$http_get("http://127.0.0.1:1337/cmd?" + encodeURIComponent(x+""));
+            if (dbg == "cont") break;
+            eval(dbg);
         }
         return f()
     }
