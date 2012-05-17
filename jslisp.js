@@ -1086,7 +1086,7 @@ d$$$42$error_location$42$ = null;
 
 d$$$42$debugger$42$ = false;
 
-function erl(x, f)
+function erl(x, f, ee)
 {
     try
     {
@@ -1169,8 +1169,9 @@ defun("js-compile",
                       wrapper = function(r) {
                           return ("erl(" +
                                   stringify(x.location) +
-                                  ", function(){return(" +
-                                  r + ");})");
+                                  ",function(){return(" +
+                                  r +
+                                  ")},function(x){return eval(x)})");
                       };
                   }
                   var f = x[0];

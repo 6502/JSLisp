@@ -16,7 +16,7 @@
     (reply *pending-response* "text/plain" "0")
     (setf *pending-response* null)))
 
-(set-interval #'idler 30000)
+(set-interval #'idler 10000)
 
 (defun send (msg)
   (if *pending-response*
@@ -59,8 +59,20 @@
     (send *pending-reply*)
     (setf *pending-reply* null)))
 
+(defvar *data-wait* null)
+
+(defun data (response msg)
+  (when *data-wait*
+    (reply *data-wait* "text/plain" msg)
+    (setf *data-wait* null))
+  (reply response "text/plain" "ok"))
+
 (defun info (response)
   (reply response "text/plain" (+ "" *current-location*)))
+
+(defun getdata (response expr)
+  (send ~"f$$http_get(\"http://127.0.0.1:1337/data?\"+encodeURIComponent(ee(\"{expr}\")));")
+  (setf *data-wait* response))
 
 (defun step (response)
   (send "cont")
