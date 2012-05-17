@@ -387,12 +387,20 @@
 (defmacro/f ninth (x) "Ninth element of list/string [x]" `(aref ,x 8))
 (defmacro/f tenth (x) "Tenth element of list/string [x]" `(aref ,x 9))
 
-;; String splitting
+;; String splitting and joining
 (defmacro/f split (x separator)
   "Splits a string [x] using the specified separator"
   `(js-code ,(+ "("
                 (js-compile x)
                 ".split("
+                (js-compile separator)
+                "))")))
+
+(defmacro/f join (x separator)
+  "Joins the content of list [x] of strings placing specified [separator] between elements"
+  `(js-code ,(+ "("
+                (js-compile x)
+                ".join("
                 (js-compile separator)
                 "))")))
 
