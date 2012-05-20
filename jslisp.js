@@ -1086,15 +1086,55 @@ d$$$42$error_location$42$ = null;
 
 d$$$42$debugger$42$ = false;
 
-function erl(x, f, ee)
+function f$$safe()
 {
+    var args = Array.prototype.slice.call(arguments);
+    try
+    {
+        return args[0].apply(glob, args.slice(1));
+    }
+    catch(err)
+    {
+        return "" + err;
+    }
+}
+
+var skip_cmds = 0;
+
+function f$$send_debugger(x)
+{
+    f$$http("POST", "http://127.0.0.1:1337/send?debugger",
+            f$$str_value(x));
+}
+
+function f$$receive_debugger()
+{
+    var res = f$$http("POST", "http://127.0.0.1:1337/receive?debugged&"+skip_cmds).split("\n");
+    for (var i=0; i<res.length; i++)
+    {
+        var ix = res[i].indexOf(":");
+        skip_cmds = 1 + parseInt(res[i].slice(0, ix));
+        res[i] = res[i].slice(1+ix);
+    }
+    return res;
+}
+
+function erl(x, f, loceval)
+{
+    f$$local_eval = loceval;
     try
     {
         while(d$$$42$debugger$42$)
         {
-            var dbg = f$$http_get("http://127.0.0.1:1337/cmd?" + encodeURIComponent(x+""));
-            if (dbg == "cont") break;
-            eval(dbg);
+            f$$send_debugger([f$$intern("location")].concat(x));
+            var dbg_commands = f$$receive_debugger();
+            for (var i=0; i<dbg_commands.length; i++)
+            {
+                var cmd = dbg_commands[i];
+                if (cmd == "cont") break;
+                try { f$$load(cmd); } catch (err) { }
+            }
+            if (i < dbg_commands.length) break;
         }
         return f()
     }
@@ -1240,6 +1280,17 @@ defun("js-compile",
                           res += ")";
                           return wrapper(res);
                       }
+                  }
+                  else if (f$$list$63$(f))
+                  {
+                      var res = "((" + f$$js_compile(f) + ")(";
+                      for (var i=1; i<x.length; i++)
+                      {
+                          if (i > 1) res += ",";
+                          res += f$$js_compile(x[i]);
+                      }
+                      res += "))";
+                      return wrapper(res);
                   }
                   else
                   {

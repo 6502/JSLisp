@@ -71,7 +71,7 @@
   (reply response "text/plain" (+ "" *current-location*)))
 
 (defun getdata (response expr)
-  (send ~"f$$http_get(\"http://127.0.0.1:1337/data?\"+encodeURIComponent(ee(\"{expr}\")));")
+  (send ~"f$$http_get(\"http://127.0.0.1:1337/data?\"+encodeURIComponent(safe(ee,\"{expr}\")));")
   (setf *data-wait* response))
 
 (defun step (response)

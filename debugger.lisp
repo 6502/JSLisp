@@ -1,12 +1,5 @@
 (import * from gui)
-
-(defun debug (func &rest args)
-  (let ((msg ~"{func}")
-        (sep "?"))
-    (dolist (x args)
-      (incf msg ~"{sep}{(uri-encode x)}")
-      (setf sep "&"))
-    (http-get ~"http://127.0.0.1:1337/{msg}")))
+(import * from chatclient)
 
 (setf cw (let ((x (create-element "span")))
            (set-style x
@@ -102,40 +95,29 @@
                       right "auto"
                       px/width (* cw (- to-col from-col)))))))))
 
-(defun main-window ()
-  (let* ((w (window 300 640 400 100 :title "Debugger"))
-         (step (button "Step" (lambda () (debug 'step))))
-         (continue (button "Continue" (lambda () (debug 'continue))))
-         (source null)
-         (source-filename null)
-         (layout (:H :border 8 :spacing 8
-                     (:Hdiv step)
-                     (:Hdiv continue)))
-         (last-info null))
-    (append-child (window-client w) step)
-    (append-child (window-client w) continue)
-    (setf (window-resize-cback w)
-          (lambda (x0 y0 x1 y1)
-            (set-coords layout 0 0 (- x1 x0) (- y1 y0))))
-    (set-interval (lambda ()
-                    (let ((x (debug 'info)))
-                      (when (/= x last-info)
-                        (setf last-info x)
-                        (when (/= x "null")
-                          (setf x (split x ","))
-                          (let ((filename (first x))
-                                (from-line (parse-value (second x)))
-                                (from-col (parse-value (third x)))
-                                (to-line (parse-value (fourth x)))
-                                (to-col (parse-value (fifth x))))
-                            (when (/= source-filename filename)
-                              (setf source-filename filename)
-                              (when source
-                                (hide source)
-                                (setf source null))
-                              (setf source (source-window filename)))
-                            (set-selection source (list filename from-line from-col to-line to-col)))))))
-                  100)
-    (show-window w)))
+(defvar *source-windows* (js-object))
 
-(main-window)
+(defun location (filename from-line from-col to-line to-col)
+  (let ((w (aref *source-windows* filename)))
+    (unless w
+      (setf w (source-window filename))
+      (setf (window-close-cback w)
+            (lambda ()
+              (setf (aref *source-windows* filename) null)))
+      (setf (aref *source-windows* filename) w))
+    (show-window w)
+    (set-selection w (list filename from-line from-col to-line to-col))))
+
+(defun debugged (x)
+  (send "http://127.0.0.1:1337" "debugged" x))
+
+(defun step ()
+  (debugged 'cont))
+
+(defun continue ()
+  (debugged '(setf *debugger* false)))
+
+(defmacro remote (x)
+  (debugged `(send-debugger (list 'display (local-eval ',x)))))
+
+(receive "http://127.0.0.1:1337" "debugger" #'eval)
