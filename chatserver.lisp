@@ -15,6 +15,7 @@
   (listeners (list)))
 
 (defun add-message (channel message)
+  (display ~"{channel}: + {(str-value message)}")
   (push message channel.messages)
   (let ((xs (- (length channel.messages) channel.max)))
     (when (> xs 0)

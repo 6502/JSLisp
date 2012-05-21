@@ -1119,9 +1119,11 @@ function f$$receive_debugger()
     return res;
 }
 
-function erl(x, f, loceval)
+var f$$local_js_eval;
+
+function erl(x, f, local_js_eval)
 {
-    f$$local_eval = loceval;
+    f$$local_js_eval = local_js_eval;
     try
     {
         while(d$$$42$debugger$42$)
@@ -1132,7 +1134,14 @@ function erl(x, f, loceval)
             {
                 var cmd = dbg_commands[i];
                 if (cmd == "cont") break;
-                try { f$$load(cmd); } catch (err) { }
+                try
+                {
+                    f$$load(cmd);
+                }
+                catch (err)
+                {
+                    f$$send_debugger([f$$intern("debug-cmd-error"), err+""]);
+                }
             }
             if (i < dbg_commands.length) break;
         }

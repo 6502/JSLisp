@@ -108,6 +108,9 @@
     (show-window w)
     (set-selection w (list filename from-line from-col to-line to-col))))
 
+(defun debug-cmd-error (x)
+  (display ~"Debug-cmd-error: {x}"))
+
 (defun debugged (x)
   (send "http://127.0.0.1:1337" "debugged" x))
 
