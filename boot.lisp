@@ -139,13 +139,6 @@
   (js-code "(lexfunc.vars[d$$x.name]?null:(d$$$42$outgoing_calls$42$[d$$x.name]=true))")
   (list 'js-code (+ "f" (js-code "d$$x.name"))))
 
-(defmacro set-function (x value)
-  "Sets the function currently bound to the unevaluated symbol [x] (including lexical bindings)"
-  (list 'js-code (+ "(f"
-                    (js-code "d$$x.name") "="
-                    (js-compile value)
-                    ")")))
-
 ; Macro accessor
 (defmacro macro (x)
   "Returns the macro currently bound to the unevaluated symbol [x] (including lexical bindings)"
@@ -262,29 +255,11 @@
       (setq res (+ res "[" (js-compile i) "]")))
     (list 'js-code (+ "(" res ")"))))
 
-(defmacro set-aref (x &rest rest)
-  "Sets the element of [x] indexed by specified values (but the last one) to last of specified values."
-  (let ((res (js-compile x))
-        (n1 (- (length rest) 1)))
-    (dotimes (i n1)
-      (setq res (+ res "[" (js-compile (aref rest i)) "]")))
-    (list 'js-code (+ "(" res
-                      "="
-                      (js-compile (aref rest n1))
-                      ")"))))
-
 (defun aref (x &rest indexes)
   "Returns the element of [x] indexed by the specified values."
   (dolist (i indexes)
     (setq x (aref x i)))
   x)
-
-(defun set-aref (x &rest rest)
-  "Sets the element of [x] indexed by specified values (but the last one) to last of specified values."
-  (let ((n2 (- (length rest) 2)))
-    (dotimes (i n2)
-      (setq x (aref x (aref rest i))))
-    (set-aref x (aref rest n2) (aref rest (+ n2 1)))))
 
 ; Quasiquoting
 (defun bqconst (x)
@@ -430,7 +405,7 @@
                                  "))"))))))
        (when (and (list? res)
                   (= (first res) 'js-code)
-                  (js-code "d$$res[1].match(/\\(\\((-?[0-9]+\\.?[0-9]*|\"([^\"]|\\\\.)*\")\\).\\((-?[0-9]+\\.?[0-9]*|\"([^\"]|\\\\.)*\")\\)\\)/)"))
+                  (js-code "d$$res[1].match(/^\\(\\((-?[0-9]+\\.?[0-9]*|\"([^\"]|\\\\.)*\")\\).\\((-?[0-9]+\\.?[0-9]*|\"([^\"]|\\\\.)*\")\\)\\)$/)"))
          (js-code "(d$$res[1]=JSON.stringify(eval(d$$res[1])))"))
        res)))
 
@@ -703,12 +678,16 @@
     (true (error "Invalid decf place"))))
 (set-arglist (symbol-macro 'decf) '(place &optional (dec 1)))
 
+(defmacro set-js-code (x value)
+  "Set of js literal lvalue as last resort on (setf (...))"
+  `(js-code ,(+ "((" x ")=(" (js-compile value) "))")))
+
 (defmacro inc-js-code (x delta)
-  "Increment of js literal lvalue"
+  "Increment of js literal lvalue as last resort on (incf (...))"
   `(js-code ,(+ "((" x ")+=(" (js-compile delta) "))")))
 
 (defmacro dec-js-code (x delta)
-  "Decrement of js literal lvalue"
+  "Decrement of js literal lvalue as last resort on (decf (...))"
   `(js-code ,(+ "((" x ")-=(" (js-compile delta) "))")))
 
 (defmacro/f 1+ (x)
@@ -718,22 +697,6 @@
 (defmacro/f 1- (x)
   "Returns [(- x 1)]"
   `(- ,x 1))
-
-(defmacro inc-aref (x k value)
-  "Increments the [k]-th element of a list or the element associated to key [k] in a javascript object"
-  `(js-code ,(+ "(" (js-compile x)
-                "[" (js-compile k)
-                "]+=" (js-compile value) ")")))
-
-(defmacro dec-aref (x k value)
-  "Decrements the [k]-th element of a list or the element associated to key [k] in a javascript object"
-  `(js-code ,(+ "(" (js-compile x)
-                "[" (js-compile k)
-                "]-=" (js-compile value) ")")))
-
-(defmacro/f set-length (L n)
-  "Sets the length of list [L] to [n]"
-  `(js-code ,(+ "(" (js-compile L) ".length=" (js-compile n) ")")))
 
 ; Sequence utilities
 (defmacro/f pop (x)
@@ -747,10 +710,6 @@
 (defun last (x)
   "Last element of list/string [x]."
   (aref x (1- (length x))))
-
-(defun set-last (x y)
-  "Sets the last element of list/string [x] to [y]"
-  (setf (aref x (1- (length x))) y))
 
 (defmacro last (x)
   "Last element of list/string [x]."
@@ -1340,21 +1299,6 @@ A field is either an unevaluated symbol, a number, a string or an (evaluated) fo
                        (+ res "[" (str-value (symbol-name x)) "]")))
                   ((list? x) (+ res "[" (js-compile x) "]"))
                   (true (+ res "[" (str-value x) "]")))))
-    `(js-code ,res)))
-
-(defmacro set-. (obj &rest fields)
-  "Sets the javascript object value selected by traversing the specified chain of [fields].
-A field is either an unevaluated symbol, a number, a string or an (evaluated) form."
-  (let ((res (js-compile obj)))
-    (dolist (x (slice fields 0 (1- (length fields))))
-      (setf res (cond
-                  ((symbol? x)
-                   (if (valid-js-name (symbol-name x))
-                       (+ res "." (symbol-name x))
-                       (+ res "[" (str-value (symbol-name x)) "]")))
-                  ((list? x) (+ res "[" (js-compile x) "]"))
-                  (true (+ res "[" (str-value x) "]")))))
-    (setf res (+ res "=" (js-compile (aref fields (1- (length fields))))))
     `(js-code ,res)))
 
 ;; Funcall specialization for (funcall (. a b) ...) to avoid wrapper creation
@@ -1968,9 +1912,6 @@ that field. When absent the default value is assumed to be [undefined]."
 ; Lexical symbol properties support
 (defun lexical-property (x name)
   (js-code "(lexvar.props[d$$x.name][d$$name])"))
-
-(defun set-lexical-property (x name value)
-  (js-code "(lexvar.props[d$$x.name][d$$name]=d$$value)"))
 
 ; Case
 (defmacro case (expr &rest cases)
