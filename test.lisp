@@ -735,6 +735,37 @@
           res))
       "(24 144 24 144 144 144)")
 
+(test (let ((a null))
+        (try (unwind-protect
+                  (progn
+                    (setf a 42)
+                    (error "Hmmm"))
+               (setf a null))
+             null)
+        a)
+      "null")
+
+(test (let ((a null))
+        (block foo
+          (unwind-protect
+               (progn
+                 (setf a 42)
+                 (return-from foo))
+            (setf a null)))
+        a)
+      "null")
+
+(test (let ((a null))
+        (tagbody
+           (unwind-protect
+                (progn
+                  (setf a 42)
+                  (go done))
+             (setf a null))
+         done)
+        a)
+      "null")
+
 ;; No warnings expected
 (test (labels ((rf1 (x) (if (< x 2) 1 (* x (rf2 (1- x)))))
                (rf2 (x) (if (< x 2) 1 (* x (rf1 (1- x))))))

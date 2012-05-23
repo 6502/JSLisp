@@ -1722,6 +1722,16 @@ that field. When absent the default value is assumed to be [undefined]."
   (setf (documentation (symbol-macro 'lambda)) odoc)
   (setf (arglist (symbol-macro 'lambda)) oargs))
 
+;; Unwind-protect
+
+(defmacro unwind-protect (form &rest body)
+  "Evaluates all [body] forms even if an non-local exit jump is done from [form]"
+  `(js-code ,(+ "((function(){var cl=function(){"
+                (js-compile `(progn ,@body))
+                "};try{var res="
+                (js-compile form)
+                ";cl();return res}catch(res){cl();throw res;}})())")))
+
 ;; Compile-time argument checking
 
 (defun static-check-args (form args)
