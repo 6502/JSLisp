@@ -766,6 +766,27 @@
         a)
       "null")
 
+(test (let ((res (list)))
+        (labels ((out (x) (push x res))
+                 (foo (err)
+                   (out 1)
+                   (unwind-protect
+                        (progn
+                          (out 2)
+                          (when err
+                            (throw 'foo 3))
+                          (out 4))
+                     (out 5))
+                   (out 6)))
+          (dolist (flag (list true false))
+            (out (list (catch 'foo
+                         (out 7)
+                         (foo flag)
+                         (out 8)
+                         42))))
+          res))
+      "(7 1 2 5 (3) 7 1 2 4 5 6 8 (42))")
+
 ;; No warnings expected
 (test (labels ((rf1 (x) (if (< x 2) 1 (* x (rf2 (1- x)))))
                (rf2 (x) (if (< x 2) 1 (* x (rf1 (1- x))))))

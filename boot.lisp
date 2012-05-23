@@ -1725,12 +1725,30 @@ that field. When absent the default value is assumed to be [undefined]."
 ;; Unwind-protect
 
 (defmacro unwind-protect (form &rest body)
-  "Evaluates all [body] forms even if an non-local exit jump is done from [form]"
+  "Evaluates all [body] forms even if an non-local exit jump is done during evaluation of [form]"
   `(js-code ,(+ "((function(){var cl=function(){"
                 (js-compile `(progn ,@body))
                 "};try{var res="
                 (js-compile form)
                 ";cl();return res}catch(res){cl();throw res;}})())")))
+
+;; Throw-catch
+
+(defmacro throw (tag x)
+  "Throws the value of form [x] so that last established [catch] for the specified [tag] receives the value"
+  `(js-code ,(+ "((function(){throw["
+                (js-compile tag)
+                ","
+                (js-compile x)
+                "]})())")))
+
+(defmacro catch (tag &rest body)
+  "Evaluates [body] forms and returns values of last of them or a value is [throw]n at the specified [tag]"
+  `(js-code ,(+ "((function(){try{return "
+                (js-compile `(progn ,@body))
+                "}catch(x){if(f$$list$63$(x)&&x[0]==("
+                (js-compile tag)
+                "))return x[1];throw x;}})())")))
 
 ;; Compile-time argument checking
 
