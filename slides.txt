@@ -4,7 +4,7 @@ What is JsLisp
     A Lisp-2 (actually a Lisp-3) {Lisp-3}
       A name can represent a variable, a function or a macro
       [(foo ...)] is not the same as [(funcall #'foo ...)]
-      They CAN even have different semantic
+      They can EVEN have different semantic
       But they almost never do {Different semantics example}
         [(< (f) (g) (h))] is short-circuiting
         [(funcall #'< (f) (g) (h))] is not
@@ -68,7 +68,7 @@ What is JsLisp
         Dash ["-"] replaced with underscore ["_"]
         Invalid chars replaced with [$<numeric code>$]
         Prefixes for ["s"]ymbol, ["f"]unction, ["m"]acro or ["d"]ata slots
-        [(str-value (gui:foo x '!))] compiles to [f$$str_value(fgui$$foo(d$$x,s$33$))]
+        [(str-value (gui:foo x '!))] compiles to [f$$str_value(fgui$$foo(d$$x,s$$$33$))]
     Fast!
       Javascript JIT compilers are impressive
       Speed is closer to SBCL than to CLISP

@@ -178,7 +178,7 @@
              px/top 0
              px/right 0
              px/bottom 0
-             background "#FFFFE0")
+             background "#FFFFF0")
   (append-child (. document body) background))
 
 (setf *root* (load-slides))
