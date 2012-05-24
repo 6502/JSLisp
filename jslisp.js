@@ -37,7 +37,7 @@ d$$node_js = false;
 
 var glob;
 
-if (typeof window == "undefined")
+if (typeof window === "undefined")
 {
     // node.js
     var glob = global;
@@ -71,7 +71,7 @@ function Symbol(name, interned)
     this.toString = function () {
         var ix = this.name.indexOf("$$");
         var mod = this.name.substr(0, ix) + ":";
-        if (mod == ":" || mod == d$$$42$current_module$42$.replace("/","__") + ":")
+        if (mod === ":" || mod === d$$$42$current_module$42$.replace("/","__") + ":")
             mod = "";
         return mod + f$$demangle(this.name);
     };
@@ -102,13 +102,13 @@ function Namespace()
 
     this.end = function()
     {
-        if (this.stack.length == 0)
+        if (this.stack.length === 0)
             throw new String("Internal error: Stack underflow in Namespace.end()");
         for (var x=this.stack.pop(); x; x=this.stack.pop())
         {
             this.vars[x[0]] = x[1];
             this.props[x[0]] = x[2];
-            if (this.stack.length == 0)
+            if (this.stack.length === 0)
                 throw new String("Internal error: Stack underflow in Namespace.end()");
         }
     };
@@ -130,7 +130,7 @@ glob["f$$mangle"] = f$$mangle = function(x)
     var res = "";
     for (var i=0; i<x.length; i++)
     {
-        if (x[i] == '-')
+        if (x[i] === '-')
         {
             res += '_';
         }
@@ -153,28 +153,28 @@ f$$mangle.documentation = ("[[(mangle x)]]\n" +
 glob["f$$intern"] = f$$intern = function(name, module, lookup_only)
 {
     var x;
-    if (name[0] == ":")
+    if (name[0] === ":")
         module = "";
-    if ((typeof module == "undefined") && (x = name.indexOf(":")) > 0)
+    if ((typeof module === "undefined") && (x = name.indexOf(":")) > 0)
     {
         module = name.substr(0, x);
         name = name.substr(x + 1);
     }
-    if ((typeof module == "undefined") && (x = d$$$42$symbol_aliases$42$[name]))
+    if ((typeof module === "undefined") && (x = d$$$42$symbol_aliases$42$[name]))
         return x;
-    var m = (typeof module == "undefined") ? d$$$42$current_module$42$ : (d$$$42$module_aliases$42$[module]||module);
+    var m = (typeof module === "undefined") ? d$$$42$current_module$42$ : (d$$$42$module_aliases$42$[module]||module);
     m = m.replace("/","__");
     var mangled = f$$mangle(name);
     var mname = m + mangled;
     x = glob["s" + mname];
-    if (x == undefined)
+    if (x === undefined)
     {
-        if ((typeof module == "undefined") && (x = glob["s" + mangled]))
+        if ((typeof module === "undefined") && (x = glob["s" + mangled]))
             return x;
         if (lookup_only) return null;
         x = glob["s" + mname] = new Symbol(mname, true);
         eval("s" + mname + " = glob['s" + mname + "']");
-        if (name[0] == ':')
+        if (name[0] === ':')
         {
             glob["d" + mname] = x;
             eval("d" + mname + " = glob['d" + mname + "']");
@@ -261,7 +261,7 @@ defun("module-symbol",
       function(x, module)
       {
           return f$$intern(f$$demangle(x.name),
-                           (typeof module == "undefined" ? d$$$42$current_module$42$ : module));
+                           (typeof module === "undefined" ? d$$$42$current_module$42$ : module));
       },
       [s$$x, f$$intern("&optional"), f$$intern("module")]);
 
@@ -302,16 +302,16 @@ defun("set-arglist",
       [s$$x, f$$intern("arglist")]);
 
 defun("number?", "[[(number? x)]]\nReturns true if and only if [x] is a number (including [NaN])",
-      function(x) { return (typeof x) == "number"; }, [s$$x]);
+      function(x) { return (typeof x) === "number"; }, [s$$x]);
 
 defun("string?", "[[(string? x)]]\nReturns true if and only if [x] is a string",
-      function(x) { return (typeof x) == "string"; }, [s$$x]);
+      function(x) { return (typeof x) === "string"; }, [s$$x]);
 
 defun("list?", "[[(list? x)]]\nReturns true if and only if [x] is a list",
-      function(x) { return (x && x.constructor == Array)  ? true : false; }, [s$$x]);
+      function(x) { return (x && x.constructor === Array)  ? true : false; }, [s$$x]);
 
 defun("symbol?", "[[(symbol? x)]]\nReturns true if and only if [x] is a symbol",
-      function(x) { return (x && x.constructor == Symbol) ? true : false; }, [s$$x]);
+      function(x) { return (x && x.constructor === Symbol) ? true : false; }, [s$$x]);
 
 defun("js-eval",
       "[[(js-eval x)]]\n" +
@@ -363,7 +363,7 @@ defmacro("define-symbol-macro",
          function(x, y)
          {
              var i = lisp_literals.indexOf(y);
-             if (i == -1)
+             if (i === -1)
              {
                  i = lisp_literals.length;
                  lisp_literals.push(y);
@@ -405,7 +405,7 @@ defmacro("defvar",
 function implprogn(x)
 {
     var res = "(";
-    if (x.length == 0)
+    if (x.length === 0)
     {
         res += "null";
     }
@@ -517,7 +517,7 @@ defmacro("lambda",
              for (var i=0; i<args.length; i++)
              {
                  var v = args[i].name;
-                 if (v == "$$$38$rest")
+                 if (v === "$$$38$rest")
                  {
                      rest = args[i+1].name;
                      if (!specials[rest])
@@ -565,7 +565,7 @@ defmacro("lambda",
                  }
                  res += "d" + rest + "=Array.prototype.slice.call(arguments,"+nargs+");";
              }
-             if (spe.length == 0)
+             if (spe.length === 0)
              {
                  res += "return " + implprogn(body) + ";})";
              }
@@ -791,7 +791,7 @@ defmacro("quote",
              if (f$$number$63$(x) || f$$string$63$(x))
                  return [s$$js_code, stringify(x)];
              var i = lisp_literals.indexOf(x);
-             if (i == -1)
+             if (i === -1)
              {
                  i = lisp_literals.length;
                  lisp_literals.push(x);
@@ -907,7 +907,7 @@ defmacro("and",
          function()
          {
              var x = Array.prototype.slice.call(arguments);
-             if (x.length == 0)
+             if (x.length === 0)
                  return "true";
              var res = "(";
              for (var i=0; i<x.length; i++)
@@ -927,7 +927,7 @@ defmacro("or",
          function()
          {
              var x = Array.prototype.slice.call(arguments);
-             if (x.length == 0)
+             if (x.length === 0)
                  return "false";
              var res = "(";
              for (var i=0; i<x.length; i++)
@@ -1007,7 +1007,7 @@ defmacro("do",
              res += implprogn(body) + ";";
              for (var i=0; i<vars.length; i++)
              {
-                 if (vars[i].length == 3)
+                 if (vars[i].length === 3)
                  {
                      var v = vars[i][0].name;
                      res += "d" + v + "=(" + f$$js_compile(vars[i][2]) + ");";
@@ -1133,7 +1133,7 @@ function erl(x, f, local_js_eval)
             for (var i=0; i<dbg_commands.length; i++)
             {
                 var cmd = dbg_commands[i];
-                if (cmd == "cont") break;
+                if (cmd === "cont") break;
                 try
                 {
                     f$$load(cmd);
@@ -1182,14 +1182,14 @@ defun("js-compile",
               }
 
               var v = constants[x.name];
-              if ((typeof v) == "undefined")
+              if ((typeof v) === "undefined")
               {
-                  if ((typeof glob["d" + x.name]) == "undefined")
+                  if ((typeof glob["d" + x.name]) === "undefined")
                       f$$warning("Undefined variable " + x.name);
                   v = "d" + x.name;
                   if (x.constant &&
-                      ((typeof glob["d" + x.name]) == "string" ||
-                       (typeof glob["d" + x.name]) == "number"))
+                      ((typeof glob["d" + x.name]) === "string" ||
+                       (typeof glob["d" + x.name]) === "number"))
                   {
                       v = stringify(glob["d" + x.name]);
                   }
@@ -1201,7 +1201,7 @@ defun("js-compile",
 
               return v;
           }
-          else if (f$$list$63$(x) && f$$symbol$63$(x[0]) && x[0].name == "$$declare")
+          else if (f$$list$63$(x) && f$$symbol$63$(x[0]) && x[0].name === "$$declare")
           {
               d$$$42$declarations$42$.push(x);
           }
@@ -1226,7 +1226,7 @@ defun("js-compile",
                   var f = x[0];
                   if (f$$symbol$63$(f))
                   {
-                      if (f == s$$js_code)
+                      if (f === s$$js_code)
                       {
                           if (x.length != 2 || !f$$string$63$(x[1]))
                               throw "js-code requires a string literal";
@@ -1311,7 +1311,7 @@ defun("js-compile",
                   d$$$42$declarations$42$.length = decl;
               }
           }
-          else if ((typeof x) == "undefined")
+          else if ((typeof x) === "undefined")
           {
               return "undefined";
           }
@@ -1344,7 +1344,7 @@ defun("skip-spaces",
           {
               while (d$$$42$spaces$42$.indexOf(src()) != -1)
                   src(1);
-              if (src() == ';')
+              if (src() === ';')
               {
                   while (src() != undefined && src() != "\n")
                       src(1);
@@ -1373,7 +1373,7 @@ defun("parse-stopping",
       "it's listed in [*stopchars*].",
       function f$$parse_stopping(c)
       {
-          return (c == undefined ||
+          return (c === undefined ||
                   d$$$42$spaces$42$.indexOf(c) != -1 ||
                   d$$$42$stopchars$42$.indexOf(c) !=-1);
       },
@@ -1386,11 +1386,11 @@ defun("parse-number-or-symbol",
       function(src)
       {
           var res = "";
-          if (src() == "-")
+          if (src() === "-")
               res += src(1);
           while (src() >= "0" && src() <= "9")
               res += src(1);
-          if (src() == ".")
+          if (src() === ".")
           {
               res += src(1);
               while (src() >= "0" && src() <= "9")
@@ -1443,13 +1443,32 @@ defun("reader-function",
       },
       [s$$x]);
 
+defun("parse-symbol",
+      "[[(parse-symbol src &optional (start \"\"))]]\n" +
+      "Parses a symbol from given source optionally considering a [start] prefix",
+      function(src, start)
+      {
+          var res = start || "";
+          while (!f$$parse_stopping(src()))
+          {
+              if (src() === "\\") src(1);
+              res += src(1);
+          }
+          if (res === "")
+              throw new String("Value expected");
+          var ix = res.indexOf(":");
+          if (ix > 0) return f$$intern(res.substr(ix+1), res.substr(0, ix));
+          return f$$intern(res);
+      },
+      [f$$intern("src"), f$$intern("start")]);
+
 var readers = { "|": function(src)
                 {
                     src(1);
                     var res = "";
                     while (src() != undefined && src() != '|')
                     {
-                        if (src() == '\\') src(1);
+                        if (src() === '\\') src(1);
                         res += src(1);
                     }
                     if (src(1) != '|') throw new String("'|' expected");
@@ -1462,30 +1481,30 @@ var readers = { "|": function(src)
                     var res = "";
                     while (src() != undefined && src() != '"')
                     {
-                        if (src() == '\\')
+                        if (src() === '\\')
                         {
                             src(1);
                             var c = src(1);
-                            if (c == "n") res += "\n";
-                            else if (c == "b") res += "\b";
-                            else if (c == "t") res += "\t";
-                            else if (c == "n") res += "\n";
-                            else if (c == "v") res += "\v";
-                            else if (c == "f") res += "\f";
-                            else if (c == "r") res += "\r";
-                            else if (c == "0") {
+                            if (c === "n") res += "\n";
+                            else if (c === "b") res += "\b";
+                            else if (c === "t") res += "\t";
+                            else if (c === "n") res += "\n";
+                            else if (c === "v") res += "\v";
+                            else if (c === "f") res += "\f";
+                            else if (c === "r") res += "\r";
+                            else if (c === "0") {
                                 var oct = 0;
                                 while (src() >= "0" && src <= "7")
                                     oct = oct*8 + (src(1).charCodeAt(0) - 48);
                                 res += String.fromCharCode(oct);
                             }
-                            else if (c == "x") {
+                            else if (c === "x") {
                                 var hx1 = "0123456789ABCDEF".indexOf(src(1).toUpperCase());
                                 var hx2 = "0123456789ABCDEF".indexOf(src(1).toUpperCase());
                                 if (hx1 < 0 || hx2 < 0) throw new String("Invalid hex char escape");
                                 res += String.fromCharCode(hx1*16 + hx2);
                             }
-                            else if (c == "u")
+                            else if (c === "u")
                             {
                                 hx = 0;
                                 for (var i=0; i<4; i++)
@@ -1525,12 +1544,12 @@ var readers = { "|": function(src)
                 ",": function(src)
                 {
                     src(1);
-                    if (src() == '@')
+                    if (src() === '@')
                     {
                         src(1);
                         return [f$$intern(",@"), f$$parse_value(src)];
                     }
-                    else if (src() == "#")
+                    else if (src() === "#")
                     {
                         src(1);
                         return [f$$intern(","),
@@ -1545,17 +1564,17 @@ var readers = { "|": function(src)
                 "#": function(src)
                 {
                     src(1);
-                    if (src() == "'")
+                    if (src() === "'")
                     {
                         src(1);
                         return [f$$intern("function"), f$$parse_value(src)];
                     }
-                    else if (src() == "\\")
+                    else if (src() === "\\")
                     {
                         src(1);
                         return src(1);
                     }
-                    else if (src() == ".")
+                    else if (src() === ".")
                     {
                         src(1);
                         return f$$eval(f$$parse_value(src));
@@ -1598,20 +1617,7 @@ var readers = { "|": function(src)
                 "\n": f$$parse_spaced,
                 "\r": f$$parse_spaced,
 
-                "default": function(src)
-                {
-                    var res = "";
-                    while (!f$$parse_stopping(src()))
-                    {
-                        if (src() == "\\") src(1);
-                        res += src(1);
-                    }
-                    if (res == "")
-                        throw new String("Value expected");
-                    var ix = res.indexOf(":");
-                    if (ix > 0) return f$$intern(res.substr(ix+1), res.substr(0, ix));
-                    return f$$intern(res);
-                }
+                "default": f$$parse_symbol
               };
 
 defun("parse-value",
@@ -1619,10 +1625,10 @@ defun("parse-value",
       "Parses a value from the given character source or string.",
       function(src)
       {
-          if (src.constructor == String)
+          if (src.constructor === String)
               src = f$$reader_function(src);
           f$$skip_spaces(src);
-          if (src() == undefined)
+          if (src() === undefined)
               throw new String("Value expected");
           return (readers[src()] || readers["default"])(src);
       },
@@ -1633,8 +1639,8 @@ defun("str-value",
       "Computes a string representation of the value [x], handling back-references.",
       function(x, circle_print)
       {
-          if ((typeof circle_print) == "undefined" ||
-              ((typeof circle_print) == "boolean" && circle_print))
+          if ((typeof circle_print) === "undefined" ||
+              ((typeof circle_print) === "boolean" && circle_print))
               circle_print = [];
           if (f$$symbol$63$(x))
           {
@@ -1642,15 +1648,15 @@ defun("str-value",
           }
           else if (f$$list$63$(x))
           {
-              if (x.length == 2 && f$$symbol$63$(x[0]))
+              if (x.length === 2 && f$$symbol$63$(x[0]))
               {
-                  if (x[0].name == "$$quote")
+                  if (x[0].name === "$$quote")
                       return "'" + f$$str_value(x[1], circle_print);
-                  if (x[0].name == "$$function" &&
+                  if (x[0].name === "$$function" &&
                       f$$symbol$63$(x[1]))
                       return "#'" + f$$demangle(x[1].name);
               }
-              if ((typeof circle_print) == "object")
+              if ((typeof circle_print) === "object")
               {
                   if (circle_print.indexOf(x) != -1)
                       return "#" + circle_print.indexOf(x);
@@ -1664,15 +1670,15 @@ defun("str-value",
               }
               return res + ")";
           }
-          else if (x && x.constructor == Function)
+          else if (x && x.constructor === Function)
           {
               return "#CODE";
           }
-          else if ((typeof x) == "undefined")
+          else if ((typeof x) === "undefined")
           {
               return "undefined";
           }
-          else if ((typeof x) == "number" && isNaN(x))
+          else if ((typeof x) === "number" && isNaN(x))
           {
               return "NaN";
           }
@@ -1747,13 +1753,13 @@ defun("toplevel-eval",
           }
           else if (f$$list$63$(x))
           {
-              if (x[0] == s$$progn)
+              if (x[0] === s$$progn)
               {
                   result = null;
                   for (var i=1; i<x.length; i++)
                       result = f$$toplevel_eval(x[i]);
               }
-              else if (x[0] == s$$if)
+              else if (x[0] === s$$if)
               {
                   var caf = glob["f$$static_check_args"];
                   if (caf && caf!=42)
@@ -1801,7 +1807,7 @@ defun("load",
               var src_org = src;
               src = function(d) {
                   d |= 0;
-                  if (name && d && src_org[i] == "\n")
+                  if (name && d && src_org[i] === "\n")
                   {
                       src.location[1]++;
                       src.location[2] = 0;
@@ -1856,8 +1862,8 @@ defun("http",
           {
               req.onreadystatechange = function()
               {
-                  if (req.readyState == 4) {
-                      if (req.status == 200) {
+                  if (req.readyState === 4) {
+                      if (req.status === 200) {
                           onSuccess(req.responseText, url, req);
                       }
                       else
@@ -1899,7 +1905,7 @@ defun("get-file",
       "Reads and returns the content of the specified file",
       function(name, encoding)
       {
-          if ((typeof encoding) == "undefined")
+          if ((typeof encoding) === "undefined")
               encoding = "ascii";
           var fs = require("fs");
           return fs.readFileSync(name, encoding);

@@ -367,10 +367,10 @@
 
 (test (map (lambda (x)
              (cond
-               ((= null x) 'C)
+               ((~= null x) 'C)
                ((< x 1) 'A)
                ((< x 2) 'B)
-               ((= x undefined) 'D)
+               ((~= x undefined) 'D)
                (true 'E)))
            (list 0 1 2 null undefined))
       "(A B E C C)")

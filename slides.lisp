@@ -127,14 +127,13 @@
         (append-child ul li)
         (setf li.innerHTML (fix x.content))
         (when (length x.children)
-          (let ((x x)
-                (star (create-element "span")))
-            (append-child li star)
-            (setf star.innerHTML "<sup>*</sup>")
-            (set-style star
-                       cursor "pointer"
-                       color "#0000FF")
-            (set-handler star onmousedown
+          (let ((x x))
+            (set-style li cursor "pointer")
+            (set-handler li onmouseover
+                         (set-style li color "#0000FF"))
+            (set-handler li onmouseout
+                         (set-style li color "#000000"))
+            (set-handler li onmousedown
                          (when (/= event.button 2)
                            (event.stopPropagation)
                            (event.preventDefault)

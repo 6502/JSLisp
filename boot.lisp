@@ -110,7 +110,7 @@
   (js-code "d$$x.toLowerCase()"))
 
 ; Simple versions of a few operators needed for bootstrap, they will be redefined
-(defun = (a b) (js-code "(d$$a==d$$b)"))
+(defun = (a b) (js-code "(d$$a===d$$b)"))
 (defun < (a b) (js-code "(d$$a<d$$b)"))
 (defun > (a b) (js-code "(d$$a>d$$b)"))
 (defun - (a b) (js-code "(d$$a-d$$b)"))
@@ -149,15 +149,15 @@
 ; Javascript crazyness
 (defun callable? (x)
   "True if [x] can be called"
-  (js-code "((typeof d$$x)=='function')"))
+  (js-code "((typeof d$$x)==='function')"))
 
 (defun bool? (x)
   "True if and only if [x] is a boolean"
-  (js-code "((typeof d$$x)=='boolean')"))
+  (js-code "((typeof d$$x)==='boolean')"))
 
 (defun undefined? (x)
   "True if and only if [x] is the undefined value"
-  (js-code "((typeof d$$x)=='undefined')"))
+  (js-code "((typeof d$$x)==='undefined')"))
 
 (defun null? (x)
   "True if and only if [x] is the null value"
@@ -173,11 +173,11 @@
 
 (defun NaN? (x)
   "True if and only if [x] is the NaN value"
-  (js-code "((typeof d$$x)=='number'&&!d$$x&&!(d$$x==0))"))
+  (js-code "((typeof d$$x)==='number'&&!d$$x&&!(d$$x===0))"))
 
 (defun object? (x)
   "True if and only if [x] is a javascript object"
-  (js-code "((d$$x&&d$$x.constructor&&d$$x.constructor==Object)==true)"))
+  (js-code "((d$$x&&d$$x.constructor&&d$$x.constructor===Object)===true)"))
 
 (defun zero? (x)
   "True if and only if [x] is the number zero"
@@ -527,14 +527,14 @@
 
 (defrelop <  "Strictly less than comparison." "<")
 (defrelop <= "Less than or equal comparison." "<=")
-(defrelop =  "Equality comparison." "==")
-(defrelop == "Typed-equality comparison." "===")
+(defrelop =  "Equality comparison." "===")
+(defrelop ~= "Equivalence comparison." "==")
 (defrelop >= "Greater than or equal comparison." ">=")
 (defrelop >  "Strictly greather than comparison." ">")
 (defrelop-func <  )
 (defrelop-func <= )
 (defrelop-func =  )
-(defrelop-func == )
+(defrelop-func ~= )
 (defrelop-func >= )
 (defrelop-func >  )
 
@@ -553,7 +553,7 @@
                   (dolist (x args)
                     (setq res (+ res "var x$" (length prev) "=" (js-compile x) ";"))
                     (dolist (p prev)
-                      (setq res (+ res "if(" p "==x$" (length prev) ")return false;")))
+                      (setq res (+ res "if(" p "===x$" (length prev) ")return false;")))
                     (push (+ "x$" (length prev)) prev))
                   (+ res "return true;})()"))))))
 
@@ -1134,34 +1134,34 @@ If only one parameter is passed it's assumed to be [stop]."
 (setf (reader "~")
       (lambda (src)
         (funcall src 1)
-        (let ((x (parse-value src))
-              (pieces (list))  ; list of parts
-              (part "")        ; current part
-              (expr false)     ; is current part an expression?
-              (escape false))  ; is next char verbatim ?
-          (unless (string? x)
-            (error "string interpolation requires a string literal"))
-          (dolist (c x)
-            (cond
-              (escape
-               (setf escape false)
-               (incf part c))
-              ((= c "\\")
-               (setf escape true))
-              ((= c (if expr "}" "{"))
-               (when (> (length part) 0)
-                 (push (if expr (parse-value part) part) pieces)
-                 (setf part ""))
-               (setf expr (not expr)))
-              (true (incf part c))))
-          (if escape
-              (error "Invalid escaping"))
-          (if (> (length part) 0)
-              (push (if expr (parse-value part) part) pieces))
-          (cond
-            ((= 0 (length pieces)) "")
-            ((= 1 (length pieces)) (aref pieces 0))
-            (true `(+ ,@pieces))))))
+        (if (= (funcall src) "\"")
+            (let ((x (parse-value src))
+                  (pieces (list))  ; list of parts
+                  (part "")        ; current part
+                  (expr false)     ; is current part an expression?
+                  (escape false))  ; is next char verbatim ?
+              (dolist (c x)
+                (cond
+                  (escape
+                   (setf escape false)
+                   (incf part c))
+                  ((= c "\\")
+                   (setf escape true))
+                  ((= c (if expr "}" "{"))
+                   (when (> (length part) 0)
+                     (push (if expr (parse-value part) part) pieces)
+                     (setf part ""))
+                   (setf expr (not expr)))
+                  (true (incf part c))))
+              (if escape
+                  (error "Invalid escaping"))
+              (if (> (length part) 0)
+                  (push (if expr (parse-value part) part) pieces))
+              (cond
+                ((= 0 (length pieces)) "")
+                ((= 1 (length pieces)) (aref pieces 0))
+                (true `(+ ,@pieces))))
+            (parse-symbol src "~"))))
 
 ; Math functions
 (defmacro/f sqrt (x) "Square root of [x]"
@@ -1389,7 +1389,7 @@ Each field is a list of an unevaluated atom as name and a value."
                         res)))
        (defun ,(intern ~"{name}?") (x)
          ,~"True if and only if [x] is an instance of [{name}]"
-         (== (. x %class) ',name))
+         (= (. x %class) ',name))
        (defun ,(intern ~"make-{name}") (&key ,@fields)
          ,~"Creates a new instance of {name}"
          (,(intern ~"new-{name}") ,@fieldnames))
@@ -1635,7 +1635,7 @@ that field. When absent the default value is assumed to be [undefined]."
           (progn
             (setf tagdecl (+ tagdecl sep "$tag$" (mangle (symbol-name x)) "=[]"))
             (setf sep ",")
-            (setf eelist (+ eelist eesep "$ee$==$tag$" (mangle (symbol-name x))))
+            (setf eelist (+ eelist eesep "$ee$===$tag$" (mangle (symbol-name x))))
             (setf eesep "||")
             (push (list x) fragments))
           (push x (last fragments))))
@@ -1746,7 +1746,7 @@ that field. When absent the default value is assumed to be [undefined]."
   "Evaluates [body] forms and returns values of last of them or a value is [throw]n at the specified [tag]"
   `(js-code ,(+ "((function(){try{return "
                 (js-compile `(progn ,@body))
-                "}catch(x){if(f$$list$63$(x)&&x[0]==("
+                "}catch(x){if(f$$list$63$(x)&&x[0]===("
                 (js-compile tag)
                 "))return x[1];throw x;}})())")))
 

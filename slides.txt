@@ -61,8 +61,8 @@ What is JsLisp
         Previously defined functions available in reader macros
         Reader macros available from next form
     JsLisp functions are Javascript functions {Interoperability}
-      Variadic JsLisp functions require [apply] calls from Javascript
-      Keyword arguments are difficult to pass
+      Javascript can call JsLisp functions and vice-versa
+      [(js-code "...")] allows inline Javascript
       Name mangling
         [$$] at the beginning
         Dash ["-"] replaced with underscore ["_"]
@@ -70,7 +70,7 @@ What is JsLisp
         Prefixes for ["s"]ymbol, ["f"]unction, ["m"]acro or ["d"]ata slots
         [(str-value (gui:foo x '!))] compiles to [f$$str_value(fgui$$foo(d$$x,s$33$))]
     Fast!
-      Javscript JIT compilers are impressive
+      Javascript JIT compilers are impressive
       Speed is closer to SBCL than to CLISP
       Generated javascript is horribly ugly...
       but not horribly inefficient
@@ -106,7 +106,15 @@ What is JsLisp
       Invalid names compile to bracket notation
       Some field names are reserved! (e.g. "constructor")
     No numeric tower (all numbers are 64-bit floats)
-    [true], [false], [NaN], [undefined], [null], [infinity] and their crazy rules from Javascript
+    No [T], [NIL]. Truth-ness follows Javascript rules {What is false?}
+      [false], [0], [NaN], [undefined], [null], the empty string [""]
+      Anything else is "true"
+      Including empty lists and empty objects
+      [(= ...)] maps to Javascript [===]
+      [(~= ...)] maps to Javascript [==] (DANGER) {Watch out conversions}
+        [(~= (list) false)] is true
+        But [(list)] is also true
+        Don't blame me... these are Javascript rules
 Why not naked Javascript?
   Compile-time checks
     Mistyped variable names
