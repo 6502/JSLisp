@@ -4,6 +4,10 @@
 (defvar *on* "scale(1,1)")
 (defvar *out* "scale(4,4)")
 
+(defun next-slide ())
+(defun prev-slide ())
+(defun fullview ())
+
 (defun slide (content dir)
   (let ((slide (create-element "div")))
     (set-style slide
@@ -44,9 +48,10 @@
       (set-handler slide onmousedown
                    (funcall (. event preventDefault))
                    (funcall (. event stopPropagation))
-                   (if (= (. event button) 2)
-                       (prev-slide)
-                       (next-slide)))
+                   (cond
+                     ((= event.button 0) (next-slide))
+                     ((= event.button 1) (fullview))
+                     ((= event.button 2) (prev-slide))))
       slide)))
 
 (defvar *current-slide*)
@@ -59,14 +64,16 @@
                  MozTransform (if (= dir 1) *out* *in*)
                  WebkitTransform (if (= dir 1) *out* *in*))
       (set-timeout (lambda () (remove-child (. document body) old))
-                   1000)))
-  (setf *current-slide* (slide x dir))
-  (set-timeout (lambda ()
-                 (set-style *current-slide*
-                            opacity 1.0
-                            MozTransform *on*
-                            WebkitTransform *on*))
-               1))
+                   1000))
+    (setf *current-slide* null))
+  (when x
+    (setf *current-slide* (slide x dir))
+    (set-timeout (lambda ()
+                   (set-style *current-slide*
+                              opacity 1.0
+                              MozTransform *on*
+                              WebkitTransform *on*))
+                 1)))
 
 (defobject node ((parent null)
                  (title "")
@@ -74,31 +81,9 @@
                  (children (list))
                  (skip false)))
 
-(defvar *current-node*)
-(defvar *root*)
-(defvar *history* (list))
-
-(defun next (x)
-  (let ((f (aref x.parent.children
-                 (1+ (index x x.parent.children)))))
-    (if (and f (length f.children))
-        f
-        (if (/= x.parent *root*) x.parent))))
-
-(defun next-slide ()
-  (let ((x (next *current-node*)))
-    (do ()
-        ((or (not x) (not x.skip)))
-      (setf x (next x)))
-    (when x
-      (push *current-node* *history*)
-      (setf *current-node* x)
-      (show-slide (build-slide *current-node*) 1))))
-
-(defun prev-slide ()
-  (when (length *history*)
-    (setf *current-node* (pop *history*))
-    (show-slide (build-slide *current-node*) -1)))
+(defvar *root* null)
+(defvar *sequence* (list))
+(defvar *index* 0)
 
 (defun fix (x)
   (setf x (replace x "&" "&amp;"))
@@ -141,10 +126,18 @@
                          (when (/= event.button 2)
                            (event.stopPropagation)
                            (event.preventDefault)
-                           (push *current-node* *history*)
-                           (setf *current-node* x)
                            (show-slide (build-slide x) 1)))))))
     div))
+
+(defun next-slide ()
+  (when (< *index* (1- (length *sequence*)))
+    (incf *index*)
+    (show-slide (build-slide (aref *sequence* *index*)) 1)))
+
+(defun prev-slide ()
+  (when (> *index* 0)
+    (decf *index*)
+    (show-slide (build-slide (aref *sequence* *index*)) -1)))
 
 (defun load-slides ()
   (let ((lines (split (http-get "slides.txt") "\n"))
@@ -184,13 +177,12 @@
                px/right 0
                px/bottom 0
                background "#FFFFF0")
-    (append-child (. document body) background))
-
-  (show-slide (build-slide *current-node*) 1))
+    (append-child (. document body) background)))
 
 (defun fullview ()
   (let ((w (window 100 100 800 600 :title "Slides"))
         (full-list (list)))
+    (show-slide null 1)
     (set-style (window-client w)
                overflow "hidden"
                backgroundColor "#EEEEEE")
@@ -246,11 +238,23 @@
                              MozTransform ~"scale({(/ 1 rc 0.5)},{(/ 1 rc 0.5)})"
                              WebkitTransformOrigin "0% 0%"
                              MozTransformOrigin "0% 0%"))))))
+    (setf (window-close-cback w)
+          (lambda ()
+            (setf *sequence* (list))
+            (labels ((collect (x)
+                       (when (length x.children)
+                         (unless x.skip
+                           (push x *sequence*))
+                         (dolist (y x.children)
+                           (collect y)))))
+              (dolist (x *root*.children)
+                (collect x))
+              (setf *index* 0)
+              (show-slide (build-slide (aref *sequence* *index*)) 1))))
     (show-window w)))
 
 (defun main ()
   (setf *root* (load-slides))
-  (setf *current-node* (first *root*.children))
   (start)
   (fullview))
 
