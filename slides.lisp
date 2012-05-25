@@ -71,7 +71,8 @@
 (defobject node ((parent null)
                  (title "")
                  (content "")
-                 (children (list))))
+                 (children (list))
+                 (skip false)))
 
 (defvar *current-node*)
 (defvar *root*)
@@ -86,6 +87,9 @@
 
 (defun next-slide ()
   (let ((x (next *current-node*)))
+    (do ()
+        ((or (not x) (not x.skip)))
+      (setf x (next x)))
     (when x
       (push *current-node* *history*)
       (setf *current-node* x)
@@ -170,6 +174,8 @@
         (push (node root) root.children)))))
 
 (setf (. document body style overflow) "hidden")
+(setf *root* (load-slides))
+(setf *current-node* (first *root*.children))
 
 (let ((background (create-element "div")))
   (set-style background
@@ -181,6 +187,66 @@
              background "#FFFFF0")
   (append-child (. document body) background))
 
-(setf *root* (load-slides))
-(setf *current-node* (first *root*.children))
 (show-slide (build-slide *current-node*) 1)
+
+(defun fullview ()
+  (let ((w (window 100 100 800 600 :title "Slides"))
+        (full-list (list)))
+    (set-style (window-client w)
+               overflow "hidden"
+               backgroundColor "#EEEEEE")
+    (set-style (window-frame w)
+               backgroundColor "#EEEEEE")
+    (labels ((collect (x)
+               (when (length x.children)
+                 (let ((div (build-slide x))
+                       (glass (create-element "div"))
+                       (container (create-element "div")))
+                   (append-child container div)
+                   (append-child container glass)
+                   (set-style glass
+                              position "absolute"
+                              px/left 0
+                              px/top 0
+                              width "100%"
+                              height "100%"
+                              backgroundColor (if x.skip
+                                                  "rgba(0,0,0,0.25)"
+                                                  "rgba(0,0,0,0)"))
+                   (set-handler glass onmousedown
+                                (funcall event.preventDefault)
+                                (funcall event.stopPropagation)
+                                (setf x.skip (not x.skip))
+                                (set-style glass backgroundColor (if x.skip
+                                                                     "rgba(0,0,0,0.25)"
+                                                                     "rgba(0,0,0,0)")))
+                   (push container full-list)
+                   (map #'collect x.children)))))
+      (map #'collect *root*.children))
+    (dolist (x full-list)
+      (append-child (window-client w) x))
+    (setf (window-resize-cback w)
+          (lambda (x0 y0 x1 y1)
+            (let* ((n (length full-list))
+                   (ww (- x1 x0))
+                   (hh (- y1 y0))
+                   (rc (1+ (floor (sqrt (1- n)))))
+                   (w1 (/ ww rc))
+                   (h1 (/ hh rc)))
+              (dotimes (i (length full-list))
+                (let ((div (aref full-list i)))
+                  (set-style div
+                             position "absolute"
+                             px/left (* w1 (% i rc))
+                             px/top (* h1 (floor (/ i rc)))
+                             px/width (- (/ ww 2) rc)
+                             px/height (- (/ hh 2) rc)
+                             backgroundColor "#FFFFFF"
+                             overflow "hidden"
+                             WebkitTransform ~"scale({(/ 1 rc 0.5)},{(/ 1 rc 0.5)})"
+                             MozTransform ~"scale({(/ 1 rc 0.5)},{(/ 1 rc 0.5)})"
+                             WebkitTransformOrigin "0% 0%"
+                             MozTransformOrigin "0% 0%"))))))
+    (show-window w)))
+
+(fullview)
