@@ -173,21 +173,20 @@
           ((>= i (length lines)) root)
         (push (node root) root.children)))))
 
-(setf (. document body style overflow) "hidden")
-(setf *root* (load-slides))
-(setf *current-node* (first *root*.children))
+(defun start ()
+  (setf (. document body style overflow) "hidden")
 
-(let ((background (create-element "div")))
-  (set-style background
-             position "absolute"
-             px/left 0
-             px/top 0
-             px/right 0
-             px/bottom 0
-             background "#FFFFF0")
-  (append-child (. document body) background))
+  (let ((background (create-element "div")))
+    (set-style background
+               position "absolute"
+               px/left 0
+               px/top 0
+               px/right 0
+               px/bottom 0
+               background "#FFFFF0")
+    (append-child (. document body) background))
 
-(show-slide (build-slide *current-node*) 1)
+  (show-slide (build-slide *current-node*) 1))
 
 (defun fullview ()
   (let ((w (window 100 100 800 600 :title "Slides"))
@@ -249,4 +248,10 @@
                              MozTransformOrigin "0% 0%"))))))
     (show-window w)))
 
-(fullview)
+(defun main ()
+  (setf *root* (load-slides))
+  (setf *current-node* (first *root*.children))
+  (start)
+  (fullview))
+
+(main)
