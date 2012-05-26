@@ -3,6 +3,9 @@
 (defvar *in* "scale(0.25,0.25)")
 (defvar *on* "scale(1,1)")
 (defvar *out* "scale(4,4)")
+(defvar *background*)
+(defvar *width*)
+(defvar *height*)
 
 (defun next-slide ())
 (defun prev-slide ())
@@ -119,9 +122,9 @@
           (let ((x x))
             (set-style li cursor "pointer")
             (set-handler li onmouseover
-                         (set-style li color "#0000FF"))
+                         (set-style li backgroundColor "#C0FFC0"))
             (set-handler li onmouseout
-                         (set-style li color "#000000"))
+                         (set-style li backgroundColor "transparent"))
             (set-handler li onmousedown
                          (when (/= event.button 2)
                            (event.stopPropagation)
@@ -140,7 +143,8 @@
     (show-slide (build-slide (aref *sequence* *index*)) -1)))
 
 (defun load-slides ()
-  (let ((lines (split (http-get "slides.txt") "\n"))
+  (let ((lines (filter (lambda (x) (/= x ""))
+                       (split (http-get "slides.txt") "\n")))
         (i 0))
     (labels ((L ()
                 (aref lines i))
@@ -168,51 +172,56 @@
 
 (defun start ()
   (setf (. document body style overflow) "hidden")
-
-  (let ((background (create-element "div")))
-    (set-style background
-               position "absolute"
-               px/left 0
-               px/top 0
-               px/right 0
-               px/bottom 0
-               background "#FFFFF0")
-    (append-child (. document body) background)))
+  (setf *background* (create-element "div"))
+  (set-style *background*
+             position "absolute"
+             px/left 0
+             px/top 0
+             px/right 0
+             px/bottom 0
+             background "#FFFFF0")
+  (append-child (. document body) *background*)
+  (setf *width* *background*.offsetWidth)
+  (setf *height* *background*.offsetHeight))
 
 (defun fullview ()
-  (let ((w (window 100 100 800 600 :title "Slides"))
+  (let ((w (window 10 10
+                   (- *background*.offsetWidth 20)
+                   (- *background*.offsetHeight 20)
+                   :title "Slides"))
         (full-list (list)))
-    (show-slide null 1)
+    (show-slide null -1)
     (set-style (window-client w)
                overflow "hidden"
                backgroundColor "#EEEEEE")
     (set-style (window-frame w)
                backgroundColor "#EEEEEE")
     (labels ((collect (x)
-               (when (length x.children)
-                 (let ((div (build-slide x))
-                       (glass (create-element "div"))
-                       (container (create-element "div")))
-                   (append-child container div)
-                   (append-child container glass)
-                   (set-style glass
-                              position "absolute"
-                              px/left 0
-                              px/top 0
-                              width "100%"
-                              height "100%"
-                              backgroundColor (if x.skip
-                                                  "rgba(0,0,0,0.25)"
-                                                  "rgba(0,0,0,0)"))
-                   (set-handler glass onmousedown
-                                (funcall event.preventDefault)
-                                (funcall event.stopPropagation)
-                                (setf x.skip (not x.skip))
-                                (set-style glass backgroundColor (if x.skip
-                                                                     "rgba(0,0,0,0.25)"
-                                                                     "rgba(0,0,0,0)")))
-                   (push container full-list)
-                   (map #'collect x.children)))))
+               (let ((div (build-slide x))
+                     (glass (create-element "div"))
+                     (container (create-element "div")))
+                 (append-child container div)
+                 (append-child container glass)
+                 (set-style glass
+                            position "absolute"
+                            px/left 0
+                            px/top 0
+                            width "100%"
+                            height "100%"
+                            backgroundColor (if x.skip
+                                                "rgba(0,0,0,0.25)"
+                                                "rgba(0,0,0,0)"))
+                 (set-handler glass onmousedown
+                              (funcall event.preventDefault)
+                              (funcall event.stopPropagation)
+                              (setf x.skip (not x.skip))
+                              (set-style glass backgroundColor (if x.skip
+                                                                   "rgba(0,0,0,0.25)"
+                                                                   "rgba(0,0,0,0)")))
+                 (push container full-list)
+                 (map #'collect
+                      (filter (lambda (x) (length x.children))
+                              x.children)))))
       (map #'collect *root*.children))
     (dolist (x full-list)
       (append-child (window-client w) x))
@@ -242,11 +251,12 @@
           (lambda ()
             (setf *sequence* (list))
             (labels ((collect (x)
-                       (when (length x.children)
-                         (unless x.skip
-                           (push x *sequence*))
-                         (dolist (y x.children)
-                           (collect y)))))
+                       (unless x.skip
+                         (push x *sequence*))
+                       (dolist (y (filter (lambda (x)
+                                            (length x.children))
+                                          x.children))
+                         (collect y))))
               (dolist (x *root*.children)
                 (collect x))
               (setf *index* 0)
