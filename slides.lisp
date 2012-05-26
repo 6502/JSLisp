@@ -1,5 +1,7 @@
 (import * from gui)
 
+(setf #'display #'alert)
+
 (defvar *in* "scale(0.25,0.25)")
 (defvar *on* "scale(1,1)")
 (defvar *out* "scale(4,4)")
@@ -22,40 +24,22 @@
                px/top 0
                px/right 0
                px/bottom 0
-               px/padding 32
-               px/margin 0
-               px/fontSize 32
-               fontFamily "Arial"
-               fontWeight "bold")
-    (let ((table (create-element "table"))
-          (tr (create-element "tr"))
-          (td (create-element "td")))
-      (set-style table
-                 height "100%"
-                 marginLeft "auto"
-                 marginRight "auto")
-      (set-style td
-                 verticalAlign "middle")
-      (append-child table tr)
-      (append-child tr td)
-      (append-child td content)
-      (append-child slide table)
-      (append-child (. document body) slide)
-      (set-style slide
-                 WebkitTransition "all 0.5s ease-in-out"
-                 MozTransition "all 0.5s ease-in-out"
-                 transition "all 0.5s ease-in-out")
-      (set-handler slide oncontextmenu
-                   (funcall (. event preventDefault))
-                   (funcall (. event stopPropagation)))
-      (set-handler slide onmousedown
-                   (funcall (. event preventDefault))
-                   (funcall (. event stopPropagation))
-                   (cond
-                     ((= event.button 0) (next-slide))
-                     ((= event.button 1) (fullview))
-                     ((= event.button 2) (prev-slide))))
-      slide)))
+               WebkitTransition "all 0.5s ease-in-out"
+               MozTransition "all 0.5s ease-in-out"
+               transition "all 0.5s ease-in-out")
+    (append-child slide content)
+    (append-child (. document body) slide)
+    (set-handler slide oncontextmenu
+                 (funcall (. event preventDefault))
+                 (funcall (. event stopPropagation)))
+    (set-handler slide onmousedown
+                 (funcall (. event preventDefault))
+                 (funcall (. event stopPropagation))
+                 (cond
+                   ((= event.button 0) (next-slide))
+                   ((= event.button 1) (fullview))
+                   ((= event.button 2) (prev-slide))))
+    slide))
 
 (defvar *current-slide*)
 
@@ -82,6 +66,7 @@
                  (title "")
                  (content "")
                  (children (list))
+                 (div null)
                  (skip false)))
 
 (defvar *root* null)
@@ -93,8 +78,9 @@
   (setf x (replace x "<" "&lt;"))
   (setf x (replace x ">" "&gt;"))
   (setf x (replace x "\"" "&quot;"))
+  (setf x (replace x "\\|" "<br/>"))
   (replace x "\\[(.*?)\\]"
-           "<span style=\"font-family:Courier New; color:#008000\">$1</span>"))
+           "<span style=\"font-family:Courier,monospace; font-weight:bold; color:#008000\">$1</span>"))
 
 (defun build-slide (node)
   (let ((div (create-element "div"))
@@ -129,18 +115,62 @@
                          (when (/= event.button 2)
                            (event.stopPropagation)
                            (event.preventDefault)
-                           (show-slide (build-slide x) 1)))))))
+                           (show-slide x.div 1)))))))
     div))
+
+(defun rescale-slides ()
+  (let ((maxw 0)
+        (maxh 0))
+    (labels ((measure (x)
+               (when x.div
+                 (set-style x.div
+                            position "absolute"
+                            whiteSpace "nowrap"
+                            px/top 0
+                            px/left 0)
+                 (append-child document.body x.div)
+                 (setf maxw (max maxw x.div.offsetWidth))
+                 (setf maxh (max maxh x.div.offsetHeight))
+                 (remove-child document.body x.div))
+               (dolist (y x.children)
+                 (measure y)))
+             (rescale (x sf)
+               (when x.div
+                 (append-child document.body x.div)
+                 (let ((w x.div.offsetWidth)
+                       (h x.div.offsetHeight))
+                   (set-style x.div
+                              px/left (/ (- *width* (* sf w)) 2)
+                              px/top (/ (- *height* (* sf h)) 2)
+                              WebkitTransformOrigin "0% 0%"
+                              MozTransformOrigin "0% 0%"
+                              WebkitTransform ~"scale({sf},{sf})"
+                              MozTransform ~"scale({sf},{sf})")
+                   (remove-child document.body x.div)
+                   (let ((container (create-element "div")))
+                     (set-style container
+                                position "absolute"
+                                px/left 0
+                                px/top 0
+                                px/width *width*
+                                px/height *height*)
+                     (append-child container x.div)
+                     (setf x.div container))))
+               (dolist (y x.children)
+                 (rescale y sf))))
+      (measure *root*)
+      (rescale *root* (* 1.2 (min (/ *width* maxw)
+                                  (/ *height* maxh)))))))
 
 (defun next-slide ()
   (when (< *index* (1- (length *sequence*)))
     (incf *index*)
-    (show-slide (build-slide (aref *sequence* *index*)) 1)))
+    (show-slide (aref *sequence* *index*).div 1)))
 
 (defun prev-slide ()
   (when (> *index* 0)
     (decf *index*)
-    (show-slide (build-slide (aref *sequence* *index*)) -1)))
+    (show-slide (aref *sequence* *index*).div -1)))
 
 (defun load-slides ()
   (let ((lines (filter (lambda (x) (/= x ""))
@@ -164,7 +194,9 @@
                        (let ((node (new-node parent title content)))
                          (incf i)
                          (do () ((or (>= i (length lines))
-                                     (<= (level) level)) node)
+                                     (<= (level) level))
+                                   (setf node.div (build-slide node))
+                                   node)
                            (push (node node) node.children)))))))
       (do ((root (new-node)))
           ((>= i (length lines)) root)
@@ -197,7 +229,7 @@
     (set-style (window-frame w)
                backgroundColor "#EEEEEE")
     (labels ((collect (x)
-               (let ((div (build-slide x))
+               (let ((div x.div)
                      (glass (create-element "div"))
                      (container (create-element "div")))
                  (append-child container div)
@@ -239,12 +271,12 @@
                              position "absolute"
                              px/left (* w1 (% i rc))
                              px/top (* h1 (floor (/ i rc)))
-                             px/width (- (/ ww 2) rc)
-                             px/height (- (/ hh 2) rc)
+                             px/width (- ww rc)
+                             px/height (- hh rc)
                              backgroundColor "#FFFFFF"
                              overflow "hidden"
-                             WebkitTransform ~"scale({(/ 1 rc 0.5)},{(/ 1 rc 0.5)})"
-                             MozTransform ~"scale({(/ 1 rc 0.5)},{(/ 1 rc 0.5)})"
+                             WebkitTransform ~"scale({(/ 1 rc)},{(/ 1 rc)})"
+                             MozTransform ~"scale({(/ 1 rc)},{(/ 1 rc)})"
                              WebkitTransformOrigin "0% 0%"
                              MozTransformOrigin "0% 0%"))))))
     (setf (window-close-cback w)
@@ -260,12 +292,13 @@
               (dolist (x *root*.children)
                 (collect x))
               (setf *index* 0)
-              (show-slide (build-slide (aref *sequence* *index*)) 1))))
+              (show-slide (aref *sequence* *index*).div 1))))
     (show-window w)))
 
 (defun main ()
-  (setf *root* (load-slides))
   (start)
+  (setf *root* (load-slides))
+  (rescale-slides)
   (fullview))
 
 (main)
