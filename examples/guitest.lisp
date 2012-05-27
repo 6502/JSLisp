@@ -1,7 +1,6 @@
 (import * from gui)
 
 (defun main ()
-  (import * from gui)
   (with-window (w (100 100 500 320 :title "Test window" :close false)
                   ((name (input "name"))
                    (address (input "address"))
