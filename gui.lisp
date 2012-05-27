@@ -413,6 +413,23 @@
                    (funcall action)))
     container))
 
+(defun radio (group caption &optional action)
+  "Creates a radio button DOM object with specified logical [group], the provided [caption] ad an optional callback [action]"
+  (let ((radio (create-element "input"))
+        (text (create-element "span"))
+        (container (create-element "label")))
+    (setf radio.type "radio")
+    (setf radio.name group)
+    (setf text.textContent caption)
+    (set-style container
+               position "absolute")
+    (append-child container radio)
+    (append-child container text)
+    (when action
+      (set-handler radio onchange
+                   (funcall action)))
+    container))
+
 (defun checked (checkbox/radio)
   "Returns current state of a [checkbox/radio]"
   checkbox/radio.firstChild.checked)
@@ -537,7 +554,7 @@
         window "window-" "set-window-"
         show-window hide-window with-window
         button
-        checkbox checked set-checked
+        radio checkbox checked set-checked
         input text set-text
         group
         select selection set-selection)
