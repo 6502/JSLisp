@@ -234,7 +234,7 @@
   data)            ;; Opaque payload
 
 (defun window (x0 y0 w h &key title client (close true) (resize true))
-  "Creates an initially invisible window frame object"
+  "Creates an initially invisible window object"
   (let ((frame (create-element "div"))
         (titlebar (create-element "div"))
         (resizer (create-element "canvas"))
@@ -368,6 +368,12 @@
                               :client client))
     window))
 
+(defun hide-window (w)
+  "Closes the specified window"
+  (when (window-close-cback w)
+    (funcall (window-close-cback w)))
+  (hide (window-frame w)))
+
 (defun show-window (w)
   "Displays the specified window"
   (show (window-frame w))
@@ -391,6 +397,136 @@
     (setf (. button onclick) (lambda (&rest args) (funcall action)))
     button))
 
+(defun checkbox (caption &optional action)
+  "Creates a checkbox DOM object with provided [caption] ad an optional callback [action]"
+  (let ((checkbox (create-element "input"))
+        (text (create-element "span"))
+        (container (create-element "label")))
+    (setf checkbox.type "checkbox")
+    (setf text.textContent caption)
+    (set-style container
+               position "absolute")
+    (append-child container checkbox)
+    (append-child container text)
+    (when action
+      (set-handler checkbox onchange
+                   (funcall action)))
+    container))
+
+(defun checked (checkbox/radio)
+  "Returns current state of a [checkbox/radio]"
+  checkbox/radio.firstChild.checked)
+
+(defun set-checked (checkbox/radio value)
+  "Sets the state of a [checkbox/radio]"
+  (setf checkbox/radio.firstChild.checked value))
+
+(defun input (caption)
+  "Creates an input field with specified [caption]"
+  (let ((input (create-element "input"))
+        (label (create-element "div"))
+        (container (create-element "div")))
+    (set-style container
+               position "absolute")
+    (set-style label
+               %/fontSize 80
+               fontWeight "bold")
+    (set-style input
+               %/width 100
+               %/fontSize 110
+               border "none"
+               px/padding 1
+               px/margin 0
+               backgroundColor "#EEEEEE")
+    (setf label.textContent caption)
+    (setf input.type "text")
+    (append-child container label)
+    (append-child container input)
+    container))
+
+(defun text (input)
+  "Returns current content of a text [input]"
+  input.lastChild.value)
+
+(defun set-text (input value)
+  "Sets content of a text [input] to a new [value]"
+  (setf input.lastChild.value value))
+
+(defun select (caption values)
+  "Creates an select field with specified [caption] and list of [values]"
+  (let ((select (create-element "select"))
+        (label (create-element "div"))
+        (container (create-element "div")))
+    (set-style container
+               position "absolute")
+    (set-style label
+               %/fontSize 80
+               fontWeight "bold")
+    (set-style select
+               %/width 100
+               %/fontSize 110
+               border "none"
+               px/padding 0
+               px/margin 0
+               backgroundColor "#EEEEEE")
+    (setf label.textContent caption)
+    (dolist (x values)
+      (let ((item (create-element "option")))
+        (setf item.textContent x)
+        (append-child select item)))
+    (append-child container label)
+    (append-child container select)
+    container))
+
+(defun selection (select)
+  "Current selected value of specified [select]"
+  (aref select.lastChild.options
+        select.lastChild.selectedIndex).value)
+
+(defun set-selection (select value)
+  "Sets selected [value] of specified [select]"
+  (let ((ix (index value (map (lambda (option) option.value)
+                              select.lastChild.options))))
+    (setf select.lastChild.selectedIndex ix)))
+
+(defun group (&optional title)
+  "A group of related fields with an optional [title]"
+  (let ((group (create-element "div"))
+        (caption (when title (create-element "span"))))
+    (set-style group
+               position "absolute"
+               border "solid 1px #CCCCCC"
+               pointerEvents "none"
+               px/borderRadius 4)
+    (when title
+      (set-style caption
+                 %/fontSize 80
+                 fontWeight "bold"
+                 backgroundColor "#FFFFFF"
+                 position "relative"
+                 px/paddingLeft 4
+                 px/paddingRight 4
+                 px/left 10
+                 px/top -11)
+      (setf caption.textContent title)
+      (append-child group caption))
+    group))
+
+(defmacro with-window ((var options widgets layout) &rest body)
+  "Evaluates [body] forms by first binding [var] to a new window object"
+  `(let* ((,var (window ,@options))
+          ,@widgets
+          (layout ,layout))
+     (set-style (window-client ,var)
+                overflow "hidden")
+     ,@(map (lambda (w)
+              `(append-child (window-client ,var) ,(first w)))
+            widgets)
+     (setf (window-resize-cback ,var)
+           (lambda (x0 y0 x1 y1)
+             (set-coords layout 0 0 (- x1 x0) (- y1 y0))))
+     ,@body))
+
 (export set-style
         element-pos event-pos
         show hide
@@ -399,5 +535,9 @@
         layout-node "layout-node-" "set-layout-node-"
         set-coords
         window "window-" "set-window-"
-        show-window
-        button)
+        show-window hide-window with-window
+        button
+        checkbox checked set-checked
+        input text set-text
+        group
+        select selection set-selection)

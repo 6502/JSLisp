@@ -1,36 +1,49 @@
 (import * from gui)
 
 (defun main ()
-  (let* ((w (window 100 100 600 400
-                    :title "Message Box"))
-         (msg (create-element "div"))
-         (ok (button "OK" (lambda ()
-                            (hide (window-frame w)))))
-         (layout (:V :border 16 :spacing 16
-                     (:Hdiv msg)
-                     (:H :max 30 (:H) (:Hdiv ok :max 80) (:H)))))
-    (append-child (window-frame w) msg)
-    (append-child (window-frame w) ok)
-    (set-style (window-client w)
-               overflow "hidden")
-    (set-style msg
-               position "absolute"
-               overflow "auto"
-               fontSize "120%")
-    (setf (. msg textContent)
-          "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce
-         interdum tortor aliquam nibh tempus faucibus. Fusce libero risus,
-         luctus et mattis vel, volutpat sit amet risus. Ut id tellus sit amet
-         odio volutpat adipiscing. Mauris neque est, fermentum quis viverra
-         vitae, commodo egestas risus. Morbi congue interdum nibh auctor
-         pharetra. Etiam non nunc vel ipsum fringilla cursus. Lorem ipsum dolor
-         sit amet, consectetur adipiscing elit. Donec dictum aliquet lorem,
-         pharetra gravida leo aliquet ac. Donec leo eros, scelerisque quis
-         pellentesque vel, euismod eget metus. Nam augue nisl, ullamcorper in
-         varius vel, tempus vel erat.")
-    (setf (window-resize-cback w)
-          (lambda (x0 y0 x1 y1)
-            (set-coords layout x0 y0 x1 y1)))
-    (show-window w)))
+  (import * from gui)
+  (with-window (w (100 100 500 320 :title "Test window" :close false)
+                  ((name (input "name"))
+                   (address (input "address"))
+                   (email (input "e-mail"))
+                   (phone (input "phone"))
+                   (age (select "age" (append (range 1 100) "100+")))
+                   (newsletter (checkbox "YES! I want to subscribe to the free newsletter"))
+                   (spam (checkbox "YES! I want to feed my mailbox with unrelated spam"))
+                   (freebies (group "Freebies"))
+                   (ok (button "OK" (lambda ()
+                                      (display ~"name: {(text name)}")
+                                      (display ~"address: {(text address)}")
+                                      (display ~"email: {(text email)}")
+                                      (display ~"phone: {(text phone)}")
+                                      (display ~"age: {(selection age)}")
+                                      (display ~"newletter: {(checked newsletter)}")
+                                      (display ~"spam: {(checked spam)}")
+                                      (hide-window w))))
+                   (cancel (button "Cancel" (lambda () (hide-window w)))))
+                  (:V :spacing 8 :border 8
+                      (:H :size 35 (:Hdiv name))
+                      (:H :size 35 (:Hdiv address))
+                      (:H :size 35 (:H (:Hdiv email) (:Hdiv phone)) (:Hdiv age :size 70))
+                      (:V :size 10)
+                      (:V :size 75
+                          (:Vdiv freebies :size 75 :border 8 :spacing 4
+                                 (:V :size 3)
+                                 (:H :size 20 (:Hdiv newsletter))
+                                 (:H :size 20 (:Hdiv spam))))
+                      (:H)
+                      (:H :size 30
+                          (:H)
+                          (:Hdiv ok :size 80)
+                          (:Hdiv cancel :size 80)
+                          (:H))))
+    (show-window w)
+    (setf (selection age) "45")
+    (setf (text name) "Andrea Griffini")
+    (setf (text address) "Via somewhere, somecivic")
+    (setf (text email) "agriffini@jslisp.org")
+    (setf (text phone) "555 123 4567")
+    (setf (checked newsletter) true)
+    (setf (checked spam) true)))
 
 (main)

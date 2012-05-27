@@ -102,7 +102,7 @@ a recent HTML5 browser is required.
 !Memoization:memoize.lisp
 !An interactive 3d Rubik cube:3d.lisp
 !A pie chart builder:piechart.lisp
-!A simple messagebox:guitest.lisp
+!A dialog window:guitest.lisp
 !A turtle graphic implementation:turtle.lisp
 !A chess playing program:chessboard.lisp
 !An hexagonal tiling pathfinder:hexa.lisp
