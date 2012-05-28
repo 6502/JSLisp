@@ -80,11 +80,13 @@
   (setf x (replace x "\"" "&quot;"))
   (setf x (replace x "\\|" "<br/>"))
   (replace x "\\[(.*?)\\]"
-           "<span style=\"font-family:Courier,monospace; font-weight:bold; color:#008000\">$1</span>"))
+           "<span style=\"font-family:'Courier New',monospace; font-weight:bold; color:#008000\">$1</span>"))
 
 (defun build-slide (node)
   (let ((div (create-element "div"))
         (ul (create-element "ul")))
+    (set-style div
+               fontFamily "Arial,Helvetica,sans-serif")
     (let* ((title node.title)
            (i (index " / " title)))
       (if (>= i 0)
