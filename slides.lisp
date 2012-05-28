@@ -1,7 +1,5 @@
 (import * from gui)
 
-(setf #'display #'alert)
-
 (defvar *in* "scale(0.25,0.25)")
 (defvar *on* "scale(1,1)")
 (defvar *out* "scale(4,4)")
