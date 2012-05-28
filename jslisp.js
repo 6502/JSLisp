@@ -1462,163 +1462,169 @@ defun("parse-symbol",
       },
       [f$$intern("src"), f$$intern("start")]);
 
-var readers = { "|": function(src)
-                {
-                    src(1);
-                    var res = "";
-                    while (src() != undefined && src() != '|')
-                    {
-                        if (src() === '\\') src(1);
-                        res += src(1);
-                    }
-                    if (src(1) != '|') throw new String("'|' expected");
-                    return f$$intern(res);
-                },
-
-                '"': function(src)
-                {
-                    src(1);
-                    var res = "";
-                    while (src() != undefined && src() != '"')
-                    {
-                        if (src() === '\\')
-                        {
-                            src(1);
-                            var c = src(1);
-                            if (c === "n") res += "\n";
-                            else if (c === "b") res += "\b";
-                            else if (c === "t") res += "\t";
-                            else if (c === "n") res += "\n";
-                            else if (c === "v") res += "\v";
-                            else if (c === "f") res += "\f";
-                            else if (c === "r") res += "\r";
-                            else if (c === "0") {
-                                var oct = 0;
-                                while (src() >= "0" && src <= "7")
-                                    oct = oct*8 + (src(1).charCodeAt(0) - 48);
-                                res += String.fromCharCode(oct);
-                            }
-                            else if (c === "x") {
-                                var hx1 = "0123456789ABCDEF".indexOf(src(1).toUpperCase());
-                                var hx2 = "0123456789ABCDEF".indexOf(src(1).toUpperCase());
-                                if (hx1 < 0 || hx2 < 0) throw new String("Invalid hex char escape");
-                                res += String.fromCharCode(hx1*16 + hx2);
-                            }
-                            else if (c === "u")
+d$$$42$hash_readers$42$ = { "'": function(src)
                             {
-                                hx = 0;
-                                for (var i=0; i<4; i++)
-                                {
-                                    var d = "0123456789ABCDEF".indexOf(src(1).toUpperCase());
-                                    if (d < 0) throw new String("Invalid unicode char escape");
-                                    hx = hx*16 + d;
-                                }
-                                res += String.fromCharCode(hx);
-                            }
-                            else
+                                src(1);
+                                return [f$$intern("function"), f$$parse_value(src)]
+                            },
+
+                            "\\": function(src)
                             {
-                                res += c;
+                                src(1);
+                                return src(1);
+                            },
+
+                            ".": function(src)
+                            {
+                                src(1);
+                                return f$$eval(f$$parse_value(src));
                             }
-                        }
-                        else
-                        {
-                            res += src(1);
-                        }
-                    }
-                    if (src(1) != '"') throw new String("'\"' expected");
-                    return res;
-                },
+                          };
 
-                "'": function(src)
-                {
-                    src(1);
-                    return [f$$intern("quote"), f$$parse_value(src)];
-                },
+d$$$42$readers$42$ = { "|": function(src)
+                       {
+                           src(1);
+                           var res = "";
+                           while (src() != undefined && src() != '|')
+                           {
+                               if (src() === '\\') src(1);
+                               res += src(1);
+                           }
+                           if (src(1) != '|') throw new String("'|' expected");
+                           return f$$intern(res);
+                       },
 
-                "`": function(src)
-                {
-                    src(1);
-                    return [f$$intern("`"), f$$parse_value(src)];
-                },
+                       '"': function(src)
+                       {
+                           src(1);
+                           var res = "";
+                           while (src() != undefined && src() != '"')
+                           {
+                               if (src() === '\\')
+                               {
+                                   src(1);
+                                   var c = src(1);
+                                   if (c === "n") res += "\n";
+                                   else if (c === "b") res += "\b";
+                                   else if (c === "t") res += "\t";
+                                   else if (c === "n") res += "\n";
+                                   else if (c === "v") res += "\v";
+                                   else if (c === "f") res += "\f";
+                                   else if (c === "r") res += "\r";
+                                   else if (c === "0") {
+                                       var oct = 0;
+                                       while (src() >= "0" && src <= "7")
+                                           oct = oct*8 + (src(1).charCodeAt(0) - 48);
+                                       res += String.fromCharCode(oct);
+                                   }
+                                   else if (c === "x") {
+                                       var hx1 = "0123456789ABCDEF".indexOf(src(1).toUpperCase());
+                                       var hx2 = "0123456789ABCDEF".indexOf(src(1).toUpperCase());
+                                       if (hx1 < 0 || hx2 < 0) throw new String("Invalid hex char escape");
+                                       res += String.fromCharCode(hx1*16 + hx2);
+                                   }
+                                   else if (c === "u")
+                                   {
+                                       hx = 0;
+                                       for (var i=0; i<4; i++)
+                                       {
+                                           var d = "0123456789ABCDEF".indexOf(src(1).toUpperCase());
+                                           if (d < 0) throw new String("Invalid unicode char escape");
+                                           hx = hx*16 + d;
+                                       }
+                                       res += String.fromCharCode(hx);
+                                   }
+                                   else
+                                   {
+                                       res += c;
+                                   }
+                               }
+                               else
+                               {
+                                   res += src(1);
+                               }
+                           }
+                           if (src(1) != '"') throw new String("'\"' expected");
+                           return res;
+                       },
 
-                ",": function(src)
-                {
-                    src(1);
-                    if (src() === '@')
-                    {
-                        src(1);
-                        return [f$$intern(",@"), f$$parse_value(src)];
-                    }
-                    else if (src() === "#")
-                    {
-                        src(1);
-                        return [f$$intern(","),
-                                [f$$intern("intern"), f$$demangle(f$$parse_value(src).name)]];
-                    }
-                    else
-                    {
-                        return [f$$intern(","), f$$parse_value(src)];
-                    }
-                },
+                       "'": function(src)
+                       {
+                           src(1);
+                           return [f$$intern("quote"), f$$parse_value(src)];
+                       },
 
-                "#": function(src)
-                {
-                    src(1);
-                    if (src() === "'")
-                    {
-                        src(1);
-                        return [f$$intern("function"), f$$parse_value(src)];
-                    }
-                    else if (src() === "\\")
-                    {
-                        src(1);
-                        return src(1);
-                    }
-                    else if (src() === ".")
-                    {
-                        src(1);
-                        return f$$eval(f$$parse_value(src));
-                    }
-                    throw new String("Unsupported '#' combination");
-                },
+                       "`": function(src)
+                       {
+                           src(1);
+                           return [f$$intern("`"), f$$parse_value(src)];
+                       },
 
-                "(": function(src)
-                {
-                    var srcstart;
-                    if (src.location)
-                    {
-                        // copy source location info if available
-                        srcstart = src.location.slice();
-                    }
-                    src(1);
-                    var result = f$$parse_delimited_list(src, ")");
-                    if (src.location)
-                    {
-                        // copy end of list source location info if available
-                        result.location = srcstart.concat(src.location.slice(1))
-                    }
-                    return result;
-                },
+                       ",": function(src)
+                       {
+                           src(1);
+                           if (src() === '@')
+                           {
+                               src(1);
+                               return [f$$intern(",@"), f$$parse_value(src)];
+                           }
+                           else if (src() === "#")
+                           {
+                               src(1);
+                               return [f$$intern(","),
+                                       [f$$intern("intern"), f$$demangle(f$$parse_value(src).name)]];
+                           }
+                           else
+                           {
+                               return [f$$intern(","), f$$parse_value(src)];
+                           }
+                       },
 
-                "0": f$$parse_number_or_symbol,
-                "1": f$$parse_number_or_symbol,
-                "2": f$$parse_number_or_symbol,
-                "3": f$$parse_number_or_symbol,
-                "4": f$$parse_number_or_symbol,
-                "5": f$$parse_number_or_symbol,
-                "6": f$$parse_number_or_symbol,
-                "7": f$$parse_number_or_symbol,
-                "8": f$$parse_number_or_symbol,
-                "9": f$$parse_number_or_symbol,
-                "-": f$$parse_number_or_symbol,
+                       "#": function(src)
+                       {
+                           src(1);
+                           var f = d$$$42$hash_readers$42$[src()];
+                           if (f) return f(src);
+                           throw new String("Unsupported hash combination");
+                       },
 
-                " ": f$$parse_spaced,
-                "\t": f$$parse_spaced,
-                "\n": f$$parse_spaced,
-                "\r": f$$parse_spaced,
+                       "(": function(src)
+                       {
+                           var srcstart;
+                           if (src.location)
+                           {
+                               // copy source location info if available
+                               srcstart = src.location.slice();
+                           }
+                           src(1);
+                           var result = f$$parse_delimited_list(src, ")");
+                           if (src.location)
+                           {
+                               // copy end of list source location info if available
+                               result.location = srcstart.concat(src.location.slice(1))
+                           }
+                           return result;
+                       },
 
-                "default": f$$parse_symbol
-              };
+                       "0": f$$parse_number_or_symbol,
+                       "1": f$$parse_number_or_symbol,
+                       "2": f$$parse_number_or_symbol,
+                       "3": f$$parse_number_or_symbol,
+                       "4": f$$parse_number_or_symbol,
+                       "5": f$$parse_number_or_symbol,
+                       "6": f$$parse_number_or_symbol,
+                       "7": f$$parse_number_or_symbol,
+                       "8": f$$parse_number_or_symbol,
+                       "9": f$$parse_number_or_symbol,
+                       "-": f$$parse_number_or_symbol,
+
+                       " ": f$$parse_spaced,
+                       "\t": f$$parse_spaced,
+                       "\n": f$$parse_spaced,
+                       "\r": f$$parse_spaced,
+
+                       "default": f$$parse_symbol
+                     };
 
 defun("parse-value",
       "[[(parse-value src)]]\n" +
@@ -1630,7 +1636,7 @@ defun("parse-value",
           f$$skip_spaces(src);
           if (src() === undefined)
               throw new String("Value expected");
-          return (readers[src()] || readers["default"])(src);
+          return (d$$$42$readers$42$[src()] || d$$$42$readers$42$["default"])(src);
       },
       [f$$intern("src")]);
 
@@ -1703,28 +1709,6 @@ defun("str-value",
           }
       },
       [s$$x, f$$intern("&optional"), f$$intern("circle-print")]);
-
-defun("reader",
-      "[[(reader x)]]\n" +
-      "Returns current reading function associated to the specified character [x] or undefined if there's " +
-      "no reading function associated with it.",
-      function(ch)
-      {
-          return readers[ch];
-      },
-      [s$$x]);
-
-defun("set-reader",
-      "[[(set-reader x f)]]\n" +
-      "Sets a new reading function associated to the specified character that will be called by [(parse-value src)] " +
-      "when character [x] is met as current character in [src]. The function [f] will be called passing the character " +
-      "source [src] as argument.",
-      function(ch, f)
-      {
-          readers[ch] = f;
-          return f;
-      },
-      [s$$x, f$$intern("f")]);
 
 defun("toplevel-eval",
       "[[(toplevel-eval x)]]\n"+

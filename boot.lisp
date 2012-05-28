@@ -1130,6 +1130,17 @@ If only one parameter is passed it's assumed to be [stop]."
 (defmacro all ((var list) &rest body)
   `(not (any (,var ,list) (not (progn ,@body)))))
 
+; Reader customization
+(defmacro reader (char)
+  (unless (and (string? char) (= (length char) 1))
+    (error "(reader x) requires a one-char literal"))
+  `(aref *readers* ,char))
+
+(defmacro hash-reader (char)
+  (unless (and (string? char) (= (length char) 1))
+    (error "(hash-reader x) requires a one-char literal"))
+  `(aref *hash-readers* ,char))
+
 ; String interpolation reader
 (setf (reader "~")
       (lambda (src)
@@ -1162,6 +1173,12 @@ If only one parameter is passed it's assumed to be [stop]."
                 ((= 1 (length pieces)) (aref pieces 0))
                 (true `(+ ,@pieces))))
             (parse-symbol src "~"))))
+
+; Computed symbol reader macro #"foo{(+ 1 2)}" --> foo3
+(setf (hash-reader "\"")
+      (lambda (src)
+        (let ((x (parse-value src)))
+          `(intern ,(parse-value ~"~{(str-value x)}")))))
 
 ; Math functions
 (defmacro/f sqrt (x) "Square root of [x]"
