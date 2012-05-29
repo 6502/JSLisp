@@ -193,12 +193,20 @@ function updateClpar(text)
         }
         else if (text[i] == '#')
         {
-            quote = 1;
             i++;
-            if (text[i] == '\\') i+=2;
-            while (i < text.length && "() \t\n\r".indexOf(text[i]) == -1)
+            if (text[i] == '\\') i += 2;
+            else if (text[i] == '"')
+            {
+                quote = 1;
+                var q = text[i++];
+                while (i < text.length && text[i] != q)
+                {
+                    if (text[i] == '\\') i++;
+                    i++;
+                }
+                if (i < text.length) quote = 0;
                 i++;
-            if (i < text.length) quote = 0;
+            }
         }
         else
         {
