@@ -173,8 +173,8 @@ reverse engineering point of view.
       (lambda (&rest args)
         `(progn
            (let ((res ""))
-             (dolist (x (fclosure ',#main))
+             (dolist (x (fclosure ',#"main"))
                (incf res x))
-             (incf res (js-compile '(funcall #',#main ,@args)))
+             (incf res (js-compile '(funcall #',#"main" ,@args)))
              (display (minimize res)))
            null)))

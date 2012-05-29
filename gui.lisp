@@ -64,7 +64,7 @@
      (set-handler mywidget onmousedown
                   (display ~\"Mouse pressed at {(event-pos event)}\"))
 ]]"
-  `(setf (. ,element ,event) (lambda (,#event) ,@body)))
+  `(setf (. ,element ,event) (lambda (,#"event") ,@body)))
 
 (defun tracking (f &optional end cursor)
   "Starts tracking mouse movements with calls to [f] until mouseup and then call [end]"

@@ -1568,12 +1568,6 @@ d$$$42$readers$42$ = { "|": function(src)
                                src(1);
                                return [f$$intern(",@"), f$$parse_value(src)];
                            }
-                           else if (src() === "#")
-                           {
-                               src(1);
-                               return [f$$intern(","),
-                                       [f$$intern("intern"), f$$demangle(f$$parse_value(src).name)]];
-                           }
                            else
                            {
                                return [f$$intern(","), f$$parse_value(src)];
