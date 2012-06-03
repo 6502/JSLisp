@@ -57,7 +57,8 @@
   (bg (list 255 255 255 255))
   (fg (list   0   0   0 255))
   (pen 4)
-  (selection null))
+  (selection null)
+  (selection-div null))
 
 (defun copy-pixels (dst src)
   "Copies all pixels from ImageData [src] to ImageData [dst] (they must have the same size)"
@@ -72,7 +73,9 @@
 
 (defmacro deftool (name &rest body)
   `(progn
-     (defun ,name (pw) ,@body)
+     (defun ,name (pw)
+       (setf (paint-selection pw) null)
+       ,@body)
      (push ',name *tools*)))
 
 (defmacro exec (vars &rest body)
@@ -256,6 +259,16 @@
                          (y1 (max (second p0) (second p))))
                      (ellipse-frame (paint-data pw) x0 y0 x1 y1 sz sz color)))))))))
 
+(deftool Select
+    (let ((p0 null))
+      (lambda (msg p btn)
+        (cond
+          ((= msg 'down)
+           (setf p0 p))
+          ((= msg 'move)
+           (setf (paint-selection pw)
+                 (list p0 p null)))))))
+
 (deftool Zoom+
     (incf (paint-zoom pw))
     (setf (paint-fullredraw pw) true))
@@ -366,14 +379,32 @@
                     (decf wp up))
                   (incf wp zoom4)
                   (incf rp 4)))))
-          (funcall (. ctx putImageData) view-data 0 0)))))
+          (funcall (. ctx putImageData) view-data 0 0))))
+  (if (paint-selection pw)
+      (let* ((p0 (first (paint-selection pw)))
+             (p1 (second (paint-selection pw)))
+             (x0 (min (first p0) (first p1)))
+             (y0 (min (second p0) (second p1)))
+             (x1 (max (first p0) (first p1)))
+             (y1 (max (second p0) (second p1)))
+             (zoom (paint-zoom pw)))
+        (set-style (paint-selection-div pw)
+                   display "block"
+                   px/left (1- (* zoom x0))
+                   px/top (1- (* zoom y0))
+                   px/width (* zoom (- x1 x0))
+                   px/height (* zoom (- y1 y0))))
+      (set-style (paint-selection-div pw)
+                 display "none")))
 
 (defun paint (x y w h title pic)
   (let* ((frame (window x y w h :title title))
+         (view-div (create-element "div"))
          (view (create-element "canvas"))
          (current-tool null)
          (pw (make-paint :frame w
-                         :pic pic))
+                         :pic pic
+                         :selection-div (create-element "div")))
          (palette (palette (window-client frame) 2 30 30
                            (lambda (color button div)
                              (if (= button 2)
@@ -388,8 +419,22 @@
          (layout (:V :spacing 8 :border 8
                      (:H :spacing 8
                          (:H :size 140 toolbar)
-                         (:Hdiv view))
+                         (:Hdiv view-div))
                      (:V :size 68 palette))))
+
+    (set-style view-div
+               position "absolute")
+
+    (set-style (paint-selection-div pw)
+               zIndex 999
+               position "absolute"
+               border "solid 1px #FF0000"
+               backgroundColor "rgba(255,0,0,0.125)"
+               display "none"
+               px/top 0
+               px/left 0
+               px/width 0
+               px/height 0)
 
     (setf (paint-zoom pw) 1)
     (setf (paint-pen pw) 1)
@@ -405,7 +450,10 @@
     (set-style (window-frame frame)
                backgroundColor "#CCCCCC")
 
-    (append-child (window-client frame) view)
+    (append-child view-div view)
+    (append-child view-div (paint-selection-div pw))
+
+    (append-child (window-client frame) view-div)
 
     (let ((ctx (funcall (. pic getContext) "2d"))
           (width (. pic width))
@@ -444,6 +492,9 @@
     (setf (window-resize-cback frame)
           (lambda (x0 y0 x1 y1)
             (set-coords layout 0 0 (- x1 x0) (- y1 y0))
+            (set-style view
+                       px/width view-div.offsetWidth
+                       px/height view-div.offsetHeight)
             (update view pw)))
     (show-window frame)
     pw))
