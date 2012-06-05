@@ -1,13 +1,13 @@
 (import * from graphics)
 (import * from gui)
-(import * from objects)
 
 ;; A bidimensional point
 (defobject p2d (x y))
+(defun p2d (x y) (new-p2d x y))
 
 (defun dist (a b)
-  (let ((dx (- (x b) (x a)))
-        (dy (- (y b) (y a))))
+  (let ((dx (- b.x a.x))
+        (dy (- b.y a.y)))
     (sqrt (+ (* dx dx) (* dy dy)))))
 
 ;; A line built with quadratic curves
@@ -27,8 +27,8 @@
 
 (defun lerp (a b t)
   "Interpolated point between [a] and [b]"
-  (p2d (+ (p2d-x a) (* t (- (p2d-x b) (p2d-x a))))
-       (+ (p2d-y a) (* t (- (p2d-y b) (p2d-y a))))))
+  (p2d (+ a.x (* t (- b.x a.x)))
+       (+ a.y (* t (- b.y a.y)))))
 
 (defun avg (a b)
   "Middle point between [a] and [b]"
@@ -66,15 +66,15 @@
   (with-canvas canvas
     (begin-path)
     (let ((first true)
-          (n (length (line-pts obj))))
+          (n (length obj.pts)))
       (dolist (t (fp-range 0 (1- n) (* 10 n)))
-        (let ((p (pt (line-pts obj) t)))
+        (let ((p (pt obj.pts t)))
           (if first
-              (move-to (p2d-x p) (p2d-y p))
-              (line-to (p2d-x p) (p2d-y p)))
+              (move-to p.x p.y)
+              (line-to p.x p.y))
           (setf first false))))
-    (stroke-style (line-color obj))
-    (line-width (width obj))
+    (stroke-style obj.color)
+    (line-width obj.width)
     (stroke)))
 
 ;; Interactor methods
@@ -97,121 +97,118 @@
 
 (defmethod draw (canvas obj) (line-editor? obj)
   (with-canvas canvas
-    (with-line (line-editor-entity obj)
-      (begin-path)
-      (let ((first true)
-            (n (length pts)))
-        (dolist (p pts)
-          (if first
-              (move-to (p2d-x p) (p2d-y p))
-              (line-to (p2d-x p) (p2d-y p)))
-          (setf first false))
-        (line-width 1)
-        (stroke-style "#C0C0C0")
-        (stroke))
-      (let ((last null))
-        (stroke-style "#FF0000")
-        (line-width 2)
-        (dolist (p pts)
-          (begin-path)
-          (arc (p2d-x p) (p2d-y p) 4 0 (* 2 pi) true)
-          (close-path)
-          (stroke)
-          (when last
-            (let ((mp (lerp p last 0.5)))
-              (begin-path)
-              (arc (p2d-x mp) (p2d-y mp) 2 0 (* 2 pi) true)
-              (close-path)
-              (stroke)))
-          (setf last p))))))
+    (begin-path)
+    (let ((first true)
+          (n (length obj.entity.pts)))
+      (dolist (p obj.entity.pts)
+        (if first
+            (move-to p.x p.y)
+            (line-to p.x p.y))
+        (setf first false))
+      (line-width 1)
+      (stroke-style "#C0C0C0")
+      (stroke))
+    (let ((last null))
+      (stroke-style "#FF0000")
+      (line-width 2)
+      (dolist (p obj.entity.pts)
+        (begin-path)
+        (arc p.x p.y 4 0 (* 2 pi) true)
+        (close-path)
+        (stroke)
+        (when last
+          (let ((mp (lerp p last 0.5)))
+            (begin-path)
+            (arc mp.x mp.y 2 0 (* 2 pi) true)
+            (close-path)
+            (stroke)))
+        (setf last p)))))
 
 (defmethod hit (shape obj p btn) (line-editor? obj)
-  (with-line (line-editor-entity obj)
-    (let ((best null)
-          (best-dist 16))
-      (dolist (pp pts)
-        (let ((dist (dist p pp)))
-          (when (< dist best-dist)
-            (setf best-dist dist)
-            (setf best pp))))
-      (if best
-          ;; Hit: edit or delete
-          (if (= btn 2)
+  (let ((best null)
+        (best-dist 16))
+    (dolist (pp obj.entity.pts)
+      (let ((dist (dist p pp)))
+        (when (< dist best-dist)
+          (setf best-dist dist)
+          (setf best pp))))
+    (if best
+        ;; Hit: edit or delete
+        (if (= btn 2)
+            (progn
+              (if (= (length obj.entity.pts) 2)
+                  (progn
+                    (nremove-first obj.entity shape.objs)
+                    (nremove-first obj shape.objs))
+                  (nremove-first best obj.entity.pts))
+              #'wait-up)
+            (lambda (phase p)
+              (setf best.x p.x)
+              (setf best.y p.y)))
+        ;; Miss: check for point addition
+        (progn
+          (dotimes (i (1- (length obj.entity.pts)))
+            (let* ((pp (lerp (aref obj.entity.pts i) (aref obj.entity.pts (1+ i)) 0.5))
+                   (dist (dist p pp)))
+              (when (< dist best-dist)
+                (setf best-dist dist)
+                (setf best (list pp (1+ i))))))
+          (if best
               (progn
-                (if (= (length pts) 2)
-                    (progn
-                      (nremove-first (line-editor-entity obj) (objs shape))
-                      (nremove-first obj (objs shape)))
-                    (nremove-first best pts))
-                #'wait-up)
-              (lambda (phase p)
-                (setf (p2d-x best) (p2d-x p))
-                (setf (p2d-y best) (p2d-y p))))
-          ;; Miss: check for point addition
-          (progn
-            (dotimes (i (1- (length pts)))
-              (let* ((pp (lerp (aref pts i) (aref pts (1+ i)) 0.5))
-                     (dist (dist p pp)))
-                (when (< dist best-dist)
-                  (setf best-dist dist)
-                  (setf best (list pp (1+ i))))))
-            (if best
-                (progn
-                  ;; Add point
-                  (insert pts (second best) (first best))
-                  (lambda (phase p)
-                    (setf (x (first best)) (x p))
-                    (setf (y (first best)) (y p))))
-                (progn
-                  ;; Miss: remove interactor
-                  (nremove-first obj (objs shape))
-                  #'wait-up)))))))
+                ;; Add point
+                (insert obj.entity.pts (second best) (first best))
+                (lambda (phase p)
+                  (setf (first best).x p.x)
+                  (setf (first best).y p.y)))
+              (progn
+                ;; Miss: remove interactor
+                (nremove-first obj shape.objs)
+                #'wait-up))))))
 
 ; Click on line activates an editor
 (defmethod hit (shape obj p btn) (line? obj)
-  (let ((n (length (line-pts obj))))
+  (let ((n (length obj.pts)))
     (dolist (t (fp-range 0 (1- n) (* 10 n)))
-      (let ((pp (pt (line-pts obj) t)))
+      (let ((pp (pt obj.pts t)))
         (when (< (dist p pp) 16)
-          (push (line-editor shape obj)
-                (objs shape))
+          (push (new-line-editor shape obj) shape.objs)
           (return-from hit #'wait-up))))))
 
 ; Line creation interactor
 (defobject line-drawing (shape (pts (list))))
 
 (defmethod prompt (obj) (line-drawing? obj)
-  (if (length (line-drawing-pts obj))
+  (if (length obj.pts)
       "[1]=add another point, [2]=restart"
       "[1]=add first point, [2]=quit"))
 
 (defmethod hit (shape obj p btn) (line-drawing? obj)
   (if (= btn 2)
       (progn
-        (if (length (line-drawing-pts obj))
+        (if (length obj.pts)
             (progn
-              (setf (line-drawing-pts obj) (list))
-              (nremove-first obj (objs shape))
-              (push obj (objs shape)))
-            (nremove-first obj (objs shape)))
+              (setf obj.pts (list))
+              (nremove-first obj shape.objs)
+              (push obj shape.objs))
+            (nremove-first obj shape.objs))
         #'wait-up)
       (progn
-        (push p (line-drawing-pts obj))
-        (when (> (length (line-drawing-pts obj)) 1)
-          (push (line (line-drawing-pts obj) 3.0 "#000000") (objs shape)))
+        (push p obj.pts)
+        (when (= (length obj.pts) 2)
+          (push (new-line obj.pts 3.0 "#000000") shape.objs))
         (lambda (phase pp)
-          (setf (p2d-x p) (p2d-x pp))
-          (setf (p2d-y p) (p2d-y pp))))))
+          (setf p.x pp.x)
+          (setf p.y pp.y)))))
 
 (defmethod draw (canvas obj) (line-drawing? obj)
-  (when (= (length (line-drawing-pts obj)) 1)
+  (when (= (length obj.pts) 1)
     (with-canvas canvas
-      (with-p2d (first (line-drawing-pts obj))
+      (let ((p (first obj.pts)))
         (begin-path)
-        (move-to (- x 3) (- y 3))
-        (line-to (+ x 3) (+ y 3))
-        (move-to (- x 3) (+ y 3))
-        (line-to (+ x 3) (- y 3))
+        (move-to (- p.x 3) (- p.y 3))
+        (line-to (+ p.x 3) (+ p.y 3))
+        (move-to (- p.x 3) (+ p.y 3))
+        (line-to (+ p.x 3) (- p.y 3))
         (stroke-style "#000000")
         (line-width 1)
         (stroke)))))
@@ -237,22 +234,22 @@
                  (rect 0 0 (. canvas width) (. canvas height))
                  (fill))
                (let ((msg "Select a command..."))
-                 (dolist (x (objs shape))
+                 (dolist (x shape.objs)
                    (draw canvas x)
                    (setf msg (or (prompt x) msg)))
                  (setf (. prompt textContent) msg)))
              (set-interactor (i)
-               (setf (objs shape)
-                     (filter (lambda (x) (not (prompt x))) (objs shape)))
-               (when i (push i (objs shape)))
+               (setf shape.objs
+                     (filter (lambda (x) (not (prompt x))) shape.objs))
+               (when i (push i shape.objs))
                (repaint)))
       (let* ((clear (button "Clear"
                             (lambda ()
-                              (setf (objs shape) (list))
+                              (setf shape.objs (list))
                               (repaint))))
              (draw-line (button "+line"
                                 (lambda ()
-                                  (set-interactor (line-drawing shape)))))
+                                  (set-interactor (new-line-drawing shape)))))
              (layout (:H :spacing 4 :border 4
                          (:V :spacing 4 :size 60
                              (:V (:Vdiv draw-line :size 30)
@@ -306,7 +303,7 @@
                        (let ((pp (p2d (- (first p) (first p0))
                                       (- (second p) (second p0))))
                              (btn (if (= (. event button) 2) 2 1)))
-                         (dolist (x (reverse (objs shape)))
+                         (dolist (x (reverse shape.objs))
                            (unless interactor
                              (setf interactor (hit shape x pp btn))))
                          (when interactor
@@ -315,6 +312,6 @@
     (show-window w)))
 
 (defun main ()
-  (editor (shape (list))))
+  (editor (new-shape (list))))
 
 (main)
