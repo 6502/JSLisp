@@ -1463,24 +1463,6 @@ that field. When absent the default value is assumed to be [undefined]."
          res)
      ',name))
 
-; Generic condition dispatching
-(defmacro defmethod (name args test &rest body)
-  "Defines a conditioned implementation of a function; when [test] doesn't match the previous implementation is called instead"
-  (let ((of (gensym)))
-    `(progn
-       ,@(if (symbol-function name)
-             (list)
-             `((defun ,name ,args
-                 (error ,~"No matching method [{name}]"))))
-       (setf #',of #',name)
-       (setf #',name
-             (lambda ,args
-               (block ,name
-                 (if ,test
-                     (progn ,@body)
-                     (,of ,@args)))))
-       (list ',name ',test))))
-
 ; Javscript simple function/method binding
 (defmacro bind-js-functions (&rest names)
   "Creates a JsLisp wrapper for the provided function names or methods of singletons (e.g. (document.write 'hello'))"
@@ -1739,6 +1721,26 @@ that field. When absent the default value is assumed to be [undefined]."
   (setf (documentation (symbol-macro 'lambda)) odoc)
   (setf (arglist (symbol-macro 'lambda)) oargs))
 
+(let* ((om (symbol-macro 'labels))
+       (odoc (documentation om))
+       (oargs (arglist om)))
+  (setf (symbol-macro 'labels)
+        (lambda (defs &rest body)
+          (apply om (append (list (map (lambda (def)
+                                         (let ((name (first def))
+                                               (args (second def))
+                                               (doc (list))
+                                               (body (slice def 2)))
+                                           (when (and (> (length body) 1)
+                                                      (string? (first body)))
+                                             (setf doc (list (first body)))
+                                             (setf body (rest body)))
+                                           `(,name ,args ,@doc (block ,name ,@body))))
+                                       defs))
+                            body))))
+  (setf (documentation (symbol-macro 'labels)) odoc)
+  (setf (arglist (symbol-macro 'labels)) oargs))
+
 ;; Unwind-protect
 
 (defmacro unwind-protect (form &rest body)
@@ -1766,6 +1768,24 @@ that field. When absent the default value is assumed to be [undefined]."
                 "}catch(x){if(f$$list$63$(x)&&x[0]===("
                 (js-compile tag)
                 "))return x[1];throw x;}})())")))
+
+;; Generic condition dispatching
+(defmacro defmethod (name args test &rest body)
+  "Defines a conditioned implementation of a function; when [test] doesn't match the previous implementation is called instead"
+  (let ((of (gensym)))
+    `(progn
+       ,@(if (symbol-function name)
+             (list)
+             `((defun ,name ,args
+                 (error ,~"No matching method [{name}]"))))
+       (setf #',of #',name)
+       (setf #',name
+             (lambda ,args
+               (block ,name
+                 (if ,test
+                     (progn ,@body)
+                     (,of ,@args)))))
+       (list ',name ',test))))
 
 ;; Compile-time argument checking
 
