@@ -133,7 +133,8 @@
                     :title "Hextile shortest path")))
     (set-style (window-client w)
                overflow "hidden")
-    (set-style c position "absolute")
+    (set-style c
+               position "absolute")
     (set-style display
                position "absolute"
                backgroundColor "#404040"
@@ -230,7 +231,8 @@
               (set-coords layout x0 y0 x1 y1)
               (redraw)))
 
-      (let ((walldraw null))
+      (let ((walldraw null)
+            (mousepress false))
         (labels ((tile (event)
                    (let ((xy (event-pos event))
                          (xy0 (element-pos c)))
@@ -244,7 +246,7 @@
                             (when (bool? walldraw)
                               (setf (aref wall p) walldraw)
                               (redraw)))
-                           ((= mode "check")
+                           ((and (= mode "check") mousepress)
                             (when (and from
                                        (not (aref wall p))
                                        (not (aref wall from)))
@@ -256,7 +258,10 @@
                                 (setf (. display textContent) ~"{ct}ms"))
                               (redraw))))))
           (set-handler c onmousedown
+                       (funcall event.preventDefault)
+                       (funcall event.stopPropagation)
                        (let ((p (tile event)))
+                         (setf mousepress true)
                          (cond
                            ((= mode "wall")
                             (setf walldraw (not (aref wall p)))
@@ -268,6 +273,7 @@
                               (setf from p)
                               (redraw))))))
           (set-handler c onmouseup
+                       (setf mousepress false)
                        (when (= mode "wall")
                          (setf walldraw null)))))
       (show-window w))))
