@@ -1141,6 +1141,14 @@ If only one parameter is passed it's assumed to be [stop]."
     (error "(hash-reader x) requires a one-char literal"))
   `(aref *hash-readers* ,char))
 
+(defun next-char (src)
+  "Advances to next character or character source [src]"
+  (funcall src 1))
+
+(defun current-char (src)
+  "Returns current character from character source [src]"
+  (funcall src))
+
 ; String interpolation reader
 (setf (reader "~")
       (lambda (src)
