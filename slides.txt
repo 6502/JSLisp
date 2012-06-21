@@ -1,154 +1,60 @@
-JsLisp / A Lisp compiler targeting Javascript
-What is JsLisp
-  A Lisp
-    A Lisp-2 (actually a Lisp-3) {Lisp-3}
-      Scheme is a [Lisp-1]
-        Only one namespace
-        To call a function in a variable:|[(myvar x y z)]
-      Common Lisp is a [Lisp-2]
-        One namespace for functions/macro
-        One namespace for variables
-        In [(func x y z)] "func" is a|function, "x" is a variable
-        To call a function in a variable:|[(funcall myvar x y z)]
-      JsLisp is a [Lisp-3]
-        Three namespaces
-        A name can represent a variable, a function or a macro
-        [(foo ...)] calls a macro (if defined)
-        [(funcall #'foo ...)] calls a function
-        Both the macro and the function can coexist
-        They may even have different semantic {Different semantics example}
-          [(< ...)] is short-circuiting
-          [(funcall #'< ...)] is not
-          [(< (f))] doesn't call [f] and returns [true]!
-      No special operators
-      No compiler-macros
-      Just regular macros all the way down {Macros all the way down}
-        Leaf nodes are [(js-code "...")] with literals
-        Kernel written by hand in Javascript
-        Kernel is still just macros and functions
-        Everything else loads from [boot.lisp] {Bootstrap}
-          [defmacro], [defun], [setf], [length]
-          Quasiquoting, string interpolation
-          [&optional], [&key], destructuring
-          Static checks
-        Quite a bit of inlined Javascript
-    Macros are not necessarily hygienic {Macros}
-      Anaphoric macros
-      Wanted capture
-      [gensym] used to avoid unwanted captures
-      Global and lexical macros
-      Symbol macros (both global and lexical)
-    Reader macros
-      Source of chars is a callable
-      [(funcall src)] is current character
-      [(funcall src 1)] advances to next
-      [setf]-able place [(reader x)]
-      [#'parse-value] is the main reader
-    Modules (similar to CL packages) {Modules}
-      Loading [(import gui)]
-      Direct symbol access: [gui:window]
-      Local nicknames: [(import gui as g)]
-      Alias all exported: [(import * from gui)]
-      Alias only some: [(import (x y) from gui)]
-    Non-local control tansfer
-      [tagbody] / [go]
-      [block] / [return] / [return-from]
-      [throw] / [catch]
-      [unwind-protect]
-      [(try <form> <exception-form>)]
-  compiler
-    No interpreter
-      Reads one form at a time
-      [toplevel-eval]uates it {Top level evaluation}
-        Macroexpansion done explicitly and [toplevel-eval]|called on the result
-        [progn] sub-forms are [toplevel-eval]uated in sequence
-        [(if ...)] forms [toplevel-eval]uates condition|and only one of the two other subforms
-        Anything else (e.g. [(let ...)]) uses compile+call
-        Special handling of recursive functions
-      Previously defined functions available in reader macros
-      Reader macros available from next form
-    JsLisp functions are Javascript functions {Interoperability}
-      Javascript can call JsLisp functions and vice-versa
-      [(js-code "...")] allows inline Javascript
-      Name mangling
-        [$$] at the beginning
-        Dash ["-"] replaced with underscore ["_"]
-        Invalid chars replaced with [$<numeric code>$]
-        ["s"]ymbol, ["f"]unction,|["m"]acro or ["d"]ata
-        [(str-value (gui:foo x '!))] compiles to|[f$$str_value(fgui$$foo(d$$x,s$$$33$))]
-    Fast!
-      Javascript JIT compilers are impressive
-      Speed is closer to SBCL than to CLISP
-      Generated javascript is horribly ugly...
-      but not horribly inefficient
-    Treeshaker/minifier
-      Only what is reachable from [(main ...)]
-      Current content of variables
-      Cannot dump everything (e.g. DOM nodes)
-      Minifier is specialized for JsLisp
-      Output generally contains no readable symbols at all
-    (but) Source-level debugging
-      Debugger runs in another browser window
-      Requires a local node.js webserver
-      Breakpoints, step, data inspection, stack trace
-      Debug information slows down quite a bit
-  targeting Javascript
-    Case sensitive
-    No char type. Strings are immutable and unicode
-    No [CONS] cells: lists are Javascript arrays. {Lists are Javascript arrays}
-      No sharing of tails, only of whole lists
-      Quasiquoting does not guarantee fresh lists
-      [push] is a regular function, and appends at the END
-      [(length x)] works for lists, strings
-      [aref] works for lists, strings and objects
-      [(setf (length L) x)] is valid for lists
-    Dotted syntax reader macro {Dotted syntax}
-      ["(foo).b.c"] compiles to ["f$$foo().b.c"]
-      E.g. [(setf mydiv.style.overflow "hidden")]
-      Field names are NOT mangled
-      Invalid names compile to bracket notation
-      Some field names are reserved! (e.g. "constructor")
-    No numeric tower (all numbers are 64-bit floats)
-    No [T], [NIL]. Truth-ness follows Javascript rules {What is false?}
-      [false], [0], [NaN], [undefined], [null], [""]
-      Anything else is "true"
-      Including empty lists and empty objects
-      [(= ...)] maps to Javascript [===]
-      [(~= ...)] maps to Javascript [==] {Watch out conversions}
-        [(~= (list) false)] is true
-        But [(list)] is also true
-        Ugly, but are Javascript rules
-        Just don't use [(~= ...)]
-Why not naked Javascript?
-  Compile-time checks
-    Mistyped variable names
-    Mistyped function names
-    Wrong number of parameters in call
-    Wrong keyword arguments in call
-  Local scope
-  Modules
-  Macros
-  Domain specific languages
-  Treeshaker
-Demo
-  Read Eval Print Loop
-    Web browser based
-    Autoindenting
-    Function documentation
-  Speed
-  Reader macros
-    [$1E] for hex values
-    [(x y -> (+ x y))]
-  Examples
-    Rubik's cube
-    A pie chart
-    A chessboard
-    Mandelbrot explorer
-    Slide show
-  Debugger
-Questions? comments?
-  agriffini@jslisp.org
-  [6502] on #lisp (not very often)
-Links
-  Source code github.com/6502/JSLisp
-  Website jslisp.org
+*1 JsLisp
+= JsLisp
+A Lisp compiler targeting Javascript
+
+*2 A Lisp compiler targeting Javascript
+{JsLisp is}
+
+- A Lisp
+- Compiler
+- Targeting Javascript
+
+*3 A Lisp
+{A Lisp}
+
+Lisp is a family of dialects, the two most known
+representantives being Common Lisp and Scheme.
+JsLisp is a Lisp dialect close to Common Lisp.
+
+But it's not Common Lisp.
+
+*3.1 Common Lisp similarities
+{JsLisp and Common Lisp similarities}
+
+- A Lisp-2 (actually a Lisp-3)
+- Macros and reader macros
+- No forced hygiene
+- Looping constructs [do], [dotimes], [dolist] ...
+- [tagbody/go], [throw/catch], [unwind-protect]
+
+*3.2 Common Lisp differences
+{JsLisp and Common Lisp differences}
+
+- No [cons] cells, lists are Javascript arrays
+- No numeric tower (all numbers are [double-floats])
+- No [T]/[NIL]
+- [true], [false], [null], [undefined], [NaN]
+- A namespace partitioning system similar (but
+  not identical) to CL packages.
+
+*4 Compiler
+{Compiler}
+
+JsLisp is a compiler-only implementation, there
+is no Lisp interpreter
+
+- JsLisp functions are Javascript functions
+- Thanks to JIT speed is quite good
+- Semantic checks at compile time
+- Adding a treeshaker/minifier provides some
+  level of source code protection
+
+*5 Targeting Javascript
+{Targeting Javascript}
+
+- Code is standard Javascript
+- Runs in recent desktop browsers
+- Runs in node.js
+- Runs in HTML5 smartphones/tablets
+- Using node.js allows a single seamless
+  environment for the full solution

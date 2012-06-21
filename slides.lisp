@@ -60,14 +60,16 @@
                               WebkitTransform *on*))
                  1)))
 
-(defobject node ((parent null)
-                 (title "")
-                 (content "")
-                 (children (list))
+(defobject node ((title "")
+                 (content (list))
                  (div null)
                  (skip false)))
 
-(defvar *root* null)
+(defobject bullet (text))
+(defobject para (text))
+(defobject title (text))
+
+(defvar *full-list* (list))
 (defvar *sequence* (list))
 (defvar *index* 0)
 
@@ -77,46 +79,79 @@
   (setf x (replace x ">" "&gt;"))
   (setf x (replace x "\"" "&quot;"))
   (setf x (replace x "\\|" "<br/>"))
+  (setf x (replace x "\\{(.*?)\\}"
+                   "<b>$1</b>"))
   (replace x "\\[(.*?)\\]"
            "<span style=\"font-family:'Courier New',monospace; font-weight:bold; color:#008000\">$1</span>"))
 
 (defun build-slide (node)
   (let ((div (create-element "div"))
-        (ul (create-element "ul")))
+        (ul null))
     (set-style div
                fontFamily "Arial,Helvetica,sans-serif")
-    (let* ((title node.title)
-           (i (index " / " title)))
-      (if (>= i 0)
-          (let ((h1 (create-element "h1")))
-            (append-child div h1)
-            (set-style h1 textAlign "center")
-            (setf h1.innerHTML (fix (slice title 0 i)))
-            (let ((h3 (create-element "h3")))
-              (set-style h3 textAlign "center")
-              (setf h3.innerHTML (fix (slice title (+ i 3))))
-              (append-child div h3)))
-          (let ((h2 (create-element "h2")))
-            (append-child div h2)
-            (setf h2.innerHTML (fix node.title)))))
-    (append-child div ul)
-    (dolist (x node.children)
-      (let ((li (create-element "li")))
-        (append-child ul li)
-        (setf li.innerHTML (fix x.content))
-        (when (length x.children)
-          (let ((x x))
-            (set-style li cursor "pointer")
-            (set-handler li onmouseover
-                         (set-style li backgroundColor "#C0FFC0"))
-            (set-handler li onmouseout
-                         (set-style li backgroundColor "transparent"))
-            (set-handler li onmousedown
-                         (when (/= event.button 2)
-                           (event.stopPropagation)
-                           (event.preventDefault)
-                           (show-slide x.div 1)))))))
+    (dolist (c node.content)
+      (cond
+        ((title? c)
+         (setf ul null)
+         (let ((h1 (create-element "h1")))
+           (set-style h1
+                      textAlign "center"
+                      fontSize "200%"
+                      fontWeight "bold")
+           (setf h1.innerHTML (fix c.text))
+           (append-child div h1)))
+        ((bullet? c)
+         (unless ul
+           (setf ul (create-element "ul"))
+           (append-child div ul))
+         (let ((li (create-element "li")))
+           (setf li.innerHTML (fix c.text))
+           (append-child ul li)))
+        ((para? c)
+         (setf ul null)
+         (let ((p (create-element "p")))
+           (setf p.innerHTML (fix c.text))
+           (append-child div p)))
+        (true (error "Unknown content type"))))
     div))
+
+(defun load-slides (name)
+  (let ((lines (split (http-get name) "\n"))
+        (i 0)
+        (slides (list)))
+    (do ((L (aref lines (1- (incf i)))))
+        ((> i (length lines)))
+      (labels ((next ()
+                 (setf L (aref lines (1- (incf i))))))
+        (cond
+          ((= L "")
+           (next))
+          ((= (aref L 0) "*")
+           (push (new-node (slice L 1)) slides)
+           (next))
+          ((= (slice L 0 2) "- ")
+           (let ((text (slice L 2)))
+             (next)
+             (do ()
+                 ((/= (slice L 0 2) "  ")
+                  (push (new-bullet text)
+                        (last slides).content))
+               (incf text (+ "|" (slice L 2)))
+               (next))))
+          ((= (slice L 0 2) "= ")
+           (push (new-title (slice L 2))
+                 (last slides).content)
+           (next))
+          (true
+           (do ((text ""))
+               ((or (> i (length lines)) (= L ""))
+                (push (new-para text)
+                      (last slides).content))
+             (incf text (+ "|" L))
+             (next))))))
+    (dolist (x slides)
+      (setf x.div (build-slide x)))
+    slides))
 
 (defun rescale-slides ()
   (let ((maxw 0)
@@ -131,9 +166,7 @@
                  (append-child document.body x.div)
                  (setf maxw (max maxw x.div.offsetWidth))
                  (setf maxh (max maxh x.div.offsetHeight))
-                 (remove-child document.body x.div))
-               (dolist (y x.children)
-                 (measure y)))
+                 (remove-child document.body x.div)))
              (rescale (x sf)
                (when x.div
                  (append-child document.body x.div)
@@ -155,12 +188,11 @@
                                 px/width *width*
                                 px/height *height*)
                      (append-child container x.div)
-                     (setf x.div container))))
-               (dolist (y x.children)
-                 (rescale y sf))))
-      (measure *root*)
-      (rescale *root* (* 1.2 (min (/ *width* maxw)
-                                  (/ *height* maxh)))))))
+                     (setf x.div container))))))
+      (map #'measure *full-list*)
+      (dolist (x *full-list*)
+        (rescale x (* 0.9 (min (/ *width* maxw)
+                               (/ *height* maxh))))))))
 
 (defun next-slide ()
   (when (< *index* (1- (length *sequence*)))
@@ -171,36 +203,6 @@
   (when (> *index* 0)
     (decf *index*)
     (show-slide (aref *sequence* *index*).div -1)))
-
-(defun load-slides ()
-  (let ((lines (filter (lambda (x) (/= x ""))
-                       (split (http-get "slides.txt") "\n")))
-        (i 0))
-    (labels ((L ()
-                (aref lines i))
-             (level ()
-                    (do ((i 0 (1+ i)))
-                        ((/= (aref (L) i) " ") i)))
-             (node (parent)
-                   (let* ((level (level))
-                          (content (slice (L) level))
-                          (title content))
-                     (let ((t-start (index " {" content))
-                           (t-end (index "}" content)))
-                       (when (and (>= t-start 0)
-                                  (= t-end (1- (length content))))
-                         (setf title (slice content (+ 2 t-start) t-end))
-                         (setf content (slice content 0 t-start)))
-                       (let ((node (new-node parent title content)))
-                         (incf i)
-                         (do () ((or (>= i (length lines))
-                                     (<= (level) level))
-                                   (setf node.div (build-slide node))
-                                   node)
-                           (push (node node) node.children)))))))
-      (do ((root (new-node)))
-          ((>= i (length lines)) root)
-        (push (node root) root.children)))))
 
 (defun start ()
   (setf (. document body style overflow) "hidden")
@@ -228,35 +230,31 @@
                backgroundColor "#EEEEEE")
     (set-style (window-frame w)
                backgroundColor "#EEEEEE")
-    (labels ((collect (x)
-               (let ((div x.div)
-                     (glass (create-element "div"))
-                     (container (create-element "div")))
-                 (append-child container div)
-                 (append-child container glass)
-                 (set-style glass
-                            position "absolute"
-                            px/left 0
-                            px/top 0
-                            width "100%"
-                            height "100%"
-                            backgroundColor (if x.skip
-                                                "rgba(0,0,0,0.25)"
-                                                "rgba(0,0,0,0)"))
-                 (set-handler glass onmousedown
-                              (funcall event.preventDefault)
-                              (funcall event.stopPropagation)
-                              (setf x.skip (not x.skip))
-                              (set-style glass backgroundColor (if x.skip
-                                                                   "rgba(0,0,0,0.25)"
-                                                                   "rgba(0,0,0,0)")))
-                 (push container full-list)
-                 (map #'collect
-                      (filter (lambda (x) (length x.children))
-                              x.children)))))
-      (map #'collect *root*.children))
-    (dolist (x full-list)
-      (append-child (window-client w) x))
+    (dolist (x *full-list*)
+      (let ((div x.div)
+            (glass (create-element "div"))
+            (container (create-element "div")))
+        (append-child container div)
+        (append-child container glass)
+        (set-style glass
+                   position "absolute"
+                   px/left 0
+                   px/top 0
+                   width "100%"
+                   height "100%"
+                   backgroundColor (if x.skip
+                                       "rgba(0,0,0,0.25)"
+                                       "rgba(0,0,0,0)"))
+        (let ((x x))
+          (set-handler glass onmousedown
+                       (funcall event.preventDefault)
+                       (funcall event.stopPropagation)
+                       (setf x.skip (not x.skip))
+                       (set-style glass backgroundColor (if x.skip
+                                                            "rgba(0,0,0,0.25)"
+                                                            "rgba(0,0,0,0)"))))
+        (push container full-list)
+        (append-child (window-client w) container)))
     (setf (window-resize-cback w)
           (lambda (x0 y0 x1 y1)
             (let* ((n (length full-list))
@@ -281,23 +279,15 @@
                              MozTransformOrigin "0% 0%"))))))
     (setf (window-close-cback w)
           (lambda ()
-            (setf *sequence* (list))
-            (labels ((collect (x)
-                       (unless x.skip
-                         (push x *sequence*))
-                       (dolist (y (filter (lambda (x)
-                                            (length x.children))
-                                          x.children))
-                         (collect y))))
-              (dolist (x *root*.children)
-                (collect x))
-              (setf *index* 0)
-              (show-slide (aref *sequence* *index*).div 1))))
+            (setf *sequence* (filter (lambda (x) (not x.skip))
+                                     *full-list*))
+            (setf *index* 0)
+            (show-slide (aref *sequence* *index*).div 1)))
     (show-window w)))
 
 (defun main ()
   (start)
-  (setf *root* (load-slides))
+  (setf *full-list* (load-slides "slides2.txt"))
   (rescale-slides)
   (fullview))
 
