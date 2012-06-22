@@ -12,18 +12,18 @@ A Lisp compiler targeting Javascript
 *3 A Lisp
 {A Lisp}
 
-Lisp is a family of dialects, the two most known
-representantives being Common Lisp and Scheme.
-JsLisp is a Lisp dialect close to Common Lisp.
+Lisp is a family of dialects, the two most
+known being Common Lisp and Scheme.
 
-But it's not Common Lisp.
+JsLisp is close to Common Lisp
+but it's not Common Lisp.
 
 *3.1 Common Lisp similarities
 {JsLisp and Common Lisp similarities}
 
 - A Lisp-2 (actually a Lisp-3)
 - Macros and reader macros
-- No forced hygiene
+- Macro hygiene is not forced
 - Looping constructs [do], [dotimes], [dolist] ...
 - [tagbody/go], [throw/catch], [unwind-protect]
 
@@ -31,11 +31,11 @@ But it's not Common Lisp.
 {JsLisp and Common Lisp differences}
 
 - No [cons] cells, lists are Javascript arrays
-- No numeric tower (all numbers are [double-floats])
+- No numeric tower (only [double-float]s)
 - No [T]/[NIL]
 - [true], [false], [null], [undefined], [NaN]
-- A namespace partitioning system similar (but
-  not identical) to CL packages.
+- A namespace partitioning system similar
+  (but not identical) to CL packages.
 
 *4 Compiler
 {Compiler}
@@ -48,6 +48,36 @@ is no Lisp interpreter
 - Semantic checks at compile time
 - Adding a treeshaker/minifier provides some
   level of source code protection
+
+*4.1 Reading and compiling
+{Reading and compiling}
+
+In a Lisp system the process of translating
+source code characters to code consists in
+two separate steps: reading and compiling:
+
+[chars] ==> [A.S.T.] ==> [code]
+
+Both the steps can be customized with
+[reader macros] or [macros].
+
+*4.1.1 Example of a reader macro
+{Small reader macro example}
+
+[[
+(setf (reader "[")
+      (lambda (src)
+        (next-char src)
+        `(lambda (x)
+           ,(parse-delimited-value src "]"))))
+]]
+
+After which:
+
+[[
+(map [* x x] (range 10))
+--> (0 1 4 9 16 25 36 49 64 81)
+]]
 
 *5 Targeting Javascript
 {Targeting Javascript}

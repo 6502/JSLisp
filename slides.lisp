@@ -68,6 +68,7 @@
 (defobject bullet (text))
 (defobject para (text))
 (defobject title (text))
+(defobject pre (text))
 
 (defvar *full-list* (list))
 (defvar *sequence* (list))
@@ -77,6 +78,10 @@
   (setf x (replace x "&" "&amp;"))
   (setf x (replace x "<" "&lt;"))
   (setf x (replace x ">" "&gt;"))
+  (setf x (replace x "&lt;==" "&#8656;"))
+  (setf x (replace x "==&gt;" "&#8658;"))
+  (setf x (replace x "&lt;--" "&#8592;"))
+  (setf x (replace x "--&gt;" "&#8594;"))
   (setf x (replace x "\"" "&quot;"))
   (setf x (replace x "\\|" "<br/>"))
   (setf x (replace x "\\{(.*?)\\}"
@@ -107,6 +112,18 @@
          (let ((li (create-element "li")))
            (setf li.innerHTML (fix c.text))
            (append-child ul li)))
+        ((pre? c)
+         (setf ul null)
+         (let ((p (create-element "pre")))
+           (set-style p
+                      color "#000080"
+                      fontWeight "bold"
+                      backgroundColor "#F4F4FF"
+                      px/padding 10
+                      border "solid 1px #000080"
+                      px/borderRadius 8)
+           (setf p.innerText c.text)
+           (append-child div p)))
         ((para? c)
          (setf ul null)
          (let ((p (create-element "p")))
@@ -142,10 +159,19 @@
            (push (new-title (slice L 2))
                  (last slides).content)
            (next))
+          ((= (slice L 0 2) "[[")
+           (next)
+           (do ((text ""))
+               ((or (> i (length lines)) (= L "]]"))
+                (next)
+                (push (new-pre (slice text 1))
+                      (last slides).content))
+             (incf text (+ "\n" L))
+             (next)))
           (true
            (do ((text ""))
                ((or (> i (length lines)) (= L ""))
-                (push (new-para text)
+                (push (new-para (slice text 1))
                       (last slides).content))
              (incf text (+ "|" L))
              (next))))))
@@ -287,7 +313,7 @@
 
 (defun main ()
   (start)
-  (setf *full-list* (load-slides "slides2.txt"))
+  (setf *full-list* (load-slides "slides.txt"))
   (rescale-slides)
   (fullview))
 
