@@ -27,29 +27,7 @@ but it's not Common Lisp.
 - Looping constructs [do], [dotimes], [dolist] ...
 - [tagbody/go], [throw/catch], [unwind-protect]
 
-*3.2 Common Lisp differences
-{JsLisp and Common Lisp differences}
-
-- No [cons] cells, lists are Javascript arrays
-- No numeric tower (only [double-float]s)
-- No [T]/[NIL]
-- [true], [false], [null], [undefined], [NaN]
-- A namespace partitioning system similar
-  (but not identical) to CL packages.
-
-*4 Compiler
-{Compiler}
-
-JsLisp is a compiler-only implementation, there
-is no Lisp interpreter
-
-- JsLisp functions are Javascript functions
-- Thanks to JIT speed is quite good
-- Semantic checks at compile time
-- Adding a treeshaker/minifier provides some
-  level of source code protection
-
-*4.1 Reading and compiling
+*3.1.1 Reading and compiling
 {Reading and compiling}
 
 In a Lisp system the process of translating
@@ -61,7 +39,7 @@ two separate steps: reading and compiling:
 Both the steps can be customized with
 [reader macros] or [macros].
 
-*4.1.1 Example of a reader macro
+*3.1.2 Example of a reader macro
 {Small reader macro example}
 
 [[
@@ -79,12 +57,64 @@ After which:
 --> (0 1 4 9 16 25 36 49 64 81)
 ]]
 
+*3.2 Common Lisp differences
+{JsLisp and Common Lisp differences}
+
+- No [cons] cells, lists are Javascript arrays
+- No numeric tower (only [double-float]s)
+- No [T]/[NIL]
+- [true], [false], [null], [undefined], [NaN]
+- A namespace partitioning system similar
+  (but not identical) to CL packages.
+- [Lisp-3]: a function and a macro can have
+  the same name. [(funcall #'x ...)] {may be}
+  logically different from [(x ...)]. Rarely is.
+
+*3.2.1 An example of macro/function diversion
+{An example where semantic is not the same}
+
+[(< (f) (g) (h))] is short-circuiting and
+call to [(h)] may be skipped.
+
+[(funcall #'< (f) (g) (h))] obviously
+always calls [(f)], [(g)] and [(h)].
+
+[(< (f))] returns [true] and doesn't call [f]!
+
+Normally macro/function dual implementation
+only exists for performance reasons. JsLisp has
+no concept of CL compiler-macros, only macros.
+
+*4 Compiler
+{Compiler}
+
+JsLisp is a compiler-only implementation, there
+is no Lisp interpreter
+
+- JsLisp functions are Javascript functions
+- Thanks to JIT speed is quite good
+- Semantic checks at compile time
+- There is a treeshaker/minifier that provides
+  source code IP protection
+
+*4.1 Semantic checks
+{Semantic checks}
+
+JsLisp compiler provides some semantic check
+at compile time:
+
+- References to undefined variables
+- References to undefined functions
+- Bad parameter count in static function calls
+- Bad keyword paramters in static function calls
+
 *5 Targeting Javascript
 {Targeting Javascript}
 
-- Code is standard Javascript
-- Runs in recent desktop browsers
-- Runs in node.js
-- Runs in HTML5 smartphones/tablets
+- Code is standard Javascript.
+- Runs in recent desktop browsers.
+- Runs in node.js.
+- Runs in HTML5 smartphones/tablets.
 - Using node.js allows a single seamless
-  environment for the full solution
+  environment for both client ans server
+  sides of a solution.
