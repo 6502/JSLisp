@@ -438,6 +438,8 @@ defmacro("let",
          function(bindings)
          {
              var body = Array.prototype.slice.call(arguments, 1);
+             if (bindings.length == 0)
+                 return [f$$intern("progn")].concat(body);
              lexvar.begin();
              lexsmacro.begin();
              var osmacro = [];
@@ -691,10 +693,10 @@ defmacro("labels",
          [f$$intern("bindings"), f$$intern("&rest"), f$$intern("body")]);
 
 defmacro("dotimes",
-         "[[(dotimes (var count) &rest body)]]\n" +
+         "[[(dotimes (var count &optional result) &rest body)]]\n" +
          "Evaluates the [body] forms in sequence exactly 'count' times by setting " +
          "the dynamically/lexically bound variable [var] to 0, 1, ... [count-1] before " +
-         "each iteration. The return value is [null].",
+         "each iteration. The return value is [null] if not [result] form is specified.",
          function(itvar)
          {
              var body = Array.prototype.slice.call(arguments, 1);
@@ -707,7 +709,11 @@ defmacro("dotimes",
                             "=0; d" + v + "<$$dotimes_count; ++d" + v + "){");
                  res += implprogn(body);
                  lexsmacro.end();
-                 res += "};d" + v + "=osd" + v + ";return null;})(" + f$$js_compile(itvar[1]) + ")";
+                 res += ("};d" + v + "=osd" + v +
+                         ";return " +
+                         (itvar[2] ? f$$js_compile(itvar[2]) : "null") +
+                         ";})(" +
+                         f$$js_compile(itvar[1]) + ")");
              }
              else
              {
@@ -718,17 +724,20 @@ defmacro("dotimes",
                  res += implprogn(body);
                  lexvar.end();
                  lexsmacro.end();
-                 res += "}return null;})(" + f$$js_compile(itvar[1]) + ")";
+                 res += ("}return " +
+                         (itvar[2] ? f$$js_compile(itvar[2]) : "null") +
+                         ";})(" +
+                         f$$js_compile(itvar[1]) + ")");
              }
              return [s$$js_code, res];
          },
          [f$$intern("var&count"), f$$intern("&rest"), f$$intern("body")]);
 
 defmacro("dolist",
-         "[[(dolist (var x) &rest body)\n" +
+         "[[(dolist (var x &optional result) &rest body)\n" +
          "Evaluates the [body] forms in sequence times by setting " +
          "the dynamically/lexically bound variable [var] to next element of list [x] each time. " +
-         "The return value is [null].",
+         "The return value is [null] if no [result] form is specified.",
          function(itvar)
          {
              var body = Array.prototype.slice.call(arguments, 1);
@@ -741,7 +750,11 @@ defmacro("dolist",
                             "d" + v + " = $$dolist_L[$$i]; ");
                  res += implprogn(body);
                  lexsmacro.end();
-                 res += "};d" + v + "=osd" + v + ";return null;})(" + f$$js_compile(itvar[1]) + ")";
+                 res += ("};d" + v + "=osd" + v +
+                         ";return " +
+                         (itvar[2] ? f$$js_compile(itvar[2]) : "null") +
+                         ";})(" +
+                         f$$js_compile(itvar[1]) + ")");
              }
              else
              {
@@ -752,7 +765,10 @@ defmacro("dolist",
                  res += implprogn(body);
                  lexvar.end();
                  lexsmacro.end();
-                 res += "}return null;})(" + f$$js_compile(itvar[1]) + ")";
+                 res += ("}return " +
+                         (itvar[2] ? f$$js_compile(itvar[2]) : "null") +
+                         ";})(" +
+                         f$$js_compile(itvar[1]) + ")");
              }
              return [s$$js_code, res];
          },
