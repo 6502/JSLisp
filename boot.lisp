@@ -1227,6 +1227,10 @@ If only one parameter is passed it's assumed to be [stop]."
   `(js-code ,(+ "Math.atan(" (js-compile x) ")")))
 (defmacro/f floor (x) "Biggest integer that is not bigger than [x]"
   `(js-code ,(+ "Math.floor(" (js-compile x) ")")))
+(defmacro/f round (x) "Integer closest to [x]"
+  `(js-code ,(+ "Math.round(" (js-compile x) ")")))
+(defmacro/f ceil (x) "Smallest integer that is not smaller than [x]"
+  `(js-code ,(+ "Math.ceil(" (js-compile x) ")")))
 (defmacro/f abs (x) "Absolute value of [x]"
   `(js-code ,(+ "Math.abs(" (js-compile x) ")")))
 (defmacro/f atan2 (y x) "Arc-tangent of [y/x] in radians with proper handling of all quadrants"
