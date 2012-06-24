@@ -793,6 +793,18 @@
         (rf1 10))
       "3628800")
 
+(test (let ((f (list)))
+        (dolist (i (range 10))
+          (push (lambda () i) f))
+        (map #'funcall f))
+      "(0 1 2 3 4 5 6 7 8 9)")
+
+(test (let ((f (list)))
+        (dotimes (i 10)
+          (push (lambda () i) f))
+        (map #'funcall f))
+      "(0 1 2 3 4 5 6 7 8 9)")
+
 (display (+ test-passed "/" test-total
             " tests passed in "
             (- (clock) test-start) "ms"))

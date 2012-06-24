@@ -191,6 +191,28 @@
   "True if number [x] is even"
   (js-code "(!(d$$x&1))"))
 
+; Dolist macro
+(defmacro dolist (var+list &rest body)
+  "Evaluates [body] forms after binding [var] to each element of [list]"
+  (list 'js-code (+ "((function(list){var f="
+                    (js-compile (append (list 'lambda
+                                              (list (js-code "d$$var$43$list[0]")))
+                                        body))
+                    ";for(var i=0,n=list.length;i<n;i++){f(list[i])}})("
+                    (js-compile (js-code "d$$var$43$list[1]"))
+                    "))")))
+
+; Dotimes macro
+(defmacro dotimes (var+count &rest body)
+  "Evaluates [body] forms after binding [var] to 0, 1, ... [(1- count)]"
+  (list 'js-code (+ "((function(n){var f="
+                    (js-compile (append (list 'lambda
+                                              (list (js-code "d$$var$43$count[0]")))
+                                        body))
+                    ";for(var i=0;i<n;i++){f(i)}})("
+                    (js-compile (js-code "d$$var$43$count[1]"))
+                    "))")))
+
 ; Funcall macro
 (defmacro funcall (f &rest args)
   "Calls the function object [f] passing specified values as parameters."
