@@ -934,7 +934,7 @@ The resulting list length is equal to the shortest input sequence."
                               (setf (aref args i) (first (aref args i)))))
                           (apply oldcf `(,args
                                          ,@doc
-2                                         ,@checks
+                                         ,@checks
                                          ,@defaults
                                          ,@body))))))))
         (setf (documentation f) olddoc)
