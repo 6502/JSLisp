@@ -1291,16 +1291,6 @@ defun("skip-spaces",
       },
       [f$$intern("src")]);
 
-defun("parse-spaced",
-      "[[(parse-spaced src)]]\n" +
-      "Parses a value from a character source [src] by first skipping any spacing character.",
-      function(src)
-      {
-          f$$skip_spaces(src);
-          return f$$f$$parse_value(src);
-      },
-      [f$$intern("src")]);
-
 defun("parse-stopping",
       "[[(parse-stopping x)]]\n" +
       "True if symbol parsing should stop before character [x] because [x] is [undefined] or " +
@@ -1545,11 +1535,6 @@ d$$$42$readers$42$ = { "|": function(src)
                        "8": f$$parse_number_or_symbol,
                        "9": f$$parse_number_or_symbol,
                        "-": f$$parse_number_or_symbol,
-
-                       " ": f$$parse_spaced,
-                       "\t": f$$parse_spaced,
-                       "\n": f$$parse_spaced,
-                       "\r": f$$parse_spaced,
 
                        "default": f$$parse_symbol
                      };
