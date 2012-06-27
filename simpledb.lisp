@@ -1,9 +1,11 @@
 (defvar *transaction* (list))
-
 (defvar *changelog* (list))
 
+(defvar *logwrite* null)
+
 (defun commit ()
-  (display (str-value `(progn ,@*changelog*) false))
+  (when *logwrite*
+    (funcall *logwrite* (str-value `(progn ,@*changelog*) false)))
   (setf *changelog* (list))
   (setf *transaction* (list)))
 
@@ -48,4 +50,13 @@
          `(dotimes (,rno (length (. ,',name ,',(first fields))))
             (let ((,var (list ',',name ,rno)))
               ,@body))))
+     (defmacro ,#"with-{name}" (var &rest body)
+       `(symbol-macrolet ,(map (lambda (f)
+                                 `(,f (aref (. ,',name ,f) (second ,var))))
+                               ',fields)
+          ,@body))
      ',name))
+
+(export *logwrite*
+        defrecord
+        commit rollback)
