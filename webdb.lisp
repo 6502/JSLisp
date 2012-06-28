@@ -24,7 +24,7 @@
   (js-code "parseFloat(d$$x)"))
 
 (defun web-eval (x)
-  (eval (parse-value x)))
+  (toplevel-eval (parse-value x)))
 
 (defun my-handler (request response)
   (let ((url (. request url))

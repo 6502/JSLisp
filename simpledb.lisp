@@ -34,6 +34,10 @@
 
 (defmacro defrecord (name fields)
   `(progn
+     (unless (= 0 (length *transaction*) (length *changelog*))
+       (error "Record type definition is not allowed in a transaction"))
+     (when *logwrite*
+       (funcall *logwrite* (str-value `(defrecord ,',name ,',fields) false)))
      (push ',name *tables*)
      (defvar ,name (js-object ,@(map (lambda (f)
                                        `(,f (list)))

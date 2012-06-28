@@ -45,7 +45,7 @@
       (let ((row (create-element "div")))
         (setf row.textContent x)
         (set-style row
-                   pointer "pointer")
+                   cursor "default")
         (set-handler row onmouseover (set-style row backgroundColor "#FFFF00"))
         (set-handler row onmouseout (set-style row backgroundColor "#FFFFFF"))
         (set-handler row onclick (records-window x))
