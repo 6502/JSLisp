@@ -3,7 +3,8 @@
 
 (defvar fs (js-code "require('fs')"))
 
-(load (get-file "webdb.log"))
+(let ((*no-transactions* true))
+  (load (get-file "webdb.log")))
 
 (display "Data loaded")
 
@@ -48,7 +49,6 @@
                    ((find ".png" url)
                     "image/png")
                    (true "text/plain"))))
-      ;(display ~"{url} --> {ctype}")
       (funcall (. response writeHead)
                200 (js-object ("Content-Type" ctype)))
       (funcall (. response end) content))))
