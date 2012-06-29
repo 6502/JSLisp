@@ -289,9 +289,9 @@ function process()
     base = base.substr(li == -1 ? 0 : li+2+prompt_message.length).replace(/\t\n *$/,"");
     try
     {
-        var src = f$$reader_function(base);
+        var src = f$$make_source(base);
         f$$skip_spaces(src);
-        while (src() != undefined)
+        while (src.s[src.i] != undefined)
         {
             var parsed = f$$parse_value(src);
             var result = f$$toplevel_eval(parsed);

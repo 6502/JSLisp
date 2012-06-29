@@ -238,13 +238,13 @@ and [(log -1) -> NaN]).
 JsLisp reader allows customization like Common Lisp, but using a
 different approach.
 
-Parse functions take as only argument a "source" that is a callable
-object (closure) that accepts a single integer argument; when passed
-[0] it returns the current character in the stream and when passed [1]
-advances to next character (still returning the old character).
+Parse functions take as only argument a "source" that is an object
+on which you can call either [(current-char src)] to get the
+current character or [(next-char src)] to return current character
+and advance to next at the same time.
 
-To read from a string there is a predefined [(reader-function s)]
-that returns a suitable closure for scanning the string [s].
+To read from a string there is a predefined [(make-source s)]
+that returns a suitable scanner the string [s].
 
 Reader customization can be done mainly in two ways:
 
@@ -267,7 +267,7 @@ transformation could lead to a subjectively more readable code.
 [Reader customization example 1
 (setf (reader "{")
       (lambda (src)
-        (funcall src 1)
+        (next-char src)
         (let ((form (parse-delimited-list src "}")))
           (let ((i (index '-> form)))
             (if (>= i 0)

@@ -1165,17 +1165,17 @@ If only one parameter is passed it's assumed to be [stop]."
 
 (defun next-char (src)
   "Advances to next character or character source [src]"
-  (funcall src 1))
+  (js-code "(d$$src.i++)"))
 
 (defun current-char (src)
   "Returns current character from character source [src]"
-  (funcall src))
+  (js-code "(d$$src.s[d$$src.i])"))
 
 ; String interpolation reader
 (setf (reader "~")
       (lambda (src)
-        (funcall src 1)
-        (if (= (funcall src) "\"")
+        (next-char src)
+        (if (= (current-char src) "\"")
             (let ((x (parse-value src))
                   (pieces (list))  ; list of parts
                   (part "")        ; current part
@@ -1450,14 +1450,14 @@ Each field is a list of an unevaluated atom as name and a value."
       (let ((oldf #'parse-value))
         (lambda (src)
           (when (string? src)
-            (setf src (reader-function src)))
-          (if (= (funcall src) ".")
+            (setf src (make-source src)))
+          (if (= (current-char src) ".")
               (progn
-                (funcall src 1)
+                (next-char src)
                 '.)
               (do ((x (funcall oldf src)))
-                  ((/= (funcall src) ".") x)
-                (funcall src 1)
+                  ((/= (current-char src) ".") x)
+                (next-char src)
                 (setf x `(. ,x ,(funcall oldf src))))))))
 
 (incf *stopchars* ".")

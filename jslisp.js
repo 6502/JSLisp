@@ -1276,12 +1276,12 @@ defun("skip-spaces",
       {
           while(true)
           {
-              while (d$$$42$spaces$42$.indexOf(src()) != -1)
-                  src(1);
-              if (src() === ';')
+              while (d$$$42$spaces$42$.indexOf(src.s[src.i]) != -1)
+                  src.i++;
+              if (src.s[src.i] === ';')
               {
-                  while (src() != undefined && src() != "\n")
-                      src(1);
+                  while (src.s[src.i] != undefined && src.s[src.i] != "\n")
+                      src.i++;
               }
               else
               {
@@ -1310,20 +1310,20 @@ defun("parse-number-or-symbol",
       function(src)
       {
           var res = "";
-          if (src() === "-")
-              res += src(1);
-          while (src() >= "0" && src() <= "9")
-              res += src(1);
-          if (src() === ".")
+          if (src.s[src.i] === "-")
+              res += src.s[src.i++];
+          while (src.s[src.i] >= "0" && src.s[src.i] <= "9")
+              res += src.s[src.i++];
+          if (src.s[src.i] === ".")
           {
-              res += src(1);
-              while (src() >= "0" && src() <= "9")
-                  res += src(1);
+              res += src.s[src.i++];
+              while (src.s[src.i] >= "0" && src.s[src.i] <= "9")
+                  res += src.s[src.i++];
           }
-          if (res != "-" && f$$parse_stopping(src()))
+          if (res != "-" && f$$parse_stopping(src.s[src.i]))
               return parseFloat(res);
-          while (!f$$parse_stopping(src()))
-              res += src(1);
+          while (!f$$parse_stopping(src.s[src.i]))
+              res += src.s[src.i++];
           var ix = res.indexOf(":");
           if (ix > 0) return f$$intern(res.substr(0, ix), res.substr(ix+1));
           return f$$intern(res);
@@ -1340,30 +1340,25 @@ defun("parse-delimited-list",
           f$$skip_spaces(src);
           var oldstops = d$$$42$stopchars$42$;
           d$$$42$stopchars$42$ += stop;
-          while (src() != undefined && src() != stop)
+          while (src.s[src.i] != undefined && src.s[src.i] != stop)
           {
               res.push(f$$parse_value(src));
               f$$skip_spaces(src);
           }
           d$$$42$stopchars$42$ = oldstops;
-          if (src() != stop)
+          if (src.s[src.i] != stop)
               throw new String(stringify(stop) + " expected");
-          src(1);
+          src.i++;
           return res;
       },
       [f$$intern("src"), f$$intern("stop")]);
 
-defun("reader-function",
-      "[[(reader-function x)]]\n" +
-      "Creates a character source function that will produce the content of the specified string [x].",
+defun("make-source",
+      "[[(make-source x)]]\n" +
+      "Creates a character source that will produce the content of the specified string [x].",
       function(s)
       {
-          var i = 0;
-          return function(n) {
-              var c = s[i];
-              i+=(n|0);
-              return c;
-          };
+          return ({"s":s, i:0});
       },
       [s$$x]);
 
@@ -1373,10 +1368,10 @@ defun("parse-symbol",
       function(src, start)
       {
           var res = start || "";
-          while (!f$$parse_stopping(src()))
+          while (!f$$parse_stopping(src.s[src.i]))
           {
-              if (src() === "\\") src(1);
-              res += src(1);
+              if (src.s[src.i] === "\\") src.i++;
+              res += src.s[src.i++];
           }
           if (res === "")
               throw new String("Value expected");
@@ -1388,46 +1383,46 @@ defun("parse-symbol",
 
 d$$$42$hash_readers$42$ = { "'": function(src)
                             {
-                                src(1);
+                                src.i++;
                                 return [f$$intern("function"), f$$parse_value(src)]
                             },
 
                             "\\": function(src)
                             {
-                                src(1);
-                                return src(1);
+                                src.i++;
+                                return src.s[src.i++];
                             },
 
                             ".": function(src)
                             {
-                                src(1);
-                                return f$$eval(f$$parse_value(src));
+                                src.i++;
+                                return f$$toplevel_eval(f$$parse_value(src));
                             }
                           };
 
 d$$$42$readers$42$ = { "|": function(src)
                        {
-                           src(1);
+                           src.i++;
                            var res = "";
-                           while (src() != undefined && src() != '|')
+                           while (src.s[src.i] != undefined && src.s[src.i] != '|')
                            {
-                               if (src() === '\\') src(1);
-                               res += src(1);
+                               if (src.s[src.i] === '\\') src.i++;
+                               res += src.s[src.i++];
                            }
-                           if (src(1) != '|') throw new String("'|' expected");
+                           if (src.s[src.i++] != '|') throw new String("'|' expected");
                            return f$$intern(res);
                        },
 
                        '"': function(src)
                        {
-                           src(1);
+                           src.i++;
                            var res = "";
-                           while (src() != undefined && src() != '"')
+                           while (src.s[src.i] != undefined && src.s[src.i] != '"')
                            {
-                               if (src() === '\\')
+                               if (src.s[src.i] === '\\')
                                {
-                                   src(1);
-                                   var c = src(1);
+                                   src.i++;
+                                   var c = src.s[src.i++];
                                    if (c === "n") res += "\n";
                                    else if (c === "b") res += "\b";
                                    else if (c === "t") res += "\t";
@@ -1437,13 +1432,13 @@ d$$$42$readers$42$ = { "|": function(src)
                                    else if (c === "r") res += "\r";
                                    else if (c === "0") {
                                        var oct = 0;
-                                       while (src() >= "0" && src <= "7")
-                                           oct = oct*8 + (src(1).charCodeAt(0) - 48);
+                                       while (src.s[src.i] >= "0" && src.s[src.i] <= "7")
+                                           oct = oct*8 + (src.s[src.i++].charCodeAt(0) - 48);
                                        res += String.fromCharCode(oct);
                                    }
                                    else if (c === "x") {
-                                       var hx1 = "0123456789ABCDEF".indexOf(src(1).toUpperCase());
-                                       var hx2 = "0123456789ABCDEF".indexOf(src(1).toUpperCase());
+                                       var hx1 = "0123456789ABCDEF".indexOf(src.s[src.i++].toUpperCase());
+                                       var hx2 = "0123456789ABCDEF".indexOf(src.s[src.i++].toUpperCase());
                                        if (hx1 < 0 || hx2 < 0) throw new String("Invalid hex char escape");
                                        res += String.fromCharCode(hx1*16 + hx2);
                                    }
@@ -1452,7 +1447,7 @@ d$$$42$readers$42$ = { "|": function(src)
                                        hx = 0;
                                        for (var i=0; i<4; i++)
                                        {
-                                           var d = "0123456789ABCDEF".indexOf(src(1).toUpperCase());
+                                           var d = "0123456789ABCDEF".indexOf(src.s[src.i++].toUpperCase());
                                            if (d < 0) throw new String("Invalid unicode char escape");
                                            hx = hx*16 + d;
                                        }
@@ -1465,31 +1460,31 @@ d$$$42$readers$42$ = { "|": function(src)
                                }
                                else
                                {
-                                   res += src(1);
+                                   res += src.s[src.i++];
                                }
                            }
-                           if (src(1) != '"') throw new String("'\"' expected");
+                           if (src.s[src.i++] != '"') throw new String("'\"' expected");
                            return res;
                        },
 
                        "'": function(src)
                        {
-                           src(1);
+                           src.i++;
                            return [f$$intern("quote"), f$$parse_value(src)];
                        },
 
                        "`": function(src)
                        {
-                           src(1);
+                           src.i++;
                            return [f$$intern("`"), f$$parse_value(src)];
                        },
 
                        ",": function(src)
                        {
-                           src(1);
-                           if (src() === '@')
+                           src.i++;
+                           if (src.s[src.i] === '@')
                            {
-                               src(1);
+                               src.i++;
                                return [f$$intern(",@"), f$$parse_value(src)];
                            }
                            else
@@ -1500,8 +1495,8 @@ d$$$42$readers$42$ = { "|": function(src)
 
                        "#": function(src)
                        {
-                           src(1);
-                           var f = d$$$42$hash_readers$42$[src()];
+                           src.i++;
+                           var f = d$$$42$hash_readers$42$[src.s[src.i]];
                            if (f) return f(src);
                            throw new String("Unsupported hash combination");
                        },
@@ -1512,14 +1507,15 @@ d$$$42$readers$42$ = { "|": function(src)
                            if (src.location)
                            {
                                // copy source location info if available
-                               srcstart = src.location.slice();
+                               srcstart = [src.location, src.i];
                            }
-                           src(1);
+                           src.i++;
                            var result = f$$parse_delimited_list(src, ")");
                            if (src.location)
                            {
                                // copy end of list source location info if available
-                               result.location = srcstart.concat(src.location.slice(1))
+                               srcstart.push(src.i);
+                               result.location = srcstart;
                            }
                            return result;
                        },
@@ -1545,11 +1541,11 @@ defun("parse-value",
       function(src)
       {
           if (src.constructor === String)
-              src = f$$reader_function(src);
+              src = f$$make_source(src);
           f$$skip_spaces(src);
-          if (src() === undefined)
+          if (src.s[src.i] === undefined)
               throw new String("Value expected");
-          return (d$$$42$readers$42$[src()] || d$$$42$readers$42$["default"])(src);
+          return (d$$$42$readers$42$[src.s[src.i]] || d$$$42$readers$42$["default"])(src);
       },
       [f$$intern("src")]);
 
@@ -1699,30 +1695,13 @@ defun("load",
       function(src, name)
       {
           if (f$$string$63$(src))
-          {
-              var i = 0;
-              var src_org = src;
-              src = function(d) {
-                  d |= 0;
-                  if (name && d && src_org[i] === "\n")
-                  {
-                      src.location[1]++;
-                      src.location[2] = 0;
-                  }
-                  i += d;
-                  if (name)
-                      src.location[2] += d;
-                  return src_org[i-d];
-              };
-              if (name)
-                  src.location = [name, 1, 1];
-          }
+              src = ({"s":src, "i":0, "location": name});
           var nforms = 0;
           var last = null;
           try
           {
               f$$skip_spaces(src);
-              while (src())
+              while (src.s[src.i])
               {
                   var phase = "parsing";
                   var form = f$$parse_value(src);

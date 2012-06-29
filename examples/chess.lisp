@@ -114,7 +114,7 @@
 ;; [+ x 1] -> (aref *sq* (+ x 1))
 (setf (reader "[")
       (lambda (src)
-        (funcall src 1)
+        (next-char src)
         (let ((x (parse-delimited-list src "]")))
           (if (> (length x) 1)
               `(aref *sq* ,x)

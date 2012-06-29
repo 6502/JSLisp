@@ -20,7 +20,7 @@
 ;; Install "[col row]" as a reader syntax for (list col row)
 (setf (reader "[")
       (lambda (src)
-              (funcall src 1)
+              (next-char src)
               `(list ,@(parse-delimited-list src "]"))))
 
 (defmacro/f col (x)
