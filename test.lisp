@@ -805,6 +805,12 @@
         (map #'funcall f))
       "(0 1 2 3 4 5 6 7 8 9)")
 
+(test (let ((x0 100)
+            (x 150)
+            (x1 200))
+        (or (<= x0 x x1) (<= x1 x x0)))
+      "true")
+
 (display (+ test-passed "/" test-total
             " tests passed in "
             (- (clock) test-start) "ms"))

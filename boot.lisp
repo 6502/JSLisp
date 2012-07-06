@@ -524,9 +524,9 @@
       (true
        (let ((x1 (gensym-noprefix))
              (x2 (gensym-noprefix)))
-         `(let ((x1 ,(aref args 0))
-                (x2 ,(aref args 1)))
-            (and (,',name x1 x2) (,',name x2 ,@(slice args 2)))))))))
+         `(let ((,x1 ,(aref args 0))
+                (,x2 ,(aref args 1)))
+            (and (,',name ,x1 ,x2) (,',name ,x2 ,@(slice args 2)))))))))
 
 (defmacro defrelop-func (name)
   "Defines a variadic relational operator function given a corresponding macro name"
