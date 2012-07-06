@@ -28,11 +28,11 @@
     (append-child slide content)
     (append-child (. document body) slide)
     (set-handler slide oncontextmenu
-                 (funcall (. event preventDefault))
-                 (funcall (. event stopPropagation)))
+                 (event.preventDefault)
+                 (event.stopPropagation))
     (set-handler slide onmousedown
-                 (funcall (. event preventDefault))
-                 (funcall (. event stopPropagation))
+                 (event.preventDefault)
+                 (event.stopPropagation)
                  (cond
                    ((= event.button 0) (next-slide))
                    ((= event.button 1) (fullview))
@@ -273,8 +273,8 @@
                                        "rgba(0,0,0,0)"))
         (let ((x x))
           (set-handler glass onmousedown
-                       (funcall event.preventDefault)
-                       (funcall event.stopPropagation)
+                       (event.preventDefault)
+                       (event.stopPropagation)
                        (setf x.skip (not x.skip))
                        (set-style glass backgroundColor (if x.skip
                                                             "rgba(0,0,0,0.25)"
@@ -311,7 +311,74 @@
             (show-slide (aref *sequence* *index*).div 1)))
     (show-window w)))
 
+(defvar *spotglass* null)
+
+(defun showspot ()
+  (unless *spotglass*
+    (setf *spotglass* (create-element "div"))
+    (set-style *spotglass*
+               position "absolute"
+               px/left 0
+               px/top 0
+               px/right 0
+               px/bottom 0
+               backgroundColor "rgba(0,0,0,0.0001)")
+    (append-child document.body *spotglass*)
+    (let ((x0 0)
+          (y0 0)
+          (x1 0)
+          (y1 0)
+          (w *spotglass*.offsetWidth)
+          (h *spotglass*.offsetHeight))
+      (labels ((redraw ()
+                 (do () ((null? *spotglass*.firstChild))
+                   (remove-child *spotglass* *spotglass*.firstChild))
+                 (let ((x0 (min x0 x1))
+                       (x1 (max x0 x1))
+                       (y0 (min y0 y1))
+                       (y1 (max y0 y1)))
+                   (dolist ((xa ya xb yb) (list (list 0 0 w y0)
+                                                (list 0 y0 x0 y1)
+                                                (list x1 y0 w y1)
+                                                (list 0 y1 w h)))
+                     (let ((shade (create-element "div")))
+                       (set-style shade
+                                  position "absolute"
+                                  px/left xa
+                                  px/top ya
+                                  px/width (- xb xa)
+                                  px/height (- yb ya)
+                                  backgroundColor "rgba(0,0,0,0.25)")
+                       (append-child *spotglass* shade))))))
+        (redraw)
+        (set-handler *spotglass* onmousedown
+                     (event.preventDefault)
+                     (event.stopPropagation)
+                     (let* ((exy (event-pos event))
+                            (sxy (element-pos *spotglass*))
+                            (x (- (first exy) (first sxy)))
+                            (y (- (second exy) (second sxy))))
+                       (if (and (or (<= x0 x x1) (<= x1 x x0))
+                                (or (<= y0 y y1) (<= y1 y y0)))
+                         (progn
+                           (remove-child document.body *spotglass*)
+                           (setf *spotglass* null))
+                         (progn
+                           (setf x0 x)
+                           (setf y0 y)
+                           (setf x1 x)
+                           (setf y1 y)
+                           (redraw)
+                           (tracking (lambda (ex ey)
+                                       (let ((x (- ex (first sxy)))
+                                             (y (- ey (second sxy))))
+                                         (setf x1 x)
+                                         (setf y1 y)
+                                         (redraw))))))))))))
+
 (defun main ()
+  (set-handler document onkeydown
+               (showspot))
   (start)
   (setf *full-list* (load-slides "slides.txt"))
   (rescale-slides)
