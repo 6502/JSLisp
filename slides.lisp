@@ -69,6 +69,7 @@
 (defobject para (text))
 (defobject title (text))
 (defobject pre (text))
+(defobject img (src))
 
 (defvar *full-list* (list))
 (defvar *sequence* (list))
@@ -133,6 +134,18 @@
            (setf p.innerHTML (fix c.text))
            (set-style p cursor "default")
            (append-child div p)))
+        ((img? c)
+         (setf ul null)
+         (let ((container (create-element "div"))
+               (img (create-element "img")))
+           (set-style container
+                      cursor "default"
+                      textAlign "center")
+           (setf img.src c.src)
+           (set-style img
+                      cursor "default")
+           (append-child div container)
+           (append-child container img)))
         (true (error "Unknown content type"))))
     div))
 
@@ -172,6 +185,10 @@
                       (last slides).content))
              (incf text (+ "\n" L))
              (next)))
+          ((= (slice L 0 2) "<<")
+           (push (new-img (slice L 2 (- (length L) 2)))
+                 (last slides).content)
+           (next))
           (true
            (do ((text ""))
                ((or (> i (length lines)) (= L ""))
