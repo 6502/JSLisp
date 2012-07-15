@@ -2051,3 +2051,24 @@ that field. When absent the default value is assumed to be [undefined]."
         (setf (arglist newm) (arglist oldm))
         (setf (documentation newm) (documentation oldm))
         newm))
+
+; tracing
+(defmacro trace (name)
+  `(unless (. #',name org-func)
+     (let ((i "")
+           (org-func #',name))
+       (setf #',name
+             (lambda (&rest args)
+               (display (+ i (str-value (append (list ',name) args) false)))
+               (incf i "  ")
+               (let ((result (apply org-func args)))
+                 (setf i (slice i 2))
+                 (display (+ i "--> " (str-value result false)))
+                 result)))
+       (setf (. #',name org-func) org-func)
+       ',name)))
+
+(defmacro untrace (name)
+  `(when (. #',name org-func)
+     (setf #',name (. #',name org-func))
+     ',name))
