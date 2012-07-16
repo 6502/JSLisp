@@ -265,72 +265,77 @@
   (setf *width* *background*.offsetWidth)
   (setf *height* *background*.offsetHeight))
 
+(defvar *fullview* null)
+
 (defun fullview ()
-  (let ((w (window 10 10
-                   (- *background*.offsetWidth 20)
-                   (- *background*.offsetHeight 20)
-                   :title "Slides"))
-        (full-list (list)))
-    (show-slide null -1)
-    (set-style (window-client w)
-               overflow "hidden"
-               backgroundColor "#EEEEEE")
-    (set-style (window-frame w)
-               backgroundColor "#EEEEEE")
-    (dolist (x *full-list*)
-      (let ((div x.div)
-            (glass (create-element "div"))
-            (container (create-element "div")))
-        (append-child container div)
-        (append-child container glass)
-        (set-style glass
-                   position "absolute"
-                   px/left 0
-                   px/top 0
-                   width "100%"
-                   height "100%"
-                   backgroundColor (if x.skip
-                                       "rgba(0,0,0,0.25)"
-                                       "rgba(0,0,0,0)"))
-        (let ((x x))
-          (set-handler glass onmousedown
-                       (event.preventDefault)
-                       (event.stopPropagation)
-                       (setf x.skip (not x.skip))
-                       (set-style glass backgroundColor (if x.skip
-                                                            "rgba(0,0,0,0.25)"
-                                                            "rgba(0,0,0,0)"))))
-        (push container full-list)
-        (append-child (window-client w) container)))
-    (setf (window-resize-cback w)
-          (lambda (x0 y0 x1 y1)
-            (let* ((n (length full-list))
-                   (ww (- x1 x0))
-                   (hh (- y1 y0))
-                   (rc (1+ (floor (sqrt (1- n)))))
-                   (w1 (/ ww rc))
-                   (h1 (/ hh rc)))
-              (dotimes (i (length full-list))
-                (let ((div (aref full-list i)))
-                  (set-style div
-                             position "absolute"
-                             px/left (* w1 (% i rc))
-                             px/top (* h1 (floor (/ i rc)))
-                             px/width (- ww rc)
-                             px/height (- hh rc)
-                             backgroundColor "#FFFFFF"
-                             overflow "hidden"
-                             WebkitTransform ~"scale({(/ 1 rc)},{(/ 1 rc)})"
-                             MozTransform ~"scale({(/ 1 rc)},{(/ 1 rc)})"
-                             WebkitTransformOrigin "0% 0%"
-                             MozTransformOrigin "0% 0%"))))))
-    (setf (window-close-cback w)
-          (lambda ()
-            (setf *sequence* (filter (lambda (x) (not x.skip))
-                                     *full-list*))
-            (setf *index* 0)
-            (show-slide (aref *sequence* *index*).div 1)))
-    (show-window w)))
+  (unless *fullview*
+    (let ((w (window 10 10
+                     (- *background*.offsetWidth 20)
+                     (- *background*.offsetHeight 20)
+                     :title "Slides"))
+          (full-list (list)))
+      (show-slide null -1)
+      (set-style (window-client w)
+                 overflow "hidden"
+                 backgroundColor "#EEEEEE")
+      (set-style (window-frame w)
+                 backgroundColor "#EEEEEE")
+      (dolist (x *full-list*)
+        (let ((div x.div)
+              (glass (create-element "div"))
+              (container (create-element "div")))
+          (append-child container div)
+          (append-child container glass)
+          (set-style glass
+                     position "absolute"
+                     px/left 0
+                     px/top 0
+                     width "100%"
+                     height "100%"
+                     backgroundColor (if x.skip
+                                         "rgba(0,0,0,0.25)"
+                                         "rgba(0,0,0,0)"))
+          (let ((x x))
+            (set-handler glass onmousedown
+                         (event.preventDefault)
+                         (event.stopPropagation)
+                         (setf x.skip (not x.skip))
+                         (set-style glass backgroundColor (if x.skip
+                                                              "rgba(0,0,0,0.25)"
+                                                              "rgba(0,0,0,0)"))))
+          (push container full-list)
+          (append-child (window-client w) container)))
+      (setf (window-resize-cback w)
+            (lambda (x0 y0 x1 y1)
+              (let* ((n (length full-list))
+                     (ww (- x1 x0))
+                     (hh (- y1 y0))
+                     (rc (1+ (floor (sqrt (1- n)))))
+                     (w1 (/ ww rc))
+                     (h1 (/ hh rc)))
+                (dotimes (i (length full-list))
+                  (let ((div (aref full-list i)))
+                    (set-style div
+                               position "absolute"
+                               px/left (* w1 (% i rc))
+                               px/top (* h1 (floor (/ i rc)))
+                               px/width (- ww rc)
+                               px/height (- hh rc)
+                               backgroundColor "#FFFFFF"
+                               overflow "hidden"
+                               WebkitTransform ~"scale({(/ 1 rc)},{(/ 1 rc)})"
+                               MozTransform ~"scale({(/ 1 rc)},{(/ 1 rc)})"
+                               WebkitTransformOrigin "0% 0%"
+                               MozTransformOrigin "0% 0%"))))))
+      (setf (window-close-cback w)
+            (lambda ()
+              (setf *fullview* null)
+              (setf *sequence* (filter (lambda (x) (not x.skip))
+                                       *full-list*))
+              (setf *index* 0)
+              (show-slide (aref *sequence* *index*).div 1)))
+      (show-window w)
+      (setf *fullview* w))))
 
 (defvar *spotglass* null)
 
@@ -397,11 +402,12 @@
 
 (defun main ()
   (set-handler document onkeydown
-               (case event.which
-                 (32 (spot))
-                 (37 (prev-slide))
-                 (39 (next-slide))
-                 (27 (fullview))))
+               (unless *fullview*
+                 (case event.which
+                   (32 (spot))
+                   (37 (unless *spotglass* (prev-slide)))
+                   (39 (unless *spotglass* (next-slide)))
+                   (27 (unless *spotglass* (fullview))))))
   (start)
   (setf *full-list* (load-slides "slides.txt"))
   (rescale-slides)
