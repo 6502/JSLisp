@@ -1320,6 +1320,14 @@ defun("parse-number-or-symbol",
               while (src.s[src.i] >= "0" && src.s[src.i] <= "9")
                   res += src.s[src.i++];
           }
+          if (src.s[src.i] == "e" || src.s[src.i] == "E")
+          {
+              res += src.s[src.i++];
+              if (src.s[src.i] == "-" || src.s[src.i] == "+")
+                  res += src.s[src.i++];
+              while (src.s[src.i] >= "0" && src.s[src.i] <= "9")
+                  res += src.s[src.i++];
+          }
           if (res != "-" && f$$parse_stopping(src.s[src.i]))
               return parseFloat(res);
           while (!f$$parse_stopping(src.s[src.i]))
