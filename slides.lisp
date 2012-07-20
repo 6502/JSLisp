@@ -395,7 +395,7 @@
                                          (setf y1 y)
                                          (redraw)))))))))))
 
-(defun main ()
+(defun slideshow (&optional (name "slides.txt"))
   (set-handler document onkeydown
                (case event.which
                  (32 (spot))
@@ -403,10 +403,10 @@
                  (39 (next-slide))
                  (27 (fullview))))
   (start)
-  (setf *full-list* (load-slides "slides.txt"))
+  (setf *full-list* (load-slides name))
   (rescale-slides)
   (setf *index* 0)
   (setf *sequence* (slice *full-list*))
   (show-slide (aref *sequence* *index*).div 1))
 
-(main)
+(export slideshow)
