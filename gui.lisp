@@ -544,6 +544,81 @@
              (set-coords layout 0 0 (- x1 x0) (- y1 y0))))
      ,@body))
 
+(defun ask-color (prompt color cback)
+  "Asks for a color (initially [color]) and calls [cback] passing the selection or [null]"
+  (with-window (w (100 100 300 320 :title prompt :close false)
+                  ((canvas (let ((c (create-element "canvas")))
+                             (set-style c
+                                        position "absolute"
+                                        cursor "pointer")
+                             c))
+                   (ok (button "OK" (lambda ()
+                                      (funcall cback color)
+                                      (hide-window w))))
+                   (cancel (button "Cancel" (lambda ()
+                                              (funcall cback null)
+                                              (hide-window w)))))
+                  (:V :spacing 8 :border 8
+                      (:Hdiv canvas)
+                      (:H :size 30
+                          (:H) (:Hdiv ok :size 80) (:H) (:Hdiv cancel :size 80) (:H))))
+    (labels ((redraw ()
+               (let* ((width canvas.offsetWidth)
+                      (height canvas.offsetHeight)
+                      (r (/ (min width height) 2.25))
+                      (cx (- (/ width 2) (/ r 8)))
+                      (cy (/ height 2))
+                      (bx (+ cx r (/ r 8)))
+                      (v (/ (max (first color) (second color) (third color))
+                            255)))
+                 (setf canvas.width width)
+                 (setf canvas.height height)
+                 (with-canvas canvas
+                   (rect (- bx 2) (- cy r) 4 (* 2 r))
+                   (fill-style "#A0A0A0")
+                   (fill)
+                   (let ((vy (* 2 r v)))
+                     (fill-style "#000000")
+                     (circle bx (- (+ cy r) vy) 4)
+                     (fill)))
+                 (let* ((ctx (canvas.getContext "2d"))
+                        (idata (ctx.getImageData 0 0 width height))
+                        (data idata.data)
+                        (wp 0)
+                        (wheel (list)))
+                   (dotimes (i 256) (push (list 255 i 0) wheel))          ; R= G+ B0
+                   (dotimes (i 256) (push (list (- 255 i) 255 0) wheel))  ; R- G= B0
+                   (dotimes (i 256) (push (list 0 255 i) wheel))          ; R0 G= B+
+                   (dotimes (i 256) (push (list 0 (- 255 i) 255) wheel))  ; R0 G- B=
+                   (dotimes (i 256) (push (list i 0 255) wheel))          ; R+ G0 B=
+                   (dotimes (i 256) (push (list 255 0 (- 255 i)) wheel))  ; R= G0 B-
+                   (dotimes (y height)
+                     (let ((dy (/ (- y cy) r)))
+                       (dotimes (x width)
+                         (let* ((dx (/ (- x cx) r))
+                                (d2 (+ (* dx dx) (* dy dy))))
+                           (when (< d2 1)
+                             (let* ((ia (floor (* 1536 (/ (atan2 dy dx) pi 2))))
+                                    ((r g b) (aref wheel (% (+ 1536 ia) 1536)))
+                                    (k2 (* 255 (- 1 d2)))
+                                    (ir (floor (* v (+ (* r d2) k2))))
+                                    (ig (floor (* v (+ (* g d2) k2))))
+                                    (ib (floor (* v (+ (* b d2) k2)))))
+                               (setf (aref data wp) ir)
+                               (setf (aref data (+ wp 1)) ig)
+                               (setf (aref data (+ wp 2)) ib)
+                               (setf (aref data (+ wp 3)) 255))))
+                         (incf wp 4))))
+                   (ctx.putImageData idata 0 0)))))
+      (set-handler canvas onmousedown
+                   (event.stopPropagation)
+                   (event.preventDefault))
+      (setf (window-resize-cback w)
+            (lambda (x0 y0 x1 y1)
+              (set-coords layout 0 0 (- x1 x0) (- y1 y0))
+              (redraw))))
+    (show-window w)))
+
 (export set-style
         element-pos event-pos
         show hide
