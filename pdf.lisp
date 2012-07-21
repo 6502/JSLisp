@@ -1,5 +1,10 @@
 (defvar *pdf* null)
 
+(defun pt (x) x)
+(defun mm (x) (* x #.(/ 72 25.4)))
+(defun x () *pdf*.x)
+(defun y () *pdf*.y)
+
 (defvar PDFDocument (js-code "require('pdfkit')"))
 
 (defun new-pdf (&optional (size "a4") (layout "portrait"))
@@ -18,8 +23,26 @@
           (*pdf*.addPage (js-object (size size))))
       (*pdf*.addPage)))
 
-(defun text (text &optional x y)
-  (*pdf*.text text x y))
+(defun text (text &optional x y
+                  &key align
+                       width height
+                       columns column-gap
+                       indent
+                       paragraph-gap line-gap
+                       word-spacing character-spacing
+                       fill stroke)
+  (*pdf*.text text x y
+              (js-object (align align)
+                         (width width)
+                         (height height)
+                         (columns columns)
+                         (columnGap column-gap)
+                         (indent indent)
+                         (paragraphGap paragraph-gap)
+                         (wordSpacing word-spacing)
+                         (characterSpacing character-spacing)
+                         (fill fill)
+                         (stroke stroke))))
 
 (defun font (name &optional style)
   (*pdf*.font name style))
@@ -76,6 +99,7 @@
   (*pdf*.restore))
 
 (export pdf new-page text font font-size down
+        x y mm pt
         line-width
         stroke-color fill-color
         stroke-opacity fill-opacity
