@@ -479,6 +479,32 @@
   "Sets content of a text [input] to a new [value]"
   (setf input.lastChild.value value))
 
+(defun text-area (caption)
+  "Creates a multiline input field with specified [caption]"
+  (let ((input (create-element "textarea"))
+        (label (create-element "div"))
+        (container (create-element "div")))
+    (set-style container
+               position "absolute")
+    (set-style label
+               %/fontSize 80
+               fontWeight "bold")
+    (set-style input
+               %/fontSize 110
+               position "absolute"
+               px/left 0
+               px/right 0
+               px/top 16
+               px/bottom 0
+               border "none"
+               px/padding 4
+               px/margin 0
+               backgroundColor "#EEEEEE")
+    (setf label.textContent caption)
+    (append-child container label)
+    (append-child container input)
+    container))
+
 (defun select (caption values)
   "Creates an select field with specified [caption] and list of [values]"
   (let ((select (create-element "select"))
@@ -722,5 +748,6 @@
         button
         radio checkbox checked set-checked
         input text set-text
+        text-area
         group
         select selection set-selection)

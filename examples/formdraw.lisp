@@ -115,10 +115,7 @@
                                     (funcall e.propedit)))))))
 
 (defmethod draw (e) (editor? e)
-  (fill-rect (- e.x0 (/ 4 *sf*))
-             (- e.y0 (/ 4 *sf*))
-             (+ e.x1 (/ 4 *sf*))
-             (+ e.y1 (/ 4 *sf*))
+  (fill-rect e.x0 e.y0 e.x1 e.y1
              "rgba(255,0,0,0.25)")
   (with-canvas *canvas*
     (save)
@@ -126,11 +123,9 @@
     (scale *sf* *sf*)
     (line-width (/ 2 *sf*))
     (stroke-style "#FF0000")
-    (rect (- e.x0 (/ 4 *sf*))
-          (- e.y0 (/ 4 *sf*))
-          (+ (- e.x1 e.x0) (/ 8 *sf*))
-          (+ (- e.y1 e.y0) (/ 8 *sf*)))
-    (stroke)))
+    (rect e.x0 e.y0 (- e.x1 e.x0) (- e.y1 e.y0))
+    (stroke)
+    (restore)))
 
 (defun remove-editors ()
   (let ((old-len (length *current-page*.entities)))
@@ -152,14 +147,15 @@
 
 ;; Rectangle object
 
-(defobject rect (x0 y0 x1 y1 width stroke fill))
+(defobject rect (x0 y0 x1 y1
+                    (color (list 255 255 0))))
 
 (defmethod edit (e) (rect? e)
   (ask-color "Fill color"
-             e.fill
+             e.color
              (lambda (color)
                (when color
-                 (setf e.fill color)
+                 (setf e.color color)
                  (setf *dirty* true)))))
 
 (defmethod hit (e p) (rect? e)
@@ -168,13 +164,14 @@
        (open-editor e)))
 
 (defmethod draw (e) (rect? e)
-  (fill-rect e.x0 e.y0 e.x1 e.y1 (css-rgb e.fill))
-  (when (> e.width 0)
-    (frame e.x0 e.y0 e.x1 e.y1 e.width (css-rgb e.stroke))))
+  (fill-rect e.x0 e.y0 e.x1 e.y1 (css-rgb e.color)))
 
 ;; Image object
 
-(defobject image (x0 y0 x1 y1 img))
+(defobject image (x0 y0 x1 y1
+                     (img (let ((img (create-element "img")))
+                            (setf img.src "jslisp.png")
+                            img))))
 
 (defmethod edit (e) (image? e)
   (with-window (w (100 100 500 150
@@ -218,17 +215,22 @@
 
 ;; Text object
 
-(defobject text (x0 y0 x1 y1 text color size family bold italic))
+(defobject text (x0 y0 x1 y1
+                    (text "<type your text here>")
+                    (color (list 0 0 0))
+                    (size 50)
+                    (family "Arial")
+                    (bold false)
+                    (italic false)))
 
 (defmethod edit (e) (text? e)
-  (with-window (w (100 100 500 250
+  (with-window (w (100 100 500 500
                        :title "Text properties")
                   ((family (input "font family"))
                    (size (input "font size"))
                    (bold (checkbox "Bold"))
                    (italic (checkbox "Italic"))
                    (effects (group "Effects"))
-                   (content (input "content"))
                    (color (button "Color" (lambda ()
                                             (ask-color "Text color"
                                                        e.color
@@ -236,6 +238,7 @@
                                                          (when color
                                                            (setf e.color color)
                                                            (setf *dirty* true)))))))
+                   (content (text-area "content"))
                    (ok (button "OK"
                                (lambda ()
                                  (setf e.text (text content))
@@ -250,16 +253,14 @@
                                      (hide-window w)))))
                   (:V :spacing 8 :border 8
                       (:H :size 100
-                          (:Hdiv size :size 80)
                           (:Hdiv family)
+                          (:Hdiv size :size 80)
                           (:Vdiv effects :border 8 :spacing 4 :size 80
                                  (:V :size 3)
                                  (:H :size 20 (:Hdiv bold))
                                  (:H :size 20 (:Hdiv italic))
                                  (:H :size 30 (:Hdiv color))))
-                      (:H :size 35
-                          (:Hdiv content))
-                      (:H)
+                      (:Hdiv content)
                       (:H :size 30
                           (:H)
                           (:Hdiv ok :size 80)
@@ -375,57 +376,90 @@
                  (mousewheel (coords) event.wheelDeltaY)))
   (set-interval #'update 20))
 
-(init)
-(push (new-rect 100 100 500 500 0 (list 0 0 255) (list 255 255 0))
-      *current-page*.entities)
+(defun create-object (type)
+  (lambda ()
+    (push (funcall (symbol-function #"new-{(symbol-name type)}")
+                   100 100 500 500)
+          *current-page*.entities)
+    (setf *dirty* true)))
 
-(push (new-text 100 600 500 1100
-                (+ "Sed ut perspiciatis unde omnis iste natus error sit voluptatem "
-                   "accusantium doloremque laudantium, totam rem aperiam, eaque ipsa "
-                   "quae ab illo inventore veritatis et quasi architecto beatae vitae "
-                   "dicta sunt explicabo.\n"
-                   "Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit "
-                   "aut fugit, sed quia consequuntur magni dolores eos qui ratione "
-                   "voluptatem sequi nesciunt.\n"
-                   "Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, "
-                   "consectetur, adipisci velit, sed quia non numquam eius modi tempora "
-                   "incidunt ut labore et dolore magnam aliquam quaerat voluptatem.\n"
-                   "Ut enim ad minima veniam, quis nostrum exercitationem ullam corporis "
-                   "suscipit laboriosam, nisi ut aliquid ex ea commodi consequatur? "
-                   "Quis autem vel eum iure reprehenderit qui in ea voluptate velit "
-                   "esse quam nihil molestiae consequatur, vel illum qui dolorem eum "
-                   "fugiat quo voluptas nulla pariatur?")
-                (list 0 0 255) 50 "Arial" false false)
-      *current-page*.entities)
+(defun selected ()
+  (let ((editors (filter #'editor? *current-page*.entities)))
+    (map (lambda (editor) editor.e) editors)))
 
-(push (new-text 100 600 500 1100
-                (+ "Sed ut perspiciatis unde omnis iste natus error sit voluptatem "
-                   "accusantium doloremque laudantium, totam rem aperiam, eaque ipsa "
-                   "quae ab illo inventore veritatis et quasi architecto beatae vitae "
-                   "dicta sunt explicabo.\n"
-                   "Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit "
-                   "aut fugit, sed quia consequuntur magni dolores eos qui ratione "
-                   "voluptatem sequi nesciunt.\n"
-                   "Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, "
-                   "consectetur, adipisci velit, sed quia non numquam eius modi tempora "
-                   "incidunt ut labore et dolore magnam aliquam quaerat voluptatem.\n"
-                   "Ut enim ad minima veniam, quis nostrum exercitationem ullam corporis "
-                   "suscipit laboriosam, nisi ut aliquid ex ea commodi consequatur? "
-                   "Quis autem vel eum iure reprehenderit qui in ea voluptate velit "
-                   "esse quam nihil molestiae consequatur, vel illum qui dolorem eum "
-                   "fugiat quo voluptas nulla pariatur?")
-                (list 0 0 255) 50 "Arial" false false)
-      *current-page*.entities)
+(defun make-toolbar ()
+  (with-window (w (100 100 100 300
+                       :title "Menu"
+                       :close false)
+                  ((rect  (button "Rect" (create-object 'rect)))
+                   (text  (button "Text" (create-object 'text)))
+                   (image (button "Image" (create-object 'image)))
+                   (del   (button "Delete" (lambda ()
+                                             (let ((selected (selected)))
+                                               (setf *current-page*.entities
+                                                     (filter (lambda (x)
+                                                               (not (find x selected)))
+                                                             *current-page*.entities))
+                                               (remove-editors)
+                                               (setf *dirty* true)))))
+                   (front (button "To front" (lambda ()
+                                               (dolist (x (selected))
+                                                 (setf *current-page*.entities
+                                                       (remove x *current-page*.entities))
+                                                 (push x *current-page*.entities))
+                                               (setf *dirty* true))))
+                   (back  (button "To back" (lambda ()
+                                              (dolist (x (selected))
+                                                (setf *current-page*.entities
+                                                      (remove x *current-page*.entities))
+                                                (setf *current-page*.entities
+                                                      (append (list x)
+                                                              *current-page*.entities)))
+                                              (setf *dirty* true))))
+                   (clone (button "Copy" (lambda ()
+                                           (dolist (x (selected))
+                                             (push (apply (symbol-function
+                                                           #"new-{(symbol-name x.%class)}")
+                                                          (map (lambda (field)
+                                                                 (aref x (symbol-name field)))
+                                                               x.%fields))
+                                                   *current-page*.entities))
+                                           (remove-editors)
+                                           (setf *dirty* true))))
+                   (next (button "Next" (lambda ()
+                                          (let ((ix (index *current-page* *pages*)))
+                                            (setf ix (% (1+ ix) (length *pages*)))
+                                            (setf *current-page* (aref *pages* ix)))
+                                          (setf *dirty* true))))
+                   (prev (button "Prev" (lambda ()
+                                          (let ((ix (index *current-page* *pages*)))
+                                            (setf ix (% (1- (+ ix (length *pages*)))
+                                                        (length *pages*)))
+                                            (setf *current-page* (aref *pages* ix)))
+                                          (setf *dirty* true))))
+                   (new (button "New" (lambda ()
+                                        (setf *current-page* (new-page
+                                                              *current-page*.width
+                                                              *current-page*.height
+                                                              (list)))
+                                        (push *current-page* *pages*)
+                                        (setf *dirty* true)))))
+                  (:V :spacing 2 :border 8
+                      (:Hdiv rect)
+                      (:Hdiv text)
+                      (:Hdiv image)
+                      (:Hdiv del)
+                      (:Hdiv front)
+                      (:Hdiv back)
+                      (:Hdiv clone)
+                      (:Hdiv next)
+                      (:Hdiv prev)
+                      (:Hdiv new)))
+    (show-window w)))
 
-(push (new-text 100 600 500 1100
-                (+ "Page title")
-                (list 0 0 255) 50 "Arial" false false)
-      *current-page*.entities)
+(defun main ()
+  (init)
+  (make-toolbar)
+  (setf *dirty* true))
 
-(push (new-image 100 1200 500 1700
-                 (let ((img (create-element "img")))
-                   (setf img.src "me_toon.png")
-                   img))
-      *current-page*.entities)
-
-(setf *dirty* true)
+(main)
