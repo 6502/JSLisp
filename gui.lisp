@@ -24,6 +24,16 @@
               (range 0 (length properties) 2))
        ,elstyle)))
 
+(defun css-rgb (rgb)
+  "CSS-string from [(r g b)] list"
+  (let (((r g b) rgb))
+    ~"rgb({r},{g},{b})"))
+
+(defun css-rgba (rgba)
+  "CSS-string from [(r g b a)] list"
+  (let (((r g b a) rgba))
+    ~"rgba({r},{g},{b},{a})"))
+
 (defun element-pos (x)
   "Returns [(left top)] position of specified DOM element."
   (let ((left 0) (top 0))
@@ -707,7 +717,7 @@
         layout-node "layout-node-" "set-layout-node-"
         set-coords
         window "window-" "set-window-"
-        ask-color
+        ask-color css-rgb css-rgba
         show-window hide-window with-window
         button
         radio checkbox checked set-checked
