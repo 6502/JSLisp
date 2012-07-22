@@ -15,6 +15,18 @@
 (defvar *tracking* null)
 (defvar *borders* false)
 (defvar *grid* false)
+(defvar *doc* (list))
+
+(defun serialize (x) x)
+
+(defmethod serialize (e) (list? e)
+  `(list ,@(map #'serialize e)))
+
+(defmethod serialize (e) e.%class
+  `(,#"new-{(symbol-name e.%class)}"
+    ,@(map (lambda (field)
+             (serialize (aref e (symbol-name field))))
+           e.%fields)))
 
 (defun hit (e p)
   "Returns a callable tracker if point [p] hit element [e]"
@@ -224,6 +236,12 @@
                           (:H))))
     (show-window w)
     (setf (text url) e.img.src)))
+
+(defmethod serialize (e) (image? e)
+  `(new-image ,e.x0 ,e.y0 ,e.x1 ,e.y1
+              (let ((img (create-element "img")))
+                (setf img.src ,e.img.src)
+                img)))
 
 (defmethod hit (e p) (image? e)
   (and (<= e.x0 p.x e.x1)
@@ -497,9 +515,12 @@
                                             (setf *pages* (list *current-page*))
                                             (setf *dirty* true))))
                    (doc-open (button "Open" (lambda ()
-                                              (alert "To do"))))
+                                              (when *doc*
+                                                (setf *pages* (eval *doc*))
+                                                (setf *current-page* (first *pages*))
+                                                (setf *dirty* true)))))
                    (doc-save (button "Save" (lambda ()
-                                              (alert "To do"))))
+                                              (setf *doc* (serialize *pages*)))))
                    (doc-save-as (button "Save as..." (lambda ()
                                                        (alert "To do")))))
                   (:V :spacing 16 :border 8
