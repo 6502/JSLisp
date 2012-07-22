@@ -596,12 +596,24 @@
                                         position "absolute"
                                         cursor "default")
                              c))
+                   (dark (let ((c (create-element "canvas")))
+                           (set-style c
+                                      position "absolute"
+                                      cursor "pointer"
+                                      pointerEvents "none")
+                           c))
                    (cursor (let ((c (create-element "canvas")))
                              (set-style c
                                         position "absolute"
                                         cursor "pointer"
                                         pointerEvents "none")
                              c))
+                   (vcursor (let ((c (create-element "canvas")))
+                              (set-style c
+                                         position "absolute"
+                                         cursor "pointer"
+                                         pointerEvents "none")
+                              c))
                    (ok (button "OK" (lambda ()
                                       (funcall cback color)
                                       (hide-window w))))
@@ -612,19 +624,20 @@
                       (:Hdiv canvas)
                       (:H :size 30
                           (:H) (:Hdiv ok :size 80) (:H) (:Hdiv cancel :size 80) (:H))))
-    (setf cursor.width 20)
-    (setf cursor.height 20)
-    (with-canvas cursor
-      (begin-path)
-      (arc 10 10 9 0 (* 2 pi) false)
-      (arc 10 10 4 0 (* 2 pi) true)
-      (fill-style "#000000")
-      (fill)
-      (begin-path)
-      (arc 10 10 8 0 (* 2 pi) false)
-      (arc 10 10 5 0 (* 2 pi) true)
-      (fill-style "#FFFFFF")
-      (fill))
+    (dolist (cv (list cursor vcursor))
+      (setf cv.width 20)
+      (setf cv.height 20)
+      (with-canvas cv
+        (begin-path)
+        (arc 10 10 9 0 (* 2 pi) false)
+        (arc 10 10 4 0 (* 2 pi) true)
+        (fill-style "#000000")
+        (fill)
+        (begin-path)
+        (arc 10 10 8 0 (* 2 pi) false)
+        (arc 10 10 5 0 (* 2 pi) true)
+        (fill-style "#FFFFFF")
+        (fill)))
     (let ((colv (/ (max (first color) (second color) (third color))
                    255))
           (colx null)
@@ -655,33 +668,49 @@
                               px/left (+ canvas.offsetLeft -10 cx (* r colx))
                               px/top (+ canvas.offsetTop -10 cy (* r coly))
                               px/width 20
-                              px/height 20)))
+                              px/height 20)
+                   (set-style vcursor
+                              px/left (+ canvas.offsetLeft -10 bx)
+                              px/top (+ canvas.offsetTop -10 cy r (- (* 2 r colv)))
+                              px/width 20
+                              px/height 20)
+                   (let (((r g b) (rgb colx coly)))
+                     (setf color (list (floor (* r colv))
+                                       (floor (* g colv))
+                                       (floor (* b colv)))))))
 
                (rgb (dx dy)
                  (let* ((d2 (min 1 (+ (* dx dx) (* dy dy))))
                         (ia (floor (* 1536 (/ (atan2 dy dx) pi 2))))
                         ((r g b) (aref wheel (% (+ 1536 ia) 1536)))
                         (k2 (* 255 (- 1 d2)))
-                        (ir (floor (* colv (+ (* r d2) k2))))
-                        (ig (floor (* colv (+ (* g d2) k2))))
-                        (ib (floor (* colv (+ (* b d2) k2)))))
+                        (ir (floor (+ (* r d2) k2)))
+                        (ig (floor (+ (* g d2) k2)))
+                        (ib (floor (+ (* b d2) k2))))
                    (list ir ig ib)))
 
                (redraw ()
                  (let (((width height r cx cy bx) (geometry)))
                    (setf canvas.width width)
                    (setf canvas.height height)
+                   (setf dark.width width)
+                   (setf dark.height height)
+                   (set-style dark
+                              px/left canvas.offsetLeft
+                              px/top canvas.offsetTop
+                              px/width width
+                              px/height height
+                              opacity (- 1 colv))
                    (with-canvas canvas
                      (rect (- bx 2) (- cy r) 4 (* 2 r))
                      (fill-style "#A0A0A0")
-                     (fill)
-                     (let ((vy (* 2 r colv)))
-                       (fill-style "#000000")
-                       (circle bx (- (+ cy r) vy) 4)
-                       (fill)))
+                     (fill))
                    (let* ((ctx (canvas.getContext "2d"))
                           (idata (ctx.getImageData 0 0 width height))
                           (data idata.data)
+                          (dark-ctx (dark.getContext "2d"))
+                          (dark-idata (dark-ctx.getImageData 0 0 width height))
+                          (dark-data dark-idata.data)
                           (wp 0)
                           (bestx null)
                           (besty null))
@@ -703,11 +732,16 @@
                                (setf (aref data wp) ir)
                                (setf (aref data (+ wp 1)) ig)
                                (setf (aref data (+ wp 2)) ib)
-                               (setf (aref data (+ wp 3)) 255)))
+                               (setf (aref data (+ wp 3)) 255)
+                               (setf (aref dark-data wp) 0)
+                               (setf (aref dark-data (+ wp 1)) 0)
+                               (setf (aref dark-data (+ wp 2)) 0)
+                               (setf (aref dark-data (+ wp 3)) 255)))
                            (incf wp 4))))
                      (when (null? colx)
                        (setf colx bestx)
                        (setf coly besty))
+                     (dark-ctx.putImageData dark-idata 0 0)
                      (ctx.putImageData idata 0 0)))))
 
         (set-handler canvas onmousedown
@@ -720,8 +754,9 @@
                                            (lambda (mx my)
                                              (let ((nv (/ (- (+ cy r) (- my y0)) (* 2 r))))
                                                (setf colv (max (min nv 1) 0)))
-                                             (setf color (rgb colx coly))
-                                             (redraw))
+                                             (set-style dark
+                                                        opacity (- 1 colv))
+                                             (fixcursor))
                                            (lambda (mx my)
                                              (setf colx (/ (- mx x0 cx) r))
                                              (setf coly (/ (- my y0 cy) r))
@@ -730,7 +765,6 @@
                                                (when (> d 1)
                                                  (setf colx (/ colx d))
                                                  (setf coly (/ coly d))))
-                                             (setf color (rgb colx coly))
                                              (fixcursor)))))
                          (funcall handler x y)
                          (tracking handler))))
