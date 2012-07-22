@@ -407,6 +407,14 @@
     (setf (. button onclick) (lambda (&rest args) (funcall action)))
     button))
 
+(defun static-text (content)
+  "Creates a static text object"
+  (let ((text (create-element "div")))
+    (set-style text
+               position "absolute")
+    (setf text.textContent content)
+    text))
+
 (defun checkbox (caption &optional action)
   "Creates a checkbox DOM object with provided [caption] ad an optional callback [action]"
   (let ((checkbox (create-element "input"))
@@ -750,4 +758,5 @@
         input text set-text
         text-area
         group
+        static-text
         select selection set-selection)

@@ -8,11 +8,13 @@
 (defvar *screen* null)
 (defvar *canvas* null)
 (defvar *selection* null)
-(defvar *zx* 0)
-(defvar *zy* 0)
-(defvar *sf* 0.1)
+(defvar *zx* 170)
+(defvar *zy* 50)
+(defvar *sf* 0.3)
 (defvar *dirty* false)
 (defvar *tracking* null)
+(defvar *borders* false)
+(defvar *grid* false)
 
 (defun hit (e p)
   "Returns a callable tracker if point [p] hit element [e]"
@@ -53,8 +55,33 @@
     (setf *canvas*.height *screen*.offsetHeight)
     (fill-rect 5 5 (+ 5 *current-page*.width) (+ 5 *current-page*.height) "#000000")
     (fill-rect 0 0 *current-page*.width *current-page*.height "#FFFFFF")
+    (when *grid*
+      (with-canvas *canvas*
+        (save)
+        (translate *zx* *zy*)
+        (scale *sf* *sf*)
+        (begin-path)
+        (dotimes (i (1+ (floor (/ *current-page*.height 100))))
+          (move-to 0 (* i 100)) (line-to *current-page*.width (* i 100)))
+        (dotimes (i (1+ (floor (/ *current-page*.width 100))))
+          (move-to (* i 100) 0) (line-to (* i 100) *current-page*.height))
+        (stroke-style "#E0E0E0")
+        (line-width (/ *sf*))
+        (stroke)
+        (restore)))
     (dolist (x *current-page*.entities)
-      (draw x))
+      (draw x)
+      (when *borders*
+        (with-canvas *canvas*
+          (save)
+          (stroke-style "#C0C0C0")
+          (line-width 1)
+          (rect (+ *zx* (* *sf* x.x0))
+                (+ *zy* (* *sf* x.y0))
+                (* *sf* (- x.x1 x.x0))
+                (* *sf* (- x.y1 x.y0)))
+          (stroke)
+          (restore))))
     (setf *dirty* false)))
 
 (defobject p2d (x y))
@@ -381,6 +408,7 @@
     (push (funcall (symbol-function #"new-{(symbol-name type)}")
                    100 100 500 500)
           *current-page*.entities)
+    (open-editor (last *current-page*.entities))
     (setf *dirty* true)))
 
 (defun selected ()
@@ -388,34 +416,36 @@
     (map (lambda (editor) editor.e) editors)))
 
 (defun make-toolbar ()
-  (with-window (w (100 100 100 300
-                       :title "Menu"
-                       :close false)
-                  ((rect  (button "Rect" (create-object 'rect)))
-                   (text  (button "Text" (create-object 'text)))
+  (with-window (w (20 50 120 650
+                      :title "Menu"
+                      :close false)
+                  ((new-commands (group "New"))
+                   (rect (button "Rect" (create-object 'rect)))
+                   (text (button "Text" (create-object 'text)))
                    (image (button "Image" (create-object 'image)))
-                   (del   (button "Delete" (lambda ()
-                                             (let ((selected (selected)))
-                                               (setf *current-page*.entities
-                                                     (filter (lambda (x)
-                                                               (not (find x selected)))
-                                                             *current-page*.entities))
-                                               (remove-editors)
-                                               (setf *dirty* true)))))
+                   (edit-commands (group "Edit"))
+                   (del (button "Delete" (lambda ()
+                                           (let ((selected (selected)))
+                                             (setf *current-page*.entities
+                                                   (filter (lambda (x)
+                                                             (not (find x selected)))
+                                                           *current-page*.entities))
+                                             (remove-editors)
+                                             (setf *dirty* true)))))
                    (front (button "To front" (lambda ()
                                                (dolist (x (selected))
                                                  (setf *current-page*.entities
                                                        (remove x *current-page*.entities))
                                                  (push x *current-page*.entities))
                                                (setf *dirty* true))))
-                   (back  (button "To back" (lambda ()
-                                              (dolist (x (selected))
-                                                (setf *current-page*.entities
-                                                      (remove x *current-page*.entities))
-                                                (setf *current-page*.entities
-                                                      (append (list x)
-                                                              *current-page*.entities)))
-                                              (setf *dirty* true))))
+                   (back (button "To back" (lambda ()
+                                             (dolist (x (selected))
+                                               (setf *current-page*.entities
+                                                     (remove x *current-page*.entities))
+                                               (setf *current-page*.entities
+                                                     (append (list x)
+                                                             *current-page*.entities)))
+                                             (setf *dirty* true))))
                    (clone (button "Copy" (lambda ()
                                            (dolist (x (selected))
                                              (push (apply (symbol-function
@@ -426,6 +456,7 @@
                                                    *current-page*.entities))
                                            (remove-editors)
                                            (setf *dirty* true))))
+                   (page-commands (group "Pages"))
                    (next (button "Next" (lambda ()
                                           (let ((ix (index *current-page* *pages*)))
                                             (setf ix (% (1+ ix) (length *pages*)))
@@ -443,18 +474,58 @@
                                                               *current-page*.height
                                                               (list)))
                                         (push *current-page* *pages*)
-                                        (setf *dirty* true)))))
-                  (:V :spacing 2 :border 8
-                      (:Hdiv rect)
-                      (:Hdiv text)
-                      (:Hdiv image)
-                      (:Hdiv del)
-                      (:Hdiv front)
-                      (:Hdiv back)
-                      (:Hdiv clone)
-                      (:Hdiv next)
-                      (:Hdiv prev)
-                      (:Hdiv new)))
+                                        (setf *dirty* true))))
+                   (view-commands (group "View"))
+                   (zoom+ (button "Zoom+" (lambda ()
+                                            (setf *sf* (* *sf* 1.2))
+                                            (setf *dirty* true))))
+                   (zoom- (button "Zoom-" (lambda ()
+                                            (setf *sf* (/ *sf* 1.2))
+                                            (setf *dirty* true))))
+                   (show-borders (button "Borders" (lambda ()
+                                                     (setf *borders* (not *borders*))
+                                                     (setf *dirty* true))))
+                   (show-grid (button "Grid" (lambda ()
+                                               (setf *grid* (not *grid*))
+                                               (setf *dirty* true))))
+                   (document-commands (group "Document"))
+                   (doc-new (button "New" (lambda ()
+                                            (setf *current-page* (new-page
+                                                                  *current-page*.width
+                                                                  *current-page*.height
+                                                                  (list)))
+                                            (setf *pages* (list *current-page*))
+                                            (setf *dirty* true))))
+                   (doc-open (button "Open" (lambda ()
+                                              (alert "To do"))))
+                   (doc-save (button "Save" (lambda ()
+                                              (alert "To do"))))
+                   (doc-save-as (button "Save as..." (lambda ()
+                                                       (alert "To do")))))
+                  (:V :spacing 16 :border 8
+                      (:Vdiv new-commands :border 8 :spacing 2 :weight 300
+                             (:Hdiv rect)
+                             (:Hdiv text)
+                             (:Hdiv image))
+                      (:Vdiv edit-commands :border 8 :spacing 2 :weight 400
+                             (:Hdiv del)
+                             (:Hdiv front)
+                             (:Hdiv back)
+                             (:Hdiv clone))
+                      (:Vdiv page-commands :border 8 :spacing 2 :weight 300
+                             (:Hdiv next)
+                             (:Hdiv prev)
+                             (:Hdiv new))
+                      (:Vdiv view-commands :border 8 :spacing 2 :weight 400
+                             (:Hdiv zoom+)
+                             (:Hdiv zoom-)
+                             (:Hdiv show-borders)
+                             (:Hdiv show-grid))
+                      (:Vdiv document-commands :border 8 :spacing 2 :weight 400
+                             (:Hdiv doc-new)
+                             (:Hdiv doc-open)
+                             (:Hdiv doc-save)
+                             (:Hdiv doc-save-as))))
     (show-window w)))
 
 (defun main ()
