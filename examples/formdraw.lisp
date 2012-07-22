@@ -62,8 +62,9 @@
 
 ;; Rectangle tracking
 
-(defun rect-tracker (e)
-  "Trackers for object [e] handling drag/resizing"
+(defun rect-tracker (e &optional update end)
+  "Tracker for object [e] handling drag/resizing and optionally calling function
+   [update] during editing and function [end] at mouseup."
   (labels ((wa (a b) (+ (* 0.75 a) (* 0.25 b))))
     (let ((mode 0)
           (p0 null))
@@ -85,30 +86,125 @@
              (when (logand mode 4) (setf e.y0 (min (- e.y1 5) (+ e.y0 dy))))
              (when (logand mode 8) (setf e.y1 (max (+ e.y0 5) (+ e.y1 dy)))))
            (setf p0 p)
-           (setf *dirty* true)))))))
+           (when update (funcall update))
+           (setf *dirty* true))
+          ('up
+           (when end (funcall end))))))))
+
+;; Null tracking
+
+(defvar *wait-up* (lambda (p event)))
+
+;; Generic editor
+
+(defobject editor (x0 y0 x1 y1 e propedit))
+
+(defmethod hit (e p) (editor? e)
+           (and (<= e.x0 p.x e.x1)
+                (<= e.y0 p.y e.y1)
+                (let ((moved false))
+                  (rect-tracker e.e
+                                (lambda ()
+                                  (setf moved true)
+                                  (setf e.x0 e.e.x0)
+                                  (setf e.y0 e.e.y0)
+                                  (setf e.x1 e.e.x1)
+                                  (setf e.y1 e.e.y1))
+                                (lambda ()
+                                  (unless moved
+                                    (funcall e.propedit)))))))
+
+(defmethod draw (e) (editor? e)
+  (fill-rect (- e.x0 (/ 4 *sf*))
+             (- e.y0 (/ 4 *sf*))
+             (+ e.x1 (/ 4 *sf*))
+             (+ e.y1 (/ 4 *sf*))
+             "rgba(255,0,0,0.25)")
+  (with-canvas *canvas*
+    (save)
+    (translate *zx* *zy*)
+    (scale *sf* *sf*)
+    (line-width (/ 2 *sf*))
+    (stroke-style "#FF0000")
+    (rect (- e.x0 (/ 4 *sf*))
+          (- e.y0 (/ 4 *sf*))
+          (+ (- e.x1 e.x0) (/ 8 *sf*))
+          (+ (- e.y1 e.y0) (/ 8 *sf*)))
+    (stroke)))
+
+(defun remove-editors ()
+  (let ((old-len (length *current-page*.entities)))
+    (setf *current-page*.entities
+          (filter (lambda (x) (not (editor? x)))
+                  *current-page*.entities))
+    (when (/= old-len (length *current-page*.entities))
+      (setf *dirty* true))))
+
+(defun edit (e))
+
+(defun open-editor (e)
+  (remove-editors)
+  (push (new-editor e.x0 e.y0 e.x1 e.y1 e
+                    (lambda () (edit e)))
+        *current-page*.entities)
+  (setf *dirty* true)
+  *wait-up*)
 
 ;; Rectangle object
 
 (defobject rect (x0 y0 x1 y1 width stroke fill))
 
+(defmethod edit (e) (rect? e)
+  (ask-color "Fill color"
+             e.fill
+             (lambda (color)
+               (when color
+                 (setf e.fill color)
+                 (setf *dirty* true)))))
+
 (defmethod hit (e p) (rect? e)
-           (and (<= e.x0 p.x e.x1)
-                (<= e.y0 p.y e.y1)
-                (rect-tracker e)))
+  (and (<= e.x0 p.x e.x1)
+       (<= e.y0 p.y e.y1)
+       (open-editor e)))
 
 (defmethod draw (e) (rect? e)
-  (fill-rect e.x0 e.y0 e.x1 e.y1 e.fill)
+  (fill-rect e.x0 e.y0 e.x1 e.y1 (css-rgb e.fill))
   (when (> e.width 0)
-    (frame e.x0 e.y0 e.x1 e.y1 e.width e.stroke)))
+    (frame e.x0 e.y0 e.x1 e.y1 e.width (css-rgb e.stroke))))
 
 ;; Image object
 
 (defobject image (x0 y0 x1 y1 img))
 
+(defmethod edit (e) (image? e)
+  (with-window (w (100 100 500 150
+                       :title "Image properties")
+                  ((url (input "URL"))
+                   (ok (button "OK"
+                               (lambda ()
+                                 (setf e.img.src
+                                       (text url))
+                                 (setf *dirty* true)
+                                 (hide-window w))))
+                   (cancel (button "Cancel"
+                                   (lambda ()
+                                     (hide-window w)))))
+                  (:V :spacing 8 :border 8
+                      (:H :size 35
+                          (:Hdiv url))
+                      (:H)
+                      (:H :size 30
+                          (:H)
+                          (:Hdiv ok :size 80)
+                          (:Hdiv cancel :size 80)
+                          (:H))))
+    (show-window w)
+    (setf (text url) e.img.src)))
+
 (defmethod hit (e p) (image? e)
-           (and (<= e.x0 p.x e.x1)
-                (<= e.y0 p.y e.y1)
-                (rect-tracker e)))
+  (and (<= e.x0 p.x e.x1)
+       (<= e.y0 p.y e.y1)
+       (open-editor e)))
 
 (defmethod draw (e) (image? e)
   (with-canvas *canvas*
@@ -122,24 +218,78 @@
 
 ;; Text object
 
-(defobject text (x0 y0 x1 y1 text color size))
+(defobject text (x0 y0 x1 y1 text color size family bold italic))
+
+(defmethod edit (e) (text? e)
+  (with-window (w (100 100 500 250
+                       :title "Text properties")
+                  ((family (input "font family"))
+                   (size (input "font size"))
+                   (bold (checkbox "Bold"))
+                   (italic (checkbox "Italic"))
+                   (effects (group "Effects"))
+                   (content (input "content"))
+                   (color (button "Color" (lambda ()
+                                            (ask-color "Text color"
+                                                       e.color
+                                                       (lambda (color)
+                                                         (when color
+                                                           (setf e.color color)
+                                                           (setf *dirty* true)))))))
+                   (ok (button "OK"
+                               (lambda ()
+                                 (setf e.text (text content))
+                                 (setf e.size (parse-value (text size)))
+                                 (setf e.family (text family))
+                                 (setf e.bold (checked bold))
+                                 (setf e.italic (checked italic))
+                                 (setf *dirty* true)
+                                 (hide-window w))))
+                   (cancel (button "Cancel"
+                                   (lambda ()
+                                     (hide-window w)))))
+                  (:V :spacing 8 :border 8
+                      (:H :size 100
+                          (:Hdiv size :size 80)
+                          (:Hdiv family)
+                          (:Vdiv effects :border 8 :spacing 4 :size 80
+                                 (:V :size 3)
+                                 (:H :size 20 (:Hdiv bold))
+                                 (:H :size 20 (:Hdiv italic))
+                                 (:H :size 30 (:Hdiv color))))
+                      (:H :size 35
+                          (:Hdiv content))
+                      (:H)
+                      (:H :size 30
+                          (:H)
+                          (:Hdiv ok :size 80)
+                          (:Hdiv cancel :size 80)
+                          (:H))))
+    (show-window w)
+    (setf (text content) e.text)
+    (setf (text size) e.size)
+    (setf (text family) e.family)
+    (setf (checked bold) e.bold)
+    (setf (checked italic) e.italic)))
 
 (defmethod hit (e p) (text? e)
-           (and (<= e.x0 p.x e.x1)
-                (<= e.y0 p.y e.y1)
-                (rect-tracker e)))
+  (and (<= e.x0 p.x e.x1)
+       (<= e.y0 p.y e.y1)
+       (open-editor e)))
 
 (defmethod draw (e) (text? e)
-   ;(fill-rect e.x0 e.y0 e.x1 e.y1 "#E0FFE0")
    (with-canvas *canvas*
      (save)
      (text-baseline "top")
-     (font ~"italic bold {e.size}px Arial")
+     (font (+ (if e.italic "italic " "")
+              (if e.bold "bold " "")
+              e.size "px "
+              e.family))
      (translate *zx* *zy*)
      (scale *sf* *sf*)
      (rect e.x0 e.y0 (- e.x1 e.x0) (- e.y1 e.y0))
      (clip)
-     (fill-style e.color)
+     (fill-style (css-rgb e.color))
      (let ((y e.y0))
        (dolist (line (split e.text "\n"))
          (let ((x e.x0))
@@ -158,12 +308,13 @@
     (when (setf *tracking* (hit e p))
       (funcall *tracking* p 'down)
       (return-from mousedown)))
-  (setf *tracking* (let ((p0 p))
-                     (lambda (p event)
-                       (when (= event 'move)
-                         (incf *zx* (* (- p.x p0.x) *sf*))
-                         (incf *zy* (* (- p.y p0.y) *sf*))
-                         (setf *dirty* true))))))
+  (unless (remove-editors)
+    (setf *tracking* (let ((p0 p))
+                       (lambda (p event)
+                         (when (= event 'move)
+                           (incf *zx* (* (- p.x p0.x) *sf*))
+                           (incf *zy* (* (- p.y p0.y) *sf*))
+                           (setf *dirty* true)))))))
 
 (defun mouseup (p)
   (when *tracking*
@@ -225,7 +376,7 @@
   (set-interval #'update 20))
 
 (init)
-(push (new-rect 100 100 500 500 0 "#000000" "#FFFF00")
+(push (new-rect 100 100 500 500 0 (list 0 0 255) (list 255 255 0))
       *current-page*.entities)
 
 (push (new-text 100 600 500 1100
@@ -244,7 +395,7 @@
                    "Quis autem vel eum iure reprehenderit qui in ea voluptate velit "
                    "esse quam nihil molestiae consequatur, vel illum qui dolorem eum "
                    "fugiat quo voluptas nulla pariatur?")
-                "#0000FF" 50)
+                (list 0 0 255) 50 "Arial" false false)
       *current-page*.entities)
 
 (push (new-text 100 600 500 1100
@@ -263,7 +414,12 @@
                    "Quis autem vel eum iure reprehenderit qui in ea voluptate velit "
                    "esse quam nihil molestiae consequatur, vel illum qui dolorem eum "
                    "fugiat quo voluptas nulla pariatur?")
-                "#0000FF" 50)
+                (list 0 0 255) 50 "Arial" false false)
+      *current-page*.entities)
+
+(push (new-text 100 600 500 1100
+                (+ "Page title")
+                (list 0 0 255) 50 "Arial" false false)
       *current-page*.entities)
 
 (push (new-image 100 1200 500 1700
