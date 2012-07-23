@@ -227,7 +227,9 @@
                                         px/left ,',x0
                                         px/top ,',y0
                                         px/width (- ,',x1 ,',x0)
-                                        px/height (- ,',y1 ,',y0)))
+                                        px/height (- ,',y1 ,',y0))
+                             (when (aref ,',vdiv "data-resize")
+                               (funcall (aref ,',vdiv "data-resize"))))
                     ,@args))))))
 
 (deflayout :H)
@@ -501,13 +503,29 @@
                %/fontSize 110
                position "absolute"
                px/left 0
-               px/right 0
                px/top 16
-               px/bottom 0
                border "none"
                px/padding 4
                px/margin 0
+               resize "none"
                backgroundColor "#EEEEEE")
+    ;; Textarea HTML specs is badly broken and there is
+    ;; no way to specify using style that the textarea
+    ;; should take all space of the container because
+    ;; using of bottom:0 and right:0 should not work.
+    ;; Works in a reasonable way in chrome/safari, but
+    ;; this is indeed a "bug" of chrome/safari.
+    ;; Workaround is adding a resize callback that will
+    ;; be called if present after resizing a div in
+    ;; :Hdiv or :Vdiv layout managers.
+    ;; There is indeed an "onresize" event, but works only
+    ;; on the window object and not on other elements
+    ;; (except in IE, where it works on any element).
+    (setf (aref container "data-resize")
+          (lambda ()
+            (set-style input
+                       px/width (- container.offsetWidth 8)
+                       px/height (- container.offsetHeight 16 8))))
     (setf label.textContent caption)
     (append-child container label)
     (append-child container input)
