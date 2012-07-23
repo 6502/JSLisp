@@ -53,7 +53,8 @@
                             `(pop (. ,name ,f)))
                           fields))
                  *transaction*)
-           (push `(,',#"new-{name}" ,,@fields) *changelog*))
+           (push `(,',#"new-{name}" ,,@(map (lambda (fv) `',fv) fields))
+                 *changelog*))
          (list ',name id)))
      (defun ,name (record)
        (list ',name record))
@@ -66,7 +67,7 @@
                  (let* ((r (second record))
                         (old-value (aref (. ,name ,f) r)))
                    (unless *no-transactions*
-                     (push `(setf (aref (. ,',name ,',f) ,r) ,value)
+                     (push `(setf (aref (. ,',name ,',f) ,r) ',value)
                            *changelog*)
                      (push (lambda () (setf (aref (. ,name ,f) r) old-value))
                            *transaction*)))
