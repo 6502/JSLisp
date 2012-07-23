@@ -1,5 +1,12 @@
 (import * from gui)
 (import * from graphics)
+(import * from simpledb)
+
+(defun remote (x)
+  (let ((request (uri-encode (str-value x false))))
+    (let ((reply (http "POST" "eval?" request)))
+      (let ((result (parse-value (uri-decode reply))))
+        result))))
 
 (defobject page (width height entities))
 
@@ -15,7 +22,6 @@
 (defvar *tracking* null)
 (defvar *borders* false)
 (defvar *grid* false)
-(defvar *doc* (list))
 
 (defun serialize (x) x)
 
@@ -381,6 +387,8 @@
       (setf *dirty* true))))
 
 (defun init ()
+  (unless (find 'FormDocument (remote `*tables*))
+    (remote `(defrecord FormDocument (name content))))
   (setf *screen* (create-element "div"))
   (setf *canvas* (create-element "canvas"))
   (set-style *screen*
@@ -432,6 +440,60 @@
 (defun selected ()
   (let ((editors (filter #'editor? *current-page*.entities)))
     (map (lambda (editor) editor.e) editors)))
+
+(defun document-selector (prompt f)
+  (let ((selection null)
+        (cursel null)
+        (docs (remote `(let ((res (list)))
+                         (foreach-FormDocument document
+                            (push (list document
+                                        (name document)
+                                        (content document))
+                                  res))
+                         res))))
+    (with-window (w (100 100 500 500
+                         :title prompt)
+                    ((doclist (create-element "table"))
+                     (ok (button "OK" (lambda ()
+                                        (funcall f selection)
+                                        (hide-window w))))
+                     (cancel (button "Cancel" (lambda ()
+                                                (funcall f null)
+                                                (hide-window w)))))
+                    (:V :border 8 :spacing 8
+                        (:Vdiv doclist)
+                        (:H :size 35
+                            (:H)
+                            (:Hdiv ok :size 80)
+                            (:Hdiv cancel :size 80)
+                            (:H))))
+      (let ((head (create-element "tr")))
+        (setf doclist.border 1)
+        (append-child doclist head)
+        (setf head.height 20)
+        (labels ((add-th (x) (let ((th (create-element "th")))
+                               (setf th.textContent x)
+                               (append-child head th))))
+          (add-th "Name")))
+      (dolist ((document name content) docs)
+        (let ((row (create-element "tr")))
+          (setf row.height 20)
+          (set-handler row onclick
+                       (event.preventDefault)
+                       (event.stopPropagation)
+                       (setf selection (list document name content))
+                       (when cursel
+                         (set-style cursel
+                                    backgroundColor "#FFFFFF"))
+                       (set-style row
+                                  backgroundColor "#FFFF00")
+                       (setf cursel row))
+          (append-child doclist row)
+          (labels ((add-td (x) (let ((td (create-element "td")))
+                                 (setf td.textContent x)
+                                 (append-child row td))))
+            (add-td name))))
+      (show-window w))))
 
 (defun make-toolbar ()
   (with-window (w (20 50 120 650
@@ -515,12 +577,18 @@
                                             (setf *pages* (list *current-page*))
                                             (setf *dirty* true))))
                    (doc-open (button "Open" (lambda ()
-                                              (when *doc*
-                                                (setf *pages* (eval *doc*))
-                                                (setf *current-page* (first *pages*))
-                                                (setf *dirty* true)))))
+                                              (document-selector "Open"
+                                                 (lambda (x)
+                                                   (when (and x (third x))
+                                                     (setf *pages* (eval (third x)))
+                                                     (setf *current-page* (first *pages*))
+                                                     (setf *dirty* true)))))))
                    (doc-save (button "Save" (lambda ()
-                                              (setf *doc* (serialize *pages*)))))
+                                              (document-selector "Save"
+                                                 (lambda (x)
+                                                   (when x
+                                                     (remote `(setf (content ,(first x)) ',(serialize *pages*)))
+                                                     (remote `(commit))))))))
                    (doc-save-as (button "Save as..." (lambda ()
                                                        (alert "To do")))))
                   (:V :spacing 16 :border 8
