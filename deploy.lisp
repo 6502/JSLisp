@@ -156,10 +156,10 @@ reverse engineering point of view.
       (setf s (replace s "{\"([a-zA-Z_$][a-zA-Z_$0-9]*)\":" "{$1:"))
       (setf s (replace s ",\"([a-zA-Z_$][a-zA-Z_$0-9]*)\":" ",$1:"))
       ; "function(" packing
-      (when (or (find "\"" s) (find "\\" s) (find "'" s))
+      (when (or (find "\"" s) (find "'" s))
         (error "Internal error: Unexpected quote or backslash"))
       (setf s (+ "eval(\""
-                 (replace s "function\\(" "'")
+                 (replace (replace s "function\\(" "'") "\\\\" "\\\\")
                  "\".replace(/'/g,\"function(\"))"))
       ; Add used literals definitions
       (let ((ldef ""))
