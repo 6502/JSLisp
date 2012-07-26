@@ -45,7 +45,7 @@ reverse engineering point of view.
        "'**UNABLE-TO-STRINGIFY**'")))
 
 (defun literal (k names)
-  (let ((x (js-code "lisp_literals[parseInt(d$$k.substr(1))]")))
+  (let ((x (js-code "lisp_literals[parseInt(d$$k.substr(2))]")))
     (if (or names (not (symbol? x)))
         (stringify x)
         "{}")))
@@ -57,7 +57,7 @@ reverse engineering point of view.
         "{}")))
 
 (defun symbol (k names)
-  (let ((x (js-code "glob[d$$k]")))
+  (let ((x (js-code "glob['s'+d$$k.substr(2)]")))
     (if (or names (not (symbol? x)))
         (stringify x)
         "{}")))
@@ -72,13 +72,13 @@ reverse engineering point of view.
                (names (aref result "f$$symbol_name")))
            (dolist (k (sort (keys vars)))
              (cond
-               ((= (aref k 0) "q")
+               ((= (slice k 0 2) "q#")
                 (unless litout
                   (setf litout true)
                   (push "lisp_literals=[];" output))
-                (push ~"lisp_literals[{(slice k 1)}]={(literal k names)};" output))
-               ((= (aref k 0) "s")
-                (push ~"{k}={(symbol k names)};" output))
+                (push ~"lisp_literals[{(slice k 2)}]={(literal k names)};" output))
+               ((= (slice k 0 2) "s#")
+                (push ~"s{(slice k 2)}={(symbol k names)};" output))
                ((not (undefined? (js-code "glob['d'+d$$k]")))
                 (push ~"d{k}={(variable k names)};" output))))
            (dolist (k (sort (keys result)))

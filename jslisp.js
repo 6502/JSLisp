@@ -368,7 +368,7 @@ defmacro("define-symbol-macro",
                  i = lisp_literals.length;
                  lisp_literals.push(y);
              }
-             d$$$42$used_globals$42$["q"+i] = true;
+             d$$$42$used_globals$42$["q#"+i] = true;
              return [s$$js_code, "s" + x.name + ".symbol_macro=lisp_literals[" + i + "]"];
          },
          [f$$intern("x"), f$$intern("y")]);
@@ -719,7 +719,7 @@ defmacro("quote",
          {
              if (f$$symbol$63$(x) && x.interned)
              {
-                 d$$$42$used_globals$42$["s" + x.name] = true;
+                 d$$$42$used_globals$42$["s#" + x.name] = true;
                  return [s$$js_code, "s" + x.name];
              }
              if (f$$number$63$(x) || f$$string$63$(x))
@@ -730,7 +730,7 @@ defmacro("quote",
                  i = lisp_literals.length;
                  lisp_literals.push(x);
              }
-             d$$$42$used_globals$42$["q"+i] = true;
+             d$$$42$used_globals$42$["q#"+i] = true;
              return [s$$js_code, "lisp_literals[" + i + "]"];
          },
          [s$$x]);
