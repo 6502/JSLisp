@@ -1440,7 +1440,8 @@ Each field is a list of an unevaluated atom as name and a value."
                         res)))
        (defun ,(intern ~"{name}?") (x)
          ,~"True if and only if [x] is an instance of [{name}]"
-         (= (. x %class) ',name))
+         #',(intern ~"{name}-prototype-setup") ;; for deploy
+         (if (and x (= (. x %class) ',name)) true false))
        (defun ,(intern ~"make-{name}") (&key ,@fields)
          ,~"Creates a new instance of {name}"
          (,(intern ~"new-{name}") ,@fieldnames))
