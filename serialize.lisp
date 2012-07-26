@@ -95,14 +95,19 @@
                     ,x)))))
 
 (defun to-buffer (x)
-  "Serializes object [x] into a buffer"
+  "Serializes object [x] into a string. Supported objects are [null],
+   [undefined], numbers, strings, lists of supported objects and objects
+   supporting serialization where all fields contain supported objects
+   ([defobject*] can be used to define an object with serialization support).
+   Reference loops in lists and objects are supported and loops are rebuilt
+   on deserialization. Note that symbols are NOT supported."
   (let ((buf "")
         (seen (list)))
     (write x)
     buf))
 
 (defun from-buffer (x)
-  "Deserializes an object from a buffer"
+  "Deserializes an object from a string"
   (let ((buf x)
         (p 0)
         (seen (list)))
