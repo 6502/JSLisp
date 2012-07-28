@@ -103,7 +103,7 @@ reverse engineering point of view.
                         (list)))
           (unless (aref result fn)
             (let* ((i (index "$$" fn))
-                   (y (intern (demangle fn) (slice fn 0 i))))
+                   (y (intern (demangle fn) (demangle (+ "$$" (slice fn 0 i))))))
               (push y new-todo)))))
       (setf todo new-todo))))
 
@@ -156,10 +156,12 @@ reverse engineering point of view.
       (setf s (replace s "{\"([a-zA-Z_$][a-zA-Z_$0-9]*)\":" "{$1:"))
       (setf s (replace s ",\"([a-zA-Z_$][a-zA-Z_$0-9]*)\":" ",$1:"))
       ; "function(" packing
-      (when (or (find "\"" s) (find "'" s))
-        (error "Internal error: Unexpected quote or backslash"))
+      (when (find "'" s)
+        (error "Internal error: Unexpected single quote"))
       (setf s (+ "eval(\""
-                 (replace (replace s "function\\(" "'") "\\\\" "\\\\")
+                 (replace (replace (replace s "function\\(" "'")
+                                   "\\\\" "\\\\")
+                          "\"" "\\\"")
                  "\".replace(/'/g,\"function(\"))"))
       ; Add used literals definitions
       (let ((ldef ""))
