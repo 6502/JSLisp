@@ -4,7 +4,7 @@
     (funcall (. server listen) port address)))
 
 (defun reply (response content-type msg)
-  (funcall (. response writeHead) 200 (js-object "Content-type" content-type))
+  (funcall (. response writeHead) 200 #((Content-type content-type)))
   (funcall (. response end) msg))
 
 (defvar *current-location* null)

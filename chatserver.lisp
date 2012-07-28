@@ -4,7 +4,7 @@
     (funcall (. server listen) port address)))
 
 (defun reply (response content-type msg)
-  (funcall (. response writeHead) 200 (js-object "Content-type" content-type))
+  (funcall (. response writeHead) 200 #((Content-type content-type)))
   (funcall (. response end) msg))
 
 (defstruct channel
@@ -22,7 +22,7 @@
       (incf channel.n0 xs)
       (setf channel.messages (slice channel.messages xs)))))
 
-(defvar *channels* (js-object))
+(defvar *channels* #())
 
 (defun channel (x)
   "Returns a channel given its name [x] or creates a new channel"

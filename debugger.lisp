@@ -95,7 +95,7 @@
                       right "auto"
                       px/width (* cw (- to-col from-col)))))))))
 
-(defvar *source-windows* (js-object))
+(defvar *source-windows* #())
 
 (defun location (filename from-line from-col to-line to-col)
   (let ((w (aref *source-windows* filename)))

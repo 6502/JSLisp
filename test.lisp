@@ -437,7 +437,7 @@
                    (list 'null? 'null)
                    (list 'string? '"")
                    (list 'bool? 'false)
-                   (list 'object? '(js-object))))
+                   (list 'object? '#())))
       (errors 0))
   (dotimes (i (length pairs))
     (dotimes (j (length pairs))

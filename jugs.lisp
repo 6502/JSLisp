@@ -9,7 +9,7 @@ The function returns either null if there is no solution or a list of
 steps starting from start-state and reaching first state that satisfies
 game goals."
 
-  (do ((seen (js-object))
+  (do ((seen #())
        (active-states (list (list start-state null)))
        (solution null))
       ((or solution (= 0 (length active-states)))

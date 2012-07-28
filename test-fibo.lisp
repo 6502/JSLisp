@@ -50,7 +50,7 @@
             (ff 1 1 2))))
 
 (defun memoized (f)
-  (let ((cache (js-object)))
+  (let ((cache #()))
     (lambda (&rest x)
       (let ((cached-result (aref cache x)))
         (if (= cached-result undefined)

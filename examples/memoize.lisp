@@ -1,6 +1,6 @@
 (defun memoize (f)
   "Returns a memoized version of function [f]"
-  (let ((cache (js-object)))
+  (let ((cache #()))
     (lambda (&rest args)
       (let ((result (aref cache args)))
         (first (or result

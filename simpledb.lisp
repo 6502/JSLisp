@@ -39,9 +39,9 @@
      (when *logwrite*
        (funcall *logwrite* (str-value `(defrecord ,',name ,',fields) false)))
      (push ',name *tables*)
-     (defvar ,name (js-object ,@(map (lambda (f)
-                                       `(,f (list)))
-                                     fields)))
+     (defvar ,name #(,@(map (lambda (f)
+                              `(,f (list)))
+                        fields)))
      (defun ,#"new-{name}" ,fields
        (let ((id (length (. ,name ,(first fields)))))
          ,@(map (lambda (f)

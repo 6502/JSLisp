@@ -2,7 +2,7 @@
 (import * from graphics)
 (import examples/chess as chess)
 
-(defvar *piece-images* (js-object))
+(defvar *piece-images* #())
 
 (defun canvas-chessboard (square-size &optional position move-callback)
   "Creates a canvas chessboard with given [square-size] and [position] (a 64-chars
@@ -131,7 +131,7 @@ be called with start/end squares (two numbers between 0 and 63)."
   (funcall (second (window-data window))))
 
 (defun wmain ()
-  (let ((pnames (js-object))
+  (let ((pnames #())
         (w null))
     (setf (aref pnames chess:+WP+) "P")
     (setf (aref pnames chess:+WR+) "R")
@@ -175,7 +175,7 @@ be called with start/end squares (two numbers between 0 and 63)."
 
 (defun main ()
   (setf *piece-images*
-        (let ((images (js-object))
+        (let ((images #())
               (count 0))
           (dolist (x "PRNBQKprnbqk")
             (let ((img (create-element "img")))

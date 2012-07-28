@@ -39,7 +39,7 @@
     actions))
 
 (defun gps (start actions goal key)
-  (do ((seen (let ((seen (js-object)))
+  (do ((seen (let ((seen #()))
                (setf (aref seen (funcall key start)) (list "*start*" null))
                seen))
        (active (list start))

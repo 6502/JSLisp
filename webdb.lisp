@@ -47,7 +47,7 @@
                   "image/png")
                  (true "text/plain"))))
     (funcall (. response writeHead)
-             200 (js-object ("Content-Type" ctype)))
+             200 #((Content-Type ctype)))
     (funcall (. response end) content)))
 
 (defun my-handler (request response)

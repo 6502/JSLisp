@@ -12,7 +12,7 @@
       next ........... function that given a state returns a list of (neighbor cost) pairs
       goal ........... a function that returns true if the passed state is a goal state
    The function returns either a minimal cost path of states or null if no such a path exists"
-  (let ((seen (js-object))
+  (let ((seen #())
         (heap (heap (lambda (a b) (<= (state-info-total-cost a) (state-info-total-cost b)))
                     (lambda (x index) (setf (state-info-heap-index x) index)))))
     (dolist (x start-states)

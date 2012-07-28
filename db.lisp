@@ -30,7 +30,7 @@
              `(aref ,',(sym "*" name "*") (list ,@key))))
     `(progn
        (defstruct ,name ,@fieldnames)
-       (defvar ,(sym "*" name "*") (js-object))
+       (defvar ,(sym "*" name "*") #())
        ,@(map (lambda (f)
                 (if (symbol-function f)
                     `(setf #',f

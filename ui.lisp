@@ -32,7 +32,7 @@
 (defmacro defgeneric (name default-impl)
   (let ((vmt (intern ~"*{(symbol-name name)}*")))
     `(progn
-       (defvar ,vmt (js-object))
+       (defvar ,vmt #())
        (defun ,name (&rest args)
          (let ((f (aref ,vmt (symbol-name (first (first args))))))
            (if f
