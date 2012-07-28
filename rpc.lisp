@@ -21,9 +21,9 @@
            (defun ,name ,args ,@body)
            (defobject* ,#"{name}-req" ,fields)
            (defmethod rpc:process-request (req) (,#"{name}-req?" req)
-                      (,name ,(map (lambda (f)
-                                     `(. req ,f))
-                                   fields))))
+                      (,name ,@(map (lambda (f)
+                                      `(. req ,f))
+                                    fields))))
         `(progn
            (defobject* ,#"{name}-req" ,fields)
            (defun ,name ,args
