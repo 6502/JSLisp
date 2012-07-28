@@ -45,8 +45,8 @@
 (defun shortest-path (x y walls)
   "Returns the shortest path starting from hexagon [x] and arriving to
   hexagon [y] that avoids the forbidden hexagons defined in the [walls] map."
-  (do ((to-x (js-object ((progn x) true)))
-       (to-y (js-object ((progn y) true)))
+  (do ((to-x #(((progn x) true)))
+       (to-y #(((progn y) true)))
        (common null)
        (x-active-list (list x))
        (y-active-list (list y)))
@@ -119,7 +119,7 @@
 
 (defun main ()
   (let* ((c (create-element "canvas"))
-         (wall (js-object))
+         (wall #())
          (from null)
          (to null)
          (solution (list))
@@ -151,7 +151,7 @@
                      (h (. c offsetHeight)))
                  (setf (. c width) w)
                  (setf (. c height) h)
-                 (do ((drawn (js-object ([0 0] true)))
+                 (do ((drawn #(([0 0] true)))
                       (todo (list [0 0]))
                       (i 0))
                      ((>= i (length todo)))
@@ -208,7 +208,7 @@
                                           (lambda () ,@body)))
                       (append-child (window-frame w) ,name))))
         (set-button clear-btn "Clear"
-                    (setf wall (js-object))
+                    (setf wall #())
                     (set-mode "wall"))
         (set-button wall-btn "Wall"
                     (set-mode "wall"))

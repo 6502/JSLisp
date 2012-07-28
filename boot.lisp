@@ -1374,14 +1374,37 @@ A field is either an unevaluated symbol, a number, a string or an (evaluated) fo
 
 (defmacro js-object (&rest body)
   "Creates a javascript object and eventually assigns fields in [body].
-Each field is a list of an unevaluated atom as name and a value."
-  (let ((self (gensym)))
-    `(let ((,self (js-code "({})")))
-       ,@(let ((res (list)))
-           (dolist (f body)
-             (push `(setf (. ,self ,(first f)) ,(second f)) res))
-           res)
-       ,self)))
+Each field is either a list (name value) or just a name (associated to null).
+A name is either an unevaluated atom or an evaluated list."
+  (if (any (f body) (and (list? f) (list? (first f))))
+      (let ((self (gensym)))
+        ;; Dynamic field name creation, cannot compile to a
+        ;; javascript literal
+        `(let ((,self (js-code "({})")))
+           ,@(let ((res (list)))
+                  (dolist (f body)
+                    (if (list f)
+                        (push `(setf (. ,self ,(first f)) ,(second f)) res)
+                        (push `(setf (. ,self ,f null)) res)))
+                  res)
+           ,self))
+      (let ((res "({"))
+        (dolist (f body)
+          (unless (list? f)
+            (setf f (list f null)))
+          (incf res (+ (str-value (if (symbol? (first f))
+                                      (symbol-name (first f))
+                                      (first f)))
+                       ":"
+                       (js-compile (second f))
+                       ",")))
+        `(js-code ,(+ res "})")))))
+
+;; hash-reader macro for object creation literal #((x 10) (y 20))
+(setf (hash-reader "(")
+      (lambda (src)
+        (next-char src)
+        `(js-object ,@(parse-delimited-list src ")"))))
 
 (defun keys (obj)
   "Returns a list of all keys defined in the specified javascript object [obj]."

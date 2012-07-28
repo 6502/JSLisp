@@ -63,8 +63,8 @@ reverse engineering point of view.
         "{}")))
 
 (defun fclosure (x)
-  (do ((result (js-object))
-       (vars (js-object))
+  (do ((result #())
+       (vars #())
        (todo (list x))
        (litout false))
       ((empty todo)
@@ -108,9 +108,9 @@ reverse engineering point of view.
       (setf todo new-todo))))
 
 (defun minimize (s)
-  (let ((seen (js-object))
-        (lits (js-object))
-        (rlits (js-object))
+  (let ((seen #())
+        (lits #())
+        (rlits #())
         (litcount 0)
         (count 0))
     (labels ((nstr (x)

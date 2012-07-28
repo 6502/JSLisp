@@ -18,9 +18,9 @@
 (defun new-page (&optional size layout)
   (if size
       (if layout
-          (*pdf*.addPage (js-object (size size)
-                                    (layout layout)))
-          (*pdf*.addPage (js-object (size size))))
+          (*pdf*.addPage #((size size)
+                           (layout layout)))
+          (*pdf*.addPage #((size size))))
       (*pdf*.addPage)))
 
 (defun text (text &optional x y
@@ -32,17 +32,17 @@
                        word-spacing character-spacing
                        fill stroke)
   (*pdf*.text text x y
-              (js-object (align align)
-                         (width width)
-                         (height height)
-                         (columns columns)
-                         (columnGap column-gap)
-                         (indent indent)
-                         (paragraphGap paragraph-gap)
-                         (wordSpacing word-spacing)
-                         (characterSpacing character-spacing)
-                         (fill fill)
-                         (stroke stroke))))
+              #((align align)
+                (width width)
+                (height height)
+                (columns columns)
+                (columnGap column-gap)
+                (indent indent)
+                (paragraphGap paragraph-gap)
+                (wordSpacing word-spacing)
+                (characterSpacing character-spacing)
+                (fill fill)
+                (stroke stroke))))
 
 (defun font (name &optional style)
   (*pdf*.font name style))
