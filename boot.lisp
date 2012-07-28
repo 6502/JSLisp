@@ -117,7 +117,7 @@
 (defun + (&rest args)
   (cond
     ((= (length args) 2) (js-code "(d$$args[0]+d$$args[1])"))
-    (true (js-code "(d$$args[0]+f$$$43$.apply(null,d$$args.slice(1)))"))))
+    (true (js-code "(d$$args[0]+f$$$43_.apply(null,d$$args.slice(1)))"))))
 
 ; Logical not
 (defun not (x)
@@ -136,7 +136,7 @@
 ; Function accessor
 (defmacro function (x)
   "Returns the function currently bound to the unevaluated symbol [x] (including lexical bindings)"
-  (js-code "(lexfunc.vars[d$$x.name]?null:(d$$$42$outgoing_calls$42$[d$$x.name]=true))")
+  (js-code "(lexfunc.vars[d$$x.name]?null:(d$$$42_outgoing_calls$42_[d$$x.name]=true))")
   (list 'js-code (+ "f" (js-code "d$$x.name"))))
 
 ; Macro accessor
@@ -196,10 +196,10 @@
   "Evaluates [body] forms after binding [var] to each element of [list]"
   (list 'js-code (+ "((function(list){var f="
                     (js-compile (append (list 'lambda
-                                              (list (js-code "d$$var$43$list[0]")))
+                                              (list (js-code "d$$var$43_list[0]")))
                                         body))
                     ";for(var i=0,n=list.length;i<n;i++){f(list[i])}})("
-                    (js-compile (js-code "d$$var$43$list[1]"))
+                    (js-compile (js-code "d$$var$43_list[1]"))
                     "))")))
 
 ; Dotimes macro
@@ -207,10 +207,10 @@
   "Evaluates [body] forms after binding [var] to 0, 1, ... [(1- count)]"
   (list 'js-code (+ "((function(n){var f="
                     (js-compile (append (list 'lambda
-                                              (list (js-code "d$$var$43$count[0]")))
+                                              (list (js-code "d$$var$43_count[0]")))
                                         body))
                     ";for(var i=0;i<n;i++){f(i)}})("
-                    (js-compile (js-code "d$$var$43$count[1]"))
+                    (js-compile (js-code "d$$var$43_count[1]"))
                     "))")))
 
 ; Funcall macro
@@ -1289,9 +1289,9 @@ If only one parameter is passed it's assumed to be [stop]."
   "Evaluates [expr] and in case of exception evaluates the [on-error] form setting [*exception*] to the current exception"
   `(js-code ,(+ "((function(){try{return("
                 (js-compile expr)
-                ");}catch(err){var olderr=d$$$42$exception$42$;d$$$42$exception$42$=err;var res=("
+                ");}catch(err){var olderr=d$$$42_exception$42_;d$$$42_exception$42_=err;var res=("
                 (js-compile on-error)
-                ");d$$$42$exception$42$=olderr;return res;}})())")))
+                ");d$$$42_exception$42_=olderr;return res;}})())")))
 
 ; Timing
 (defun clock ()
@@ -1318,7 +1318,7 @@ If only one parameter is passed it's assumed to be [stop]."
 
 (defun regexp-escape (x)
   "Returns a string with all regexp-meaningful characters escaped"
-  (replace x "([\\][()+*?\\\\])" "\\$1"))
+  (replace x "([$^\\][()+*?\\\\])" "\\$1"))
 
 ; Whitespace stripping
 (defun lstrip (x)
@@ -1823,7 +1823,7 @@ that field. When absent the default value is assumed to be [undefined]."
   "Evaluates [body] forms and returns values of last of them or a value is [throw]n at the specified [tag]"
   `(js-code ,(+ "((function(){try{return "
                 (js-compile `(progn ,@body))
-                "}catch(x){if(f$$list$63$(x)&&x[0]===("
+                "}catch(x){if(f$$list$63_(x)&&x[0]===("
                 (js-compile tag)
                 "))return x[1];throw x;}})())")))
 
@@ -1945,7 +1945,7 @@ that field. When absent the default value is assumed to be [undefined]."
                 (let ((re ""))
                   (dolist (w wildcards)
                     (incf re ~"|{(regexp-escape (slice (mangle w) 2))}"))
-                  (let ((regexp (regexp ~"^s{*current-module*}\\\\$\\\\$({(slice re 1)}.*)")))
+                  (let ((regexp (regexp ~"^s{(regexp-escape (slice (mangle *current-module*) 2))}\\\\$\\\\$({(slice re 1)}.*)")))
                     (dolist (k (keys (js-code "glob")))
                       (when (funcall (. regexp exec) k)
                         (let ((name (demangle k)))

@@ -25,13 +25,13 @@
 ******************************************************************************
 \****************************************************************************/
 
-d$$$42$start_time$42$ = (new Date).getTime();
+d$$$42_start_time$42_ = (new Date).getTime();
 
-d$$$42$current_module$42$ = "";
-d$$$42$module_aliases$42$ = {};
-d$$$42$symbol_aliases$42$ = {};
-d$$$42$outgoing_calls$42$ = {};
-d$$$42$used_globals$42$ = {};
+d$$$42_current_module$42_ = "";
+d$$$42_module_aliases$42_ = {};
+d$$$42_symbol_aliases$42_ = {};
+d$$$42_outgoing_calls$42_ = {};
+d$$$42_used_globals$42_ = {};
 
 d$$node_js = false;
 
@@ -70,8 +70,8 @@ function Symbol(name, interned)
 
     this.toString = function () {
         var ix = this.name.indexOf("$$");
-        var mod = this.name.substr(0, ix) + ":";
-        if (mod === ":" || mod === d$$$42$current_module$42$.replace("/","__") + ":")
+        var mod = f$$demangle("$$" + this.name.substr(0, ix)) + ":";
+        if (mod === ":" || mod === d$$$42_current_module$42_ + ":")
             mod = "";
         return mod + f$$demangle(this.name);
     };
@@ -141,7 +141,7 @@ glob["f$$mangle"] = f$$mangle = function(x)
         }
         else
         {
-            res += ("$" + x.charCodeAt(i) + "$");
+            res += ("$" + x.charCodeAt(i) + "_");
         }
     }
     return "$$" + res;
@@ -160,10 +160,10 @@ glob["f$$intern"] = f$$intern = function(name, module, lookup_only)
         module = name.substr(0, x);
         name = name.substr(x + 1);
     }
-    if ((typeof module === "undefined") && (x = d$$$42$symbol_aliases$42$[name]))
+    if ((typeof module === "undefined") && (x = d$$$42_symbol_aliases$42_[name]))
         return x;
-    var m = (typeof module === "undefined") ? d$$$42$current_module$42$ : (d$$$42$module_aliases$42$[module]||module);
-    m = m.replace("/","__");
+    var m = (typeof module === "undefined") ? d$$$42_current_module$42_ : (d$$$42_module_aliases$42_[module]||module);
+    m = f$$mangle(m).substr(2);
     var mangled = f$$mangle(name);
     var mname = m + mangled;
     x = glob["s" + mname];
@@ -233,7 +233,7 @@ defun("demangle",
           var i = x.indexOf("$$");
           return x.substr(i+2)
               .replace(/_/g,"-")
-              .replace(/(\$[0-9]+\$)/g,
+              .replace(/(\$[0-9]+-)/g,
                        function(s)
                        {
                            return String.fromCharCode(parseInt(s.substr(1, s.length-2)));
@@ -247,7 +247,7 @@ defun("symbol-module",
       function(x)
       {
           if (x.interned)
-              return x.name.substr(0, x.name.indexOf("$$")).replace(/__/g, "/");
+              return f$$demangle("$$" + x.name.substr(0, x.name.indexOf("$$")));
           return undefined;
       },
       [s$$x]);
@@ -261,7 +261,7 @@ defun("module-symbol",
       function(x, module)
       {
           return f$$intern(f$$demangle(x.name),
-                           (typeof module === "undefined" ? d$$$42$current_module$42$ : module));
+                           (typeof module === "undefined" ? d$$$42_current_module$42_ : module));
       },
       [s$$x, f$$intern("&optional"), f$$intern("module")]);
 
@@ -368,7 +368,7 @@ defmacro("define-symbol-macro",
                  i = lisp_literals.length;
                  lisp_literals.push(y);
              }
-             d$$$42$used_globals$42$["q#"+i] = true;
+             d$$$42_used_globals$42_["q#"+i] = true;
              return [s$$js_code, "s" + x.name + ".symbol_macro=lisp_literals[" + i + "]"];
          },
          [f$$intern("x"), f$$intern("y")]);
@@ -504,10 +504,10 @@ defmacro("lambda",
          "in [body] in sequence returning the last evaluated form value as result",
          function(args)
          {
-             var current_outgoing_calls = d$$$42$outgoing_calls$42$;
-             d$$$42$outgoing_calls$42$ = {};
-             var current_used_globals = d$$$42$used_globals$42$;
-             d$$$42$used_globals$42$ = {};
+             var current_outgoing_calls = d$$$42_outgoing_calls$42_;
+             d$$$42_outgoing_calls$42_ = {};
+             var current_used_globals = d$$$42_used_globals$42_;
+             d$$$42_used_globals$42_ = {};
              var body = Array.prototype.slice.call(arguments, 1);
              lexvar.begin();
              lexsmacro.begin();
@@ -519,7 +519,7 @@ defmacro("lambda",
              for (var i=0; i<args.length; i++)
              {
                  var v = args[i].name;
-                 if (v === "$$$38$rest")
+                 if (v === "$$$38_rest")
                  {
                      rest = args[i+1].name;
                      if (!specials[rest])
@@ -589,18 +589,18 @@ defmacro("lambda",
                  osmacro[i][0].symbol_macro = osmacro[i][1];
              var ocnames = "";
              var ugnames = "";
-             for (var k in d$$$42$outgoing_calls$42$)
+             for (var k in d$$$42_outgoing_calls$42_)
              {
                  ocnames += "," + stringify(k);
                  current_outgoing_calls[k] = true;
              }
-             for (var k in d$$$42$used_globals$42$)
+             for (var k in d$$$42_used_globals$42_)
              {
                  ugnames += "," + stringify(k);
                  current_used_globals[k] = true;
              }
-             d$$$42$outgoing_calls$42$ = current_outgoing_calls;
-             d$$$42$used_globals$42$ = current_used_globals;
+             d$$$42_outgoing_calls$42_ = current_outgoing_calls;
+             d$$$42_used_globals$42_ = current_used_globals;
              res = ("((function(){" +
                     "var f =" +
                     res +
@@ -699,7 +699,7 @@ defmacro("setq",
          "in a corresponding [(setf ...)] form.",
          function(name, value)
          {
-             if (f$$symbol$63$(name) &&
+             if (f$$symbol$63_(name) &&
                  !name.symbol_macro &&
                  !lexsmacro.vars[name.name])
              {
@@ -717,12 +717,12 @@ defmacro("quote",
          "Returns the unevaluated form [x] as result.",
          function(x)
          {
-             if (f$$symbol$63$(x) && x.interned)
+             if (f$$symbol$63_(x) && x.interned)
              {
-                 d$$$42$used_globals$42$["s#" + x.name] = true;
+                 d$$$42_used_globals$42_["s#" + x.name] = true;
                  return [s$$js_code, "s" + x.name];
              }
-             if (f$$number$63$(x) || f$$string$63$(x))
+             if (f$$number$63_(x) || f$$string$63_(x))
                  return [s$$js_code, stringify(x)];
              var i = lisp_literals.indexOf(x);
              if (i === -1)
@@ -730,7 +730,7 @@ defmacro("quote",
                  i = lisp_literals.length;
                  lisp_literals.push(x);
              }
-             d$$$42$used_globals$42$["q#"+i] = true;
+             d$$$42_used_globals$42_["q#"+i] = true;
              return [s$$js_code, "lisp_literals[" + i + "]"];
          },
          [s$$x]);
@@ -751,9 +751,9 @@ defun("macroexpand-1",
       "it's neither a macro invocation nor a macro symbol. Lexical macro bindings are NOT considered.",
       function(x)
       {
-          if (f$$symbol$63$(x) && x.symbol_macro)
+          if (f$$symbol$63_(x) && x.symbol_macro)
               x = x.symbol_macro;
-          else if (f$$list$63$(x) && f$$symbol$63$(x[0]) && glob["m" + x[0].name])
+          else if (f$$list$63_(x) && f$$symbol$63_(x[0]) && glob["m" + x[0].name])
               x = glob["m" + x[0].name].apply(glob, x.slice(1));
           return x;
       },
@@ -766,9 +766,9 @@ defun("macroexpand",
       {
           for (;;)
           {
-              if (f$$symbol$63$(x) && x.symbol_macro)
+              if (f$$symbol$63_(x) && x.symbol_macro)
                   x = x.symbol_macro;
-              else if (f$$list$63$(x) && f$$symbol$63$(x[0]) && glob["m" + x[0].name])
+              else if (f$$list$63_(x) && f$$symbol$63_(x[0]) && glob["m" + x[0].name])
                   x = glob["m" + x[0].name].apply(glob, x.slice(1));
               else break;
           }
@@ -973,13 +973,13 @@ defmacro("macrolet",
                  var name = bindings[i][0].name;
                  var args = bindings[i][1];
                  var mbody = bindings[i].slice(2);
-                 var ouc = d$$$42$outgoing_calls$42$;
-                 var oug = d$$$42$used_globals$42$;
-                 d$$$42$outgoing_calls$42$ = {};
-                 d$$$42$used_globals$42$ = {};
+                 var ouc = d$$$42_outgoing_calls$42_;
+                 var oug = d$$$42_used_globals$42_;
+                 d$$$42_outgoing_calls$42_ = {};
+                 d$$$42_used_globals$42_ = {};
                  lexmacro.add(name, eval(f$$js_compile([f$$intern("lambda"), args].concat(mbody))));
-                 d$$$42$outgoing_calls$42$ = ouc;
-                 d$$$42$used_globals$42$ = oug;
+                 d$$$42_outgoing_calls$42_ = ouc;
+                 d$$$42_used_globals$42_ = oug;
              }
              var res = implprogn(body);
              lexmacro.end();
@@ -1016,9 +1016,9 @@ defun("warning",
       },
       [f$$intern("msg")]);
 
-d$$$42$error_location$42$ = null;
+d$$$42_error_location$42_ = null;
 
-d$$$42$debugger$42$ = false;
+d$$$42_debugger$42_ = false;
 
 function f$$safe()
 {
@@ -1060,7 +1060,7 @@ function erl(x, f, local_js_eval)
     f$$local_js_eval = local_js_eval;
     try
     {
-        while(d$$$42$debugger$42$)
+        while(d$$$42_debugger$42_)
         {
             f$$send_debugger([f$$intern("location")].concat(x));
             var dbg_commands = f$$receive_debugger();
@@ -1090,7 +1090,7 @@ function erl(x, f, local_js_eval)
     }
 }
 
-d$$$42$declarations$42$ = [];
+d$$$42_declarations$42_ = [];
 
 defun("js-compile",
       "[[(js-compile x)]]\n" +
@@ -1098,7 +1098,7 @@ defun("js-compile",
       "evaluation of the passed form [x].",
       function(x)
       {
-          if (f$$symbol$63$(x))
+          if (f$$symbol$63_(x))
           {
               if (lexsmacro.vars[x.name])
                   return f$$js_compile(lexsmacro.vars[x.name]);
@@ -1111,7 +1111,7 @@ defun("js-compile",
 
               if (specials[x.name])
               {
-                  d$$$42$used_globals$42$[x.name] = true;
+                  d$$$42_used_globals$42_[x.name] = true;
                   return specials[x.name];
               }
 
@@ -1129,20 +1129,20 @@ defun("js-compile",
                   }
                   else
                   {
-                      d$$$42$used_globals$42$[x.name] = true;
+                      d$$$42_used_globals$42_[x.name] = true;
                   }
               }
 
               return v;
           }
-          else if (f$$list$63$(x) && f$$symbol$63$(x[0]) && x[0].name === "$$declare")
+          else if (f$$list$63_(x) && f$$symbol$63_(x[0]) && x[0].name === "$$declare")
           {
-              d$$$42$declarations$42$.push(x);
+              d$$$42_declarations$42_.push(x);
           }
-          else if (f$$list$63$(x))
+          else if (f$$list$63_(x))
           {
               try {
-                  var decl = d$$$42$declarations$42$.length;
+                  var decl = d$$$42_declarations$42_.length;
 
                   var wrapper = function(r) {
                       return r;
@@ -1158,11 +1158,11 @@ defun("js-compile",
                       };
                   }
                   var f = x[0];
-                  if (f$$symbol$63$(f))
+                  if (f$$symbol$63_(f))
                   {
                       if (f === s$$js_code)
                       {
-                          if (x.length != 2 || !f$$string$63$(x[1]))
+                          if (x.length != 2 || !f$$string$63_(x[1]))
                               throw "js-code requires a string literal";
                           return x[1];
                       }
@@ -1175,13 +1175,13 @@ defun("js-compile",
                               if (caf && caf!=42)
                                   caf(x, lmf.arglist);
                           }
-                          var ouc = d$$$42$outgoing_calls$42$;
-                          var oug = d$$$42$used_globals$42$;
-                          d$$$42$outgoing_calls$42$ = {};
-                          d$$$42$used_globals$42$ = {};
+                          var ouc = d$$$42_outgoing_calls$42_;
+                          var oug = d$$$42_used_globals$42_;
+                          d$$$42_outgoing_calls$42_ = {};
+                          d$$$42_used_globals$42_ = {};
                           var macro_expansion = lmf.apply(glob, x.slice(1));
-                          d$$$42$outgoing_calls$42$ = ouc;
-                          d$$$42$used_globals$42$ = oug;
+                          d$$$42_outgoing_calls$42_ = ouc;
+                          d$$$42_used_globals$42_ = oug;
                           return wrapper(f$$js_compile(macro_expansion));
                       }
                       else if (glob["m" + f.name])
@@ -1201,7 +1201,7 @@ defun("js-compile",
                           var gf = glob["f" + f.name];
                           if (!lexfunc.vars[f.name])
                           {
-                              d$$$42$outgoing_calls$42$[f.name] = true;
+                              d$$$42_outgoing_calls$42_[f.name] = true;
                               if (!gf)
                               {
                                   f$$warning("Undefined function " + f.name);
@@ -1224,7 +1224,7 @@ defun("js-compile",
                           return wrapper(res);
                       }
                   }
-                  else if (f$$list$63$(f))
+                  else if (f$$list$63_(f))
                   {
                       var res = "((" + f$$js_compile(f) + ")(";
                       for (var i=1; i<x.length; i++)
@@ -1242,7 +1242,7 @@ defun("js-compile",
               }
               finally
               {
-                  d$$$42$declarations$42$.length = decl;
+                  d$$$42_declarations$42_.length = decl;
               }
           }
           else if ((typeof x) === "undefined")
@@ -1265,8 +1265,8 @@ defun("js-compile",
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-d$$$42$spaces$42$ = " \t\r\n";
-d$$$42$stopchars$42$ = "()\"";
+d$$$42_spaces$42_ = " \t\r\n";
+d$$$42_stopchars$42_ = "()\"";
 
 defun("skip-spaces",
       "[[(skip-spaces src)]]\n" +
@@ -1276,7 +1276,7 @@ defun("skip-spaces",
       {
           while(true)
           {
-              while (d$$$42$spaces$42$.indexOf(src.s[src.i]) != -1)
+              while (d$$$42_spaces$42_.indexOf(src.s[src.i]) != -1)
                   src.i++;
               if (src.s[src.i] === ';')
               {
@@ -1298,8 +1298,8 @@ defun("parse-stopping",
       function f$$parse_stopping(c)
       {
           return (c === undefined ||
-                  d$$$42$spaces$42$.indexOf(c) != -1 ||
-                  d$$$42$stopchars$42$.indexOf(c) !=-1);
+                  d$$$42_spaces$42_.indexOf(c) != -1 ||
+                  d$$$42_stopchars$42_.indexOf(c) !=-1);
       },
       [f$$intern("src")]);
 
@@ -1346,14 +1346,14 @@ defun("parse-delimited-list",
       {
           var res = [];
           f$$skip_spaces(src);
-          var oldstops = d$$$42$stopchars$42$;
-          d$$$42$stopchars$42$ += stop;
+          var oldstops = d$$$42_stopchars$42_;
+          d$$$42_stopchars$42_ += stop;
           while (src.s[src.i] != undefined && src.s[src.i] != stop)
           {
               res.push(f$$parse_value(src));
               f$$skip_spaces(src);
           }
-          d$$$42$stopchars$42$ = oldstops;
+          d$$$42_stopchars$42_ = oldstops;
           if (src.s[src.i] != stop)
               throw new String(stringify(stop) + " expected");
           src.i++;
@@ -1389,7 +1389,7 @@ defun("parse-symbol",
       },
       [f$$intern("src"), f$$intern("start")]);
 
-d$$$42$hash_readers$42$ = { "'": function(src)
+d$$$42_hash_readers$42_ = { "'": function(src)
                             {
                                 src.i++;
                                 return [f$$intern("function"), f$$parse_value(src)]
@@ -1408,7 +1408,7 @@ d$$$42$hash_readers$42$ = { "'": function(src)
                             }
                           };
 
-d$$$42$readers$42$ = { "|": function(src)
+d$$$42_readers$42_ = { "|": function(src)
                        {
                            src.i++;
                            var res = "";
@@ -1504,7 +1504,7 @@ d$$$42$readers$42$ = { "|": function(src)
                        "#": function(src)
                        {
                            src.i++;
-                           var f = d$$$42$hash_readers$42$[src.s[src.i]];
+                           var f = d$$$42_hash_readers$42_[src.s[src.i]];
                            if (f) return f(src);
                            throw new String("Unsupported hash combination");
                        },
@@ -1553,7 +1553,7 @@ defun("parse-value",
           f$$skip_spaces(src);
           if (src.s[src.i] === undefined)
               throw new String("Value expected");
-          return (d$$$42$readers$42$[src.s[src.i]] || d$$$42$readers$42$["default"])(src);
+          return (d$$$42_readers$42_[src.s[src.i]] || d$$$42_readers$42_["default"])(src);
       },
       [f$$intern("src")]);
 
@@ -1565,18 +1565,18 @@ defun("str-value",
           if ((typeof circle_print) === "undefined" ||
               ((typeof circle_print) === "boolean" && circle_print))
               circle_print = [];
-          if (f$$symbol$63$(x))
+          if (f$$symbol$63_(x))
           {
               return x + "";
           }
-          else if (f$$list$63$(x))
+          else if (f$$list$63_(x))
           {
-              if (x.length === 2 && f$$symbol$63$(x[0]))
+              if (x.length === 2 && f$$symbol$63_(x[0]))
               {
                   if (x[0].name === "$$quote")
                       return "'" + f$$str_value(x[1], circle_print);
                   if (x[0].name === "$$function" &&
-                      f$$symbol$63$(x[1]))
+                      f$$symbol$63_(x[1]))
                       return "#'" + f$$demangle(x[1].name);
               }
               if ((typeof circle_print) === "object")
@@ -1640,19 +1640,19 @@ defun("toplevel-eval",
       function(x)
       {
           // Ignore outgoing calls and used globals at toplevel
-          var outc = d$$$42$outgoing_calls$42$;
-          var ug = d$$$42$used_globals$42$;
-          d$$$42$outgoing_calls$42$ = {};
+          var outc = d$$$42_outgoing_calls$42_;
+          var ug = d$$$42_used_globals$42_;
+          d$$$42_outgoing_calls$42_ = {};
           ug = {};
 
           var f, result;
-          if (f$$symbol$63$(x))
+          if (f$$symbol$63_(x))
           {
               if (x.symbol_macro)
                   return f$$toplevel_eval(x.symbol_macro);
               result = f$$eval(x);
           }
-          else if (f$$list$63$(x))
+          else if (f$$list$63_(x))
           {
               if (x[0] === s$$progn)
               {
@@ -1674,7 +1674,7 @@ defun("toplevel-eval",
                       result = f$$toplevel_eval(x[3]);
                   }
               }
-              else if (f$$symbol$63$(x[0]) && (f = glob["m" + x[0].name]))
+              else if (f$$symbol$63_(x[0]) && (f = glob["m" + x[0].name]))
               {
                   if (f.arglist)
                   {
@@ -1690,8 +1690,8 @@ defun("toplevel-eval",
           {
               result = f$$eval(x);
           }
-          d$$$42$outgoing_calls$42$ = outc;
-          d$$$42$used_globals$42$ = ug;
+          d$$$42_outgoing_calls$42_ = outc;
+          d$$$42_used_globals$42_ = ug;
           return result;
       },
       [s$$x]);
@@ -1702,7 +1702,7 @@ defun("load",
       "one at a time in sequence. If [name] is passed and [src] is a string then source location information is attached to each parsed list.",
       function(src, name)
       {
-          if (f$$string$63$(src))
+          if (f$$string$63_(src))
               src = ({"s":src, "i":0, "location": name});
           var nforms = 0;
           var last = null;
@@ -1724,7 +1724,7 @@ defun("load",
               var werr = new String("Error during load (form=" + nforms + ", phase = " + phase + "):\n" +
                                     err + "\n" +
                                     ((phase != "parsing") ?
-                                     f$$macroexpand_$49$(f$$str_value(form)) : ""));
+                                     f$$macroexpand_$49_(f$$str_value(form)) : ""));
               werr.location = err.location;
               throw werr;
           }

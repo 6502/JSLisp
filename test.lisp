@@ -69,24 +69,24 @@
       "\"$$foo\"")
 
 (test (mangle "foo1")
-      "\"$$foo$49$\"")
+      "\"$$foo$49_\"")
 
 (test (mangle "foo-1")
-      "\"$$foo_$49$\"")
+      "\"$$foo_$49_\"")
 
 (test (mangle "foo_1")
-      "\"$$foo$95$$49$\"")
+      "\"$$foo$95_$49_\"")
 
 (test (demangle "$$foo")
       "\"foo\"")
 
-(test (demangle "$$foo$49$")
+(test (demangle "$$foo$49_")
       "\"foo1\"")
 
-(test (demangle "$$foo_$49$")
+(test (demangle "$$foo_$49_")
       "\"foo-1\"")
 
-(test (demangle "$$foo$95$$49$")
+(test (demangle "$$foo$95_$49_")
       "\"foo_1\"")
 
 (test (intern "xx")
