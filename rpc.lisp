@@ -4,8 +4,19 @@
     (progn
       ;;
       ;; Server side, an http-server able to serve static files
-      ;; and to handle `/process` http requests
+      ;; and to handle `/process` http requests.
+      ;; Serving static files is useful because of Same Origin Policy
       ;;
+      (defvar *typemap* #((".html" "text/html")
+                          (".css"  "text/css")
+                          (".js"   "text/javascript")
+                          (".jpg"  "image/jpeg")
+                          (".png"  "image/png")
+                          (".pdf"  "application/pdf")
+                          (".txt"  "text/plain")
+                          (".gz"   "application/x-gzip")
+                          (".zip"  "application/zip")))
+
       (defun process-request (req)
         (error "Unknown request {req.%class}"))
 
@@ -13,24 +24,24 @@
         (display ~"Processing url={url}, parms={parms}, data={data}")
         (when (and (= parms "") (not (null? data)))
           (setf parms data))
-        (let ((content (if (= url "/process")
-                           (to-buffer (process-request (from-buffer (uri-decode parms))))
-                           (get-file (+ "." url) null)))
-              (ctype (cond
-                       ((find ".html" url)
-                        "text/html")
-                       ((find ".css" url)
-                        "text/css")
-                       ((find ".js" url)
-                        "text/javascript")
-                       ((find ".jpg" url)
-                        "image/jpeg")
-                       ((find ".png" url)
-                        "image/png")
-                       (true "text/plain"))))
-          (funcall (. response writeHead)
-                   200 #((Content-Type ctype)))
-          (funcall (. response end) content)))
+        (let ((content (try (cond
+                              ((= url "/process")
+                               (to-buffer (process-request (from-buffer (uri-decode parms)))))
+                              (((regexp "^/process-as\\.[a-z0-9]+$").exec url)
+                               (process-request (from-buffer (uri-decode parms))))
+                              (true (try (get-file (+ "." url) null)
+                                         (progn
+                                           (response.writeHead 404)
+                                           (response.end "File not found")
+                                           (return-from process)))))
+                            (progn
+                              (response.writeHead 500)
+                              (response.end "Internal error")
+                              (return-from process))))
+              (ctype (or (aref *typemap* ((regexp "\\.[a-z0-9]*$").exec url))
+                         "application/octect-stream")))
+          (response.writeHead 200 #((Content-Type ctype)))
+          (response.end content)))
 
       (defun rpc-handler (request response)
         (let ((url (. request url))
