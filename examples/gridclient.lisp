@@ -1,4 +1,5 @@
 (import * from gui)
+(import * from rpc-client)
 (import * from examples/pdfgrid)
 
 (defun mm (x)

@@ -5,9 +5,11 @@
 (defun x () *pdf*.x)
 (defun y () *pdf*.y)
 
-(defvar PDFDocument (js-code "require('pdfkit')"))
+(defvar PDFDocument null)
 
 (defun new-pdf (&optional (size "a4") (layout "portrait"))
+  (unless PDFDocument
+    (setf PDFDocument (js-code "require('pdfkit')")))
   (js-code "(new dpdf$$PDFDocument({size:d$$size, layout:dpdf$$layout}))"))
 
 (defmacro pdf (options &rest body)

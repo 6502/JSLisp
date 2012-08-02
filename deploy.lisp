@@ -12,9 +12,9 @@ explicitly referenced in the included code. Initial variable value
 will be the current content at macroexpansion time of (main ...)
 call.  Note that closures currently cannot be correctly stringified
 and therefore any variable containing a closure will end up containing
-a regular function, the value of closed over variable will be lost and
-the contained function will access instead a global javascript
-variable.
+a regular function, the value of closed over variables will be lost and
+the contained function will access instead global javascript
+variables.
 
 Compiled Javascript code is also minified by changing all names to
 shorter versions ('$' followed by a base-62 azAZ09 progressive number)
@@ -175,6 +175,7 @@ reverse engineering point of view.
       (lambda (&rest args)
         `(progn
            (let ((res ""))
+             (incf res "d$$$42_exception$42_=null;")
              (dolist (x (fclosure ',#"main"))
                (incf res x))
              (incf res (js-compile '(funcall #',#"main" ,@args)))
