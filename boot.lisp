@@ -1410,6 +1410,10 @@ A name is either an unevaluated atom or an evaluated list."
   "Returns a list of all keys defined in the specified javascript object [obj]."
   (js-code "((function(){var res=[];for(var $i in d$$obj)res.push($i);return res})())"))
 
+(defun remove-key (object key)
+  "Removes [key] entry from [object]"
+  (js-code "((function(){delete d$$object[d$$key]})())"))
+
 (defun copy-js-object (x)
   "Returns a shallow copy of the javascript object [x]"
   (let ((res (js-object)))
