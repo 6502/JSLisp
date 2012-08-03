@@ -1,14 +1,7 @@
 (import * from gui)
 (import * from graphics)
-(import * from simpledb)
-
-(defun remote (x)
-  (let ((request (uri-encode (str-value x false))))
-    (let ((reply (http "POST" "eval?" request)))
-      (let ((result (parse-value (uri-decode reply))))
-        result))))
-
-(defobject page (width height entities))
+(import * from rpc-client)
+(import * from examples/forms)
 
 (defvar *pages* null)
 (defvar *current-page* null)
@@ -22,17 +15,6 @@
 (defvar *tracking* null)
 (defvar *borders* false)
 (defvar *grid* false)
-
-(defun serialize (x) x)
-
-(defmethod serialize (e) (list? e)
-  `(list ,@(map #'serialize e)))
-
-(defmethod serialize (e) e.%class
-  `(,#"new-{(symbol-name e.%class)}"
-    ,@(map (lambda (field)
-             (serialize (aref e (symbol-name field))))
-           e.%fields)))
 
 (defun hit (e p)
   "Returns a callable tracker if point [p] hit element [e]"
@@ -71,8 +53,15 @@
             (/= *canvas*.height *screen*.offsetHeight))
     (setf *canvas*.width *screen*.offsetWidth)
     (setf *canvas*.height *screen*.offsetHeight)
-    (fill-rect 5 5 (+ 5 *current-page*.width) (+ 5 *current-page*.height) "#000000")
+    (fill-rect 20 20 (+ 20 *current-page*.width) (+ 20 *current-page*.height) "#A0A0A0")
     (fill-rect 0 0 *current-page*.width *current-page*.height "#FFFFFF")
+    (with-canvas *canvas*
+      (stroke-style "#C0C0C0")
+      (line-width 1)
+      (rect *zx* *zy*
+            (* *sf* *current-page*.width)
+            (* *sf* *current-page*.height))
+      (stroke))
     (when *grid*
       (with-canvas *canvas*
         (save)
@@ -192,9 +181,6 @@
 
 ;; Rectangle object
 
-(defobject rect (x0 y0 x1 y1
-                    (color (list 255 255 0))))
-
 (defmethod edit (e) (rect? e)
   (ask-color "Fill color"
              e.color
@@ -213,19 +199,13 @@
 
 ;; Image object
 
-(defobject image (x0 y0 x1 y1
-                     (img (let ((img (create-element "img")))
-                            (setf img.src "jslisp.png")
-                            img))))
-
 (defmethod edit (e) (image? e)
   (with-window (w (100 100 500 150
                        :title "Image properties")
                   ((url (input "URL"))
                    (ok (button "OK"
                                (lambda ()
-                                 (setf e.img.src
-                                       (text url))
+                                 (setf e.url (text url))
                                  (setf *dirty* true)
                                  (hide-window w))))
                    (cancel (button "Cancel"
@@ -241,13 +221,7 @@
                           (:Hdiv cancel :size 80)
                           (:H))))
     (show-window w)
-    (setf (text url) e.img.src)))
-
-(defmethod serialize (e) (image? e)
-  `(new-image ,e.x0 ,e.y0 ,e.x1 ,e.y1
-              (let ((img (create-element "img")))
-                (setf img.src ,e.img.src)
-                img)))
+    (setf (text url) e.url)))
 
 (defmethod hit (e p) (image? e)
   (and (<= e.x0 p.x e.x1)
@@ -259,20 +233,9 @@
     (save)
     (translate *zx* *zy*)
     (scale *sf* *sf*)
-    (image e.img
-           e.x0 e.y0
-           (- e.x1 e.x0) (- e.y1 e.y0))
     (restore)))
 
 ;; Text object
-
-(defobject text (x0 y0 x1 y1
-                    (text "<type your text here>")
-                    (color (list 0 0 0))
-                    (size 50)
-                    (family "Arial")
-                    (bold false)
-                    (italic false)))
 
 (defmethod edit (e) (text? e)
   (with-window (w (100 100 500 500
@@ -293,7 +256,7 @@
                    (ok (button "OK"
                                (lambda ()
                                  (setf e.text (text content))
-                                 (setf e.size (parse-value (text size)))
+                                 (setf e.size (atof (text size)))
                                  (setf e.family (text family))
                                  (setf e.bold (checked bold))
                                  (setf e.italic (checked italic))
@@ -355,6 +318,8 @@
          (incf y e.size)))
      (restore)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defun mousedown (p)
   (dolist (e (reverse *current-page*.entities))
     (when (setf *tracking* (hit e p))
@@ -387,8 +352,6 @@
       (setf *dirty* true))))
 
 (defun init ()
-  (unless (find 'FormDocument (remote `*tables*))
-    (remote `(defrecord FormDocument (name content))))
   (setf *screen* (create-element "div"))
   (setf *canvas* (create-element "canvas"))
   (set-style *screen*
@@ -429,11 +392,9 @@
                  (mousewheel (coords) event.wheelDeltaY)))
   (set-interval #'update 20))
 
-(defun create-object (type)
+(defun create-object (creator)
   (lambda ()
-    (push (funcall (symbol-function #"new-{(symbol-name type)}")
-                   100 100 500 500)
-          *current-page*.entities)
+    (push (funcall creator) *current-page*.entities)
     (open-editor (last *current-page*.entities))
     (setf *dirty* true)))
 
@@ -444,13 +405,7 @@
 (defun document-selector (prompt f)
   (let ((selection null)
         (cursel null)
-        (docs (remote `(let ((res (list)))
-                         (foreach-FormDocument document
-                            (push (list document
-                                        (name document)
-                                        (content document))
-                                  res))
-                         res))))
+        (docs (list-documents)))
     (with-window (w (100 100 500 500
                          :title prompt)
                     ((doclist (create-element "table"))
@@ -474,14 +429,15 @@
         (labels ((add-th (x) (let ((th (create-element "th")))
                                (setf th.textContent x)
                                (append-child head th))))
-          (add-th "Name")))
-      (dolist ((document name content) docs)
+          (add-th "Name")
+          (add-th "Description")))
+      (dolist ((name description) docs)
         (let ((row (create-element "tr")))
           (setf row.height 20)
           (set-handler row onclick
                        (event.preventDefault)
                        (event.stopPropagation)
-                       (setf selection (list document name content))
+                       (setf selection name)
                        (when cursel
                          (set-style cursel
                                     backgroundColor "#FFFFFF"))
@@ -492,7 +448,8 @@
           (labels ((add-td (x) (let ((td (create-element "td")))
                                  (setf td.textContent x)
                                  (append-child row td))))
-            (add-td name))))
+            (add-td name)
+            (add-td description))))
       (show-window w))))
 
 (defun make-toolbar ()
@@ -500,9 +457,14 @@
                       :title "Menu"
                       :close false)
                   ((new-commands (group "New"))
-                   (rect (button "Rect" (create-object 'rect)))
-                   (text (button "Text" (create-object 'text)))
-                   (image (button "Image" (create-object 'image)))
+                   (rect (button "Rect" (create-object (lambda () (new-rect 100 100 500 300
+                                                                            (list 255 255 128))))))
+                   (text (button "Text" (create-object (lambda () (new-text 100 100 500 300
+                                                                            "<Type your text here>"
+                                                                            (list 0 0 0) 14
+                                                                            "Arial" false false)))))
+                   (image (button "Image" (create-object (lambda () (new-image 100 100 500 300
+                                                                               "jslisp.png")))))
                    (edit-commands (group "Edit"))
                    (del (button "Delete" (lambda ()
                                            (let ((selected (selected)))
@@ -578,17 +540,19 @@
                                             (setf *dirty* true))))
                    (doc-open (button "Open" (lambda ()
                                               (document-selector "Open"
-                                                 (lambda (x)
-                                                   (when (and x (third x))
-                                                     (setf *pages* (eval (third x)))
-                                                     (setf *current-page* (first *pages*))
-                                                     (setf *dirty* true)))))))
+                                                 (lambda (name)
+                                                   (when name
+                                                     (let ((doc (get-document name)))
+                                                       (setf *pages* doc.pages)
+                                                       (setf *current-page* (first *pages*))
+                                                       (setf *dirty* true))))))))
                    (doc-save (button "Save" (lambda ()
                                               (document-selector "Save"
-                                                 (lambda (x)
-                                                   (when x
-                                                     (remote `(setf (content ,(first x)) ',(serialize *pages*)))
-                                                     (remote `(commit))))))))
+                                                 (lambda (name)
+                                                   (when name
+                                                     (let ((doc (get-document name)))
+                                                       (setf doc.pages *pages*)
+                                                       (save-document doc))))))))
                    (doc-save-as (button "Save as..." (lambda ()
                                                        (alert "To do")))))
                   (:V :spacing 16 :border 8
