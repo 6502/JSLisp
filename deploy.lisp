@@ -147,7 +147,8 @@ reverse engineering point of view.
       (setf s (replace s "([^-])-(--)+([^-])" "$1-$3"))
       (setf s (replace s "([^-+])\\+-([^-+])" "$1-$2"))
       ; Unneeded semicolon and space removal
-      (setf s (replace s "[ \\n]*([-:?&|;(){}=+*/,])[ \\n]*" "$1"))
+      (setf s (replace s "\\n" " "))
+      (setf s (replace s " *([-:?&|;(){}=+*/,]) *" "$1"))
       (setf s (replace s ";}" "}"))
       ; Restore object-creation literals
       (setf s (replace s "{_[a-zA-Z0-9]+:" (lambda (x) ~"\\{{(aref rlits (slice x 1 (1- (length x))))}:")))
