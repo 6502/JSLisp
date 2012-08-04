@@ -206,6 +206,7 @@
                    (ok (button "OK"
                                (lambda ()
                                  (setf e.url (text url))
+                                 (remove-key e "img")
                                  (setf *dirty* true)
                                  (hide-window w))))
                    (cancel (button "Cancel"
@@ -229,10 +230,16 @@
        (open-editor e)))
 
 (defmethod draw (e) (image? e)
+  (unless e.img
+    (setf e.img (create-element "img"))
+    (set-handler e.img onload
+                 (setf *dirty* true))
+    (setf e.img.src e.url))
   (with-canvas *canvas*
     (save)
     (translate *zx* *zy*)
     (scale *sf* *sf*)
+    (image e.img e.x0 e.y0 (- e.x1 e.x0) (- e.y1 e.y0))
     (restore)))
 
 ;; Text object
