@@ -497,12 +497,7 @@
                                              (setf *dirty* true))))
                    (clone (button "Copy" (lambda ()
                                            (dolist (x (selected))
-                                             (push (apply (symbol-function
-                                                           #"new-{(symbol-name x.%class)}")
-                                                          (map (lambda (field)
-                                                                 (aref x (symbol-name field)))
-                                                               x.%fields))
-                                                   *current-page*.entities))
+                                             (push (copy x) *current-page*.entities))
                                            (remove-editors)
                                            (setf *dirty* true))))
                    (page-commands (group "Pages"))

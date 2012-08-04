@@ -1436,13 +1436,6 @@ A name is either an unevaluated atom or an evaluated list."
 
 (defun copy (x)
   (cond
-    ((or (number? x)
-         (string? x)
-         (symbol? x)
-         (undefined? x)
-         (null? x)
-         (bool? x))
-     x)
     ((list? x)
      (slice x))
     ((and x x.%copy (callable? x.%copy))
@@ -1453,7 +1446,7 @@ A name is either an unevaluated atom or an evaluated list."
          (when ((. x "hasOwnProperty") k)
            (setf (aref res k) (aref x k))))
        res))
-    (true (error ~"Unable to make a copy of {x}"))))
+    (true x)))
 
 ;; Named JS object creation
 
