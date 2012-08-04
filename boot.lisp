@@ -1414,14 +1414,48 @@ A name is either an unevaluated atom or an evaluated list."
   "Removes [key] entry from [object]"
   (js-code "((function(){delete d$$object[d$$key]})())"))
 
-(defun copy-js-object (x)
-  "Returns a shallow copy of the javascript object [x]"
-  (let ((res (js-object)))
-    (dolist (k (keys x))
-      (setf (aref res k) (aref x k)))
-    res))
+;; dot reader
 
-;; Named JS object creation, dot reader
+(setf #'parse-value
+      (let ((oldf #'parse-value))
+        (lambda (src)
+          (when (string? src)
+            (setf src (make-source src)))
+          (if (= (current-char src) ".")
+              (progn
+                (next-char src)
+                '.)
+              (do ((x (funcall oldf src)))
+                  ((/= (current-char src) ".") x)
+                (next-char src)
+                (setf x `(. ,x ,(funcall oldf src))))))))
+
+(incf *stopchars* ".")
+
+;; shallow-copy
+
+(defun copy (x)
+  (cond
+    ((or (number? x)
+         (string? x)
+         (symbol? x)
+         (undefined? x)
+         (null? x)
+         (bool? x))
+     x)
+    ((list? x)
+     (slice x))
+    ((and x x.%copy (callable? x.%copy))
+     (x.%copy x))
+    ((object? x)
+     (let ((res (js-object)))
+       (dolist (k (keys x))
+         (when ((. x "hasOwnProperty") k)
+           (setf (aref res k) (aref x k))))
+       res))
+    (true (error ~"Unable to make a copy of {x}"))))
+
+;; Named JS object creation
 
 (defmacro defobject (name fields)
   "Defines a new object type named [name] and with specified
@@ -1448,8 +1482,18 @@ A name is either an unevaluated atom or an evaluated list."
                 fieldnames)
          (js-code "this"))
        (defun ,(intern ~"{name}-prototype-setup") ()
-         (setf (. #',(intern ~"{name}-constructor") prototype %class) ',name)
-         (setf (. #',(intern ~"{name}-constructor") prototype %fields) ',fieldnames))
+         (let ((prototype (. #',(intern ~"{name}-constructor") prototype)))
+           (setf prototype.%class ',name)
+           (setf prototype.%fields ',fieldnames)
+           (setf prototype.%copy
+                 (lambda ()
+                   (js-code ,(let ((res "(new this.constructor(")
+                                   (sep ""))
+                               (dolist (f fieldnames)
+                                 (incf res sep)
+                                 (incf res (js-compile `(. (js-code "this") ,f)))
+                                 (setf sep ","))
+                               (+ res "))")))))))
        (,(intern ~"{name}-prototype-setup"))
        (defun ,(intern ~"new-{name}") (&optional ,@fields)
          ,~"Creates a new instance of {name}"
@@ -1473,22 +1517,6 @@ A name is either an unevaluated atom or an evaluated list."
          ,~"Creates a new instance of {name}"
          (,(intern ~"new-{name}") ,@fieldnames))
        ',name)))
-
-(setf #'parse-value
-      (let ((oldf #'parse-value))
-        (lambda (src)
-          (when (string? src)
-            (setf src (make-source src)))
-          (if (= (current-char src) ".")
-              (progn
-                (next-char src)
-                '.)
-              (do ((x (funcall oldf src)))
-                  ((/= (current-char src) ".") x)
-                (next-char src)
-                (setf x `(. ,x ,(funcall oldf src))))))))
-
-(incf *stopchars* ".")
 
 ; CL-like structures
 (defmacro defstruct (name &rest body)
