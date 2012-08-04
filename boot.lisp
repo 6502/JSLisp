@@ -2030,11 +2030,11 @@ that field. When absent the default value is assumed to be [undefined]."
 ; Uri encoding/decoding support
 (defun uri-decode (x)
   "Decode an uri-encoded string [x]"
-  (js-code "decodeURIComponent(d$$x.replace(/\\+/g,\"%20\"))"))
+  (js-code "(decodeURIComponent(d$$x))"))
 
 (defun uri-encode (x)
   "Returns uri-encoding of string [x]"
-  (js-code "encodeURIComponent(d$$x).replace(/%20/g,\"+\")"))
+  (js-code "(encodeURIComponent(d$$x))"))
 
 ; Lexical symbol properties support
 (defun lexical-property (x name)

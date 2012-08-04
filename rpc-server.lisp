@@ -24,7 +24,9 @@
     (setf parms data))
   (let ((content (try (cond
                         ((= url "/process")
-                         (to-buffer (process-request (from-buffer (uri-decode parms)))))
+                         (uri-encode
+                          (to-buffer
+                           (process-request (from-buffer (uri-decode parms))))))
                         (((regexp "^/process-as\\.[a-z0-9]+$").exec url)
                          (process-request (from-buffer (uri-decode parms))))
                         (true (try (get-file (+ "." url) null)

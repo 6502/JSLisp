@@ -1,8 +1,8 @@
 (import * from serialize)
 
 (defun remote (x)
-  (let ((request (uri-encode (serialize:to-buffer x))))
-    (let ((reply (http "POST" "process?" request)))
+  (let ((request (serialize:to-buffer x)))
+    (let ((reply (http "POST" "process?" (uri-encode request))))
       (let ((result (serialize:from-buffer (uri-decode reply))))
         result))))
 
