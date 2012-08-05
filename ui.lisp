@@ -79,8 +79,8 @@
 (defun set-parent (sprite parent)
   "Remove from current parent and append as last children of specified parent"
   (unless (and parent
-               (== parent (sprite-parent sprite))
-               (== sprite (last (sprite-children parent))))
+               (= parent (sprite-parent sprite))
+               (= sprite (last (sprite-children parent))))
     (when (sprite-parent sprite)
       (delete sprite (sprite-children (sprite-parent sprite))))
     (setf (sprite-parent sprite) parent)
@@ -357,7 +357,7 @@ Returns null for an empty sprite or (dx dy canvas) with delta being the translat
 
 (defun update ()
   "Updates screen content by recomputing/translating updated sprites"
-  (do ()((== *dirty* '*dirty*))
+  (do ()((= *dirty* '*dirty*))
     (let ((sprite *dirty*))
       (setf *dirty* (sprite-dirty sprite))
       (setf (sprite-dirty sprite) null)

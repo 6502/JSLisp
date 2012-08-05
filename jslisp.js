@@ -601,6 +601,8 @@ defmacro("lambda",
              }
              d$$$42_outgoing_calls$42_ = current_outgoing_calls;
              d$$$42_used_globals$42_ = current_used_globals;
+             var li = lisp_literals.length;
+             lisp_literals[li] = args;
              res = ("((function(){" +
                     "var f =" +
                     res +
@@ -609,7 +611,7 @@ defmacro("lambda",
                     ugnames.substr(1) +
                     "];f.outcalls=[" +
                     ocnames.substr(1) +
-                    "];return " +
+                    "];f.arglist=lisp_literals[" + li + "];return " +
                     "f;})())");
              return [s$$js_code, res];
          },
@@ -889,7 +891,8 @@ defmacro("cond",
                  res += (f$$js_compile(x[i][0]) + "?" +
                          implprogn(x[i].slice(1)));
              }
-             return [s$$js_code, res + ":null)"];
+             if (x.length > 0) res += ":"
+             return [s$$js_code, res + "null)"];
          },
          [f$$intern("&rest"), f$$intern("body")]);
 

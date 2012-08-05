@@ -937,28 +937,31 @@ The resulting list length is equal to the shortest input sequence."
                                        ,@body))
                         (let ((defaults (list))
                               (checks (list))
-                              (args (append (slice args 0 i)
-                                            (slice args (1+ i)))))
+                              (nargs (append (slice args 0 i)
+                                             (slice args (1+ i)))))
                           (unless (= i 0)
                             (push `(when (< (argument-count) ,i)
                                      (error "Invalid number of arguments"))
                                   checks))
                           (when (= r -1)
-                            (push `(when (> (argument-count) ,(length args))
+                            (push `(when (> (argument-count) ,(length nargs))
                                      (error "Invalid number of arguments"))
                                   checks))
-                          (dotimes (i (length args))
-                            (when (list? (aref args i))
+                          (dotimes (i (length nargs))
+                            (when (list? (aref nargs i))
                               (push `(when (< (argument-count) ,(1+ i))
-                                       (setf ,(first (aref args i))
-                                             ,(second (aref args i))))
+                                       (setf ,(first (aref nargs i))
+                                             ,(second (aref nargs i))))
                                     defaults)
-                              (setf (aref args i) (first (aref args i)))))
-                          (apply oldcf `(,args
-                                         ,@doc
-                                         ,@checks
-                                         ,@defaults
-                                         ,@body))))))))
+                              (setf (aref nargs i) (first (aref nargs i)))))
+                          (let ((L (apply oldcf `(,nargs
+                                                  ,@doc
+                                                  ,@checks
+                                                  ,@defaults
+                                                  ,@body))))
+                            `(let ((L ,L))
+                               (setf (arglist L) ',args)
+                               L))))))))
         (setf (documentation f) olddoc)
         (setf (arglist f) (arglist oldcf))
         f))
@@ -1018,7 +1021,8 @@ The resulting list length is equal to the shortest input sequence."
                   (let* ((doc (if (string? (first body))
                                   (js-code "d$$body.slice(0,1)")
                                   (list)))
-                         (dslist (list)))
+                         (dslist (list))
+                         (oargs (slice args)))
                     (do ((n (length args))
                          (i 0 (1+ i)))
                         ((or (= i n)
@@ -1045,7 +1049,9 @@ The resulting list length is equal to the shortest input sequence."
                               `((let (,@(apply #'append (map (lambda (x) (expand (first x) (second x)))
                                                              dslist)))
                                   ,@body)))))
-                    (apply oldcf `(,args ,@doc ,@body))))))
+                    (let ((L (apply oldcf `(,args ,@doc ,@body))))
+                      (setf (arglist L) oargs)
+                      L)))))
         (setf (documentation f) olddoc)
         (setf (arglist f) (arglist oldcf))
         f))
@@ -1150,15 +1156,18 @@ If only one parameter is passed it's assumed to be [stop]."
             (< ,index (length ,L))))))
 
 (defmacro all ((var list) &rest body)
+  "True if for each of the values in [list] the [body] forms evaluate to true"
   `(not (any (,var ,list) (not (progn ,@body)))))
 
 ; Reader customization
 (defmacro reader (char)
+  "The reader function associated to [char]. A setf-able place."
   (unless (and (string? char) (= (length char) 1))
     (error "(reader x) requires a one-char literal"))
   `(aref *readers* ,char))
 
 (defmacro hash-reader (char)
+  "The reader function associated to [char] when following [\"#\"]. A setf-able place."
   (unless (and (string? char) (= (length char) 1))
     (error "(hash-reader x) requires a one-char literal"))
   `(aref *hash-readers* ,char))
@@ -1435,6 +1444,7 @@ A name is either an unevaluated atom or an evaluated list."
 ;; shallow-copy
 
 (defun copy (x)
+  "Returns a shallow copy of atoms, lists, nameless javascript objects, named objects. It doesn't handle recursive data structures."
   (cond
     ((list? x)
      (slice x))
@@ -1702,11 +1712,15 @@ that field. When absent the default value is assumed to be [undefined]."
 ;; Tagbody
 
 (defmacro go (tagname)
+  "Non-local control transfer to the specified [tagname] of a [tagbody] form"
   `(js-code ,(+ "((function(){throw "
                 "$tag$" (mangle (symbol-name tagname))
                 ";})())")))
 
 (defmacro tagbody (&rest body)
+  "Evaluates [body] forms. When an element of [body] is a symbol it's interpreted as
+   a tag name to which a [go] form can transfer control. Tag names can be captured by
+   closures but control transfer cannot be executed once the [tagbody] form ends."
   (let ((tagdecl "")
         (eelist "")
         (sep "var $tag$=null,")
@@ -1751,6 +1765,8 @@ that field. When absent the default value is assumed to be [undefined]."
 (defvar ret@ (js-object))
 
 (defmacro return-from (name &optional value)
+  "Exits the closest enclosing [block] with the specified [name] returning the
+   specified [value] or [undefined]"
   (when (undefined? (aref ret@ name))
     (error ~"(return-from {name} ...) can be used only inside (block {name} ...)"))
   (setf (aref ret@ name) true)
@@ -1759,9 +1775,12 @@ that field. When absent the default value is assumed to be [undefined]."
      (go ,(intern ~"ret@{name}"))))
 
 (defmacro return (&optional value)
+  "Exits the closest enclosing [block] returning the specified [value] or [undefined]"
   `(return-from null ,value))
 
 (defmacro block (name &rest body)
+  "Defines a lexical block with the specified [name] that allows nested
+   [return] or [return-from] forms."
   (let ((old-ret (aref ret@ name)))
     (setf (aref ret@ name) false)
     (let ((jsbody (js-compile `(progn ,@body))))
@@ -1919,21 +1938,6 @@ that field. When absent the default value is assumed to be [undefined]."
                 (warning ~"Invalid keyword parameter {k} in {(str-value form)}"))))
           (incf fi 2))))))
 
-; Simple destructuring let
-(defmacro dlet (vars list &rest body)
-  (if (symbol? list)
-      `(if (= (length ,list) ,(length vars))
-           (let (,@(let ((res (list))
-                         (index -1))
-                     (dolist (v vars)
-                       (push `(,v (aref ,list ,(incf index))) res))
-                     res))
-             ,@body)
-           (error "Invalid destructuring assignment"))
-      (let ((x (gensym)))
-        `(let ((,x ,list))
-           (dlet ,vars ,x ,@body)))))
-
 ; Defconstant
 (defmacro defconstant (name value)
   "Defines a constant value associated with the global variable identified by name"
@@ -1943,9 +1947,11 @@ that field. When absent the default value is assumed to be [undefined]."
 
 ; Define/undefine symbol-macro
 (defmacro define-symbol-macro (x y)
+  "Defines a global symbol macro replacing symbol [x] in data position with form [y]"
   `(setf (. ',x symbol_macro) ',y))
 
 (defmacro undefine-symbol-macro (x)
+  "Removes global symbol macro definition for symbol [x]"
   `(js-code ,(+ "((function(){delete s"
                 (js-code "d$$x.name")
                 ".symbol_macro;})())")))
@@ -2061,8 +2067,75 @@ that field. When absent the default value is assumed to be [undefined]."
 (defun lexical-property (x name)
   (js-code "(lexvar.props[d$$x.name][d$$name])"))
 
+; Conditions
+
+(defvar *condition-handlers* (js-object (* (list))))
+
+(defmacro defcondition (name args)
+  `(progn
+     (setf (aref *condition-handlers* ',name) (list))
+     (defobject ,name (,@args restarts))))
+
+(defmacro handler-case (expr &rest handlers)
+  `(progn
+     ,@(map (lambda (h)
+              `(push (lambda ,@(rest h))
+                     (aref *condition-handlers* ',(first h))))
+            handlers)
+     (unwind-protect ,expr
+       ,@(map (lambda (h)
+                `(pop (aref *condition-handlers* ',(first h))))
+              handlers))))
+
+(defmacro signal (condition data &rest restarts)
+  (unless (aref *condition-handlers* condition)
+    (error "Not a valid condition"))
+  `(let ((condition (,#"new-{condition}"
+                     ,@data
+                     (js-object ,@(map (lambda (r)
+                                         `(,(first r)
+                                            (lambda ,@(rest r))))
+                                       restarts))))
+         (handler (or (last (aref *condition-handlers* ',condition))
+                      (last (aref *condition-handlers* '*)))))
+     (if handler
+         (funcall handler condition)
+         (error ,~"Unhandled condition {condition}"))))
+
+(defun interactive-handler (x)
+  "Displays an interactive handler for a generic condition [x] (browser only)"
+  (do ((repl "")) ()
+    (let ((msg ~"A special condition {x.%class} was signaled\n")
+          (keys (keys x.restarts))
+          (n 0))
+      (dolist (k x.%fields)
+        (unless (= k 'restarts)
+          (incf msg ~"    {k} = {(str-value (aref x k))}\n")))
+      (incf msg "\n")
+      (when (> (length (keys x.restarts)) 0)
+        (incf msg "Possible restarts are:\n")
+        (dolist (k keys)
+          (incf msg ~"{(incf n)} -> {k} {(str-value (aref x.restarts k).arglist)}\n"))
+        (incf msg "\nenter '*n' followed by restart arguments or"))
+      (incf msg "\nenter an expression to be evaluated\n")
+      (incf msg repl)
+      (let ((cmd (prompt msg)))
+        (cond
+          ((null? cmd) (error "Unhandled condition"))
+          ((= (first cmd) "*")
+           (let* ((args (parse-delimited-list (make-source (+ (slice cmd 1) ")")) ")"))
+                  (rnum (atoi (first args))))
+             (return-from interactive-handler (apply (aref x.restarts (aref keys (1- rnum)))
+                                                     (map #'eval (rest args))))))
+          (true (incf repl (+ ~"\n{cmd} ==> {(str-value (eval (parse-value cmd)))}"))))))))
+
 ; Case
 (defmacro case (expr &rest cases)
+  "Evaluates [expr] and the form associated to a case with a matching value or
+   associated to [otherwise] symbol. Each of the [cases] is a list in which the
+   first element is a matching value or the symbol [otherwise] and remaining
+   elements are considered an implicit [progn] form. If no case matches and there
+   is no [otherwise] case the result is [null]."
   (let ((v (gensym)))
     `(let ((,v ,expr))
        (cond
@@ -2072,6 +2145,13 @@ that field. When absent the default value is assumed to be [undefined]."
                       `((= ,v ,(first c))
                         ,@(rest c))))
             cases)))))
+
+(defmacro ecase (expr &rest cases)
+  "Evaluates [expr] and the form associated to a case with a matching value. Each of
+   the [cases] is a list in which the first element is a matching value and remaining
+   elements are considered an implicit [progn] form. If no case matches an error
+   is raised."
+  `(case ,expr ,@cases (otherwise (error "No matching case"))))
 
 ; simple destructuring let
 (setf (symbol-macro 'let)
