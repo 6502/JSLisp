@@ -28,7 +28,6 @@
     ((list? x)
      (unless (backref x)
        (let ((sx (+ (length x) "")))
-         (push x seen)
          (incf buf (+ "l" (char (+ 64 (length sx))) sx))
          (dolist (item x) (write item)))))
     ((null? x) (incf buf "@"))
