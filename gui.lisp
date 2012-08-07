@@ -61,6 +61,12 @@
                   (. document documentElement scrollTop)))))
     (list x y)))
 
+(defun relative-pos (event element)
+  "Returns [(x y)] relative position of specified mouse [event] in respect to [element]"
+  (let (((ex ey) (event-pos event))
+        ((cx cy) (element-pos element)))
+    (list (- ex cx) (- ey cy))))
+
 (defun show (x)
   "Displays the specified DOM element by adding it to document body"
   (append-child (. document body) x))
@@ -796,7 +802,7 @@
       (show-window w))))
 
 (export set-style
-        element-pos event-pos
+        element-pos event-pos relative-pos
         show hide
         set-handler
         tracking dragging
