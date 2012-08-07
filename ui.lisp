@@ -1,9 +1,20 @@
 ;; Utility
 
+(defmacro defstruct (name &rest fields)
+  `(progn
+     (defobject ,name ,fields)
+     ,@(map (lambda (f)
+              `(defun ,#"{name}-{f}" (obj) (. obj ,f)))
+            fields)
+     ,@(map (lambda (f)
+              `(defun ,#"set-{name}-{f}" (obj value)
+                 (setf (. obj ,f) value)))
+            fields)))
+
 ;; Reader macro: [x y] --> (aref x y)
 (setf (reader "[")
       (lambda (src)
-        (funcall src 1)
+        (next-char src)
         `(aref ,@(parse-delimited-list src "]"))))
 
 ;; Removes an element from a list
@@ -27,22 +38,6 @@
                   (push (intern ~":{(symbol-name a)}") res)
                   (push a res))
                 res)))))
-
-;; Virtual single-dispatch
-(defmacro defgeneric (name default-impl)
-  (let ((vmt (intern ~"*{(symbol-name name)}*")))
-    `(progn
-       (defvar ,vmt #())
-       (defun ,name (&rest args)
-         (let ((f (aref ,vmt (symbol-name (first (first args))))))
-           (if f
-               (apply f args)
-               (progn ,@default-impl)))))))
-
-(defmacro defmethod (name type args &rest body)
-  (let ((vmt (intern ~"*{(symbol-name name)}*")))
-    `(setf (aref ,vmt ,(symbol-name type))
-           (lambda ,args ,@body))))
 
 ;; Sprite object
 
@@ -93,6 +88,7 @@
           (remove-child (. document body) (sprite-canvas sprite))
           (setf (sprite-canvas sprite) null)
           (setf (sprite-cache sprite) null)))))
+
 
 ;; 2d geometry
 
@@ -207,27 +203,29 @@
 
 ;; Graphic management
 
-(defgeneric draw null)
-(defgeneric fix-bbox null)
+(defun draw (obj ctx))
+(defun fix-bbox (obj matrix bb))
 
-(defun bbadj ((x y) bb)
-  (macrolet ((fixwhen (test var value)
-               `(when (or (null? (,var bb)) (,test (,var bb) ,value))
-                  (setf (,var bb) ,value))))
-    (fixwhen > first  x)
-    (fixwhen > second y)
-    (fixwhen < third  x)
-    (fixwhen < fourth y)))
+(defun bbadj (xy bb)
+  (let ((x (first xy))
+        (y (second xy)))
+    (macrolet ((fixwhen (test var value)
+                 `(when (or (null? (,var bb)) (,test (,var bb) ,value))
+                    (setf (,var bb) ,value))))
+      (fixwhen > first  x)
+      (fixwhen > second y)
+      (fixwhen < third  x)
+      (fixwhen < fourth y))))
 
 (defobj rect x y w h)
-(defmethod draw rect (o ctx)
+(defmethod draw (o ctx) (rect? o)
   (funcall (. ctx beginPath))
   (funcall (. ctx moveTo) (rect-x o) (rect-y o))
   (funcall (. ctx lineTo) (+ (rect-w o) (rect-x o)) (rect-y o))
   (funcall (. ctx lineTo) (+ (rect-w o) (rect-x o)) (+ (rect-h o) (rect-y o)))
   (funcall (. ctx lineTo) (rect-x o) (+ (rect-h o) (rect-y o)))
   (funcall (. ctx closePath)))
-(defmethod fix-bbox rect (o m bb)
+(defmethod fix-bbox (o m bb) (rect? o)
   (let ((p0 (xform (rect-x o) (rect-y o) m))
         (p1 (xform (+ (rect-x o) (rect-w o)) (rect-y o) m))
         (p2 (xform (+ (rect-x o) (rect-w o)) (+ (rect-y o) (rect-h o)) m))
@@ -236,9 +234,9 @@
       (bbadj p bb))))
 
 (defobj arc x y r a0 a1 ccw)
-(defmethod draw arc (o ctx)
+(defmethod draw (o ctx) (arc? o)
   (funcall (. ctx arc) (arc-x o) (arc-y o) (arc-r o) (arc-a0 o) (arc-a1 o) (arc-ccw o)))
-(defmethod fix-bbox arc (o m bb)
+(defmethod fix-bbox (o m bb) (arc? o)
   (dotimes (i 20)
     (let ((t (+ (arc-a0 o) (/ (* (- (arc-a1 o) (arc-a0 o)) i) 20))))
       (bbadj (xform (+ (* (arc-r o) (cos t)) (arc-x o))
@@ -247,46 +245,46 @@
              bb))))
 
 (defobj move-to x y)
-(defmethod draw move-to (o ctx)
+(defmethod draw (o ctx) (move-to? o)
   (funcall (. ctx moveTo) (move-to-x o) (move-to-y o)))
-(defmethod fix-bbox move-to (o m bb)
+(defmethod fix-bbox (o m bb) (move-to? o)
   (bbadj (xform (move-to-x o) (move-to-y o) m) bb))
 
 (defobj line-to x y)
-(defmethod draw line-to (o ctx)
+(defmethod draw (o ctx) (line-to? o)
   (funcall (. ctx lineTo) (line-to-x o) (line-to-y o)))
-(defmethod fix-bbox line-to (o m bb)
+(defmethod fix-bbox (o m bb) (line-to? o)
   (bbadj (xform (line-to-x o) (line-to-y o) m) bb))
 
 (defobj begin-path)
-(defmethod draw begin-path (o ctx)
+(defmethod draw (o ctx) (begin-path? o)
   (funcall (. ctx beginPath)))
 
 (defobj close-path)
-(defmethod draw close-path (o ctx)
+(defmethod draw (o ctx) (close-path? o)
   (funcall (. ctx closePath)))
 
 (defobj fill color)
-(defmethod draw fill (o ctx)
+(defmethod draw (o ctx) (fill? o)
   (setf (. ctx fillStyle) (fill-color o))
   (funcall (. ctx fill)))
 
 (defobj stroke color width)
-(defmethod draw stroke (o ctx)
+(defmethod draw (o ctx) (stroke? o)
   (setf (. ctx strokeStyle) (stroke-color o))
   (setf (. ctx lineWidth) (stroke-width o))
   (funcall (. ctx stroke)))
-(defmethod fix-bbox stroke (o m bb)
+(defmethod fix-bbox (o m bb) (stroke? o)
   (let ((w (* (sqrt (+ (* [m 0] [m 0]) (* [m 1] [m 1]))) (stroke-width o))))
     (when (< (fifth bb) w)
       (setf (fifth bb) w))))
 
 (defobj image img x y)
-(defmethod draw image (o ctx)
+(defmethod draw (o ctx) (image? o)
   (funcall (. ctx drawImage) (image-img o)
            (- (image-x o) (/ (. (image-img o) width) 2))
            (- (image-y o) (/ (. (image-img o) height) 2))))
-(defmethod fix-bbox image (o m bb)
+(defmethod fix-bbox (o m bb) (image? o)
   (let ((w (/ (. (image-img o) width) 2))
         (h (/ (. (image-img o) height) 2)))
     (let ((p0 (xform (- (image-x o) w) (- (image-y o) h) m))
@@ -354,6 +352,7 @@ Returns null for an empty sprite or (dx dy canvas) with delta being the translat
             (dolist (el (sprite-graphics sprite))
               (draw el ctx)))
           (list m (- ix0 [m 4]) (- iy0 [m 5]) canvas))))))
+
 
 (defun update ()
   "Updates screen content by recomputing/translating updated sprites"
