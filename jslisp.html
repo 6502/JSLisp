@@ -59,6 +59,7 @@ var char_width, char_height;
     char_height = (h2 - h1) / 10;
 })();
 
+var completion_words = [];
 var prompt_message = "Ready.";
 var repl = document.getElementById("repl");
 var clpar = document.getElementById("clpar");
@@ -324,6 +325,71 @@ function keyDown(e)
 {
     help.style.opacity = 0;
     last_key = e.which;
+    if (e.altKey && e.which == 191)
+    {
+        // Alt-/ ==> autocomplete
+        var text = repl.value;
+        var ss = repl.selectionStart;
+        var se = repl.selectionEnd;
+        var s0 = ss;
+        while (s0 > 0 && text[s0-1].match(/[-a-zA-Z0-9_]/))
+            --s0;
+        var current_word = text.substr(s0, se-s0);
+        var must_match = text.substr(s0, ss-s0);
+        if (completion_words.length == 0)
+        {
+            completion_words = (text.substr(0, ss).split(/[() \n;:,@]/).reverse());
+            completion_words = completion_words.concat(text.substr(se).split(/[() \n;:,@]/));
+            completion_words = completion_words.filter(function(x){return x.length});
+            for (var k in window)
+            {
+                if (k.substr(0, 3) == "f$$" ||
+                    k.substr(0, 3) == "m$$" ||
+                    k.substr(0, 3) == "s$$" ||
+                    k.substr(0, 3) == "d$$")
+                    completion_words.push(f$$demangle(k));
+            }
+            var wp = 0;
+            var seen = {};
+            for (var rp=0; rp<completion_words.length; rp++)
+            {
+                var w = completion_words[rp];
+                if (!seen[w])
+                {
+                    seen[w] = 1;
+                    completion_words[wp++] = w;
+                }
+            }
+            completion_words.length = wp;
+        }
+        var ix = completion_words.indexOf(current_word);
+        ++ix;
+        while (ix < completion_words.length &&
+               completion_words[ix].substr(0, must_match.length) != must_match)
+            ++ix;
+        if (ix >= completion_words.length)
+        {
+            repl.value = text.substr(0, ss) + text.substr(se);
+            repl.setSelectionRange(ss, ss);
+        }
+        else
+        {
+            repl.value = text.substr(0, s0) + completion_words[ix] + text.substr(se);
+            repl.setSelectionRange(ss, ss+completion_words[ix].length-must_match.length);
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+    }
+    if (e.which == 32 && completion_words.length &&
+        repl.selectionEnd != repl.selectionStart)
+    {
+        // Space when autocompleting accepts
+        repl.setSelectionRange(repl.selectionEnd, repl.selectionEnd);
+        return;
+    }
+    completion_words = [];
+
     if (e.which == 9)
     {
         e.preventDefault();
