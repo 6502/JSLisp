@@ -2201,3 +2201,31 @@ that field. When absent the default value is assumed to be [undefined]."
   `(when (. #',name org-func)
      (setf #',name (. #',name org-func))
      ',name))
+
+; Inline (experimental)
+
+(defmacro defun/inline (name args &rest body)
+  "Like [defun] but also defining if possible a macro for inline expansion"
+  (if (or (find '&rest args)
+          (find '&key args)
+          (find '&optional args))
+      `(defun ,name ,args ,@body)
+      `(defmacro/f ,name ,args
+         (let ((syms (list))
+               (vars (list)))
+           (dolist (x (list ,@args))
+             (if (or (symbol? x)
+                     (number? x)
+                     (string? x))
+                 (push x syms)
+                 (progn
+                   (push (gensym) syms)
+                   (push `(,(last syms) ,x) vars))))
+           `(let ,vars
+              (symbol-macrolet ,(let ((res (list)))
+                                     (dotimes (i ,(length args))
+                                       (unless (= (aref ',args i) (aref syms i))
+                                         (push `(,(aref ',args i) ,(aref syms i))
+                                               res)))
+                                     res)
+                ,',@body))))))
