@@ -783,12 +783,20 @@ defun("append",
       "Returns a list obtained by concatenating all specified lists.",
       function()
       {
-          res = [];
-          for (var i=0; i<arguments.length; i++)
-              res = res.concat(arguments[i]);
-          return res;
+          var res = [];
+          return res.concat.apply(res, arguments);
       },
       [f$$intern("&rest"), f$$intern("lists")]);
+
+defun("nappend",
+      "[[(nappend x y)]]\n"+
+      "Appends all elements of list [y] to list [x] and returns [x]",
+      function(x, y)
+      {
+          x.push.apply(x, y);
+          return x;
+      },
+      [f$$intern("x"), f$$intern("y")]);
 
 defun("apply",
       "[[(apply f args)]]\n" +
