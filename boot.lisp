@@ -1145,18 +1145,21 @@ If only one parameter is passed it's assumed to be [stop]."
 
 ; Any/all
 (defmacro any ((var list) &rest body)
-  "True if for any of the values in [list] the [body] forms evaluate to true."
+  "Returns the first logical true evaluation of [body] forms after binding [var] to [list] elements or [null] if none
+   every evaluations returns a logical false value"
   (let ((index (gensym))
-        (L (gensym)))
+        (L (gensym))
+        (result (gensym)))
     `(do ((,L ,list)
+          (,result null)
           (,index 0 (1+ ,index)))
          ((or (>= ,index (length ,L))
               (let ((,var (aref ,L ,index)))
-                ,@body))
-            (< ,index (length ,L))))))
+                (setf ,result (progn ,@body))))
+          ,result))))
 
 (defmacro all ((var list) &rest body)
-  "True if for each of the values in [list] the [body] forms evaluate to true"
+  "True if after binding [var] to each of the values in [list] the [body] forms always evaluate to a true value"
   `(not (any (,var ,list) (not (progn ,@body)))))
 
 ; Reader customization
@@ -1245,6 +1248,7 @@ If only one parameter is passed it's assumed to be [stop]."
 (defmacro/f atan2 (y x) "Arc-tangent of [y/x] in radians with proper handling of all quadrants"
   `(js-code ,(+ "Math.atan2(" (js-compile y) "," (js-compile x) ")")))
 (setq pi (js-code "Math.PI"))
+(setq 2pi (* 2 pi))
 
 ; Swap
 
