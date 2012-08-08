@@ -16,8 +16,8 @@
 (set-interval (lambda (&rest args)
                 (let ((res "<pre>"))
                   (labels ((visit (pfx s)
-                             (setf res (+ res pfx ~"id={(sprite-id s)}, graphics={(length (sprite-graphics s))}\n"))
-                             (dolist (ch (sprite-children s))
+                             (setf res (+ res pfx ~"id={s.id}, graphics={(length s.graphics)}\n"))
+                             (dolist (ch s.children)
                                (visit (+ pfx "  ") ch))))
                     (visit "" *root*))
                   (debug (+ res "</pre>"))))
@@ -30,7 +30,7 @@
   (let ((btn (sprite *root*)))
     (load-image btn "rotate.png" 0 0)
     (set-translation btn 800 200)
-    (setf (sprite-hit btn)
+    (setf btn.hit
           (let ((t null))
             (lambda (x y mode)
               (cond
