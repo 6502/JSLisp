@@ -1,26 +1,26 @@
-(defstruct section
-  level title content)
+(defobject section
+  (level title content))
 
-(defstruct paragraph
-  content)
+(defobject paragraph
+  (content))
 
-(defstruct heading
-  level content)
+(defobject heading
+  (level content))
 
-(defstruct list-item
-  content)
+(defobject list-item
+  (content))
 
-(defstruct code-section
-  title content)
+(defobject code-section
+  (title content))
 
-(defstruct sample-code
-  title link)
+(defobject sample-code
+  (title link))
 
-(defstruct verbatim-html-section
-  content)
+(defobject verbatim-html-section
+  (content))
 
-(defstruct table
-  rows)
+(defobject table
+  (rows))
 
 (defvar *sections* (list))
 
@@ -52,13 +52,13 @@
                ((/= (aref line i) "#")
                   (push (make-heading :level (1+ i)
                                       :content (strip (slice line+ i)))
-                        (section-content current-section)))))
+                        current-section.content))))
         ("-"
            ; A list item
            (do ((para (strip (slice line+ 1))))
                ((not (= first-char " "))
                   (push (make-list-item :content para)
-                        (section-content current-section)))
+                        current-section.content))
              (incf para line+)))
         ("+"
            ; A table
@@ -66,7 +66,7 @@
                ((and (/= first-char "+")
                      (/= first-char "|"))
                   (push (make-table :rows rows)
-                        (section-content current-section)))
+                        current-section.content))
              (when (= first-char "|")
                (push (map #'strip (split (slice line 1 (- (length line) 2)) "|"))
                      rows))
@@ -78,7 +78,7 @@
            (do ((para ""))
                ((or eof (= line ">>"))
                   (push (make-verbatim-html-section :content para)
-                        (section-content current-section)))
+                        current-section.content))
              (incf para (+ line+ "\n")))
            (when (= line ">>")
              next-line))
@@ -89,7 +89,7 @@
                ((or eof (= first-char "]"))
                   (push (make-code-section :title title
                                            :content para)
-                        (section-content current-section)))
+                        current-section.content))
              (incf para (+ line+ "\n")))
            (when (= first-char "]")
              next-line))
@@ -98,14 +98,14 @@
            (let ((i (index ":" line)))
              (push (make-sample-code :title (slice line 1 i)
                                      :link (slice line (1+ i)))
-                   (section-content current-section)))
+                   current-section.content))
            next-line)
         (otherwise
            ; A regular paragraph, ends at first blank line
            (do ((para (strip line+)))
                ((undefined? first-char)
                   (push (make-paragraph :content para)
-                        (section-content current-section)))
+                        current-section.content))
              (incf para (+ " " line+))))))))
 
 (defun htmfix (x)
@@ -258,45 +258,45 @@ show('About');
         (inside-list false)
         (index ""))
     (dolist (section *sections*)
-      (incf result ~"<div style=\"display:none;\" id=\"{(id (section-title section))}\">")
-      (incf result ~"<h1>{(section-title section)}</h1><hr/>")
-      (dotimes (i (1- (section-level section)))
+      (incf result ~"<div style=\"display:none;\" id=\"{(id section.title)}\">")
+      (incf result ~"<h1>{section.title}</h1><hr/>")
+      (dotimes (i (1- section.level))
         (incf index "<span style=\"display:inline-block; width:20px;\"></span>"))
       (incf index
-            ~"<a onclick=\"show('{(id (section-title section))}')\">{(htmfix (section-title section))}</a><br/>")
-      (dolist (x (section-content section))
+            ~"<a onclick=\"show('{(id section.title)}')\">{(htmfix section.title)}</a><br/>")
+      (dolist (x section.content)
         (cond
           ((verbatim-html-section? x)
-           (incf result (verbatim-html-section-content x)))
+           (incf result x.content))
           ((heading? x)
            (when inside-list
              (setf inside-list false)
              (incf result "</ul>"))
-           (incf result ~"<h{(heading-level x)}>{(htmfix (heading-content x))}</h{(heading-level x)}>"))
+           (incf result ~"<h{x.level}>{(htmfix x.content)}</h{x.level}>"))
           ((sample-code? x)
            (when inside-list
              (setf inside-list false)
              (incf result "</ul>"))
-           (incf result (htmfix (sample-code-title x)))
-           (incf result ~"<a class=\"code\" onclick=\"samplesrc('{(sample-code-link x)}')\">show-source</a>")
-           (incf result ~"<a class=\"code\" onclick=\"samplerun('{(sample-code-link x)}')\">run</a><br/>"))
+           (incf result (htmfix x.title))
+           (incf result ~"<a class=\"code\" onclick=\"samplesrc('{x.link}')\">show-source</a>")
+           (incf result ~"<a class=\"code\" onclick=\"samplerun('{x.link}')\">run</a><br/>"))
           ((paragraph? x)
            (when inside-list
              (setf inside-list false)
              (incf result "</ul>"))
-           (incf result ~"<p>{(htmfix (paragraph-content x))}</p>"))
+           (incf result ~"<p>{(htmfix x.content)}</p>"))
           ((list-item? x)
            (unless inside-list
              (setf inside-list true)
              (incf result "<ul>"))
-           (incf result ~"<li>{(htmfix (list-item-content x))}</li>"))
+           (incf result ~"<li>{(htmfix x.content)}</li>"))
           ((table? x)
            (when inside-list
              (setf inside-list false)
              (incf result "</ul>"))
            (incf result ~"<table>")
            (let ((first-row true))
-             (dolist (row (table-rows x))
+             (dolist (row x.rows)
                (incf result "<tr>")
                (dolist (col row)
                  (incf result (cond
@@ -312,12 +312,12 @@ show('About');
            (when inside-list
              (setf inside-list false)
              (incf result "</ul>"))
-           (incf result ~"<pre><center>{(htm (code-section-title x))}")
-           (when (length (code-section-content x))
-             (when (funcall (. (regexp "(^|\\n)(=|-->|Ready\.)") exec) (code-section-content x))
-               (incf result ~"<span class=\"runcode\"><a onclick=\"showoutput('{(id (code-section-title x))}')\">show/hide output</a></span>"))
+           (incf result ~"<pre><center>{(htm x.title)}")
+           (when (length x.content)
+             (when (funcall (. (regexp "(^|\\n)(=|-->|Ready\.)") exec) x.content)
+               (incf result ~"<span class=\"runcode\"><a onclick=\"showoutput('{(id x.title)}')\">show/hide output</a></span>"))
              (incf result ~"<hr noshade size=1/></center>")
-             (incf result ~"<div id=\"{(id (code-section-title x))}\">{(htmcode (code-section-content x))}</div>"))
+             (incf result ~"<div id=\"{(id x.title)}\">{(htmcode x.content)}</div>"))
            (incf result "</pre>"))
           (true (error "Unsupported element type"))))
       (incf result "</div>"))

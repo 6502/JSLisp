@@ -50,14 +50,14 @@
 
     faces))
 
-(defstruct section n k0 k1)
+(defobject section (n k0 k1))
 
 (defvar *sections* (list))
 
 (defun face-in-section (face section)
   (let ((m (v/ (reduce #'v+ (rest face)) (1- (length face))))
-        (n (section-n section)))
-    (<= (section-k0 section) (vdot m n) (section-k1 section))))
+        (n section.n))
+    (<= section.k0 (vdot m n) section.k1)))
 
 (defvar *running-animation* false)
 
@@ -66,8 +66,8 @@
     (let ((faces (filter (lambda (f) (face-in-section f section))
                          faces))
           (xf (cond
-                ((= (x (section-n section)) 1) #'xrot)
-                ((= (y (section-n section)) 1) #'yrot)
+                ((= (x section.n) 1) #'xrot)
+                ((= (y section.n) 1) #'yrot)
                 (true #'zrot)))
           (f null)
           (start (clock))
@@ -145,7 +145,7 @@
                                             f)))
                                   (filter (lambda (f)
                                             (> 0
-                                               (vdot (v- (camera-o cam) (third f))
+                                               (vdot (v- cam.o (third f))
                                                      (v^ (v- (third f) (second f))
                                                          (v- (fourth f) (third f))))))
                                           faces))))
@@ -165,7 +165,7 @@
                            (b (third (second xf)))
                            (k (vdot (vdir (v^ (v- (third (fourth xf)) (second (fourth xf)))
                                               (v- (fourth (fourth xf)) (third (fourth xf)))))
-                                    (vdir (camera-n cam)))))
+                                    (vdir cam.n))))
                        (setf k (+ 0.5 (* 0.5 k k)))
                        (fill-style ~"rgb({(floor (* 255 r k))},{(floor (* 255 g k))},{(floor (* 255 b k))})")
                        (begin-path)
@@ -184,9 +184,9 @@
                                       (+ zy (* 0.15 (y next)) (* 0.85 (y p)))))))
                        (close-path)
                        (fill)))))))
-      (set-style (window-frame frame)
+      (set-style frame.frame
                  backgroundColor "#000000")
-      (setf (window-resize-cback frame)
+      (setf frame.resize-cback
             (lambda (x0 y0 x1 y1)
               (setf (. canvas width) (- x1 x0))
               (setf (. canvas height) (- y1 y0))
@@ -212,7 +212,7 @@
                                              (- y0 cy (/ h 2)))
                                           (third xf)))
                          (setf found true)
-                         (let ((hp (hit3d (camera-o cam)
+                         (let ((hp (hit3d cam.o
                                           (camera-invmap cam
                                                          (- x0 cx (/ w 2))
                                                          (- y0 cy (/ h 2)))
@@ -229,8 +229,8 @@
                                            (let ((best null))
                                              (dolist (s sections)
                                                (let ((xr (cond
-                                                           ((= (x (section-n s)) 1) #'xrot)
-                                                           ((= (y (section-n s)) 1) #'yrot)
+                                                           ((= (x s.n) 1) #'xrot)
+                                                           ((= (y s.n) 1) #'yrot)
                                                            (true #'zrot))))
                                                  (dolist (aa '(-1 1))
                                                    (let* ((xhp (camera-map cam (xform (funcall xr (/ aa 100)) hp)))
@@ -251,11 +251,11 @@
                                           (dy (- y y0))
                                           (p1 (camera-invmap cam 0 0))
                                           (p2 (camera-invmap cam dx dy)))
-                                     (setf (camera-o cam)
-                                           (v* (vdir (v+ (camera-o cam) (v* (v- p1 p2) 4)))
-                                               (vlen (camera-o cam))))
-                                     (setf (camera-n cam)
-                                           (vdir (v- (v 0 0 0) (camera-o cam))))
+                                     (setf cam.o
+                                           (v* (vdir (v+ cam.o (v* (v- p1 p2) 4)))
+                                               (vlen cam.o)))
+                                     (setf cam.n
+                                           (vdir (v- (v 0 0 0) cam.o)))
                                      (camera-normalize cam)
                                      (redraw)
                                      (setf x0 x)

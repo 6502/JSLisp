@@ -108,12 +108,12 @@ be called with start/end squares (two numbers between 0 and 63)."
   (let ((w (window x0 y0 w h
                    :title title)))
     (labels ((update ()
-               (let* ((client (window-client w))
-                      (cw (. client clientWidth))
-                      (ch (. client clientHeight))
+               (let* ((client w.client)
+                      (cw client.clientWidth)
+                      (ch client.clientHeight)
                       (sqsz (floor (/ (min cw ch) 9)))
                       (board (canvas-chessboard sqsz
-                                                (first (window-data w))
+                                                (first w.data)
                                                 move-cback)))
                  (set-style board
                             px/left (floor (/ (- cw (* 8 sqsz) 8) 2))
@@ -121,14 +121,14 @@ be called with start/end squares (two numbers between 0 and 63)."
                  (when (. client firstChild)
                    (remove-child client (. client firstChild)))
                  (append-child client board))))
-      (setf (window-resize-cback w) #'update)
-      (setf (window-data w) (list position #'update))
+      (setf w.resize-cback #'update)
+      (setf w.data (list position #'update))
       (show-window w)
       w)))
 
 (defun set-position (window position)
-  (setf (first (window-data window)) position)
-  (funcall (second (window-data window))))
+  (setf (first window.data) position)
+  (funcall (second window.data)))
 
 (defun wmain ()
   (let ((pnames #())

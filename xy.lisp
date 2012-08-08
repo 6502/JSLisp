@@ -1,5 +1,12 @@
 (defobject xy (x y))
 
+;; Allows an xy instance to be considered as a list of two elements for apply
+(defgetter xy \0 this.x)
+(defsetter xy \0 (setf this.x value))
+(defgetter xy \1 this.y)
+(defsetter xy \1 (setf this.y value))
+(defgetter xy length 2)
+
 (defmacro/f xy (x y)
   "A shortcut for (new-xy x y)"
   `(new-xy ,x ,y))

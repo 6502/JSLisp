@@ -1,8 +1,16 @@
+(deftuple rgb (r g b))
+(deftuple rgba (r g b a))
+
+(defmethod css-color (x) (rgb? x)
+  ~"rgb({x.r},{x.g},{x.b})")
+
+(defmethod css-color (x) (rgba? x)
+  ~"rgb({x.r},{x.g},{x.b},{x.a})")
+
 (defun random-color ()
-  (let ((r (+ 128 (random-int 64)))
-        (g (+ 128 (random-int 64)))
-        (b (+ 128 (random-int 64))))
-    ~"rgb({r},{g},{b})"))
+  (new-rgb (+ 128 (random-int 64))
+           (+ 128 (random-int 64))
+           (+ 128 (random-int 64))))
 
 (defmacro with-canvas (canvas &rest body)
   (let ((ctx (gensym)))

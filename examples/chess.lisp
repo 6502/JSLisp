@@ -812,8 +812,8 @@ or that the captured piece is not defended."
     (unless (null? best)
       (play (second best)))))
 
-(defstruct chessboard
-  sq color ep-square flags history material)
+(defobject chessboard
+  (sq color ep-square flags history material))
 
 (defun chessboard (&optional fen)
   (if fen
@@ -830,15 +830,15 @@ or that the captured piece is not defended."
   (let ((bb (gensym))
         (res (gensym)))
     `(let ((,bb ,b))
-       (let ((*sq* (chessboard-sq ,bb))
-             (*color* (chessboard-color ,bb))
-             (*ep-square* (chessboard-ep-square ,bb))
-             (*history* (chessboard-history ,bb))
-             (*material* (chessboard-material ,bb)))
+       (let ((*sq* (. bb sq))
+             (*color* (. bb color))
+             (*ep-square* (. bb ep-square))
+             (*history* (. bb history))
+             (*material* (. bb material)))
          (let ((,res (progn ,@body)))
-           (setf (chessboard-sq ,bb) (slice *sq*))
-           (setf (chessboard-color ,bb) *color*)
-           (setf (chessboard-ep-square ,bb) *ep-square*)
-           (setf (chessboard-history ,bb) (slice *history*))
-           (setf (chessboard-material ,bb) *material*)
+           (setf (. bb sq) (slice *sq*))
+           (setf (. bb color) *color*)
+           (setf (. bb ep-square) *ep-square*)
+           (setf (. bb history) (slice *history*))
+           (setf (. bb material) *material*)
            ,res)))))

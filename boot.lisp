@@ -1472,7 +1472,8 @@ A name is either an unevaluated atom or an evaluated list."
    [make-{name}] as a keyword constructor and a function named
    [{name}?] as a type-testing predicate.  Each instance will inherit
    a [%class] field containing the symbol associated to the class and a
-   [%fields] field containing (as symbols) the names of the fields."
+   [%fields] field containing (as symbols) the names of the fields and
+   [%getters] and [%setters] fields contaning getters/setters definitions."
   (setf name (module-symbol name))
   (let ((fieldnames (map (lambda (x)
                            (if (list? x)
@@ -1492,6 +1493,8 @@ A name is either an unevaluated atom or an evaluated list."
          (let ((prototype (. #',(intern ~"{name}-constructor") prototype)))
            (setf prototype.%class ',name)
            (setf prototype.%fields ',fieldnames)
+           (setf prototype.%getters (list))
+           (setf prototype.%setters (list))
            (setf prototype.%copy
                  (lambda ()
                    (js-code ,(let ((res "(new this.constructor(")
@@ -1525,40 +1528,51 @@ A name is either an unevaluated atom or an evaluated list."
          (,(intern ~"new-{name}") ,@fieldnames))
        ',name)))
 
-; CL-like structures
-(defmacro defstruct (name &rest body)
-  "Defines a structure with the specified fields listed in [body]. Each field can be either a symbol or a list with a symbol
-and a default value form that will be used when instantiating the structure if no values are passed for
-that field. When absent the default value is assumed to be [undefined]."
-  (setf name (module-symbol name))
+(defmacro defgetter (class name &rest body)
+  "Defines a getter for a [class] with specified [name] and implementation [body].
+   In [body] forms the symbol [this] is available to refer to current instance."
+  (let ((lf (gensym))
+        (proto (gensym)))
+    `(let ((,lf (lambda () (symbol-macrolet ((this (js-code "this")))
+                             ,@body)))
+           (,proto (function ,#"{class}-constructor")."prototype"))
+       (push (list ,(symbol-name name) ,lf)
+             (. ,proto "%getters"))
+       ((. ,proto "__defineGetter__") ,(symbol-name name) ,lf)
+       ',name)))
+
+(defmacro defsetter (class name &rest body)
+  "Defines a setter for a [class] with specified [name] and implementation [body].
+   In [body] forms the symbol [this] is available to refer to current instance
+   and the symbol [value] is bound to the value being written."
+  (let ((lf (gensym))
+        (proto (gensym)))
+    `(let ((,lf (lambda (value) (symbol-macrolet ((this (js-code "this")))
+                                  ,@body)))
+           (,proto (function ,#"{class}-constructor")."prototype"))
+       (push (list ,(symbol-name name) ,lf)
+             (. ,proto "%setters"))
+       ((. ,proto "__defineSetter__") ,(symbol-name name) ,lf)
+       ',name)))
+
+(defmacro deftuple (name fields)
+  "Defines an object with specified class [name] and [fields] and also
+   ensures that instances can be considered as lists for apply/map.
+   The constructor new-{name} is also abbreviated as {name}."
   `(progn
-     (defobject ,name ,body)
-     ,@(let ((res (list)))
-         (dolist (field-def body)
-           (let ((f (if (list? field-def) (first field-def) field-def)))
-             (let ((fn (intern (+ (symbol-name name) "-" (symbol-name f)))))
-               (push `(defun ,fn (self)
-                        ,~"Retrieves the [{f}] field of a [{name}] instance"
-                        (unless (,(intern (+ (symbol-name name) #\?)) self)
-                          (error ,(+ "Not a " (symbol-name name) " instance")))
-                        (. self ,f)) res)
-               (push `(defun ,(intern (+ "set-" (symbol-name fn))) (self value)
-                        ,~"Sets the [{f}] field of a [{name}] instance"
-                        (unless (,(intern (+ (symbol-name name) #\?)) self)
-                          (error ,(+ "Not a " (symbol-name name) " instance")))
-                        (setf (. self ,f) value)) res)
-               (push `(defun ,(intern (+ "inc-" (symbol-name fn))) (self value)
-                        ,~"Increments the [{f}] field of a [{name}] instance"
-                        (unless (,(intern (+ (symbol-name name) #\?)) self)
-                          (error ,(+ "Not a " (symbol-name name) " instance")))
-                        (incf (. self ,f) value)) res)
-               (push `(defun ,(intern (+ "dec-" (symbol-name fn))) (self value)
-                        ,~"Decrements the [{f}] field of a [{name}] instance"
-                        (unless (,(intern (+ (symbol-name name) #\?)) self)
-                          (error ,(+ "Not a " (symbol-name name) " instance")))
-                        (decf (. self ,f) value)) res))))
-         res)
-     ',name))
+     (defobject ,name ,fields)
+     ,@(map (lambda (i)
+              `(defgetter ,name ,(intern (str-value i))
+                 (. this ,(aref fields i))))
+            (range (length fields)))
+     ,@(map (lambda (i)
+              `(defsetter ,name ,(intern (str-value i))
+                 (setf (. this ,(aref fields i)) value)))
+            (range (length fields)))
+     (defgetter ,name length ,(length fields))
+     (defmacro ,name (&optional ,@fields)
+       ,~"Creates an instance of tuple [{name}]"
+       (list ',#"new-{name}" ,@fields))))
 
 ; Javscript simple function/method binding
 (defmacro bind-js-functions (&rest names)

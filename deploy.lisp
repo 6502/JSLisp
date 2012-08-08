@@ -89,7 +89,11 @@ reverse engineering point of view.
                (when (and f (. f prototype) (. f prototype %class))
                  (push ~"f{k}.prototype[\"%class\"]={(js-compile `',(. f prototype %class))};" output)
                  (push ~"f{k}.prototype[\"%fields\"]={(js-compile `',(. f prototype %fields))};" output)
-                 (push ~"f{k}.prototype[\"%copy\"]={(. f prototype %copy)};" output))))
+                 (push ~"f{k}.prototype[\"%copy\"]={(. f prototype %copy)};" output)
+                 (dolist (g (. f prototype %getters))
+                   (push ~"f{k}.prototype.__defineGetter__({(str-value (first g))},{(+ \"\" (second g))});" output))
+                 (dolist (s (. f prototype %setters))
+                   (push ~"f{k}.prototype.__defineSetter__({(str-value (first s))},{(+ \"\" (second s))});" output)))))
            output))
     (let ((new-todo (list)))
       (dolist (x todo)
@@ -128,17 +132,17 @@ reverse engineering point of view.
                (or (aref seen x)
                    (setf (aref seen x)
                          (+ "$" (nstr (1- (incf count))))))))
-      ; String literals collection
+      ;; String literals collection
       (setf s (replace s "\"([^\"\\\\]|\\\\.)*\"" #'newlit))
       (setf s (replace s "'([^'\\\\]|\\\\.)*'" #'newlit))
-      ; Code metainformation removal
+      ;; Code metainformation removal
       (setf s (replace s "f\\.usedglobs=\\[[^\\]]*\\];f\\.outcalls=\\[[^\\]]*\\];f\\.arglist=lisp_literals\\[[^\\]]*\\];" ""))
-      ; Name shortening
+      ;; Name shortening
       (setf s (replace s "[a-zA-Z0-9_]*\\$\\$[a-zA-Z0-9_$]*" #'newname))
-      ; Lisp literals renaming
+      ;; Lisp literals renaming
       (setf s (replace s "lisp_literals\\[[0-9]+\\]*" #'newname))
       (setf s (replace s "lisp_literals=\\[\\];" ""))
-      ; Extra parenthesis removal
+      ;; Extra parenthesis removal
       (dotimes (i 5)
         (setf s (replace s "([-+*/<>=!~&|\\(])\\((-?[0-9]+\\.?[0-9]*|[a-zA-Z_\\$][a-zA-Z_0-9\\$]*)\\)" "$1$2")))
       (setf s (replace s "\\[\\(([^\\]()]+)\\)\\]" "[$1]"))
@@ -147,17 +151,17 @@ reverse engineering point of view.
       (setf s (replace s "([^-])(--)+([^-])" "$1+$3"))
       (setf s (replace s "([^-])-(--)+([^-])" "$1-$3"))
       (setf s (replace s "([^-+])\\+-([^-+])" "$1-$2"))
-      ; Unneeded semicolon and space removal
+      ;; Unneeded semicolon and space removal
       (setf s (replace s "\\n" " "))
       (setf s (replace s " *([-:?&|;(){}=+*/,]) *" "$1"))
       (setf s (replace s ";}" "}"))
-      ; Restore object-creation literals
+      ;; Restore object-creation literals
       (setf s (replace s "{_[a-zA-Z0-9]+:" (lambda (x) ~"\\{{(aref rlits (slice x 1 (1- (length x))))}:")))
       (setf s (replace s ",_[a-zA-Z0-9]+:" (lambda (x) ~",{(aref rlits (slice x 1 (1- (length x))))}:")))
-      ; Remove unneeded quotes in object field ids
+      ;; Remove unneeded quotes in object field ids
       (setf s (replace s "{\"([a-zA-Z_$][a-zA-Z_$0-9]*)\":" "{$1:"))
       (setf s (replace s ",\"([a-zA-Z_$][a-zA-Z_$0-9]*)\":" ",$1:"))
-      ; "function(" packing
+      ;; "function(" packing
       (when (find "'" s)
         (error "Internal error: Unexpected single quote"))
       (setf s (+ "eval(\""
@@ -165,7 +169,7 @@ reverse engineering point of view.
                                    "\\\\" "\\\\")
                           "\"" "\\\"")
                  "\".replace(/'/g,\"function(\"))"))
-      ; Add used literals definitions
+      ;; Add used literals definitions
       (let ((ldef ""))
         (dolist (key (keys rlits))
           (when (find key s)

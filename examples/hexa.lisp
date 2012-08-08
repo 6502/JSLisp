@@ -131,7 +131,7 @@
          (display (create-element "div"))
          (w (window 100 100 400 400
                     :title "Hextile shortest path")))
-    (set-style (window-client w)
+    (set-style w.client
                overflow "hidden")
     (set-style c
                position "absolute")
@@ -206,7 +206,7 @@
                    `(progn
                       (setf ,name (button ,caption
                                           (lambda () ,@body)))
-                      (append-child (window-frame w) ,name))))
+                      (append-child w.frame ,name))))
         (set-button clear-btn "Clear"
                     (setf wall #())
                     (set-mode "wall"))
@@ -214,8 +214,8 @@
                     (set-mode "wall"))
         (set-button check-btn "Check"
                     (set-mode "check")))
-      (append-child (window-frame w) c)
-      (append-child (window-frame w) display)
+      (append-child w.frame c)
+      (append-child w.frame display)
       (setf layout (:V :border 8 :spacing 8
                        (:Hdiv c)
                        (:H :max 30 :spacing 8
@@ -226,7 +226,7 @@
                            (:Hdiv display :max 120)
                            (:H :class 2))))
       (fixstyle)
-      (setf (window-resize-cback w)
+      (setf w.resize-cback
             (lambda (x0 y0 x1 y1)
               (set-coords layout x0 y0 x1 y1)
               (redraw)))

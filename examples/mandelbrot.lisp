@@ -53,17 +53,17 @@
                px/top 50
                px/width 300
                px/height 300)
-    (append-child (window-client w) zoomrect)
-    (set-style (window-client w)
+    (append-child w.client zoomrect)
+    (set-style w.client
                overflow "hidden")
     (labels ((pix-to-xy (p)
                (let* ((x (first p))
                       (y (second p)))
-                 (list (+ xa (/ (* x (- xb xa)) (. (window-client w) offsetWidth)))
-                       (+ ya (/ (* y (- yb ya)) (. (window-client w) offsetHeight))))))
+                 (list (+ xa (/ (* x (- xb xa)) w.client.offsetWidth))
+                       (+ ya (/ (* y (- yb ya)) w.client.offsetHeight)))))
              (recalc (ww hh)
                (when pic
-                 (remove-child (window-client w) pic))
+                 (remove-child w.client pic))
                (setf pic (mandelbrot-pic xa ya xb yb ww hh palette))
                (set-style pic
                           position "absolute"
@@ -71,10 +71,10 @@
                           px/top 0
                           px/width ww
                           px/height hh)
-               (append-child (window-client w) pic)
-               (append-child (window-client w) zoomrect)))
+               (append-child w.client pic)
+               (append-child w.client zoomrect)))
 
-      (setf (window-resize-cback w)
+      (setf w.resize-cback
             (lambda (x0 y0 x1 y1)
               (let ((ww (- x1 x0))
                     (hh (- y1 y0)))
@@ -83,11 +83,11 @@
                   (setf lasth hh)
                   (recalc ww hh)))))
 
-      (set-handler (window-client w) onmousedown
+      (set-handler w.client onmousedown
                    (funcall (. event preventDefault))
                    (funcall (. event stopPropagation))
                    (let* ((p (event-pos event))
-                          (p0 (element-pos (window-client w)))
+                          (p0 (element-pos w.client))
                           (xx (- (first p) (first p0)))
                           (yy (- (second p) (second p0)))
                           (k (/ lastw lasth)))

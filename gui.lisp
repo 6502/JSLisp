@@ -24,41 +24,31 @@
               (range 0 (length properties) 2))
        ,elstyle)))
 
-(defun css-rgb (rgb)
-  "CSS-string from [(r g b)] list"
-  (let (((r g b) rgb))
-    ~"rgb({r},{g},{b})"))
-
-(defun css-rgba (rgba)
-  "CSS-string from [(r g b a)] list"
-  (let (((r g b a) rgba))
-    ~"rgba({r},{g},{b},{a})"))
-
 (defun element-pos (x)
   "Returns [(left top)] position of specified DOM element."
   (let ((left 0) (top 0))
     (do ()
         ((or (null? x)
-             (undefined? (. x offsetParent)))
-         (list left top))
-      (incf left (. x offsetLeft))
-      (incf top (. x offsetTop))
-      (setf x (. x offsetParent)))))
+             (undefined? x.offsetParent))
+           (list left top))
+      (incf left x.offsetLeft)
+      (incf top x.offsetTop)
+      (setf x x.offsetParent))))
 
 (defun event-pos (event)
   "Returns [(x y)] absolute position of the specified mouse event."
   (let ((x 0) (y 0))
     (cond
-      ((or (. event pageX) (. event pageY))
-       (setf x (. event pageX))
-       (setf y (. event pageY)))
-      ((or (. event clientX) (. event clientY))
-       (setf x (+ (. event clientX)
-                  (. document body scrollLeft)
-                  (. document documentElement scrollLeft)))
-       (setf y (+ (. event clientY)
-                  (. document body scrollTop)
-                  (. document documentElement scrollTop)))))
+      ((or event.pageX event.pageY)
+       (setf x event.pageX)
+       (setf y event.pageY))
+      ((or event.clientX event.clientY)
+       (setf x (+ event.clientX
+                  document.body.scrollLeft
+                  document.documentElement.scrollLeft))
+       (setf y (+ event.clientY
+                  document.body.scrollTop
+                  document.documentElement.scrollTop))))
     (list x y)))
 
 (defun relative-pos (event element)
@@ -69,11 +59,11 @@
 
 (defun show (x)
   "Displays the specified DOM element by adding it to document body"
-  (append-child (. document body) x))
+  (append-child document.body x))
 
 (defun hide (x)
   "Removes the specified DOM element from its parent (hiding it)"
-  (remove-child (. x parentNode) x))
+  (remove-child x.parentNode x))
 
 (defmacro set-handler (element event &rest body)
   "Sets an event handler. Example:[[
@@ -96,10 +86,10 @@
                opacity 0.001
                backgroundColor "#000000")
     (set-handler cover oncontextmenu
-                 (funcall (. event preventDefault))
-                 (funcall (. event stopPropagation)))
+                 (event.preventDefault)
+                 (event.stopPropagation))
     (set-handler cover onmousemove
-                 (funcall (. event preventDefault))
+                 (event.preventDefault)
                  (apply f (event-pos event)))
     (set-handler cover onmouseup
                  (hide cover)
@@ -113,39 +103,39 @@
               (let  ((dx (- x x0))
                      (dy (- y y0)))
                 (set-style div
-                           px/left (+ (. div offsetLeft) dx)
-                           px/top (+ (. div offsetTop) dy))
+                           px/left (+ div.offsetLeft dx)
+                           px/top (+ div.offsetTop dy))
                 (setf x0 x)
                 (setf y0 y)))))
 
-(defvar *spacing* 0)       ;; Spacing is inherited to a layout node subtree
+(defvar *spacing* 0)          ;; Spacing is inherited to a layout node subtree
 
-(defstruct layout-node
-  (class 1) (weight 100)   ;; Weighted distribution when in the same class
-  (min 0) (max 1000000)    ;; Minimum and maximum space
-  (size null)              ;; Min and max override if specified
-  (buddy null)             ;; Someone to inform about the size
-  (algorithm :H)           ;; Algorithm for children
-  (border 0)               ;; Fixed border around space for children
-  (spacing null)           ;; Fixed space between children (if null use *spacing*)
-  (children (list)))       ;; List of children nodes (if any)
+(defobject layout-node
+    ((class 1) (weight 100)   ;; Weighted distribution when in the same class
+     (min 0) (max 1000000)    ;; Minimum and maximum space
+     (size null)              ;; Min and max override if specified
+     (buddy null)             ;; Someone to inform about the size
+     (algorithm :H)           ;; Algorithm for children
+     (border 0)               ;; Fixed border around space for children
+     (spacing null)           ;; Fixed space between children (if null use *spacing*)
+     (children (list))))      ;; List of children nodes (if any)
 
 (defun set-coords (node x0 y0 x1 y1)
   "Sets the coordinates of a layout node, possibly triggering recomputation of nested nodes"
-  (let* ((children (layout-node-children node))
+  (let* ((children node.children)
          (nchild (length children))
-         (border (layout-node-border node))
-         (spacing (layout-node-spacing node))
-         (algo (layout-node-algorithm node)))
+         (border node.border)
+         (spacing node.spacing)
+         (algo node.algorithm))
     (when (null? spacing)
       (setf spacing *spacing*))
-    (when (layout-node-buddy node)
-      (funcall (layout-node-buddy node) x0 y0 x1 y1))
+    (when node.buddy
+      (node.buddy x0 y0 x1 y1))
     (when (> nchild 0)
-      (labels ((lmin (x) (or (layout-node-size x)
-                             (layout-node-min x)))
-               (lmax (x) (or (layout-node-size x)
-                             (layout-node-max x))))
+      (labels ((lmin (x) (or x.size
+                             x.min))
+               (lmax (x) (or x.size
+                             x.max)))
         (let ((assigned (map #'lmin children))
               (active (filter (lambda (i) (< (lmin (aref children i))
                                              (lmax (aref children i))))
@@ -191,19 +181,19 @@
             ;; We're not going to loop forever.
             ;;
             (let* ((minclass (apply #'min (map (lambda (i)
-                                                 (layout-node-class (aref children i)))
+                                                 (aref children i).class)
                                                active)))
-                   (selected (filter (lambda (i) (= (layout-node-class (aref children i))
+                   (selected (filter (lambda (i) (= (aref children i).class
                                                     minclass))
                                      active))
                    (selected-nodes (map (lambda (i) (aref children i))
                                         selected))
-                   (total-weight (reduce #'+ (map #'layout-node-weight selected-nodes)))
+                   (total-weight (reduce #'+ (map (lambda (n) n.weight) selected-nodes)))
                    (share (/ avail total-weight)))
               (dolist (i selected)
                 (let* ((n (aref children i))
                        (quota (min (- (lmax n) (aref assigned i))
-                                   (* share (layout-node-weight n)))))
+                                   (* share n.weight))))
                   (decf avail quota)
                   (incf (aref assigned i) quota)))
               (setf active (filter (lambda (i)
@@ -241,15 +231,15 @@
 (deflayout :H)
 (deflayout :V)
 
-(defstruct window
-  frame            ;; DOM node
-  titlebar         ;; DOM node
-  resizer          ;; DOM node
-  closer           ;; DOM node
-  close-cback      ;; invoked after closing
-  resize-cback     ;; invoked after resizing
-  client           ;; DOM node
-  data)            ;; Opaque payload
+(defobject window
+    (frame            ;; DOM node
+     titlebar         ;; DOM node
+     resizer          ;; DOM node
+     closer           ;; DOM node
+     close-cback      ;; invoked after closing
+     resize-cback     ;; invoked after resizing
+     client           ;; DOM node
+     data))           ;; Opaque payload
 
 (defun window (x0 y0 w h &key title client (close true) (resize true))
   "Creates an initially invisible window object"
@@ -287,12 +277,12 @@
                fontWeight "bold"
                textAlign "center"
                cursor "move")
-    (setf (. titlebar innerHTML) title)
+    (setf titlebar.innerHTML title)
     (append-child frame titlebar)
     (set-handler titlebar onmousedown
-                 (funcall (. event preventDefault))
-                 (funcall (. event stopPropagation))
-                 (append-child (. document body) frame)
+                 (event.preventDefault)
+                 (event.stopPropagation)
+                 (append-child document.body frame)
                  (dragging frame
                            (first (event-pos event))
                            (second (event-pos event))))
@@ -314,8 +304,8 @@
                px/width 12
                px/height 12
                cursor "se-resize")
-    (setf (. resizer width) 12)
-    (setf (. resizer height) 12)
+    (setf resizer.width 12)
+    (setf resizer.height 12)
     (with-canvas resizer
       (line-width 1)
       (dolist (i (list 0 5))
@@ -325,32 +315,31 @@
         (line 10 (1+ i) (1+ i) 10)))
     (append-child frame resizer)
     (set-handler resizer onmousedown
-                 (funcall (. event preventDefault))
-                 (funcall (. event stopPropagation))
-                 (append-child (. document body) frame)
+                 (event.preventDefault)
+                 (event.stopPropagation)
+                 (append-child document.body frame)
                  (let ((x0 (first (event-pos event)))
                        (y0 (second (event-pos event))))
                    (tracking (lambda (x y)
                                (let ((dx (- x x0))
                                      (dy (- y y0)))
                                  (set-style frame
-                                            px/width (+ (. frame clientWidth) dx)
-                                            px/height (+ (. frame clientHeight) dy))
+                                            px/width (+ frame.clientWidth dx)
+                                            px/height (+ frame.clientHeight dy))
                                  (setf x0 x)
                                  (setf y0 y))
-                               (set-style (window-client window)
-                                          px/width (. frame clientWidth)
-                                          px/height (- (. frame clientHeight)
+                               (set-style window.client
+                                          px/width frame.clientWidth
+                                          px/height (- frame.clientHeight
                                                        (if (undefined? title) 0 20)
                                                        (if resize 12 0)))
-                               (when (window-resize-cback window)
-                                 (funcall (window-resize-cback window)
-                                          (. client offsetLeft)
-                                          (. client offsetTop)
-                                          (+ (. client offsetLeft)
-                                             (. client clientWidth))
-                                          (+ (. client offsetTop)
-                                             (. client clientHeight))))))))
+                               (when window.resize-cback
+                                 (window.resize-cback client.offsetLeft
+                                                      client.offsetTop
+                                                      (+ client.offsetLeft
+                                                         client.clientWidth)
+                                                      (+ client.offsetTop
+                                                         client.clientHeight)))))))
     (set-style closer
                display (if close "block" "none")
                position "absolute"
@@ -359,8 +348,8 @@
                px/width 16
                px/height 16
                cursor "default")
-    (setf (. closer width) 16)
-    (setf (. closer height) 16)
+    (setf closer.width 16)
+    (setf closer.height 16)
     (with-canvas closer
       (stroke-style "#000000")
       (line-width 1)
@@ -372,10 +361,10 @@
       (line 12 4 4 12))
     (append-child frame closer)
     (set-handler closer onmousedown
-                 (funcall (. event preventDefault))
-                 (funcall (. event stopPropagation))
-                 (when (window-close-cback window)
-                   (funcall (window-close-cback window)))
+                 (event.preventDefault)
+                 (event.stopPropagation)
+                 (when window.close-cback
+                   (window.close-cback))
                  (hide frame))
     (setf window (make-window :frame frame
                               :titlebar titlebar
@@ -388,31 +377,30 @@
 
 (defun hide-window (w)
   "Closes the specified window"
-  (when (window-close-cback w)
-    (funcall (window-close-cback w)))
-  (hide (window-frame w)))
+  (when w.close-cback
+    (w.close-cback))
+  (hide w.frame))
 
 (defun show-window (w)
   "Displays the specified window"
-  (show (window-frame w))
-  (when (window-resize-cback w)
-    (let ((client (window-client w)))
-      (funcall (window-resize-cback w)
-               (. client offsetLeft)
-               (. client offsetTop)
-               (+ (. client offsetLeft)
-                  (. client offsetWidth))
-               (+ (. client offsetTop)
-                  (. client offsetHeight))))))
+  (show w.frame)
+  (when w.resize-cback
+    (let ((client w.client))
+      (w.resize-cback client.offsetLeft
+                      client.offsetTop
+                      (+ client.offsetLeft
+                         client.offsetWidth)
+                      (+ client.offsetTop
+                         client.offsetHeight)))))
 
 (defun button (text action)
   "Creates a button DOM object with provided [text] and callback [action]"
   (let ((button (create-element "input")))
-    (setf (. button type) "button")
-    (setf (. button value) text)
+    (setf button.type "button")
+    (setf button.value text)
     (set-style button
                position "absolute")
-    (setf (. button onclick) (lambda (&rest args) (funcall action)))
+    (setf button.onclick (lambda (&rest args) (funcall action)))
     button))
 
 (defun static-text (content)
@@ -602,12 +590,12 @@
   `(let* ((,var (window ,@options))
           ,@widgets
           (layout ,layout))
-     (set-style (window-client ,var)
+     (set-style (. ,var client)
                 overflow "hidden")
      ,@(map (lambda (w)
-              `(append-child (window-client ,var) ,(first w)))
+              `(append-child (. ,var client) ,(first w)))
             widgets)
-     (setf (window-resize-cback ,var)
+     (setf (. ,var resize-cback)
            (lambda (x0 y0 x1 y1)
              (set-coords layout 0 0 (- x1 x0) (- y1 y0))))
      ,@body))
@@ -793,7 +781,7 @@
                          (funcall handler x y)
                          (tracking handler))))
 
-        (setf (window-resize-cback w)
+        (setf w.resize-cback
               (lambda (x0 y0 x1 y1)
                 (set-coords layout 0 0 (- x1 x0) (- y1 y0))
                 (redraw)
@@ -806,10 +794,10 @@
         show hide
         set-handler
         tracking dragging
-        layout-node "layout-node-" "set-layout-node-"
+        layout-node
         set-coords
-        window "window-" "set-window-"
-        ask-color css-rgb css-rgba
+        window
+        ask-color
         show-window hide-window with-window
         button
         radio checkbox checked set-checked

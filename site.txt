@@ -488,34 +488,6 @@ WARNING: Invalid keyword parameter :k in (foo 1 :k 99)
 Ready.
 ]
 
-@@ Structures
-
-JsLisp allows the definition of simple data structures
-using the [defstruct] macro:
-
-[Defstruct
-(defstruct p3d x y (z 99))
---> p3d
-Ready.
-(make-p3d :x 10)
---> (p3d 10 undefined 99)
-Ready.
-(let ((p (make-p3d :x 10
-                   :y 20))
-      (q "hmmm"))
-  (display (p3d-x p))
-  (incf (p3d-y p))
-  (display (str-value p))
-  (display (p3d? p))
-  (display (p3d? q)))
-10
-(p3d 10 21 99)
-true
-false
---> false
-Ready.
-]
-
 @Javascript integration
 
 JsLisp compiled functions are regular Javascript functions and can

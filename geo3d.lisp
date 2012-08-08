@@ -30,8 +30,7 @@
      (- (* (z a) (x b)) (* (x a) (z b)))
      (- (* (x a) (y b)) (* (y a) (x b)))))
 
-(defstruct camera
-  o u v n)
+(defobject camera (o u v n))
 
 (defun camera (from to up dist)
   (let* ((n (vdir (v- to from)))
@@ -43,31 +42,31 @@
                  :v v)))
 
 (defun camera-map (camera p)
-  (let* ((x (v- p (camera-o camera)))
-         (z (vdot x (camera-n camera)))
+  (let* ((x (v- p camera.o))
+         (z (vdot x camera.n))
          (zs (/ z))
-         (xs (* (vdot x (camera-u camera)) zs))
-         (ys (* (vdot x (camera-v camera)) zs)))
+         (xs (* (vdot x camera.u) zs))
+         (ys (* (vdot x camera.v) zs)))
     (v xs ys zs)))
 
 (defun camera-invmap (camera xs ys)
-  (let ((dist (vlen (camera-u camera))))
-    (v+ (camera-o camera)
-        (v* (camera-u camera) (/ xs dist))
-        (v* (camera-v camera) (/ ys dist))
-        (v* (camera-n camera) dist))))
+  (let ((dist (vlen camera.u)))
+    (v+ camera.o
+        (v* camera.u (/ xs dist))
+        (v* camera.v (/ ys dist))
+        (v* camera.n dist))))
 
 (defun camera-normalize (camera)
-  (let* ((n (camera-n camera))
-         (u (camera-u camera))
-         (v (camera-v camera))
+  (let* ((n camera.n)
+         (u camera.u)
+         (v camera.v)
          (dist (vlen u)))
-    (setf (camera-n camera) (vdir n))
+    (setf camera.n (vdir n))
     (setf u (v- u (v* n (vdot u n))))
-    (setf (camera-u camera) (v* (vdir u) dist))
-    (setf (camera-v camera)
-          (v^ (camera-n camera)
-              (camera-u camera)))))
+    (setf camera.u (v* (vdir u) dist))
+    (setf camera.v
+          (v^ camera.n
+              camera.u))))
 
 (defun xrot (angle)
   (let ((c (cos angle))

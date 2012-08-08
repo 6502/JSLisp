@@ -49,7 +49,7 @@
          (w (window x0 y0 width height
                     :title title
                     :client canvas)))
-    (setf (window-resize-cback w)
+    (setf w.resize-cback
           (lambda (x0 y0 x1 y1)
             (let ((w (- x1 x0))
                   (h (- y1 y0)))
@@ -91,8 +91,8 @@
                          (pie-chart-window data
                                            100 100 400 400
                                            (. title value)))))))
-    (append-child (window-client w) ok)
-    (append-child (window-client w) title)
+    (append-child w.client ok)
+    (append-child w.client title)
     (set-style title
                position "absolute"
                border "none"
@@ -104,14 +104,14 @@
             (label (create-element "input"))
             (value (create-element "input")))
         (dolist (x (list label value))
-          (append-child (window-client w) x)
+          (append-child w.client x)
           (set-style x
                      position "absolute"
                      border "none"
                      backgroundColor "#EEEEEE"
                      px/padding 0
                      px/margin 0))
-        (append-child (window-client w) caption)
+        (append-child w.client caption)
         (set-style caption
                    px/paddingTop 4
                    position "absolute"
@@ -122,12 +122,12 @@
                   (:Hdiv caption :max 20 :min 20)
                   (:Hdiv label :weight 200)
                   (:Hdiv value))
-              (layout-node-children layout))))
-    (push (:V) (layout-node-children layout))
+              layout.children)))
+    (push (:V) layout.children)
     (push (:H :min 30 :max 30
               (:H) (:Hdiv ok :min 80) (:H))
-          (layout-node-children layout))
-    (setf (window-resize-cback w)
+          layout.children)
+    (setf w.resize-cback
           (lambda (x0 y0 x1 y1)
             (set-coords layout 0 0 (- x1 x0) (- y1 y0))))
     (show-window w)))
