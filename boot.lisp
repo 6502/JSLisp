@@ -1462,6 +1462,13 @@ A name is either an unevaluated atom or an evaluated list."
        res))
     (true x)))
 
+;; An empty function needed for deploy machinery to ensure that
+;; all necessary objects will be included in the output
+(defmacro deploy-ref (&rest args)
+  "Just compiles but ignores arguments and returns [null]. Internal use only."
+  (js-compile `(progn ,@args)) ;; Trows away compiled code!
+  'null)
+
 ;; Named JS object creation
 
 (defmacro defobject (name fields)
@@ -1489,25 +1496,26 @@ A name is either an unevaluated atom or an evaluated list."
                       `(js-code ,~"this[{(str-value (symbol-name f))}]=d{(. f name)}")))
                 fieldnames)
          (js-code "this"))
-       (defun ,(intern ~"{name}-prototype-setup") ()
-         (let ((prototype (. #',(intern ~"{name}-constructor") prototype)))
-           (setf prototype.%class ',name)
-           (setf prototype.%fields ',fieldnames)
-           (setf prototype.%getters (list))
-           (setf prototype.%setters (list))
-           (setf prototype.%copy
-                 (lambda ()
-                   (js-code ,(let ((res "(new this.constructor(")
-                                   (sep ""))
-                               (dolist (f fieldnames)
-                                 (incf res sep)
-                                 (incf res (js-compile `(. (js-code "this") ,f)))
-                                 (setf sep ","))
-                               (+ res "))")))))))
-       (,(intern ~"{name}-prototype-setup"))
+       (let ((prototype (. #',(intern ~"{name}-constructor") prototype)))
+         (setf prototype.%class ',name)
+         (setf prototype.%fields ',fieldnames)
+         (setf prototype.%getters (list))
+         (setf prototype.%setters (list))
+         (setf prototype.%copy
+               (lambda ()
+                 (js-code ,(let ((res "(new this.constructor(")
+                                 (sep ""))
+                                (dolist (f fieldnames)
+                                  (incf res sep)
+                                  (incf res (js-compile `(. (js-code "this") ,f)))
+                                  (setf sep ","))
+                                (+ res "))"))))))
        (defun ,(intern ~"new-{name}") (&optional ,@fields)
          ,~"Creates a new instance of {name}"
-         #',(intern ~"{name}-prototype-setup") ;; for deploy
+         ;; Next line is a NOP but needed for deploy machinery
+         (deploy-ref (function ,#"{name}-constructor")
+                     ',name
+                     ',fieldnames)
          (js-code ,(let ((res "(new f")
                          (sep ""))
                         (incf res (. (intern ~"{name}-constructor") name))
@@ -1521,7 +1529,6 @@ A name is either an unevaluated atom or an evaluated list."
                         res)))
        (defun ,(intern ~"{name}?") (x)
          ,~"True if and only if [x] is an instance of [{name}]"
-         #',(intern ~"{name}-prototype-setup") ;; for deploy
          (if (and x (= (. x %class) ',name)) true false))
        (defun ,(intern ~"make-{name}") (&key ,@fields)
          ,~"Creates a new instance of {name}"

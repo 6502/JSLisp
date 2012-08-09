@@ -177,6 +177,9 @@ reverse engineering point of view.
         (setf s (+ ldef s)))
       (+ s "//JsLisp"))))
 
+(setf *deploy-prefix* "")
+(setf *deploy-suffix* "")
+
 (setf (symbol-macro (intern "main" ""))
       (lambda (&rest args)
         `(progn
@@ -185,5 +188,7 @@ reverse engineering point of view.
              (dolist (x (fclosure ',#"main"))
                (incf res x))
              (incf res (js-compile '(funcall #',#"main" ,@args)))
-             (display (minimize res)))
+             (display (+ *deploy-prefix*
+                         (minimize res)
+                         *deploy-suffix*)))
            null)))
