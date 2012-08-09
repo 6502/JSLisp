@@ -35,30 +35,30 @@
     (dolist (c (sort colors (lambda (a b) (> (luma a) (luma b)))))
       (when (null? crow)
         (setf crow (:V :size w :spacing 4 (:V)))
-        (push crow (layout-node-children layout)))
+        (push crow layout.children))
       (push (:Vdiv (color-button parent c callback) :size w)
-            (layout-node-children crow))
-      (when (= (length (layout-node-children crow)) (1+ rows))
+            crow.children)
+      (when (= (length crow.children) (1+ rows))
         (setf crow null)))
     (:H :border 4
         (:V layout)
         (:H))))
 
-(defstruct paint
-  frame
-  pic
-  data
-  old-data
-  start-data
-  (fullredraw false)
-  (commands (list))
-  (undone (list))
-  (zoom 1)
-  (bg (list 255 255 255 255))
-  (fg (list   0   0   0 255))
-  (pen 4)
-  (selection null)
-  (selection-div null))
+(defobject paint
+  (frame
+   pic
+   data
+   old-data
+   start-data
+   (fullredraw false)
+   (commands (list))
+   (undone (list))
+   (zoom 1)
+   (bg (list 255 255 255 255))
+   (fg (list   0   0   0 255))
+   (pen 4)
+   (selection null)
+   (selection-div null)))
 
 (defun copy-pixels (dst src)
   "Copies all pixels from ImageData [src] to ImageData [dst] (they must have the same size)"
@@ -74,35 +74,35 @@
 (defmacro deftool (name &rest body)
   `(progn
      (defun ,name (pw)
-       (setf (paint-selection pw) null)
+       (setf pw.selection null)
        ,@body)
      (push ',name *tools*)))
 
 (defmacro exec (vars &rest body)
   `(let (,@(map (lambda (x) `(,x ,x)) vars))
-     (push (lambda () ,@body) (paint-commands pw))
-     (funcall (last (paint-commands pw)))))
+     (push (lambda () ,@body) pw.commands)
+     (funcall (last pw.commands))))
 
 (deftool Pen
     (let ((pts (list)))
       (lambda (msg p btn)
         (cond
           ((= msg 'down)
-           (push null (paint-commands pw))
-           (copy-pixels (paint-old-data pw) (paint-data pw))
+           (push null pw.commands)
+           (copy-pixels pw.old-data pw.data)
            (setf pts (list p)))
           ((= msg 'move)
-           (let* ((sz (paint-pen pw))
+           (let* ((sz pw.pen)
                   (hsz (ash sz -1))
-                  (color (if (= btn 2) (paint-bg pw) (paint-fg pw))))
-             (copy-pixels (paint-data pw) (paint-old-data pw))
-             (pop (paint-commands pw))
+                  (color (if (= btn 2) pw.bg pw.fg)))
+             (copy-pixels pw.data pw.old-data)
+             (pop pw.commands)
              (push p pts)
              (exec (pts sz hsz color)
                    (dotimes (i (1- (length pts)))
                      (let ((p0 (aref pts i))
                            (p (aref pts (1+ i))))
-                       (line (paint-data pw)
+                       (line pw.data
                              (- (first p0) hsz) (- (second p0) hsz)
                              (- (first p) hsz) (- (second p) hsz)
                              sz sz color))))))))))
@@ -110,26 +110,26 @@
 (deftool Fill
     (lambda (msg p btn)
       (when (= msg 'down)
-        (let ((color (if (= btn 2) (paint-bg pw) (paint-fg pw))))
+        (let ((color (if (= btn 2) pw.bg pw.fg)))
           (exec (p color)
-                (fill (paint-data pw) (first p) (second p) color))))))
+                (fill pw.data (first p) (second p) color))))))
 
 (deftool Line
     (let ((p0 null))
       (lambda (msg p btn)
         (cond
           ((= msg 'down)
-           (copy-pixels (paint-old-data pw) (paint-data pw))
-           (push null (paint-commands pw))
+           (copy-pixels pw.old-data pw.data)
+           (push null pw.commands)
            (setf p0 p))
           ((= msg 'move)
-           (let* ((sz (paint-pen pw))
+           (let* ((sz pw.pen)
                   (hsz (ash sz -1))
-                  (color (if (= btn 2) (paint-bg pw) (paint-fg pw))))
-             (copy-pixels (paint-data pw) (paint-old-data pw))
-             (pop (paint-commands pw))
+                  (color (if (= btn 2) pw.bg pw.fg)))
+             (copy-pixels pw.data pw.old-data)
+             (pop pw.commands)
              (exec (hsz sz p0 p color)
-                   (line (paint-data pw)
+                   (line pw.data
                          (- (first p0) hsz) (- (second p0) hsz)
                          (- (first p) hsz) (- (second p) hsz)
                          sz sz
@@ -143,13 +143,13 @@
               ((= msg 'down)
                (cond
                  ((or (= n 0) (= n 4))
-                  (copy-pixels (paint-old-data pw) (paint-data pw))
+                  (copy-pixels pw.old-data pw.data)
                   (setf (aref pts 0) p)
                   (setf (aref pts 1) p)
                   (setf (aref pts 2) p)
                   (setf (aref pts 3) p)
                   (setf n 2)
-                  (push null (paint-commands pw)))
+                  (push null pw.commands))
                  ((= n 2)
                   (setf (aref pts 1) p)
                   (setf (aref pts 2) p)
@@ -167,31 +167,31 @@
                   (setf (aref pts 2) p))
                  ((= n 4)
                   (setf (aref pts 2) p)))
-               (copy-pixels (paint-data pw) (paint-old-data pw))
-               (pop (paint-commands pw))
-               (let ((color (if (= btn 2) (paint-bg pw) (paint-fg pw)))
+               (copy-pixels pw.data pw.old-data)
+               (pop pw.commands)
+               (let ((color (if (= btn 2) pw.bg pw.fg))
                      (p0 (aref pts 0))
                      (p1 (aref pts 1))
                      (p2 (aref pts 2))
                      (p3 (aref pts 3))
-                     (sz (paint-pen pw)))
+                     (sz pw.pen))
                  (exec (color p0 p1 p2 p3)
-                       (bezier (paint-data pw) p0 p1 p2 p3 sz sz color))))))))
+                       (bezier pw.data p0 p1 p2 p3 sz sz color))))))))
 
 (deftool Box
     (let ((p0 null))
       (lambda (msg p btn)
         (cond
           ((= msg 'down)
-           (copy-pixels (paint-old-data pw) (paint-data pw))
-           (push null (paint-commands pw))
+           (copy-pixels pw.old-data pw.data)
+           (push null pw.commands)
            (setf p0 p))
           ((= msg 'move)
-           (copy-pixels (paint-data pw) (paint-old-data pw))
-           (pop (paint-commands pw))
-           (let ((color (if (= btn 2) (paint-bg pw) (paint-fg pw))))
+           (copy-pixels pw.data pw.old-data)
+           (pop pw.commands)
+           (let ((color (if (= btn 2) pw.bg pw.fg)))
              (exec (p0 p color)
-                   (box (paint-data pw)
+                   (box pw.data
                         (min (first p0) (first p))
                         (min (second p0) (second p))
                         (max (first p0) (first p))
@@ -203,16 +203,16 @@
     (lambda (msg p btn)
       (cond
         ((= msg 'down)
-         (copy-pixels (paint-old-data pw) (paint-data pw))
-         (push null (paint-commands pw))
+         (copy-pixels pw.old-data pw.data)
+         (push null pw.commands)
          (setf p0 p))
         ((= msg 'move)
-         (copy-pixels (paint-data pw) (paint-old-data pw))
-         (pop (paint-commands pw))
-         (let ((color (if (= btn 2) (paint-bg pw) (paint-fg pw)))
-               (sz (paint-pen pw)))
+         (copy-pixels pw.data pw.old-data)
+         (pop pw.commands)
+         (let ((color (if (= btn 2) pw.bg pw.fg))
+               (sz pw.pen))
            (exec (p0 p color sz)
-                 (frame (paint-data pw)
+                 (frame pw.data
                         (min (first p0) (first p))
                         (min (second p0) (second p))
                         (max (first p0) (first p))
@@ -226,18 +226,18 @@
         (cond
           ((= msg 'down)
            (setf p0 p)
-           (copy-pixels (paint-old-data pw) (paint-data pw))
-           (push null (paint-commands pw)))
+           (copy-pixels pw.old-data pw.data)
+           (push null pw.commands))
           ((= msg 'move)
-           (let ((color (if (= btn 2) (paint-bg pw) (paint-fg pw))))
-             (copy-pixels (paint-data pw) (paint-old-data pw))
-             (pop (paint-commands pw))
+           (let ((color (if (= btn 2) pw.bg pw.fg)))
+             (copy-pixels pw.data pw.old-data)
+             (pop pw.commands)
              (exec (p0 p color)
                    (let ((x0 (min (first p0) (first p)))
                          (x1 (max (first p0) (first p)))
                          (y0 (min (second p0) (second p)))
                          (y1 (max (second p0) (second p))))
-                     (ellipse (paint-data pw) x0 y0 x1 y1 color)))))))))
+                     (ellipse pw.data x0 y0 x1 y1 color)))))))))
 
 (deftool Ellipse*
     (let ((p0 null))
@@ -245,19 +245,19 @@
         (cond
           ((= msg 'down)
            (setf p0 p)
-           (copy-pixels (paint-old-data pw) (paint-data pw))
-           (push null (paint-commands pw)))
+           (copy-pixels pw.old-data pw.data)
+           (push null pw.commands))
           ((= msg 'move)
-           (let ((color (if (= btn 2) (paint-bg pw) (paint-fg pw)))
-                 (sz (paint-pen pw)))
-             (copy-pixels (paint-data pw) (paint-old-data pw))
-             (pop (paint-commands pw))
+           (let ((color (if (= btn 2) pw.bg pw.fg))
+                 (sz pw.pen))
+             (copy-pixels pw.data pw.old-data)
+             (pop pw.commands)
              (exec (p0 p color sz)
                    (let ((x0 (min (first p0) (first p)))
                          (x1 (max (first p0) (first p)))
                          (y0 (min (second p0) (second p)))
                          (y1 (max (second p0) (second p))))
-                     (ellipse-frame (paint-data pw) x0 y0 x1 y1 sz sz color)))))))))
+                     (ellipse-frame pw.data x0 y0 x1 y1 sz sz color)))))))))
 
 (deftool Select
     (let ((p0 null))
@@ -266,33 +266,33 @@
           ((= msg 'down)
            (setf p0 p))
           ((= msg 'move)
-           (setf (paint-selection pw)
+           (setf pw.selection
                  (list p0 p null)))))))
 
 (deftool Zoom+
-    (incf (paint-zoom pw))
-    (setf (paint-fullredraw pw) true))
+    (incf pw.zoom)
+    (setf pw.fullredraw true))
 
 (deftool Zoom-
-    (when (> (paint-zoom pw) 1)
-      (decf (paint-zoom pw))
-      (setf (paint-fullredraw pw) true)))
+    (when (> pw.zoom 1)
+      (decf pw.zoom)
+      (setf pw.fullredraw true)))
 
 (deftool Undo
-    (when (length (paint-commands pw))
-      (push (pop (paint-commands pw)) (paint-undone pw))
-      (copy-pixels (paint-data pw) (paint-start-data pw))
-      (dolist (f (paint-commands pw)) (funcall f))))
+    (when (length pw.commands)
+      (push (pop pw.commands) pw.undone)
+      (copy-pixels pw.data pw.start-data)
+      (dolist (f pw.commands) (funcall f))))
 
 (deftool Redo
-    (when (length (paint-undone pw))
-      (push (pop (paint-undone pw)) (paint-commands pw))
-      (funcall (last (paint-commands pw)))))
+    (when (length pw.undone)
+      (push (pop pw.undone) pw.commands)
+      (funcall (last pw.commands))))
 
 (deftool Save
-    (let* ((pic (paint-pic pw))
+    (let* ((pic pw.pic)
            (ctx (funcall (. pic getContext) "2d")))
-      (funcall (. ctx putImageData) (paint-data pw) 0 0)
+      (funcall (. ctx putImageData) pw.data 0 0)
       (let ((s (funcall (. pic toDataURL) "image/png")))
         (when (= (slice s 0 14) "data:image/png")
           (setf s (+ "data:image/octect-stream" (slice s 14)))
@@ -313,9 +313,9 @@
          (dolist (x (list ,@*tools*))
            (unless crow
              (setf crow (:H :spacing 4))
-             (push crow (layout-node-children layout)))
-           (push (:Hdiv x) (layout-node-children crow))
-           (when (= (length (layout-node-children crow)) cols)
+             (push crow layout.children))
+           (push (:Hdiv x) crow.children)
+           (when (= (length crow.children) cols)
              (setf crow null)))
          (:H layout)))))
 
@@ -324,9 +324,9 @@
 (defun update (view pw)
   (let ((view-width (. view offsetWidth))
         (view-height (. view offsetHeight))
-        (zoom (paint-zoom pw))
-        (full (paint-fullredraw pw)))
-    (setf (paint-fullredraw pw) false)
+        (zoom pw.zoom)
+        (full pw.fullredraw))
+    (setf pw.fullredraw false)
     (when (or (/= (. view width) view-width)
               (/= (. view height) view-height))
       (setf (. view width) view-width)
@@ -336,7 +336,7 @@
         (let ((ctx (funcall (. view getContext) "2d")))
           (setf (. ctx fillStyle) "#DDDDDD")
           (funcall (. ctx fillRect) 0 0 view-width view-height)
-          (funcall (. ctx putImageData) (paint-data pw) 0 0))
+          (funcall (. ctx putImageData) pw.data 0 0))
 
         ;; Zoomed. Unfortunately there's no way to turn off reilably antialiasing
         ;; Draw by hand one pixel at a time.
@@ -347,9 +347,9 @@
                               (funcall (. ctx fillRect) 0 0 view-width view-height))
                             (funcall (. ctx getImageData) 0 0 view-width view-height)))
                (dst (. view-data data))
-               (src (. (paint-data pw) data))
-               (pic-width (. (paint-pic pw) width))
-               (pic-height (. (paint-pic pw) height))
+               (src (. pw.data data))
+               (pic-width (. pw.pic width))
+               (pic-height (. pw.pic height))
                (maxy (min pic-height (floor (/ view-height zoom))))
                (maxx (min pic-width (floor (/ view-width zoom))))
                (zoom4 (* zoom 4))
@@ -380,21 +380,21 @@
                   (incf wp zoom4)
                   (incf rp 4)))))
           (funcall (. ctx putImageData) view-data 0 0))))
-  (if (paint-selection pw)
-      (let* ((p0 (first (paint-selection pw)))
-             (p1 (second (paint-selection pw)))
+  (if pw.selection
+      (let* ((p0 (first pw.selection))
+             (p1 (second pw.selection))
              (x0 (min (first p0) (first p1)))
              (y0 (min (second p0) (second p1)))
              (x1 (max (first p0) (first p1)))
              (y1 (max (second p0) (second p1)))
-             (zoom (paint-zoom pw)))
-        (set-style (paint-selection-div pw)
+             (zoom pw.zoom))
+        (set-style pw.selection-div
                    display "block"
                    px/left (1- (* zoom x0))
                    px/top (1- (* zoom y0))
                    px/width (* zoom (- x1 x0))
                    px/height (* zoom (- y1 y0))))
-      (set-style (paint-selection-div pw)
+      (set-style pw.selection-div
                  display "none")))
 
 (defun paint (x y w h title pic)
@@ -405,12 +405,12 @@
          (pw (make-paint :frame w
                          :pic pic
                          :selection-div (create-element "div")))
-         (palette (palette (window-client frame) 2 30 30
+         (palette (palette frame.client 2 30 30
                            (lambda (color button div)
                              (if (= button 2)
-                                 (setf (paint-bg pw) color)
-                                 (setf (paint-fg pw) color)))))
-         (toolbar (toolbar (window-client frame) 2 70 30
+                                 (setf pw.bg color)
+                                 (setf pw.fg color)))))
+         (toolbar (toolbar frame.client 2 70 30
                            (lambda (f)
                              (let ((x (funcall f pw)))
                                (when x
@@ -425,7 +425,7 @@
     (set-style view-div
                position "absolute")
 
-    (set-style (paint-selection-div pw)
+    (set-style pw.selection-div
                zIndex 999
                position "absolute"
                border "solid 1px #FF0000"
@@ -436,32 +436,32 @@
                px/width 0
                px/height 0)
 
-    (setf (paint-zoom pw) 1)
-    (setf (paint-pen pw) 1)
+    (setf pw.zoom 1)
+    (setf pw.pen 1)
 
     (set-style view
                position "absolute"
                cursor "crosshair")
 
-    (set-style (window-client frame)
+    (set-style frame.client
                backgroundColor "#CCCCCC"
                overflow "hidden")
 
-    (set-style (window-frame frame)
+    (set-style frame.frame
                backgroundColor "#CCCCCC")
 
     (append-child view-div view)
-    (append-child view-div (paint-selection-div pw))
+    (append-child view-div pw.selection-div)
 
-    (append-child (window-client frame) view-div)
+    (append-child frame.client view-div)
 
     (let ((ctx (funcall (. pic getContext) "2d"))
           (width (. pic width))
           (height (. pic height)))
 
-      (setf (paint-data pw) (funcall (. ctx getImageData) 0 0 width height))
-      (setf (paint-old-data pw) (funcall (. ctx getImageData) 0 0 width height))
-      (setf (paint-start-data pw) (funcall (. ctx getImageData) 0 0 width height)))
+      (setf pw.data (funcall (. ctx getImageData) 0 0 width height))
+      (setf pw.old-data (funcall (. ctx getImageData) 0 0 width height))
+      (setf pw.start-data (funcall (. ctx getImageData) 0 0 width height)))
 
     (set-handler view oncontextmenu
                  (funcall (. event preventDefault))
@@ -473,7 +473,7 @@
                         (p0 (element-pos view))
                         (x (- (first p) (first p0)))
                         (y (- (second p) (second p0)))
-                        (z (paint-zoom pw)))
+                        (z pw.zoom))
                    (when current-tool
                      (funcall current-tool 'down (list (floor (/ x z)) (floor (/ y z))) (. event button))
                      (funcall current-tool 'move (list (floor (/ x z)) (floor (/ y z))) (. event button))
@@ -489,7 +489,7 @@
                                    (funcall current-tool 'up (list (floor (/ x z)) (floor (/ y z))) (. event button))
                                    (update view pw)))
                                "crosshair"))))
-    (setf (window-resize-cback frame)
+    (setf frame.resize-cback
           (lambda (x0 y0 x1 y1)
             (set-coords layout 0 0 (- x1 x0) (- y1 y0))
             (set-style view
