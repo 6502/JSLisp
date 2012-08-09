@@ -15,6 +15,6 @@
              ;;
              ;; Client side; create the tunneling stub only
              ;;
-             (defobject* ,#"{name}-req" ,fields)
+             (defobject ,#"{name}-req" ,fields)
              (defun ,name ,args
                (remote (,#"new-{name}-req" ,@fields)))))))

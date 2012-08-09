@@ -89,35 +89,42 @@
            res))
     (otherwise (error "Parse error"))))
 
-(defmacro defobject* (name fields)
-  "Defines an object like [defobject] also implementing serialization"
-  (let ((x (gensym))
-        (fnames (map (lambda (f)
-                       (if (list? f)
-                           (first f)
-                           f))
-                     fields)))
-    `(progn
-       (defobject ,name ,fields)
-       (defmethod write (,x) (,#"{name}?" ,x)
-                  (unless (backref ,x)
-                    (tag ,(symbol-name name))
-                    ,@(map (lambda (f)
-                             `(write (. ,x ,f)))
-                           fnames)))
-       (defmethod deserialize (tag) (= tag ,(symbol-name name))
-                  (let ((,x (,#"new-{name}")))
-                    (push ,x seen)
-                    ,@(map (lambda (f)
-                             `(setf (. ,x ,f) (read)))
-                           fnames)
-                    ,x)))))
+;; Extending defobject macro to support serialization
+(setf (symbol-macro 'defobject)
+      (let* ((old (symbol-macro 'defobject))
+             (old-doc (documentation old))
+             (old-args (arglist old))
+             (newm (lambda (name fields)
+                     (let ((x (gensym))
+                           (fnames (map (lambda (f)
+                                          (if (list? f)
+                                              (first f)
+                                              f))
+                                        fields)))
+                       `(progn
+                          ,(funcall old name fields)
+                          (defmethod write (,x) (,#"{name}?" ,x)
+                                     (unless (backref ,x)
+                                       (tag ,(symbol-name name))
+                                       ,@(map (lambda (f)
+                                                `(write (. ,x ,f)))
+                                              fnames)))
+                          (defmethod deserialize (tag) (= tag ,(symbol-name name))
+                                     (let ((,x (,#"new-{name}")))
+                                       (push ,x seen)
+                                       ,@(map (lambda (f)
+                                                `(setf (. ,x ,f) (read)))
+                                              fnames)
+                                       ,x))
+                          ',name)))))
+        (setf (documentation newm) old-doc)
+        (setf (arglist newm) old-args)
+        newm))
 
 (defun to-buffer (x)
   "Serializes object [x] into a string. Supported objects are [null],
    [undefined], numbers, strings, lists of supported objects and objects
-   supporting serialization where all fields contain supported objects
-   ([defobject*] can be used to define an object with serialization support).
+   supporting serialization where all fields contain supported objects.
    Reference loops in lists and objects are supported and loops are rebuilt
    on deserialization. Note that symbols are NOT supported."
   (let ((buf "")
@@ -132,4 +139,4 @@
         (seen (list)))
     (read)))
 
-(export to-buffer from-buffer defobject* write read)
+(export to-buffer from-buffer write read)

@@ -73,7 +73,7 @@
                            args)))
           `(progn
              (defun ,name ,args ,@body)
-             (defobject* ,#"{name}-req" ,fields)
+             (defobject ,#"{name}-req" ,fields)
              (defmethod process-request (req) (,#"{name}-req?" req)
                (,name ,@(map (lambda (f)
                                `(. req ,f))
