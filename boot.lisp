@@ -95,12 +95,12 @@
 (set-arglist (symbol-macro 'defun)
              '(name args &rest body))
 
-; Length function
+;; Length function
 (defun length (x)
   "Returns the length of string/list [x]"
   (js-code "d$$x.length"))
 
-; Uppercase/lowercase
+;; Uppercase/lowercase
 (defun uppercase (x)
   "Returns the string [x] converted to uppercase"
   (js-code "d$$x.toUpperCase()"))
@@ -109,7 +109,7 @@
   "Returns the string [x] converted to lowercase"
   (js-code "d$$x.toLowerCase()"))
 
-; Simple versions of a few operators needed for bootstrap, they will be redefined
+;; Simple versions of a few operators needed for bootstrap, they will be redefined
 (defun = (a b) (js-code "(d$$a===d$$b)"))
 (defun < (a b) (js-code "(d$$a<d$$b)"))
 (defun > (a b) (js-code "(d$$a>d$$b)"))
@@ -119,7 +119,7 @@
     ((= (length args) 2) (js-code "(d$$args[0]+d$$args[1])"))
     (true (js-code "(d$$args[0]+f$$$43_.apply(null,d$$args.slice(1)))"))))
 
-; Logical not
+;; Logical not
 (defun not (x)
   "Logical negation of [x]"
   (js-code "!d$$x"))
@@ -128,25 +128,25 @@
   "Logical negation of [x]"
   (list 'js-code (+ "(!" (js-compile x) ")")))
 
-; Error throwing
+;; Error throwing
 (defun error (x)
   "Throws an error message [x] (doesn't return)"
   (js-code "((function(x){throw new String(x);})(d$$x))"))
 
-; Function accessor
+;; Function accessor
 (defmacro function (x)
   "Returns the function currently bound to the unevaluated symbol [x] (including lexical bindings)"
   (js-code "(lexfunc.vars[d$$x.name]?null:(d$$$42_outgoing_calls$42_[d$$x.name]=true))")
   (list 'js-code (+ "f" (js-code "d$$x.name"))))
 
-; Macro accessor
+;; Macro accessor
 (defmacro macro (x)
   "Returns the macro currently bound to the unevaluated symbol [x] (including lexical bindings)"
   (list 'or
         (list 'lexical-macro (list 'quote x))
         (list 'symbol-macro (list 'quote x))))
 
-; Javascript crazyness
+;; Javascript crazyness
 (defun callable? (x)
   "True if [x] can be called"
   (js-code "((typeof d$$x)==='function')"))
@@ -191,7 +191,7 @@
   "True if number [x] is even"
   (js-code "(!(d$$x&1))"))
 
-; Dolist macro
+;; Dolist macro
 (defmacro dolist (var+list &rest body)
   "Evaluates [body] forms after binding [var] to each element of [list]"
   (list 'js-code (+ "((function(list){var f="
@@ -202,7 +202,7 @@
                     (js-compile (js-code "d$$var$43_list[1]"))
                     "))")))
 
-; Dotimes macro
+;; Dotimes macro
 (defmacro dotimes (var+count &rest body)
   "Evaluates [body] forms after binding [var] to 0, 1, ... [(1- count)]"
   (list 'js-code (+ "((function(n){var f="
@@ -213,7 +213,7 @@
                     (js-compile (js-code "d$$var$43_count[1]"))
                     "))")))
 
-; Funcall macro
+;; Funcall macro
 (defmacro funcall (f &rest args)
   "Calls the function object [f] passing specified values as parameters."
   (let ((res (+ (js-compile f) "("))
@@ -223,7 +223,7 @@
       (setq sep ","))
     (list 'js-code (+ res ")"))))
 
-; List-related macros (can't be defined before '+')
+;; List-related macros (can't be defined before '+')
 (defmacro length (x)
   "Returns the length of a list or string object [x]"
   (list 'js-code (+ "(" (js-compile x) ".length)")))
@@ -269,7 +269,7 @@
   "Inserts element [y] into list [x] at index [i]"
   (js-code "(d$$x.splice(d$$i,0,d$$y),d$$y)"))
 
-; Indexing
+;; Indexing
 (defmacro aref (x &rest indexes)
   "Returns the element of [x] indexed by the specified values."
   (let ((res (js-compile x)))
@@ -283,7 +283,7 @@
     (setq x (aref x i)))
   x)
 
-; Quasiquoting
+;; Quasiquoting
 (defun bqconst (x)
   "True if the form [x] is constant in respect to backquoting"
   (if (list? x)
@@ -449,7 +449,7 @@
                         (documentation (symbol-macro ',name)))
      ',name))
 
-; Math n-ary operators macros and functions
+;; Math n-ary operators macros and functions
 
 (defmathop + "Numeric addition or string concatenation"
   0 (aref args 0) "+")
@@ -493,7 +493,7 @@
                     (js-compile count)
                     ")"))))
 
-; Make symbol / gensym
+;; Make symbol / gensym
 (defun make-symbol (name)
   "Creates a new uninterned symbol"
   (js-code "(new Symbol(f$$mangle(d$$name)))"))
@@ -509,7 +509,7 @@
   "Returns a new uninterned unique symbol"
   (make-symbol (+ "G#" (setq *gensym-count* (+ 1 *gensym-count*)))))
 
-; Comparisons
+;; Comparisons
 (defmacro defrelop (name comment jsname)
   "Defines a relational operator short-circuiting macro given [name], [comment] and Javascript operator name [jsname]."
   `(defmacro ,name (&rest args)
@@ -720,7 +720,7 @@
   "Returns [(- x 1)]"
   `(- ,x 1))
 
-; Sequence utilities
+;; Sequence utilities
 (defmacro/f pop (x)
   "Removes and returns last element from list [x]"
   `(js-code ,(+ "(" (js-compile x) ".pop())")))
@@ -912,7 +912,7 @@ The resulting list length is equal to the shortest input sequence."
 (set-arglist (symbol-function 'sort) '(x &optional (condition #'<)))
 (set-arglist (symbol-macro 'sort) '(x &optional (condition #'<)))
 
-; &optional
+;; &optional
 
 (defmacro argument-count ()
   "Number of arguments passed to current function"
@@ -966,7 +966,7 @@ The resulting list length is equal to the shortest input sequence."
         (setf (arglist f) (arglist oldcf))
         f))
 
-; Keyword arguments
+;; Keyword arguments
 
 (setf (symbol-macro 'lambda)
       (let* ((oldcf (symbol-macro 'lambda))
@@ -1012,7 +1012,7 @@ The resulting list length is equal to the shortest input sequence."
         (setf (arglist f) (arglist oldcf))
         f))
 
-; Destructuring
+;; Destructuring
 
 (setf (symbol-macro 'lambda)
       (let* ((oldcf (symbol-macro 'lambda))
@@ -1056,7 +1056,7 @@ The resulting list length is equal to the shortest input sequence."
         (setf (arglist f) (arglist oldcf))
         f))
 
-; Array construction
+;; Array construction
 
 (defun make-array (n &optional initial-value)
   "Creates a list containing [n] elements all equal to the specified [initial-value].
@@ -1088,7 +1088,7 @@ The resulting list length is equal to the shortest input sequence."
       `(list ,@(funcall #'make-array n initial-value))
       `(funcall #'make-array ,n ,initial-value)))
 
-; Range
+;; Range
 
 (defun range (start &optional stop step)
   "Returns a list containing all numbers from [start] (0 if not specified) up to [stop] counting by [step] (1 if not specified).
@@ -1113,14 +1113,14 @@ If only one parameter is passed it's assumed to be [stop]."
     (push to result)
     result))
 
-; Generic gensym
+;; Generic gensym
 (defmacro gensym (&optional prefix)
   "Generates an unique symbol optionally named with the specified [prefix]."
   (if prefix
       `(gensym-prefix ,prefix)
       `(gensym-noprefix)))
 
-; Generic index
+;; Generic index
 (defmacro index (x seq &optional start)
   "Returns the index of element [x] in [seq] or -1 if not present, eventually starting from the specified [start] position."
   (if start
@@ -1143,7 +1143,7 @@ If only one parameter is passed it's assumed to be [stop]."
       (js-code "(d$$seq.indexOf(d$$x,d$$start))")
       (js-code "(d$$seq.indexOf(d$$x))")))
 
-; Any/all
+;; Any/all
 (defmacro any ((var list) &rest body)
   "Returns the first logical true evaluation of [body] forms after binding [var] to [list] elements or [null] if none
    every evaluations returns a logical false value"
@@ -1162,7 +1162,7 @@ If only one parameter is passed it's assumed to be [stop]."
   "True if after binding [var] to each of the values in [list] the [body] forms always evaluate to a true value"
   `(not (any (,var ,list) (not (progn ,@body)))))
 
-; Reader customization
+;; Reader customization
 (defmacro reader (char)
   "The reader function associated to [char]. A setf-able place."
   (unless (and (string? char) (= (length char) 1))
@@ -1183,7 +1183,7 @@ If only one parameter is passed it's assumed to be [stop]."
   "Returns current character from character source [src]"
   (js-code "(d$$src.s[d$$src.i])"))
 
-; String interpolation reader
+;; String interpolation reader
 (setf (reader "~")
       (lambda (src)
         (next-char src)
@@ -1216,13 +1216,13 @@ If only one parameter is passed it's assumed to be [stop]."
                 (true `(+ ,@pieces))))
             (parse-symbol src "~"))))
 
-; Computed symbol reader macro #"foo{(+ 1 2)}" --> foo3
+;; Computed symbol reader macro #"foo{(+ 1 2)}" --> foo3
 (setf (hash-reader "\"")
       (lambda (src)
         (let ((x (parse-value src)))
           `(intern ,(parse-value ~"~{(str-value x)}")))))
 
-; Math functions
+;; Math functions
 (defmacro/f sqrt (x) "Square root of [x]"
   `(js-code ,(+ "Math.sqrt(" (js-compile x) ")")))
 (defmacro/f sin (x) "Sine of angle [x] in radians"
@@ -1250,7 +1250,7 @@ If only one parameter is passed it's assumed to be [stop]."
 (setq pi (js-code "Math.PI"))
 (setq 2pi (* 2 pi))
 
-; Swap
+;; Swap
 
 (defmacro swap (a b)
   "Swaps the content of two places (evaluating each place twice: once for reading and once for writing)"
@@ -1262,7 +1262,7 @@ If only one parameter is passed it's assumed to be [stop]."
        (setf ,b ,xa)
        null)))
 
-; Random
+;; Random
 
 (defmacro random ()
   "Random number between [0 < x < 1]"
@@ -1284,7 +1284,7 @@ If only one parameter is passed it's assumed to be [stop]."
     (random-shuffle x)
     x))
 
-; Filler string
+;; Filler string
 
 (defun filler (n &optional (c " "))
   "Returns a string composed by replicating a specified string (a space by default)"
@@ -1296,7 +1296,7 @@ If only one parameter is passed it's assumed to be [stop]."
        (let ((h (filler (ash n -1) c)))
          (+ h h)))))
 
-; JS exception support
+;; JS exception support
 (defvar *exception* null)
 (defmacro try (expr on-error)
   "Evaluates [expr] and in case of exception evaluates the [on-error] form setting [*exception*] to the current exception"
@@ -1306,7 +1306,7 @@ If only one parameter is passed it's assumed to be [stop]."
                 (js-compile on-error)
                 ");d$$$42_exception$42_=olderr;return res;}})())")))
 
-; Timing
+;; Timing
 (defun clock ()
   "Returns the number of millisecond passed since 00:00:00.000 of January 1st, 1970"
   (js-code "(new Date).getTime()"))
@@ -1318,7 +1318,7 @@ If only one parameter is passed it's assumed to be [stop]."
        ,@body
        (- (clock) ,start))))
 
-; Regular expression
+;; Regular expression
 (defun regexp (x &optional options)
   "Returns a new Javascript regular expression object"
   (js-code "(new RegExp(d$$x,d$$options||\"\"))"))
@@ -1333,7 +1333,7 @@ If only one parameter is passed it's assumed to be [stop]."
   "Returns a string with all regexp-meaningful characters escaped"
   (replace x "([$^\\][()+*?\\\\])" "\\$1"))
 
-; Whitespace stripping
+;; Whitespace stripping
 (defun lstrip (x)
   "Removes initial spaces from string [x]"
   (replace x "^\\s+" ""))
@@ -1346,7 +1346,7 @@ If only one parameter is passed it's assumed to be [stop]."
   "Remove both initial and final spaces from string [x]"
   (replace x (regexp "^\\s*(.*?)\\s*$") "$1"))
 
-; Anonymous JS object access/creation
+;; Anonymous JS object access/creation
 (defun valid-js-name (x)
   "True if and only if string [x] is a valid identifier for Javascript"
   (not (not (js-code "d$$x.match(/^[a-zA-Z_$][a-zA-Z_$0-9]*$/)"))))
@@ -1581,7 +1581,190 @@ A name is either an unevaluated atom or an evaluated list."
        ,~"Creates an instance of tuple [{name}]"
        (list ',#"new-{name}" ,@fields))))
 
-; Javscript simple function/method binding
+;; Char <-> numeric code conversion
+(defun char (x)
+  "Character associated to code [x]"
+  (js-code "String.fromCharCode(d$$x)"))
+
+(defun char-code (x)
+  "Numeric code of character [x]"
+  (js-code "d$$x.charCodeAt(0)"))
+
+;; Case
+(defmacro case (expr &rest cases)
+  "Evaluates [expr] and the form associated to a case with a matching value or
+   associated to [otherwise] symbol. Each of the [cases] is a list in which the
+   first element is a matching value or the symbol [otherwise] and remaining
+   elements are considered an implicit [progn] form. If no case matches and there
+   is no [otherwise] case the result is [null]."
+  (let ((v (gensym)))
+    `(let ((,v ,expr))
+       (cond
+         ,@(map (lambda (c)
+                  (if (= (first c) 'otherwise)
+                      `(true ,@(rest c))
+                      `((= ,v ,(first c))
+                        ,@(rest c))))
+            cases)))))
+
+(defmacro ecase (expr &rest cases)
+  "Evaluates [expr] and the form associated to a case with a matching value. Each of
+   the [cases] is a list in which the first element is a matching value and remaining
+   elements are considered an implicit [progn] form. If no case matches an error
+   is raised."
+  `(case ,expr ,@cases (otherwise (error "No matching case"))))
+
+;; Loose number parsing
+(defmacro/f atof (s)
+  "Returns a float from the start of the specified string (NaN if fails)"
+  `(js-code ,(+ "parseFloat(" (js-compile s) ")")))
+
+(defmacro/f atoi (s)
+  "Returns an integer from the start of the specified string (NaN if fails)"
+  `(js-code ,(+ "parseInt(" (js-compile s) ")")))
+
+;; Serialization (when str-value/load/eval is not appropriate, e.g. for rpc)
+
+(defobject serialization-out (buf seen add backref))
+
+(defun serialization-out ()
+  "Creates a new serialization output on which .add and .backref can be called"
+  (let ((so (new-serialization-out "" (list))))
+    (setf so.add (lambda (x) (incf so.buf x)))
+    (setf so.backref (lambda (x)
+                       (let ((ix (index x so.seen)))
+                         (if (>= ix 0)
+                             (let ((six (+ ix "")))
+                               (so.add (+ "r" (char (+ 64 (length six))) six))
+                               true)
+                             (progn
+                               (push x so.seen)
+                               false)))))
+    so))
+
+(defun serialize (so x)
+  "Writes object [x] to specified serialization out object [so]"
+  (cond
+    ((number? x)
+     (let ((sx (+ x "")))
+       (so.add (+ "n" (char (+ 64 (length sx))) sx))))
+    ((string? x)
+     (let ((sx (+ (length x) "")))
+       (so.add (+ "s" (char (+ 64 (length sx))) sx x))))
+    ((bool? x)
+     (so.add (if x "T" "F")))
+    ((list? x)
+     (unless (so.backref x)
+       (let ((sx (+ (length x) "")))
+         (so.add (+ "l" (char (+ 64 (length sx))) sx))
+         (dolist (item x) (serialize so item)))))
+    ((null? x) (so.add "@"))
+    ((undefined? x) (so.add "?"))
+    ((object? x)
+     (unless (so.backref x)
+       (let* ((keys (keys x))
+              (sz (length keys))
+              (ssz (+ sz "")))
+         (so.add (+ "O" (char (+ 64 (length ssz))) ssz))
+         (dolist (k keys)
+           (serialize so k)
+           (serialize so (aref x k))))))
+    (true (error ~"Unable to serialize {x}"))))
+
+(defun serialize-tag (so x)
+  "Adds a tag string [x] for a custom object"
+  (so.add (+ "t" (char (+ 64 (length x))) x)))
+
+(defun to-buffer (x)
+  "Serializes object [x] into a string. Supported objects are [null],
+   [undefined], numbers, strings, lists of supported objects and objects
+   supporting serialization where all fields contain supported objects.
+   Reference loops in lists and objects are supported and loops are rebuilt
+   on deserialization. Note that symbols are NOT supported."
+  (let ((so (serialization-out)))
+    (serialize so x)
+    so.buf))
+
+(defobject deserialization-in (buf p seen))
+
+(defun deserialize-tag (si tag)
+  "Deserializes custom object associated to [tag]"
+  (error ~"Unable to deserialize {tag}"))
+
+(defun deserialize (si)
+  "Reads a value from a deserialization in object"
+  (labels ((next ()
+             (aref si.buf (1- (incf si.p))))
+           (size ()
+             (- (char-code (next)) 64))
+           (get (sz)
+             (let ((p0 si.p))
+               (slice si.buf p0 (incf si.p sz)))))
+    (case (next)
+      ("n" (atof (get (size))))
+      ("l" (let ((res (list)))
+             (push res si.seen)
+             (dotimes (i (atoi (get (size))))
+               (push (deserialize si) res))
+             res))
+      ("s" (get (atoi (get (size)))))
+      ("r" (aref si.seen (atoi (get (size)))))
+      ("t" (deserialize-tag si (get (size))))
+      ("?" undefined)
+      ("@" null)
+      ("T" true)
+      ("F" false)
+      ("O" (let ((res #()))
+             (push res si.seen)
+             (dotimes (i (atoi (get (size))))
+               (let ((k (deserialize si))
+                     (v (deserialize si)))
+                 (setf (aref res k) v)))
+             res))
+      (otherwise (error "Invalid serialized object")))))
+
+(defun from-buffer (x)
+  "Deserializes an object from a string [x]"
+  (let* ((si (new-deserialization-in x 0 (list)))
+         (res (deserialize si)))
+    (unless (= si.buf.length si.p)
+      (error "Invalid serialized object"))
+    res))
+
+;; Extending defobject macro to support serialization
+(setf (symbol-macro 'defobject)
+      (let* ((old (symbol-macro 'defobject))
+             (old-doc (documentation old))
+             (old-args (arglist old))
+             (so '#.(gensym))
+             (newm (lambda (name fields)
+                     (let ((x (gensym))
+                           (fnames (map (lambda (f)
+                                          (if (list? f)
+                                              (first f)
+                                              f))
+                                        fields)))
+                       `(progn
+                          ,(funcall old name fields)
+                          (defmethod serialize (,so ,x) (,#"{name}?" ,x)
+                                     (unless ((. ,so backref) ,x)
+                                       (serialize-tag ,so ,(symbol-name name))
+                                       ,@(map (lambda (f)
+                                                `(serialize ,so (. ,x ,f)))
+                                              fnames)))
+                          (defmethod deserialize-tag (,so tag) (= tag ,(symbol-name name))
+                                     (let ((,x (,#"new-{name}")))
+                                       (push ,x (. ,so seen))
+                                       ,@(map (lambda (f)
+                                                `(setf (. ,x ,f) (deserialize ,so)))
+                                              fnames)
+                                       ,x))
+                          ',name)))))
+        (setf (documentation newm) old-doc)
+        (setf (arglist newm) old-args)
+        newm))
+
+;; Javscript simple function/method binding
 (defmacro bind-js-functions (&rest names)
   "Creates a JsLisp wrapper for the provided function names or methods of singletons (e.g. (document.write 'hello'))"
   `(progn
@@ -1629,7 +1812,7 @@ A name is either an unevaluated atom or an evaluated list."
   "Removes the DOM element [child] from the list of children of [parent] DOM element"
   `(js-code ,(+ "(" (js-compile parent) ".removeChild(" (js-compile child) "))")))
 
-; Timer events
+;; Timer events
 (defun set-timeout (f delay)
   "Invokes the specified function f after a delay (in ms). Returns an id usable in clear-timeout."
   (js-code "setTimeout(function(){d$$f()}, d$$delay)"))
@@ -1646,7 +1829,7 @@ A name is either an unevaluated atom or an evaluated list."
   "Stops a scheduled interval call."
   (js-code "clearInterval(d$$id)"))
 
-; Line split utility
+;; Line split utility
 (defun maplines (f str)
   "Calls a function for each line in a string"
   (do ((i 0)
@@ -1662,21 +1845,12 @@ A name is either an unevaluated atom or an evaluated list."
   "Executes a body for each line of a string"
   `(maplines (lambda (,var) ,@body) ,str))
 
-; Loose number parsing
-(defmacro/f atof (s)
-  "Returns a float from the start of the specified string (NaN if fails)"
-  `(js-code ,(+ "parseFloat(" (js-compile s) ")")))
-
-(defmacro/f atoi (s)
-  "Returns an integer from the start of the specified string (NaN if fails)"
-  `(js-code ,(+ "parseInt(" (js-compile s) ")")))
-
-; Round formatting
+;; Round formatting
 (defun to-fixed (x n)
   "Formats a number using the specified number of decimals"
   (js-code "(d$$x.toFixed(d$$n))"))
 
-; Javascript blocking interaction
+;; Javascript blocking interaction
 (defun prompt (x)
   "Asks the user for a string providing x as a prompt message"
   (js-code "prompt(d$$x)"))
@@ -1693,7 +1867,7 @@ A name is either an unevaluated atom or an evaluated list."
            (= reply "no"))
        (= reply "yes"))))
 
-; documentation support
+;; documentation support
 (defmacro help (name)
   "Displays any documentation for compile specialization, macro, function or value bound to the (unevaluated) specified symbol."
   (labels ((doc (x)
@@ -1952,14 +2126,14 @@ A name is either an unevaluated atom or an evaluated list."
                 (warning ~"Invalid keyword parameter {k} in {(str-value form)}"))))
           (incf fi 2))))))
 
-; Defconstant
+;; Defconstant
 (defmacro defconstant (name value)
   "Defines a constant value associated with the global variable identified by name"
   `(progn
      (setf (symbol-value ',name) ,value)
      (setf (. ',name constant) true)))
 
-; Define/undefine symbol-macro
+;; Define/undefine symbol-macro
 (defmacro define-symbol-macro (x y)
   "Defines a global symbol macro replacing symbol [x] in data position with form [y]"
   `(setf (. ',x symbol_macro) ',y))
@@ -1970,7 +2144,7 @@ A name is either an unevaluated atom or an evaluated list."
                 (js-code "d$$x.name")
                 ".symbol_macro;})())")))
 
-; Module support
+;; Module support
 
 (defvar *exports* (list))
 
@@ -2059,16 +2233,7 @@ A name is either an unevaluated atom or an evaluated list."
                           res)))
          (map #'symbol-name (symbol-value ',(intern "*exports*" (symbol-name module))))))))
 
-; Char <-> numeric code conversion
-(defun char (x)
-  "Character associated to code [x]"
-  (js-code "String.fromCharCode(d$$x)"))
-
-(defun char-code (x)
-  "Numeric code of character [x]"
-  (js-code "d$$x.charCodeAt(0)"))
-
-; Uri encoding/decoding support
+;; Uri encoding/decoding support
 (defun uri-decode (x)
   "Decode an uri-encoded string [x]"
   (js-code "(decodeURIComponent(d$$x))"))
@@ -2077,11 +2242,11 @@ A name is either an unevaluated atom or an evaluated list."
   "Returns uri-encoding of string [x]"
   (js-code "(encodeURIComponent(d$$x))"))
 
-; Lexical symbol properties support
+;; Lexical symbol properties support
 (defun lexical-property (x name)
   (js-code "(lexvar.props[d$$x.name][d$$name])"))
 
-; Conditions
+;; Conditions
 
 (defvar *condition-handlers* (js-object (* (list))))
 
@@ -2143,31 +2308,7 @@ A name is either an unevaluated atom or an evaluated list."
                                                      (map #'eval (rest args))))))
           (true (incf repl (+ ~"\n{cmd} ==> {(str-value (eval (parse-value cmd)))}"))))))))
 
-; Case
-(defmacro case (expr &rest cases)
-  "Evaluates [expr] and the form associated to a case with a matching value or
-   associated to [otherwise] symbol. Each of the [cases] is a list in which the
-   first element is a matching value or the symbol [otherwise] and remaining
-   elements are considered an implicit [progn] form. If no case matches and there
-   is no [otherwise] case the result is [null]."
-  (let ((v (gensym)))
-    `(let ((,v ,expr))
-       (cond
-         ,@(map (lambda (c)
-                  (if (= (first c) 'otherwise)
-                      `(true ,@(rest c))
-                      `((= ,v ,(first c))
-                        ,@(rest c))))
-            cases)))))
-
-(defmacro ecase (expr &rest cases)
-  "Evaluates [expr] and the form associated to a case with a matching value. Each of
-   the [cases] is a list in which the first element is a matching value and remaining
-   elements are considered an implicit [progn] form. If no case matches an error
-   is raised."
-  `(case ,expr ,@cases (otherwise (error "No matching case"))))
-
-; simple destructuring let
+;; simple destructuring let
 (setf (symbol-macro 'let)
       (let* ((oldm (symbol-macro 'let))
              (newm (lambda (bindings &rest body)
@@ -2195,7 +2336,7 @@ A name is either an unevaluated atom or an evaluated list."
         (setf (documentation newm) (documentation oldm))
         newm))
 
-; tracing
+;; tracing
 (defmacro trace (name)
   `(unless (. #',name org-func)
      (let ((i "")
@@ -2216,7 +2357,7 @@ A name is either an unevaluated atom or an evaluated list."
      (setf #',name (. #',name org-func))
      ',name))
 
-; Inline (experimental)
+;; Inline (experimental)
 
 (defmacro defun/inline (name args &rest body)
   "Like [defun] but also defining if possible a macro for inline expansion"

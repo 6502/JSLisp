@@ -1,5 +1,3 @@
-(import * from serialize)
-
 ;;
 ;; Server side, an http-server able to serve static files
 ;; and to handle `/process` http requests.

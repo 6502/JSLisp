@@ -1,9 +1,7 @@
-(import * from serialize)
-
 (defun remote (x)
-  (let ((request (serialize:to-buffer x)))
+  (let ((request (to-buffer x)))
     (let ((reply (http "POST" "process?" (uri-encode request))))
-      (let ((result (serialize:from-buffer (uri-decode reply))))
+      (let ((result (from-buffer (uri-decode reply))))
         result))))
 
 (setf (symbol-macro 'rpc:defun)

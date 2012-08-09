@@ -1,5 +1,3 @@
-(import * from serialize)
-
 (defobject document (name description pages))
 
 (defobject page (width height entities))
