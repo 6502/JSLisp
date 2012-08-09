@@ -1,3 +1,4 @@
+(import * from serialize)
 (import * from gui)
 (import * from graphics)
 (import * from rpc-client)
@@ -195,7 +196,7 @@
        (open-editor e)))
 
 (defmethod draw (e) (rect? e)
-  (fill-rect e.x0 e.y0 e.x1 e.y1 (css-rgb e.color)))
+  (fill-rect e.x0 e.y0 e.x1 e.y1 (css-color e.color)))
 
 ;; Image object
 
@@ -311,7 +312,7 @@
      (scale *sf* *sf*)
      (rect e.x0 e.y0 (- e.x1 e.x0) (- e.y1 e.y0))
      (clip)
-     (fill-style (css-rgb e.color))
+     (fill-style (css-color e.color))
      (let ((y e.y0))
        (dolist (line (split e.text "\n"))
          (let ((x e.x0))
@@ -465,10 +466,10 @@
                       :close false)
                   ((new-commands (group "New"))
                    (rect (button "Rect" (create-object (lambda () (new-rect 100 100 500 300
-                                                                            (list 255 255 128))))))
+                                                                            (rgb 255 255 128))))))
                    (text (button "Text" (create-object (lambda () (new-text 100 100 500 300
                                                                             "<Type your text here>"
-                                                                            (list 0 0 0) 14
+                                                                            (rgb 0 0 0) 14
                                                                             "Arial" false false)))))
                    (image (button "Image" (create-object (lambda () (new-image 100 100 500 300
                                                                                "jslisp.png")))))

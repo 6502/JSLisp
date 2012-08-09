@@ -114,5 +114,5 @@
                        `(funcall (. ,',ctx drawImage) ,src ,sx ,sy ,sw ,sh ,x ,y ,w ,h)))))
          ,@body))))
 
-(export random-color
+(export rgb rgba css-color random-color
         with-canvas)

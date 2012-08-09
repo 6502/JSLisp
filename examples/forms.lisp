@@ -1,16 +1,16 @@
 (import * from serialize)
 
-(defobject* document (name description pages))
+(defobject document (name description pages))
 
-(defobject* page (width height entities))
+(defobject page (width height entities))
 
-(defobject* rect (x0 y0 x1 y1 color))
+(defobject rect (x0 y0 x1 y1 color))
 
-(defobject* image (x0 y0 x1 y1 url))
+(defobject image (x0 y0 x1 y1 url))
 
-(defobject* text (x0 y0 x1 y1
-                  text color size
-                  family bold italic))
+(defobject text (x0 y0 x1 y1
+                 text color size
+                 family bold italic))
 
 (defvar *docs* null)
 
