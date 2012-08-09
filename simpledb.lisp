@@ -53,7 +53,7 @@
                             `(pop (. ,name ,f)))
                           fields))
                  *transaction*)
-           (push `(,',#"new-{name}" ,,@(map (lambda (fv) `',fv) fields))
+           (push (append (list ',#"new-{name}") (list ,@fields))
                  *changelog*))
          (list ',name id)))
      (defun ,name (record)
