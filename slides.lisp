@@ -275,10 +275,10 @@
                      :title "Slides"))
           (full-list (list)))
       (show-slide null -1)
-      (set-style (window-client w)
+      (set-style w.client
                  overflow "hidden"
                  backgroundColor "#EEEEEE")
-      (set-style (window-frame w)
+      (set-style w.frame
                  backgroundColor "#EEEEEE")
       (dolist (x *full-list*)
         (let ((div x.div)
@@ -304,8 +304,8 @@
                                                               "rgba(0,0,0,0.25)"
                                                               "rgba(0,0,0,0)"))))
           (push container full-list)
-          (append-child (window-client w) container)))
-      (setf (window-resize-cback w)
+          (append-child w.client container)))
+      (setf w.resize-cback
             (lambda (x0 y0 x1 y1)
               (let* ((n (length full-list))
                      (ww (- x1 x0))
@@ -327,7 +327,7 @@
                                MozTransform ~"scale({(/ 1 rc)},{(/ 1 rc)})"
                                WebkitTransformOrigin "0% 0%"
                                MozTransformOrigin "0% 0%"))))))
-      (setf (window-close-cback w)
+      (setf w.close-cback
             (lambda ()
               (setf *fullview* null)
               (setf *sequence* (filter (lambda (x) (not x.skip))

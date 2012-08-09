@@ -258,14 +258,14 @@
                          (:V :spacing 4 (:Hdiv canvas)
                              (:Hdiv prompt :size 20)))))
 
-        (set-style (window-client w)
+        (set-style w.client
                    overflow "hidden")
 
         (dolist (x (list canvas prompt
                          clear draw-line))
-          (append-child (window-client w) x))
+          (append-child w.client x))
 
-        (setf (window-resize-cback w)
+        (setf w.resize-cback
               (lambda (x0 y0 x1 y1)
                 (set-coords layout 0 1 (- x1 0) (- y1 y0 -1))
                 (repaint)))

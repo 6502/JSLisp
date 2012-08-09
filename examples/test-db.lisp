@@ -35,7 +35,7 @@
                        px/margin 0
                        border "solid 1px #000000")
             (setf td.textContent field)))))
-    (append-child (window-client w) t)
+    (append-child w.client t)
     (show-window w)))
 
 (defun tables-window ()
@@ -50,7 +50,7 @@
         (set-handler row onmouseout (set-style row backgroundColor "#FFFFFF"))
         (set-handler row onclick (records-window x))
         (append-child tablelist row)))
-    (append-child (window-client w) tablelist)
+    (append-child w.client tablelist)
     (show-window w)))
 
 (tables-window)
