@@ -357,6 +357,16 @@ defun("symbol-name",
       "Returns the lisp symbol name of a symbol [x] as a string object.",
       function(x) { return f$$demangle(x.name); }, [s$$x]);
 
+defun("symbol-full-name",
+      "[[(symbol-name x)]]\n" +
+      "Returns the qualified lisp symbol name of a symbol [x] as a string object.",
+      function(x) {
+          var ix = x.name.indexOf("$$");
+          var mod = f$$demangle("$$" + x.name.substr(0, ix)) + ":";
+          if (mod === ":") mod = "";
+          return mod + f$$demangle(x.name);
+      }, [s$$x]);
+
 defmacro("define-symbol-macro",
          "[[(define-symbol-macro x y)]]\n" +
          "Sets the global symbol-macro expansion of unevaluated symbol [x] to be the unevaluated form [y].",
