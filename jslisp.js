@@ -88,8 +88,14 @@ function Namespace()
     this.props = {};
     this.stack = [];
 
+    this.get = function(name)
+    {
+        return this.vars["!" + name];
+    }
+
     this.add = function(name, value)
     {
+        name = "!" + name;
         this.stack.push([name, this.vars[name], this.props[name]]);
         this.vars[name] = value;
         this.props[name] = {};
@@ -160,9 +166,9 @@ glob["f$$intern"] = f$$intern = function(name, module, lookup_only)
         module = name.substr(0, x);
         name = name.substr(x + 1);
     }
-    if ((typeof module === "undefined") && (x = d$$$42_symbol_aliases$42_[name]))
+    if ((typeof module === "undefined") && (x = d$$$42_symbol_aliases$42_["!"+name]))
         return x;
-    var m = (typeof module === "undefined") ? d$$$42_current_module$42_ : (d$$$42_module_aliases$42_[module]||module);
+    var m = (typeof module === "undefined") ? d$$$42_current_module$42_ : (d$$$42_module_aliases$42_["!"+module]||module);
     m = f$$mangle(m).substr(2);
     var mangled = f$$mangle(name);
     var mname = m + mangled;
@@ -713,7 +719,7 @@ defmacro("setq",
          {
              if (f$$symbol$63_(name) &&
                  !name.symbol_macro &&
-                 !lexsmacro.vars[name.name])
+                 !lexsmacro.get(name.name))
              {
                  return [s$$js_code, "(d" + name.name + "=" + f$$js_compile(value) + ")"];
              }
@@ -822,7 +828,7 @@ defun("lexical-macro",
       "Returns the lexical macro function associated to symbol [x] if present or undefined otherwise",
       function(x)
       {
-          return lexmacro.vars[x.name];
+          return lexmacro.get(x.name);
       },
       [s$$x]);
 
@@ -831,7 +837,7 @@ defun("lexical-symbol-macro",
       "Returns the lexical symbol-macro associated to symbol [x] if present or undefined otherwise",
       function(x)
       {
-          return lexsmacro.vars[x.name];
+          return lexsmacro.get(x.name);
       },
       [s$$x]);
 
@@ -840,7 +846,7 @@ defun("lexical-function",
       "Returns the lexical function associated to symbol [x] if present or undefined otherwise",
       function(x)
       {
-          return lexfunc.vars[x.name];
+          return lexfunc.get(x.name);
       },
       [s$$x]);
 
@@ -1121,11 +1127,10 @@ defun("js-compile",
       {
           if (f$$symbol$63_(x))
           {
-              if (lexsmacro.vars[x.name])
-                  return f$$js_compile(lexsmacro.vars[x.name]);
+              var v;
+              if ((v = lexsmacro.get(x.name))) return f$$js_compile(v);
 
-              if (lexvar.vars[x.name])
-                  return lexvar.vars[x.name];
+              if ((v = lexvar.get(x.name))) return v;
 
               if (x.symbol_macro)
                   return f$$js_compile(x.symbol_macro);
@@ -1187,9 +1192,9 @@ defun("js-compile",
                               throw "js-code requires a string literal";
                           return x[1];
                       }
-                      else if (lexmacro.vars[f.name])
+                      else if (lexmacro.get(f.name))
                       {
-                          var lmf = lexmacro.vars[f.name];
+                          var lmf = lexmacro.get(f.name);
                           if (lmf.arglist)
                           {
                               var caf = glob["f$$static_check_args"];
@@ -1220,7 +1225,7 @@ defun("js-compile",
                       else
                       {
                           var gf = glob["f" + f.name];
-                          if (!lexfunc.vars[f.name])
+                          if (!lexfunc.get(f.name))
                           {
                               d$$$42_outgoing_calls$42_[f.name] = true;
                               if (!gf)
