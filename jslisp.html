@@ -382,10 +382,9 @@ function keyDown(e)
         e.stopPropagation();
         return;
     }
-    if (e.which == 32 && completion_words.length &&
+    if (completion_words.length &&
         repl.selectionEnd != repl.selectionStart)
     {
-        // Space when autocompleting accepts
         repl.setSelectionRange(repl.selectionEnd, repl.selectionEnd);
         return;
     }
