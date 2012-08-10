@@ -332,14 +332,15 @@ function keyDown(e)
         var ss = repl.selectionStart;
         var se = repl.selectionEnd;
         var s0 = ss;
-        while (s0 > 0 && text[s0-1].match(/[-a-zA-Z0-9_]/))
+        var nonword = /[() \n;:,@"]/;
+        while (s0 > 0 && !(text[s0-1].match(nonword)))
             --s0;
         var current_word = text.substr(s0, se-s0);
         var must_match = text.substr(s0, ss-s0);
         if (completion_words.length == 0)
         {
-            completion_words = (text.substr(0, ss).split(/[() \n;:,@]/).reverse());
-            completion_words = completion_words.concat(text.substr(se).split(/[() \n;:,@]/));
+            completion_words = (text.substr(0, ss).split(nonword).reverse());
+            completion_words = completion_words.concat(text.substr(se).split(nonword));
             completion_words = completion_words.filter(function(x){return x.length});
             for (var k in window)
             {
