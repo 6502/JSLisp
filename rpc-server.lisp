@@ -3,6 +3,7 @@
 ;; and to handle `/process` http requests.
 ;; Serving static files is useful because of Same Origin Policy
 ;;
+
 (defvar *typemap* #((".html" "text/html")
                     (".css"  "text/css")
                     (".js"   "text/javascript")
@@ -14,7 +15,7 @@
                     (".zip"  "application/zip")))
 
 (defun process-request (req)
-  (error "Unknown request {req.%class}"))
+  (error ~"Unknown request {req.%class}"))
 
 (defun process (url parms data response)
   (display ~"Processing url={url}, parms={parms}, data={data}")
@@ -23,10 +24,10 @@
   (let ((content (try (cond
                         ((= url "/process")
                          (uri-encode
-                          (to-buffer
-                           (process-request (from-buffer (uri-decode parms))))))
+                          (json*
+                           (process-request (json-parse* (uri-decode parms))))))
                         (((regexp "^/process-as\\.[a-z0-9]+$").exec url)
-                         (process-request (from-buffer (uri-decode parms))))
+                         (process-request (json-parse* (uri-decode parms))))
                         (true (try (get-file (+ "." url) null)
                                    (progn
                                      (response.writeHead 404)
@@ -66,6 +67,7 @@
 
 (setf (symbol-macro 'rpc:defun)
       (lambda (name args &rest body)
+        (setf name (module-symbol name))
         (let ((fields (map (lambda (f)
                              (if (list? f) (first f) f))
                            args)))
@@ -73,8 +75,8 @@
              (defun ,name ,args ,@body)
              (defobject ,#"{name}-req" ,fields)
              (defmethod process-request (req) (,#"{name}-req?" req)
-               (,name ,@(map (lambda (f)
-                               `(. req ,f))
-                             fields)))))))
+                        (,name ,@(map (lambda (f)
+                                        `(. req ,f))
+                                      fields)))))))
 
 (export start-server)

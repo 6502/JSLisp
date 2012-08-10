@@ -5,7 +5,7 @@
   ~"rgb({x.r},{x.g},{x.b})")
 
 (defmethod css-color (x) (rgba? x)
-  ~"rgb({x.r},{x.g},{x.b},{x.a})")
+  ~"rgba({x.r},{x.g},{x.b},{x.a})")
 
 (defun random-color ()
   (new-rgb (+ 128 (random-int 64))

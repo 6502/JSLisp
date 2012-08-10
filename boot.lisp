@@ -1471,23 +1471,26 @@ A name is either an unevaluated atom or an evaluated list."
 
 ;; Named JS object creation
 
+(defvar *constructors* #())
+
 (defmacro defobject (name fields)
   "Defines a new object type named [name] and with specified
    [fields]. Each field is either a symbol or a list of a symbol and a
-   default value. This macro will define a function named [new-{name}] as
-   the object type working as a positional constructor, a function named
-   [make-{name}] as a keyword constructor and a function named
+   default value. This macro will define a function named [new-{name}]
+   as the object type working as a positional constructor, a function
+   named [make-{name}] as a keyword constructor and a function named
    [{name}?] as a type-testing predicate.  Each instance will inherit
-   a [%class] field containing the symbol associated to the class and a
-   [%fields] field containing (as symbols) the names of the fields and
-   [%getters] and [%setters] fields contaning getters/setters definitions."
+   a [%class] field containing a list with the class name and class
+   field names and [%getters] and [%setters] fields contaning
+   getters/setters definitions."
   (setf name (module-symbol name))
-  (let ((fieldnames (map (lambda (x)
-                           (if (list? x)
-                               (first x)
-                               x))
-                         fields)))
-    (setf name (module-symbol name))
+  (let* ((fieldnames (map (lambda (x)
+                            (if (list? x)
+                                (first x)
+                                x))
+                          fields))
+         (class (append (list (symbol-full-name name))
+                        (map #'symbol-name fieldnames))))
     `(progn
        (defun ,(intern ~"{name}-constructor") ,fieldnames
          ,@(map (lambda (f)
@@ -1496,26 +1499,11 @@ A name is either an unevaluated atom or an evaluated list."
                       `(js-code ,~"this[{(str-value (symbol-name f))}]=d{(. f name)}")))
                 fieldnames)
          (js-code "this"))
-       (let ((prototype (. #',(intern ~"{name}-constructor") prototype)))
-         (setf prototype.%class ',name)
-         (setf prototype.%fields ',fieldnames)
-         (setf prototype.%getters (list))
-         (setf prototype.%setters (list))
-         (setf prototype.%copy
-               (lambda ()
-                 (js-code ,(let ((res "(new this.constructor(")
-                                 (sep ""))
-                                (dolist (f fieldnames)
-                                  (incf res sep)
-                                  (incf res (js-compile `(. (js-code "this") ,f)))
-                                  (setf sep ","))
-                                (+ res "))"))))))
        (defun ,(intern ~"new-{name}") (&optional ,@fields)
          ,~"Creates a new instance of {name}"
          ;; Next line is a NOP but needed for deploy machinery
          (deploy-ref (function ,#"{name}-constructor")
-                     ',name
-                     ',fieldnames)
+                     ',class)
          (js-code ,(let ((res "(new f")
                          (sep ""))
                         (incf res (. (intern ~"{name}-constructor") name))
@@ -1527,9 +1515,28 @@ A name is either an unevaluated atom or an evaluated list."
                           (setf sep ","))
                         (incf res "))")
                         res)))
+       (let ((prototype (. #',(intern ~"{name}-constructor") prototype)))
+         (setf (aref *constructors* ,(symbol-full-name name))
+               (list ',(map #'symbol-name fieldnames)
+                     #',#"new-{name}"))
+         (setf prototype.%class ',class)
+         (setf prototype.%getters (list))
+         (setf prototype.%setters (list))
+         (setf prototype.%copy
+               (lambda ()
+                 (js-code ,(let ((res "(new this.constructor(")
+                                 (sep ""))
+                                (dolist (f fieldnames)
+                                  (incf res sep)
+                                  (incf res (js-compile `(. (js-code "this") ,f)))
+                                  (setf sep ","))
+                                (+ res "))"))))))
        (defun ,(intern ~"{name}?") (x)
          ,~"True if and only if [x] is an instance of [{name}]"
-         (if (and x (= (. x %class) ',name)) true false))
+         ;; Next line is a NOP but needed for deploy machinery
+         (deploy-ref (function ,#"new-{name}")
+                     ',class)
+         (if (and x (= (. x %class) ',class)) true false))
        (defun ,(intern ~"make-{name}") (&key ,@fields)
          ,~"Creates a new instance of {name}"
          (,(intern ~"new-{name}") ,@fieldnames))
@@ -1763,6 +1770,51 @@ A name is either an unevaluated atom or an evaluated list."
         (setf (documentation newm) old-doc)
         (setf (arglist newm) old-args)
         newm))
+
+;; JSON serialization
+
+(defun json (x)
+  "Standard JSON serialization of [x]"
+  (or (js-code "(JSON.stringify(d$$x))") "null"))
+
+(defun json-parse (x)
+  "Standard JSON parsing of string [x]"
+  (js-code "(JSON.parse(d$$x))"))
+
+;; Class-aware JSON serialization
+
+(defun json* (x)
+  "A json-formatted string representation of object x. No loops, undefined, infinity, NaN or symbols allowed.
+   Named objects get an extra %class field used to find constructor on parsing."
+  (cond
+    ((list? x)
+     (+ "[" (join (map #'json* x) ",") "]"))
+    ((and x x.%class)
+     (+ "{"
+        (join (append (list (+ "\"%class\":" (json (first x.%class))))
+                      (map (lambda (k)
+                             ~"{(json k)}:{(json* (aref x k))}")
+                           (rest x.%class)))
+              ",")
+        "}"))
+    (true (json x))))
+
+(defun json-parse* (x)
+  "Rebuilds an object from a [json*] string [x]"
+  (labels ((fix (x)
+             (cond
+               ((list? x)
+                (map #'fix x))
+               ((and x (object? x) x.%class)
+                (let ((cs (aref *constructors* x.%class)))
+                  (if cs
+                      (apply (second cs)
+                             (map (lambda (k)
+                                    (fix (aref x k)))
+                                  (first cs)))
+                      (error ~"Unable to parse named object {x.%class}"))))
+               (true x))))
+    (fix (json-parse x))))
 
 ;; Javscript simple function/method binding
 (defmacro bind-js-functions (&rest names)
@@ -2287,7 +2339,7 @@ A name is either an unevaluated atom or an evaluated list."
     (let ((msg ~"A special condition {x.%class} was signaled\n")
           (keys (keys x.restarts))
           (n 0))
-      (dolist (k x.%fields)
+      (dolist (k (rest x.%class))
         (unless (= k 'restarts)
           (incf msg ~"    {k} = {(str-value (aref x k))}\n")))
       (incf msg "\n")
