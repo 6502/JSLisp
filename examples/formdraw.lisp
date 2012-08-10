@@ -3,7 +3,7 @@
 (import * from rpc-client)
 (import * from examples/forms)
 
-(defvar *pages* null)
+(defvar *current-document* null)
 (defvar *current-page* null)
 (defvar *screen* null)
 (defvar *canvas* null)
@@ -375,7 +375,7 @@
   (append-child *screen* *canvas*)
   (setf *dirty* true)
   (setf *current-page* (new-page 2100 2970 (list)))
-  (setf *pages* (list *current-page*))
+  (setf *document* (new-document "<unnamed>" "New document" (list *current-page*)))
   (macrolet ((coords ()
                `(let ((cp (event-pos event))
                       (sp (element-pos *screen*)))
@@ -502,22 +502,22 @@
                                            (setf *dirty* true))))
                    (page-commands (group "Pages"))
                    (next (button "Next" (lambda ()
-                                          (let ((ix (index *current-page* *pages*)))
-                                            (setf ix (% (1+ ix) (length *pages*)))
-                                            (setf *current-page* (aref *pages* ix)))
+                                          (let ((ix (index *current-page* *current-document*.pages)))
+                                            (setf ix (% (1+ ix) (length *current-document*.pages)))
+                                            (setf *current-page* (aref *current-document*.pages ix)))
                                           (setf *dirty* true))))
                    (prev (button "Prev" (lambda ()
-                                          (let ((ix (index *current-page* *pages*)))
-                                            (setf ix (% (1- (+ ix (length *pages*)))
-                                                        (length *pages*)))
-                                            (setf *current-page* (aref *pages* ix)))
+                                          (let ((ix (index *current-page* *current-document*.pages)))
+                                            (setf ix (% (1- (+ ix (length *current-document*.pages)))
+                                                        (length *current-document*.pages)))
+                                            (setf *current-page* (aref *current-document*.pages ix)))
                                           (setf *dirty* true))))
                    (new (button "New" (lambda ()
                                         (setf *current-page* (new-page
                                                               *current-page*.width
                                                               *current-page*.height
                                                               (list)))
-                                        (push *current-page* *pages*)
+                                        (push *current-page* *current-document*.pages)
                                         (setf *dirty* true))))
                    (view-commands (group "View"))
                    (zoom+ (button "Zoom+" (lambda ()
@@ -538,23 +538,22 @@
                                                                   *current-page*.width
                                                                   *current-page*.height
                                                                   (list)))
-                                            (setf *pages* (list *current-page*))
+                                            (setf *current-document*.pages (new-document "<unnamed>" "New document"
+                                                                                         (list *current-page*)))
                                             (setf *dirty* true))))
                    (doc-open (button "Open" (lambda ()
                                               (document-selector "Open"
                                                  (lambda (name)
                                                    (when name
-                                                     (let ((doc (get-document name)))
-                                                       (setf *pages* doc.pages)
-                                                       (setf *current-page* (first *pages*))
-                                                       (setf *dirty* true))))))))
+                                                     (setf *current-document* (get-document name))
+                                                     (setf *current-page* (first *current-document*.pages))
+                                                     (setf *dirty* true)))))))
                    (doc-save (button "Save" (lambda ()
                                               (document-selector "Save"
                                                  (lambda (name)
                                                    (when name
-                                                     (let ((doc (get-document name)))
-                                                       (setf doc.pages *pages*)
-                                                       (save-document doc))))))))
+                                                     (setf *current-document*.name name)
+                                                     (save-document *current-document*)))))))
                    (doc-save-as (button "Save as..." (lambda ()
                                                        (alert "To do")))))
                   (:V :spacing 16 :border 8
