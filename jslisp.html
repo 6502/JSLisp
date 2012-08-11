@@ -385,7 +385,8 @@ function keyDown(e)
     if (completion_words.length &&
         repl.selectionEnd != repl.selectionStart)
     {
-        repl.setSelectionRange(repl.selectionEnd, repl.selectionEnd);
+        if (e.which != 8)
+          repl.setSelectionRange(repl.selectionEnd, repl.selectionEnd);
         return;
     }
     completion_words = [];
