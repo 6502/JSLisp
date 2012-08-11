@@ -106,7 +106,7 @@ be called with start/end squares (two numbers between 0 and 63)."
 (defun chessboard-window (x0 y0 w h title
                           &optional position move-cback)
   (let ((w (window x0 y0 w h
-                   :title title)))
+                   title: title)))
     (labels ((update ()
                (let* ((client w.client)
                       (cw client.clientWidth)

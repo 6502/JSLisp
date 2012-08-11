@@ -13,7 +13,7 @@
 
 (defun source-window (name)
   (let ((source (split (http-get name) "\n"))
-        (w (window 100 100 800 600 :title name))
+        (w (window 100 100 800 600 title: name))
         (selection-markers (list))
         (lines (list)))
     (dotimes (i (length source))

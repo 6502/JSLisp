@@ -159,15 +159,20 @@ f$$mangle.documentation = ("[[(mangle x)]]\n" +
 glob["f$$intern"] = f$$intern = function(name, module, lookup_only)
 {
     var x;
-    if (name[0] === ":")
+    // Keywords END with a colon and are always in the global module
+    if (name[name.length-1] === ":")
         module = "";
-    if ((typeof module === "undefined") && (x = name.indexOf(":")) > 0)
+
+    // Anything before the colon is the module name (global module being "").
+    if ((typeof module === "undefined") && (x = name.indexOf(":")) >= 0)
     {
         module = name.substr(0, x);
         name = name.substr(x + 1);
     }
+    // Imported symbols lookup
     if ((typeof module === "undefined") && (x = d$$$42_symbol_aliases$42_["!"+name]))
         return x;
+    // Check for a nicknamed module
     var m = (typeof module === "undefined") ? d$$$42_current_module$42_ : (d$$$42_module_aliases$42_["!"+module]||module);
     m = f$$mangle(m).substr(2);
     var mangled = f$$mangle(name);
@@ -180,7 +185,7 @@ glob["f$$intern"] = f$$intern = function(name, module, lookup_only)
         if (lookup_only) return null;
         x = glob["s" + mname] = new Symbol(mname, true);
         eval("s" + mname + " = glob['s" + mname + "']");
-        if (name[0] === ':')
+        if (name[name.length-1] === ':')
         {
             glob["d" + mname] = x;
             eval("d" + mname + " = glob['d" + mname + "']");
@@ -191,14 +196,15 @@ glob["f$$intern"] = f$$intern = function(name, module, lookup_only)
 f$$intern.documentation = ("[[(intern name &optional module lookup-only)]]\n" +
                            "Create and returns an interned symbol with the specified [name] into " +
                            "[module] or just returns that symbol if it has been already interned. " +
-                           "If the name starts with a colon ':' character then the module is ignored " +
+                           "If the name ends with a colon ':' character then the module is ignored " +
                            "interning the symbol in the global module instead and the symbol value " +
-                           "cell is also bound to the symbol itself. If no module parameter is " +
-                           "specified and the symbol is listed in [*symbol-aliases*] then that value "+
-                           "is returned, otherwise if it is not found in current module then before " +
-                           "performing the interning operation the symbol is first looked up also "+
-                           "in the global module. If [lookup-only] is true then no symbol creation "+
-                           "is performed and [null] is returned if no symbol can be found.");
+                           "cell is also bound to the symbol itself (keyword symbol). If no module " +
+                           "parameter is specified and the symbol is listed in [*symbol-aliases*] " +
+                           "then that value is returned, otherwise if it is not found in current " +
+                           "module then before performing the interning operation the symbol is " +
+                           "first looked up also in the global module. If [lookup-only] is true " +
+                           "then no symbol creation is performed in any case and [null] is " +
+                           "returned if no symbol can be found.");
 f$$intern.arglist = [f$$intern("name"), f$$intern("&optional"), f$$intern("module")];
 f$$mangle.arglist = [f$$intern("x")];
 
@@ -1358,8 +1364,6 @@ defun("parse-number-or-symbol",
               return parseFloat(res);
           while (!f$$parse_stopping(src.s[src.i]))
               res += src.s[src.i++];
-          var ix = res.indexOf(":");
-          if (ix > 0) return f$$intern(res.substr(0, ix), res.substr(ix+1));
           return f$$intern(res);
       },
       [f$$intern("src")]);
@@ -1409,8 +1413,6 @@ defun("parse-symbol",
           }
           if (res === "")
               throw new String("Value expected");
-          var ix = res.indexOf(":");
-          if (ix > 0) return f$$intern(res.substr(ix+1), res.substr(0, ix));
           return f$$intern(res);
       },
       [f$$intern("src"), f$$intern("start")]);

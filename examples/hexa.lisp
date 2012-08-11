@@ -130,7 +130,7 @@
          (layout null)
          (display (create-element "div"))
          (w (window 100 100 400 400
-                    :title "Hextile shortest path")))
+                    title: "Hextile shortest path")))
     (set-style w.client
                overflow "hidden")
     (set-style c
@@ -216,15 +216,15 @@
                     (set-mode "check")))
       (append-child w.frame c)
       (append-child w.frame display)
-      (setf layout (:V :border 8 :spacing 8
-                       (:Hdiv c)
-                       (:H :max 30 :spacing 8
-                           (:H :class 2)
-                           (:Hdiv clear-btn :max 80)
-                           (:Hdiv wall-btn :max 80)
-                           (:Hdiv check-btn :max 80)
-                           (:Hdiv display :max 120)
-                           (:H :class 2))))
+      (setf layout (V: border: 8 spacing: 8
+                       (Hdiv: c)
+                       (H: max: 30 spacing: 8
+                           (H: class: 2)
+                           (Hdiv: clear-btn max: 80)
+                           (Hdiv: wall-btn max: 80)
+                           (Hdiv: check-btn max: 80)
+                           (Hdiv: display max: 120)
+                           (H: class: 2))))
       (fixstyle)
       (setf w.resize-cback
             (lambda (x0 y0 x1 y1)

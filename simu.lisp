@@ -35,17 +35,17 @@
 (defvar *links* (list))
 
 (defun node (tension)
-  (let ((n (make-node :tension (or tension 0)
-                      :out (list)
-                      :in (list))))
+  (let ((n (make-node tension: (or tension 0)
+                      out: (list)
+                      in: (list))))
     (push n *nodes*)
     n))
 
 (defun link (from to resistance current)
-  (let ((L (make-link :from from
-                      :to to
-                      :resistance resistance
-                      :current (or current 0))))
+  (let ((L (make-link from: from
+                      to: to
+                      resistance: resistance
+                      current: (or current 0))))
     (push L *links*)
     (push L (node-in to))
     (push L (node-out from))

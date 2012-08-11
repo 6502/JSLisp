@@ -272,7 +272,7 @@
     (let ((w (window 10 10
                      (- *background*.offsetWidth 20)
                      (- *background*.offsetHeight 20)
-                     :title "Slides"))
+                     title: "Slides"))
           (full-list (list)))
       (show-slide null -1)
       (set-style w.client

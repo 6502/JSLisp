@@ -47,8 +47,8 @@
 (defun pie-chart-window (data x0 y0 width height title)
   (let* ((canvas (create-element "canvas"))
          (w (window x0 y0 width height
-                    :title title
-                    :client canvas)))
+                    title: title
+                    client: canvas)))
     (setf w.resize-cback
           (lambda (x0 y0 x1 y1)
             (let ((w (- x1 x0))
@@ -70,13 +70,13 @@
 
 (defun data-window (x0 y0 width height title)
   (let* ((w (window x0 y0 width height
-                    :title title))
+                    title: title))
          (widgets (list))
          (title (create-element "input"))
-         (layout (:V :border 16 :spacing 4
-                     (:H :min 25 :max 25
-                         (:H :min 20 :max 20)
-                         (:Hdiv title :weight 300))))
+         (layout (V: border: 16 spacing: 4
+                     (H: min: 25 max: 25
+                         (H: min: 20 max: 20)
+                         (Hdiv: title weight: 300))))
          (ok (button "Show chart"
                      (lambda ()
                        (let ((data (list)))
@@ -118,14 +118,14 @@
                    textAlign "center")
         (setf (. caption innerText) (1+ i))
         (push (list label value) widgets)
-        (push (:H :min 25 :max 25
-                  (:Hdiv caption :max 20 :min 20)
-                  (:Hdiv label :weight 200)
-                  (:Hdiv value))
+        (push (H: min: 25 max: 25
+                  (Hdiv: caption max: 20 min: 20)
+                  (Hdiv: label weight: 200)
+                  (Hdiv: value))
               layout.children)))
-    (push (:V) layout.children)
-    (push (:H :min 30 :max 30
-              (:H) (:Hdiv ok :min 80) (:H))
+    (push (V:) layout.children)
+    (push (H: min: 30 max: 30
+              (H:) (Hdiv: ok min: 80) (H:))
           layout.children)
     (setf w.resize-cback
           (lambda (x0 y0 x1 y1)

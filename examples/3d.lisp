@@ -117,23 +117,23 @@
     (v+ p0 (v* (v- p1 p0) t))))
 
 (defun main ()
-  (setf *sections* (list (make-section :n (v 1 0 0) :k0 -160 :k1 -40)
-                         (make-section :n (v 1 0 0) :k0 -60 :k1 60)
-                         (make-section :n (v 1 0 0) :k0 40 :k1 160)
-                         (make-section :n (v 0 1 0) :k0 -160 :k1 -40)
-                         (make-section :n (v 0 1 0) :k0 -60 :k1 60)
-                         (make-section :n (v 0 1 0) :k0 40 :k1 160)
-                         (make-section :n (v 0 0 1) :k0 -160 :k1 -40)
-                         (make-section :n (v 0 0 1) :k0 -60 :k1 60)
-                         (make-section :n (v 0 0 1) :k0 40 :k1 160)))
+  (setf *sections* (list (make-section n: (v 1 0 0) k0: -160 k1: -40)
+                         (make-section n: (v 1 0 0) k0: -60 k1: 60)
+                         (make-section n: (v 1 0 0) k0: 40 k1: 160)
+                         (make-section n: (v 0 1 0) k0: -160 k1: -40)
+                         (make-section n: (v 0 1 0) k0: -60 k1: 60)
+                         (make-section n: (v 0 1 0) k0: 40 k1: 160)
+                         (make-section n: (v 0 0 1) k0: -160 k1: -40)
+                         (make-section n: (v 0 0 1) k0: -60 k1: 60)
+                         (make-section n: (v 0 0 1) k0: 40 k1: 160)))
 
   (let* ((canvas (create-element "canvas"))
          (faces (build-faces))
          (frame (window 100 100 350 450
-                        :title "3d view"
-                        :close true
-                        :resize true
-                        :client canvas))
+                        title: "3d view"
+                        close: true
+                        resize: true
+                        client: canvas))
          (cam (camera (v -400 -600 -1000) (v 0 0 0) (v 0 1 0) 800)))
     (labels ((visible-faces ()
                (let ((xfaces (map (lambda (f)

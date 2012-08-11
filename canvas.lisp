@@ -28,7 +28,7 @@
 (defstruct p2d x y)
 
 (defun p2d (x y)
-  (make-p2d :x x :y y))
+  (make-p2d x: x y: y))
 
 (defun canvas (width height)
   (let ((canvas (create-element "canvas")))

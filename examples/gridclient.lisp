@@ -19,7 +19,7 @@
     (with-window (w ((/ (- screen.offsetWidth width) 2)
                      (/ (- screen.offsetHeight height) 2)
                      width height
-                     :title "PDF grid")
+                     title: "PDF grid")
                     ((page-width (input "Page width (mm)"))
                      (page-height (input "Page height (mm)"))
                      (rows (input "Number of rows"))
@@ -56,28 +56,28 @@
                                                     (mm x-step) (mm y-step))))
                                          (setf document.location result)))))))
                      (cancel (button "Cancel" (lambda () (hide-window w)))))
-                    (:V :spacing 16 :border 16
-                        (:H :size 30
-                            (:Hdiv page-width)
-                            (:Hdiv page-height))
-                        (:H :size 30
-                            (:Hdiv rows)
-                            (:Hdiv cols))
-                        (:H :size 30
-                            (:Hdiv left)
-                            (:Hdiv top))
-                        (:H :size 30
-                            (:Hdiv x-step)
-                            (:Hdiv y-step))
-                        (:H :size 30
-                            (:Hdiv fontsize)
-                            (:Hdiv text))
-                        (:H)
-                        (:H :size 30
-                            (:H)
-                            (:Hdiv ok :size 80)
-                            (:Hdiv cancel :size 80)
-                            (:H))))
+                    (V: spacing: 16 border: 16
+                        (H: size: 30
+                            (Hdiv: page-width)
+                            (Hdiv: page-height))
+                        (H: size: 30
+                            (Hdiv: rows)
+                            (Hdiv: cols))
+                        (H: size: 30
+                            (Hdiv: left)
+                            (Hdiv: top))
+                        (H: size: 30
+                            (Hdiv: x-step)
+                            (Hdiv: y-step))
+                        (H: size: 30
+                            (Hdiv: fontsize)
+                            (Hdiv: text))
+                        (H:)
+                        (H: size: 30
+                            (H:)
+                            (Hdiv: ok size: 80)
+                            (Hdiv: cancel size: 80)
+                            (H:))))
       (show-window w)
       (set-timeout (lambda () (page-width.lastChild.focus)) 100))))
 

@@ -215,7 +215,7 @@
 
 (defun editor (shape)
   (let* ((w (window 100 100 600 400
-                    :title "vector editor"))
+                    title: "vector editor"))
          (canvas (create-element "canvas"))
          (prompt (create-element "div"))
          (interactor null))
@@ -250,13 +250,13 @@
              (draw-line (button "+line"
                                 (lambda ()
                                   (set-interactor (new-line-drawing shape)))))
-             (layout (:H :spacing 4 :border 4
-                         (:V :spacing 4 :size 60
-                             (:V (:Vdiv draw-line :size 30)
-                                 (:Vdiv clear :size 30)
-                                 (:V)))
-                         (:V :spacing 4 (:Hdiv canvas)
-                             (:Hdiv prompt :size 20)))))
+             (layout (H: spacing: 4 border: 4
+                         (V: spacing: 4 size: 60
+                             (V: (Vdiv: draw-line size: 30)
+                                 (Vdiv: clear size: 30)
+                                 (V:)))
+                         (V: spacing: 4 (Hdiv: canvas)
+                             (Hdiv: prompt size: 20)))))
 
         (set-style w.client
                    overflow "hidden")

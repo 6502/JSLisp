@@ -36,10 +36,10 @@
   (let* ((n (vdir (v- to from)))
          (u (v* (vdir (v^ up n)) dist))
          (v (v^ n u)))
-    (make-camera :o from
-                 :n n
-                 :u u
-                 :v v)))
+    (make-camera o: from
+                 n: n
+                 u: u
+                 v: v)))
 
 (defun camera-map (camera p)
   (let* ((x (v- p camera.o))

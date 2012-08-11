@@ -16,10 +16,10 @@
         (heap (heap (lambda (a b) (<= (state-info-total-cost a) (state-info-total-cost b)))
                     (lambda (x index) (setf (state-info-heap-index x) index)))))
     (dolist (x start-states)
-      (let ((state-record (make-state-info :state x
-                                           :total-cost 0
-                                           :previous-state null
-                                           :heap-index null)))
+      (let ((state-record (make-state-info state: x
+                                           total-cost: 0
+                                           previous-state: null
+                                           heap-index: null)))
         (setf (aref seen x) state-record)
         (heap-push state-record heap)))
     (do ((result null))
@@ -45,10 +45,10 @@
                             (heap-fix heap (state-info-heap-index nh-info))
                             (heap-push nh-info heap)))
                       (heap-push (setf (aref seen nh)
-                                       (make-state-info :state nh
-                                                        :total-cost tc
-                                                        :previous-state state
-                                                        :heap-index null))
+                                       (make-state-info state: nh
+                                                        total-cost: tc
+                                                        previous-state: state
+                                                        heap-index: null))
                                  heap))))))))))
 
 (let* ((maze (list "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"

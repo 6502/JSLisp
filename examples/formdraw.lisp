@@ -201,7 +201,7 @@
 
 (defmethod edit (e) (image? e)
   (with-window (w (100 100 500 150
-                       :title "Image properties")
+                       title: "Image properties")
                   ((url (input "URL"))
                    (ok (button "OK"
                                (lambda ()
@@ -212,15 +212,15 @@
                    (cancel (button "Cancel"
                                    (lambda ()
                                      (hide-window w)))))
-                  (:V :spacing 8 :border 8
-                      (:H :size 35
-                          (:Hdiv url))
-                      (:H)
-                      (:H :size 30
-                          (:H)
-                          (:Hdiv ok :size 80)
-                          (:Hdiv cancel :size 80)
-                          (:H))))
+                  (V: spacing: 8 border: 8
+                      (H: size: 35
+                          (Hdiv: url))
+                      (H:)
+                      (H: size: 30
+                          (H:)
+                          (Hdiv: ok size: 80)
+                          (Hdiv: cancel size: 80)
+                          (H:))))
     (show-window w)
     (setf (text url) e.url)))
 
@@ -246,7 +246,7 @@
 
 (defmethod edit (e) (text? e)
   (with-window (w (100 100 500 500
-                       :title "Text properties")
+                       title: "Text properties")
                   ((family (input "font family"))
                    (size (input "font size"))
                    (bold (checkbox "Bold"))
@@ -272,21 +272,21 @@
                    (cancel (button "Cancel"
                                    (lambda ()
                                      (hide-window w)))))
-                  (:V :spacing 8 :border 8
-                      (:H :size 100
-                          (:Hdiv family)
-                          (:Hdiv size :size 80)
-                          (:Vdiv effects :border 8 :spacing 4 :size 80
-                                 (:V :size 3)
-                                 (:H :size 20 (:Hdiv bold))
-                                 (:H :size 20 (:Hdiv italic))
-                                 (:H :size 30 (:Hdiv color))))
-                      (:Hdiv content)
-                      (:H :size 30
-                          (:H)
-                          (:Hdiv ok :size 80)
-                          (:Hdiv cancel :size 80)
-                          (:H))))
+                  (V: spacing: 8 border: 8
+                      (H: size: 100
+                          (Hdiv: family)
+                          (Hdiv: size size: 80)
+                          (Vdiv: effects border: 8 spacing: 4 size: 80
+                                 (V: size: 3)
+                                 (H: size: 20 (Hdiv: bold))
+                                 (H: size: 20 (Hdiv: italic))
+                                 (H: size: 30 (Hdiv: color))))
+                      (Hdiv: content)
+                      (H: size: 30
+                          (H:)
+                          (Hdiv: ok size: 80)
+                          (Hdiv: cancel size: 80)
+                          (H:))))
     (show-window w)
     (setf (text content) e.text)
     (setf (text size) e.size)
@@ -414,7 +414,7 @@
         (cursel null)
         (docs (list-documents)))
     (with-window (w (100 100 500 500
-                         :title prompt)
+                         title: prompt)
                     ((doclist (create-element "table"))
                      (ok (button "OK" (lambda ()
                                         (funcall f selection)
@@ -422,13 +422,13 @@
                      (cancel (button "Cancel" (lambda ()
                                                 (funcall f null)
                                                 (hide-window w)))))
-                    (:V :border 8 :spacing 8
-                        (:Vdiv doclist)
-                        (:H :size 35
-                            (:H)
-                            (:Hdiv ok :size 80)
-                            (:Hdiv cancel :size 80)
-                            (:H))))
+                    (V: border: 8 spacing: 8
+                        (Vdiv: doclist)
+                        (H: size: 35
+                            (H:)
+                            (Hdiv: ok size: 80)
+                            (Hdiv: cancel size: 80)
+                            (H:))))
       (let ((head (create-element "tr")))
         (setf doclist.border 1)
         (append-child doclist head)
@@ -461,8 +461,8 @@
 
 (defun make-toolbar ()
   (with-window (w (20 50 120 650
-                      :title "Menu"
-                      :close false)
+                      title: "Menu"
+                      close: false)
                   ((new-commands (group "New"))
                    (rect (button "Rect" (create-object (lambda () (new-rect 100 100 500 300
                                                                             (rgb 255 255 128))))))
@@ -556,30 +556,30 @@
                                                      (save-document *current-document*)))))))
                    (doc-save-as (button "Save as..." (lambda ()
                                                        (alert "To do")))))
-                  (:V :spacing 16 :border 8
-                      (:Vdiv new-commands :border 8 :spacing 2 :weight 300
-                             (:Hdiv rect)
-                             (:Hdiv text)
-                             (:Hdiv image))
-                      (:Vdiv edit-commands :border 8 :spacing 2 :weight 400
-                             (:Hdiv del)
-                             (:Hdiv front)
-                             (:Hdiv back)
-                             (:Hdiv clone))
-                      (:Vdiv page-commands :border 8 :spacing 2 :weight 300
-                             (:Hdiv next)
-                             (:Hdiv prev)
-                             (:Hdiv new))
-                      (:Vdiv view-commands :border 8 :spacing 2 :weight 400
-                             (:Hdiv zoom+)
-                             (:Hdiv zoom-)
-                             (:Hdiv show-borders)
-                             (:Hdiv show-grid))
-                      (:Vdiv document-commands :border 8 :spacing 2 :weight 400
-                             (:Hdiv doc-new)
-                             (:Hdiv doc-open)
-                             (:Hdiv doc-save)
-                             (:Hdiv doc-save-as))))
+                  (V: spacing: 16 border: 8
+                      (Vdiv: new-commands border: 8 spacing: 2 weight: 300
+                             (Hdiv: rect)
+                             (Hdiv: text)
+                             (Hdiv: image))
+                      (Vdiv: edit-commands border: 8 spacing: 2 weight: 400
+                             (Hdiv: del)
+                             (Hdiv: front)
+                             (Hdiv: back)
+                             (Hdiv: clone))
+                      (Vdiv: page-commands border: 8 spacing: 2 weight: 300
+                             (Hdiv: next)
+                             (Hdiv: prev)
+                             (Hdiv: new))
+                      (Vdiv: view-commands border: 8 spacing: 2 weight: 400
+                             (Hdiv: zoom+)
+                             (Hdiv: zoom-)
+                             (Hdiv: show-borders)
+                             (Hdiv: show-grid))
+                      (Vdiv: document-commands border: 8 spacing: 2 weight: 400
+                             (Hdiv: doc-new)
+                             (Hdiv: doc-open)
+                             (Hdiv: doc-save)
+                             (Hdiv: doc-save-as))))
     (show-window w)))
 
 (defun main ()

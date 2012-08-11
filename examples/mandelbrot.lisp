@@ -39,7 +39,7 @@
 
 (defun mandelbrot-explorer (xa ya xb yb ww hh)
   "Shows a window that allows exploring the Mandelbrot fractal"
-  (let ((w (window 20 20 ww hh :title "Mandelbrot fractal" :resize false))
+  (let ((w (window 20 20 ww hh title: "Mandelbrot fractal" resize: false))
         (zoomrect (create-element "div"))
         (lastw -1)
         (lasth -1)

@@ -42,22 +42,22 @@
            ; A section
            (do ((i 1 (1+ i)))
                ((/= (aref line i) "@")
-                (setf current-section (make-section :level i
-                                                    :title (strip (slice line+ i))
-                                                    :content (list)))
+                (setf current-section (make-section level: i
+                                                    title: (strip (slice line+ i))
+                                                    content: (list)))
                 (push current-section *sections*))))
         ("#"
            ; An heading
            (do ((i 1 (1+ i)))
                ((/= (aref line i) "#")
-                  (push (make-heading :level (1+ i)
-                                      :content (strip (slice line+ i)))
+                  (push (make-heading level: (1+ i)
+                                      content: (strip (slice line+ i)))
                         current-section.content))))
         ("-"
            ; A list item
            (do ((para (strip (slice line+ 1))))
                ((not (= first-char " "))
-                  (push (make-list-item :content para)
+                  (push (make-list-item content: para)
                         current-section.content))
              (incf para line+)))
         ("+"
@@ -65,7 +65,7 @@
            (do ((rows (list)))
                ((and (/= first-char "+")
                      (/= first-char "|"))
-                  (push (make-table :rows rows)
+                  (push (make-table rows: rows)
                         current-section.content))
              (when (= first-char "|")
                (push (map #'strip (split (slice line 1 (- (length line) 2)) "|"))
@@ -77,7 +77,7 @@
              (error "A verbatim HTML section begins with \"<<\" on first columnn"))
            (do ((para ""))
                ((or eof (= line ">>"))
-                  (push (make-verbatim-html-section :content para)
+                  (push (make-verbatim-html-section content: para)
                         current-section.content))
              (incf para (+ line+ "\n")))
            (when (= line ">>")
@@ -87,8 +87,8 @@
            (do ((title (strip (slice line+ 1)))
                 (para ""))
                ((or eof (= first-char "]"))
-                  (push (make-code-section :title title
-                                           :content para)
+                  (push (make-code-section title: title
+                                           content: para)
                         current-section.content))
              (incf para (+ line+ "\n")))
            (when (= first-char "]")
@@ -96,15 +96,15 @@
         ("!"
            ; An example program
            (let ((i (index ":" line)))
-             (push (make-sample-code :title (slice line 1 i)
-                                     :link (slice line (1+ i)))
+             (push (make-sample-code title: (slice line 1 i)
+                                     link: (slice line (1+ i)))
                    current-section.content))
            next-line)
         (otherwise
            ; A regular paragraph, ends at first blank line
            (do ((para (strip line+)))
                ((undefined? first-char)
-                  (push (make-paragraph :content para)
+                  (push (make-paragraph content: para)
                         current-section.content))
              (incf para (+ " " line+))))))))
 

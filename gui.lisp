@@ -115,7 +115,7 @@
      (min 0) (max 1000000)    ;; Minimum and maximum space
      (size null)              ;; Min and max override if specified
      (buddy null)             ;; Someone to inform about the size
-     (algorithm :H)           ;; Algorithm for children
+     (algorithm H:)           ;; Algorithm for children
      (border 0)               ;; Fixed border around space for children
      (spacing null)           ;; Fixed space between children (if null use *spacing*)
      (children (list))))      ;; List of children nodes (if any)
@@ -140,7 +140,7 @@
               (active (filter (lambda (i) (< (lmin (aref children i))
                                              (lmax (aref children i))))
                               (range nchild)))
-              (avail (- (if (= algo :H)
+              (avail (- (if (= algo H:)
                             (- x1 x0)
                             (- y1 y0))
                         (* 2 border)
@@ -148,7 +148,7 @@
           (decf avail (reduce #'+ assigned))
           (do () ((or (zero? (length active))
                       (<= avail 0.0001))
-                    (if (= algo :H)
+                    (if (= algo H:)
                         (let ((x (+ x0 border))
                               (ya (+ y0 border))
                               (yb (- y1 border)))
@@ -212,13 +212,13 @@
          (do ((i 0 (+ i 2)))
              ((or (= i (length args))
                   (not (symbol? (aref args i)))
-                  (/= (aref (symbol-name (aref args i)) 0) ":"))
-                `(make-layout-node :algorithm ,,type
+                  (not (keyword? (aref args i))))
+                `(make-layout-node algorithm: ,,type
                                    ,@(slice args 0 i)
-                                   :children (list ,@(slice args i))))))
-       (defmacro ,(intern (+ (symbol-name type) "div")) (div &rest args)
+                                   children: (list ,@(slice args i))))))
+       (defmacro ,(intern (+ (slice (symbol-name type) 0 -1) "div:")) (div &rest args)
          `(let ((,',vdiv ,div))
-            (,,type :buddy (lambda (,',x0 ,',y0 ,',x1 ,',y1)
+            (,,type buddy: (lambda (,',x0 ,',y0 ,',x1 ,',y1)
                              (set-style ,',vdiv
                                         px/left ,',x0
                                         px/top ,',y0
@@ -228,8 +228,8 @@
                                (funcall (aref ,',vdiv "data-resize"))))
                     ,@args))))))
 
-(deflayout :H)
-(deflayout :V)
+(deflayout H:)
+(deflayout V:)
 
 (defobject window
     (frame            ;; DOM node
@@ -366,13 +366,13 @@
                  (when window.close-cback
                    (window.close-cback))
                  (hide frame))
-    (setf window (make-window :frame frame
-                              :titlebar titlebar
-                              :resizer resizer
-                              :closer closer
-                              :resize-cback null
-                              :close-cback null
-                              :client client))
+    (setf window (make-window frame: frame
+                              titlebar: titlebar
+                              resizer: resizer
+                              closer: closer
+                              resize-cback: null
+                              close-cback: null
+                              client: client))
     window))
 
 (defun hide-window (w)
@@ -511,7 +511,7 @@
     ;; this is indeed a "bug" of chrome/safari.
     ;; Workaround is adding a resize callback that will
     ;; be called if present after resizing a div in
-    ;; :Hdiv or :Vdiv layout managers.
+    ;; Hdiv: or Vdiv: layout managers.
     ;; There is indeed an "onresize" event, but works only
     ;; on the window object and not on other elements
     ;; (except in IE, where it works on any element).
@@ -602,7 +602,7 @@
 
 (defun ask-color (prompt color cback)
   "Asks for a color (initially [color]) and calls [cback] passing the selection or [null]"
-  (with-window (w (100 100 300 320 :title prompt :close false)
+  (with-window (w (100 100 300 320 title: prompt close: false)
                   ((canvas (let ((c (create-element "canvas")))
                              (set-style c
                                         position "absolute"
@@ -632,10 +632,10 @@
                    (cancel (button "Cancel" (lambda ()
                                               (funcall cback null)
                                               (hide-window w)))))
-                  (:V :spacing 8 :border 8
-                      (:Hdiv canvas)
-                      (:H :size 30
-                          (:H) (:Hdiv ok :size 80) (:H) (:Hdiv cancel :size 80) (:H))))
+                  (V: spacing: 8 border: 8
+                      (Hdiv: canvas)
+                      (H: size: 30
+                          (H:) (Hdiv: ok size: 80) (H:) (Hdiv: cancel size: 80) (H:))))
     (dolist (cv (list cursor vcursor))
       (setf cv.width 20)
       (setf cv.height 20)

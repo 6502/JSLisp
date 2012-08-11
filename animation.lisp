@@ -11,7 +11,7 @@
                (* b w))))))
 
 (defun var (value duration)
-  "Creates an animated variable closure supporting :value :set-value :set-duration messages"
+  "Creates an animated variable closure supporting value: set-value: set-duration: messages"
   (let ((transitions (list)))
     (labels ((fast-forward-to (now)
                (do ()
@@ -21,25 +21,25 @@
                  (splice transitions 0 1))))
       (lambda (msg &rest args)
         (cond
-          ((= msg :set-value)
+          ((= msg set-value:)
            (let ((now (clock))
                  (new-value (first args)))
              (fast-forward-to now)
              (push (if (empty transitions)
-                       (make-transition :begin now
-                                        :end (+ now duration)
-                                        :old value
-                                        :new new-value)
+                       (make-transition begin: now
+                                        end: (+ now duration)
+                                        old: value
+                                        new: new-value)
                        (let ((lt (last transitions)))
-                         (make-transition :begin (transition-end lt)
-                                          :end (+ (transition-end lt) duration)
-                                          :old (transition-new lt)
-                                          :new new-value)))
+                         (make-transition begin: (transition-end lt)
+                                          end: (+ (transition-end lt) duration)
+                                          old: (transition-new lt)
+                                          new: new-value)))
                    transitions)
              new-value))
-          ((= msg :set-duration)
+          ((= msg set-duration:)
            (setf duration (first args)))
-          ((= msg :value)
+          ((= msg value:)
            (let ((now (clock)))
              (fast-forward-to now)
              (unless (empty transitions)
@@ -55,11 +55,11 @@
 
 (defmacro var-access (x)
   "Current value of an animated variable"
-  `(funcall ,x :value))
+  `(funcall ,x value:))
 
 (defmacro set-var-access (x y)
   "Sets long-term value of an animated variable by queueing a transition for it"
-  `(funcall ,x :set-value ,y))
+  `(funcall ,x set-value: ,y))
 
 (defmacro defanimated (name value duration)
   "Defines a global variable as animated"

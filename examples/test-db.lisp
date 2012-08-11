@@ -4,7 +4,7 @@
   (parse-value (http-get (+ "eval?" (uri-encode (str-value x false))))))
 
 (defun records-window (table)
-  (let* ((w (window 0 0 200 300 :title ~"Records {table}"))
+  (let* ((w (window 0 0 200 300 title: ~"Records {table}"))
          (cols (remote `(keys ,table)))
          (data (map (lambda (f)
                       (remote `(. ,table ,f)))
@@ -39,7 +39,7 @@
     (show-window w)))
 
 (defun tables-window ()
-  (let ((w (window 0 0 200 300 :title "Tables"))
+  (let ((w (window 0 0 200 300 title: "Tables"))
         (tablelist (create-element "div")))
     (dolist (x (remote `*tables*))
       (let ((row (create-element "div")))

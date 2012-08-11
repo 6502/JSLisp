@@ -25,7 +25,7 @@
 
 (defun palette (parent rows w h callback)
   (let ((colors (list))
-        (layout (:H :spacing 4))
+        (layout (H: spacing: 4))
         (crow null))
     (dotimes (r 2)
       (dotimes (g 2)
@@ -34,15 +34,15 @@
           (push (list (+ 64 (* r 128)) (+ 64 (* g 128)) (+ 64 (* b 128)) 255) colors))))
     (dolist (c (sort colors (lambda (a b) (> (luma a) (luma b)))))
       (when (null? crow)
-        (setf crow (:V :size w :spacing 4 (:V)))
+        (setf crow (V: size: w spacing: 4 (V:)))
         (push crow layout.children))
-      (push (:Vdiv (color-button parent c callback) :size w)
+      (push (Vdiv: (color-button parent c callback) size: w)
             crow.children)
       (when (= (length crow.children) (1+ rows))
         (setf crow null)))
-    (:H :border 4
-        (:V layout)
-        (:H))))
+    (H: border: 4
+        (V: layout)
+        (H:))))
 
 (defobject paint
   (frame
@@ -308,16 +308,16 @@
        ,@(map (lambda (x)
                 `(append-child parent ,x))
               *tools*)
-       (let ((layout (:V :spacing 4))
+       (let ((layout (V: spacing: 4))
              (crow null))
          (dolist (x (list ,@*tools*))
            (unless crow
-             (setf crow (:H :spacing 4))
+             (setf crow (H: spacing: 4))
              (push crow layout.children))
-           (push (:Hdiv x) crow.children)
+           (push (Hdiv: x) crow.children)
            (when (= (length crow.children) cols)
              (setf crow null)))
-         (:H layout)))))
+         (H: layout)))))
 
 (deftoolbar)
 
@@ -398,13 +398,13 @@
                  display "none")))
 
 (defun paint (x y w h title pic)
-  (let* ((frame (window x y w h :title title))
+  (let* ((frame (window x y w h title: title))
          (view-div (create-element "div"))
          (view (create-element "canvas"))
          (current-tool null)
-         (pw (make-paint :frame w
-                         :pic pic
-                         :selection-div (create-element "div")))
+         (pw (make-paint frame: w
+                         pic: pic
+                         selection-div: (create-element "div")))
          (palette (palette frame.client 2 30 30
                            (lambda (color button div)
                              (if (= button 2)
@@ -416,11 +416,11 @@
                                (when x
                                  (setf current-tool x))
                                (update view pw)))))
-         (layout (:V :spacing 8 :border 8
-                     (:H :spacing 8
-                         (:H :size 140 toolbar)
-                         (:Hdiv view-div))
-                     (:V :size 68 palette))))
+         (layout (V: spacing: 8 border: 8
+                     (H: spacing: 8
+                         (H: size: 140 toolbar)
+                         (Hdiv: view-div))
+                     (V: size: 68 palette))))
 
     (set-style view-div
                position "absolute")

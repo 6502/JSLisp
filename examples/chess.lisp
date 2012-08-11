@@ -819,12 +819,12 @@ or that the captured piece is not defended."
   (if fen
       (init-board fen)
       (init-board))
-  (make-chessboard :sq *sq*
-                   :color *color*
-                   :ep-square *ep-square*
-                   :flags *flags*
-                   :history *history*
-                   :material *material*))
+  (make-chessboard sq: *sq*
+                   color: *color*
+                   ep-square: *ep-square*
+                   flags: *flags*
+                   history: *history*
+                   material: *material*))
 
 (defmacro with-board (b &rest body)
   (let ((bb (gensym))

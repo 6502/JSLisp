@@ -99,7 +99,7 @@
          (let ((,name (,(sym "make-" name)
                         ,@(let ((res (list)))
                                (dolist (f fieldnames)
-                                 (push (sym ":" f) res)
+                                 (push (sym f ":") res)
                                  (push f res))
                                res))))
            (setf (,(sym "*" name "*") ,@pkey)

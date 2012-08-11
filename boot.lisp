@@ -968,6 +968,12 @@ The resulting list length is equal to the shortest input sequence."
 
 ;; Keyword arguments
 
+(defun keyword? (x)
+  "True if symbol [x] is a keyword or if string [x] names a keyword"
+  (when (symbol? x)
+    (setf x (symbol-full-name x)))
+  (= (index0 ":" x) (- (length x) 1)))
+
 (setf (symbol-macro 'lambda)
       (let* ((oldcf (symbol-macro 'lambda))
              (oldcomm (documentation oldcf))
@@ -996,7 +1002,7 @@ The resulting list length is equal to the shortest input sequence."
                                                ,@(append
                                                   (map (lambda (x)
                                                          `((= (aref ,rest ,ix)
-                                                              ,(intern (+ ":" (symbol-name (if (list? x) (first x) x)))))
+                                                              ,(intern (+ (symbol-name (if (list? x) (first x) x)) ":")))
                                                            (setf ,(if (list? x) (first x) x) (aref ,rest (1+ ,ix)))))
                                                        (slice args (1+ i)))
                                                   `((true (error "Invalid parameters"))))))
@@ -2165,15 +2171,14 @@ A name is either an unevaluated atom or an evaluated list."
         (warning ~"Odd number of arguments in keyword pairing in {(str-value form)}"))
       (incf ai)
       (let ((keys (map (lambda (kwa)
-                         (intern (+ ":" (symbol-name (if (list? kwa)
-                                                         (first kwa)
-                                                         kwa)))))
+                         (intern (+ (symbol-name (if (list? kwa)
+                                                     (first kwa)
+                                                     kwa)) ":")))
                        (slice args ai))))
         (do ()
             ((>= fi fn))
           (let ((k (aref form fi)))
-            (when (and (symbol? k)
-                       (= ":" (aref (symbol-name k) 0)))
+            (when (and (symbol? k) (keyword? k))
               (unless (find k keys)
                 (warning ~"Invalid keyword parameter {k} in {(str-value form)}"))))
           (incf fi 2))))))

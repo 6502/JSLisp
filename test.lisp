@@ -92,13 +92,13 @@
 (test (intern "xx")
       "xx")
 
-(test (= (intern ":xx") (intern ":xx"))
+(test (= (intern "xx:") (intern "xx:"))
       "true")
 
 (test (symbol? (intern "xx"))
       "true")
 
-(test (= (symbol-value :xx) :xx)
+(test (= (symbol-value xx:) xx:)
       "true")
 
 (test (list? (list))
@@ -113,7 +113,7 @@
 (test (symbol? 'x)
       "true")
 
-(test (symbol? :x)
+(test (symbol? x:)
       "true")
 
 (test (symbol? 12)
@@ -453,7 +453,7 @@
 (test (let ((x 0))
         (labels ((bar () (incf x) 42)
                  (foo (&key (x (bar))) x))
-          (list (foo) (foo :x 12) x)))
+          (list (foo) (foo x: 12) x)))
       "(42 12 1)")
 
 (test (defun gfoo (x) (* x x))

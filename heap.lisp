@@ -46,9 +46,9 @@
      return true if first element can precede second.
    - index-tracking is a callable that if present will be called with the
      element and the index to track its position in the heap."
-  (make-heap :data (list)
-             :before-than before-than
-             :index-tracking index-tracking))
+  (make-heap data: (list)
+             before-than: before-than
+             index-tracking: index-tracking))
 
 (defmacro/f heap-length (heap)
   "Returns the number of elements contained in the heap"

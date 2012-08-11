@@ -157,15 +157,15 @@
 
 (defun sprite (&optional (parent null) &rest graphics)
   "Allocates a new sprite"
-  (let ((s (make-sprite :id (incf *lastid*)
-                        :parent null
-                        :matrix (list 1 0 0 1 0 0)
-                        :graphics graphics
-                        :children (list)
-                        :hit null
-                        :cache null
-                        :canvas null
-                        :dirty null)))
+  (let ((s (make-sprite id: (incf *lastid*)
+                        parent: null
+                        matrix: (list 1 0 0 1 0 0)
+                        graphics: graphics
+                        children: (list)
+                        hit: null
+                        cache: null
+                        canvas: null
+                        dirty: null)))
     (when parent
       (set-parent s parent))
     (invalidate s)
