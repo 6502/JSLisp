@@ -969,10 +969,10 @@ The resulting list length is equal to the shortest input sequence."
 ;; Keyword arguments
 
 (defun keyword? (x)
-  "True if symbol [x] is a keyword or if string [x] names a keyword"
+  "True iff [x] is a keyword"
   (when (symbol? x)
-    (setf x (symbol-full-name x)))
-  (= (index0 ":" x) (- (length x) 1)))
+    (let ((n (symbol-full-name x)))
+      (= (index0 ":" n) (- (length n) 1)))))
 
 (setf (symbol-macro 'lambda)
       (let* ((oldcf (symbol-macro 'lambda))

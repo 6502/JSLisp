@@ -211,7 +211,6 @@
        (defmacro ,type (&rest args)
          (do ((i 0 (+ i 2)))
              ((or (= i (length args))
-                  (not (symbol? (aref args i)))
                   (not (keyword? (aref args i))))
                 `(make-layout-node algorithm: ,,type
                                    ,@(slice args 0 i)
