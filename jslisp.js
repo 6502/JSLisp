@@ -470,6 +470,9 @@ defmacro("let",
              var res = "((function(";
              for (var i=0; i<bindings.length; i++)
              {
+                 if (bindings[i].length != 2 ||
+                     !f$$symbol$63_(bindings[i][0]))
+                     throw new String("'let' bindings must be lists of a symbol and an expression");
                  if (i > 0) res += ",";
                  var name = bindings[i][0].name;
                  if (specials[name])

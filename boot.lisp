@@ -209,7 +209,9 @@
                     (js-compile (append (list 'lambda
                                               (list (js-code "d$$var$43_count[0]")))
                                         body))
-                    ";for(var i=0;i<n;i++){f(i)}})("
+                    ";if(typeof n !== 'number'){"
+                      "f$$error('not a number in dotimes');"
+                    "}for(var i=0;i<n;i++){f(i)}})("
                     (js-compile (js-code "d$$var$43_count[1]"))
                     "))")))
 
@@ -961,7 +963,8 @@ The resulting list length is equal to the shortest input sequence."
                                   checks))
                           (dotimes (i (length nargs))
                             (when (list? (aref nargs i))
-                              (push `(when (< (argument-count) ,(1+ i))
+                              (push `(when (or (undefined? ,(first (aref nargs i)))
+                                               (< (argument-count) ,(1+ i)))
                                        (setf ,(first (aref nargs i))
                                              ,(second (aref nargs i))))
                                     defaults)
@@ -989,7 +992,6 @@ The resulting list length is equal to the shortest input sequence."
 (setf (symbol-macro 'lambda)
       (let* ((oldcf (symbol-macro 'lambda))
              (oldcomm (documentation oldcf))
-             (unassigned '#.(gensym-noprefix))
              (f (lambda (args &rest body)
                   (let ((i (index0 '&key args)))
                     (if (= i -1)
@@ -1003,7 +1005,7 @@ The resulting list length is equal to the shortest input sequence."
                                          (let ((,nrest (length ,rest))
                                                ,@(map (lambda (x)
                                                         (if (list? x)
-                                                            `(,(first x) ',unassigned)
+                                                            `(,(first x) ',undefined)
                                                             `(,x undefined)))
                                                    (slice args (1+ i))))
                                            (do ((,ix 0 (+ ,ix 2)))
@@ -1021,7 +1023,7 @@ The resulting list length is equal to the shortest input sequence."
                                            ,@(let ((res (list)))
                                                (dolist (x (slice args (1+ i)))
                                                  (when (list? x)
-                                                   (push `(when (= ,(first x) ',unassigned)
+                                                   (push `(when (undefined? ,(first x))
                                                             (setf ,(first x) ,(second x)))
                                                          res)))
                                                res)
