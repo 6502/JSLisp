@@ -213,6 +213,18 @@
                     (js-compile (js-code "d$$var$43_count[1]"))
                     "))")))
 
+;; Enumeration macro
+(defmacro enumerate (index+var+list &rest body)
+  "Evaluates [body] froms after binding [index] to 0, 1, ... and [var] to each element of [list]"
+  (list 'js-code (+ "((function(L){var f="
+                    (js-compile (append (list 'lambda
+                                              (list (js-code "d$$index$43_var$43_list[0]")
+                                                    (js-code "d$$index$43_var$43_list[1]")))
+                                        body))
+                    ";var n=L.length;for(var i=0;i<n;i++){f(i,L[i])}})("
+                    (js-compile (js-code "d$$index$43_var$43_list[2]"))
+                    "))")))
+
 ;; Funcall macro
 (defmacro funcall (f &rest args)
   "Calls the function object [f] passing specified values as parameters."
@@ -1450,6 +1462,15 @@ A name is either an unevaluated atom or an evaluated list."
                 (setf x `(. ,x ,(funcall oldf src))))))))
 
 (incf *stopchars* ".")
+
+;; Field and element getter function
+
+(defmacro get (. x)
+  "[(get .x)] is an hygienic shorthand for [(lambda (obj) obj.x)]"
+  (unless (= . '.)
+    (error "Syntax is (get .<field>)"))
+  (let ((obj '#.(gensym)))
+    `(lambda (,obj) (. ,obj ,x))))
 
 ;; shallow-copy
 
