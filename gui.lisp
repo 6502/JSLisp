@@ -1,4 +1,5 @@
 (import * from graphics)
+(import * from layout)
 
 (defmacro set-style (element &rest properties)
   "Allows settings multiple style properties for a DOM node, example:[[
@@ -107,128 +108,6 @@
                            px/top (+ div.offsetTop dy))
                 (setf x0 x)
                 (setf y0 y)))))
-
-(defvar *spacing* 0)          ;; Spacing is inherited to a layout node subtree
-
-(defobject layout-node
-    ((class 1) (weight 100)   ;; Weighted distribution when in the same class
-     (min 0) (max 1000000)    ;; Minimum and maximum space
-     (size null)              ;; Min and max override if specified
-     (buddy null)             ;; Someone to inform about the size
-     (algorithm H:)           ;; Algorithm for children
-     (border 0)               ;; Fixed border around space for children
-     (spacing null)           ;; Fixed space between children (if null use *spacing*)
-     (children (list))))      ;; List of children nodes (if any)
-
-(defun set-coords (node x0 y0 x1 y1)
-  "Sets the coordinates of a layout node, possibly triggering recomputation of nested nodes"
-  (let* ((children node.children)
-         (nchild (length children))
-         (border node.border)
-         (spacing node.spacing)
-         (algo node.algorithm))
-    (when (null? spacing)
-      (setf spacing *spacing*))
-    (when node.buddy
-      (node.buddy x0 y0 x1 y1))
-    (when (> nchild 0)
-      (labels ((lmin (x) (or x.size
-                             x.min))
-               (lmax (x) (or x.size
-                             x.max)))
-        (let ((assigned (map #'lmin children))
-              (active (filter (lambda (i) (< (lmin (aref children i))
-                                             (lmax (aref children i))))
-                              (range nchild)))
-              (avail (- (if (= algo H:)
-                            (- x1 x0)
-                            (- y1 y0))
-                        (* 2 border)
-                        (* (1- nchild) spacing))))
-          (decf avail (reduce #'+ assigned))
-          (do () ((or (zero? (length active))
-                      (<= avail 0.0001))
-                    (if (= algo H:)
-                        (let ((x (+ x0 border))
-                              (ya (+ y0 border))
-                              (yb (- y1 border)))
-                          (dotimes (i nchild)
-                            (set-coords (aref children i)
-                                        x ya
-                                        (+ x (aref assigned i)) yb)
-                            (incf x (+ (aref assigned i) spacing))))
-                        (let ((y (+ y0 border))
-                              (xa (+ x0 border))
-                              (xb (- x1 border))
-                              (*spacing* spacing))
-                          (dotimes (i nchild)
-                            (set-coords (aref children i)
-                                        xa y
-                                        xb (+ y (aref assigned i)))
-                            (incf y (+ (aref assigned i) spacing))))))
-            ;;
-            ;; Algorithm:
-            ;;
-            ;; First select the highest priority class among all active
-            ;; nodes, then try to distribute the available space in
-            ;; proportion to weights but not exceeding the maximum for a
-            ;; given node.  Finally remove saturated nodes from the
-            ;; active list.
-            ;;
-            ;; At every step at least one node is saturated, or all
-            ;; available space is distributed.
-            ;;
-            ;; We're not going to loop forever.
-            ;;
-            (let* ((minclass (apply #'min (map (lambda (i)
-                                                 (aref children i).class)
-                                               active)))
-                   (selected (filter (lambda (i) (= (aref children i).class
-                                                    minclass))
-                                     active))
-                   (selected-nodes (map (lambda (i) (aref children i))
-                                        selected))
-                   (total-weight (reduce #'+ (map (lambda (n) n.weight) selected-nodes)))
-                   (share (/ avail total-weight)))
-              (dolist (i selected)
-                (let* ((n (aref children i))
-                       (quota (min (- (lmax n) (aref assigned i))
-                                   (* share n.weight))))
-                  (decf avail quota)
-                  (incf (aref assigned i) quota)))
-              (setf active (filter (lambda (i)
-                                     (< (+ (aref assigned i) 0.0001)
-                                        (lmax (aref children i))))
-                                   active)))))))))
-
-(defmacro deflayout (type)
-  (let ((x0 (gensym))
-        (y0 (gensym))
-        (x1 (gensym))
-        (y1 (gensym))
-        (vdiv (gensym)))
-    `(progn
-       (defmacro ,type (&rest args)
-         (do ((i 0 (+ i 2)))
-             ((or (= i (length args))
-                  (not (keyword? (aref args i))))
-                `(make-layout-node algorithm: ,,type
-                                   ,@(slice args 0 i)
-                                   children: (list ,@(slice args i))))))
-       (defmacro ,(intern (+ (slice (symbol-name type) 0 -1) "div:")) (div &rest args)
-         `(let ((,',vdiv ,div))
-            (,,type buddy: (lambda (,',x0 ,',y0 ,',x1 ,',y1)
-                             (set-style ,',vdiv
-                                        px/left ,',x0
-                                        px/top ,',y0
-                                        px/width (- ,',x1 ,',x0)
-                                        px/height (- ,',y1 ,',y0))
-                             (when (aref ,',vdiv "data-resize")
-                               (funcall (aref ,',vdiv "data-resize"))))
-                    ,@args))))))
-
-(deflayout H:)
-(deflayout V:)
 
 (defobject window
     (frame            ;; DOM node
@@ -510,7 +389,7 @@
     ;; this is indeed a "bug" of chrome/safari.
     ;; Workaround is adding a resize callback that will
     ;; be called if present after resizing a div in
-    ;; Hdiv: or Vdiv: layout managers.
+    ;; dom layout managers.
     ;; There is indeed an "onresize" event, but works only
     ;; on the window object and not on other elements
     ;; (except in IE, where it works on any element).
@@ -584,6 +463,24 @@
       (append-child group caption))
     group))
 
+;; Layout node for DOM elements
+
+(defobject dom (element layout))
+
+(defmethod set-coords (node x0 y0 x1 y1) (dom? node)
+  (set-style node.element
+             px/left x0
+             px/top y0
+             px/width (- x1 x0)
+             px/height (- y1 y0))
+  (when node.element."data-resize"
+    (node.element."data-resize" x0 y0 x1 y1))
+  (when node.layout
+    (set-coords node.layout x0 y0 x1 y1)))
+
+(defun dom (element &optional layout)
+  (new-dom element layout))
+
 (defmacro with-window ((var options widgets layout) &rest body)
   "Evaluates [body] forms by first binding [var] to a new window object"
   `(let* ((,var (window ,@options))
@@ -631,10 +528,14 @@
                    (cancel (button "Cancel" (lambda ()
                                               (funcall cback null)
                                               (hide-window w)))))
-                  (V: spacing: 8 border: 8
-                      (Hdiv: canvas)
-                      (H: size: 30
-                          (H:) (Hdiv: ok size: 80) (H:) (Hdiv: cancel size: 80) (H:))))
+                  (border 8
+                    (V spacing: 8
+                      (dom canvas)
+                      size: 30
+                      (H null
+                         size: 80 (dom ok) (dom cancel)
+                         size: undefined
+                         null))))
     (dolist (cv (list cursor vcursor))
       (setf cv.width 20)
       (setf cv.height 20)
@@ -793,8 +694,7 @@
         show hide
         set-handler
         tracking dragging
-        layout-node
-        set-coords
+        dom
         window
         ask-color
         show-window hide-window with-window

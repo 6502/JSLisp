@@ -1,7 +1,8 @@
 (import * from gui)
+(import * from layout)
 
 (defun main ()
-  (with-window (w (100 100 780 350 title: "Test window" close: false)
+  (with-window (w (50 50 680 350 title: "Test window" close: false)
                   ((title (select "mr/ms" '("Mr." "Ms.")))
                    (first-name (input "first name"))
                    (last-name (input "last name"))
@@ -29,30 +30,38 @@
                                       (display ~"single-charge: {(checked single-charge)}")
                                       (hide-window w))))
                    (cancel (button "Cancel" (lambda () (hide-window w)))))
-                  (V: spacing: 8 border: 8
-                      (H: size: 35
-                          (Hdiv: title weight: 15)
-                          (Hdiv: first-name weight: 50)
-                          (Hdiv: last-name))
-                      (H: size: 35 (Hdiv: address))
-                      (H: size: 35 (H: (Hdiv: email) (Hdiv: phone)) (Hdiv: age size: 70))
-                      (V: size: 10)
-                      (V: size: 95
-                          (H: (Vdiv: freebies border: 8 spacing: 4
-                                     (V: size: 3)
-                                     (H: size: 20 (Hdiv: newsletter))
-                                     (H: size: 20 (Hdiv: spam)))
-                              (Vdiv: billing weight: 60 border: 8 spacing: 4
-                                     (V: size: 3)
-                                     (H: size: 16 (Hdiv: yearly-charge))
-                                     (H: size: 16 (Hdiv: monthly-charge))
-                                     (H: size: 16 (Hdiv: single-charge)))))
-                      (H:)
-                      (H: size: 30
-                          (H:)
-                          (Hdiv: ok size: 80)
-                          (Hdiv: cancel size: 80)
-                          (H:))))
+                  (border 8
+                    (V spacing: 8
+                       size: 35
+                       (H weight: 15 (dom title)
+                          weight: 50 (dom first-name)
+                          weight: 50 (dom last-name))
+                       (H (dom address))
+                       (H (dom email) (dom phone) size: 70 (dom age))
+                       size: 10 null
+                       size: 80
+                       (H spacing: 8
+                          (V spacing: 4
+                             (dom freebies
+                                  (border 4
+                                    (V size: 10 null
+                                       size: 20
+                                       (dom newsletter)
+                                       (dom spam)))))
+                          weight: 60
+                          (V spacing: 4
+                             (dom billing
+                                  (border 4
+                                    (V size: 5 null
+                                       size: 16
+                                       (dom yearly-charge)
+                                       (dom monthly-charge)
+                                       (dom single-charge))))))
+                       size: undefined null
+                       size: 30
+                       (H null
+                          size: 80 (dom ok) (dom cancel)
+                          size: undefined null))))
     (show-window w)
     (setf (text title) "Mr.")
     (setf (text first-name) "Andrea")

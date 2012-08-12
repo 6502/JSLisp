@@ -1,5 +1,6 @@
 (import * from gui)
 (import * from graphics)
+(import * from layout)
 
 (defun wedge-center (x y r start-angle end-angle)
   "Circular sector barycenter"
@@ -73,10 +74,12 @@
                     title: title))
          (widgets (list))
          (title (create-element "input"))
-         (layout (V: border: 16 spacing: 4
-                     (H: min: 25 max: 25
-                         (H: min: 20 max: 20)
-                         (Hdiv: title weight: 300))))
+         (layout (border 16
+                   (V spacing: 4
+                      size: 25
+                      (H size: 20 null
+                         size: undefined
+                         (dom title)))))
          (ok (button "Show chart"
                      (lambda ()
                        (let ((data (list)))
@@ -118,15 +121,19 @@
                    textAlign "center")
         (setf (. caption innerText) (1+ i))
         (push (list label value) widgets)
-        (push (H: min: 25 max: 25
-                  (Hdiv: caption max: 20 min: 20)
-                  (Hdiv: label weight: 200)
-                  (Hdiv: value))
-              layout.children)))
-    (push (V:) layout.children)
-    (push (H: min: 30 max: 30
-              (H:) (Hdiv: ok min: 80) (H:))
-          layout.children)
+        (add-element layout.element size: 25
+                     (H size: 20
+                        (dom caption)
+                        weight: 200
+                        (dom label)
+                        (dom value)))))
+    (add-element layout.element null)
+    (add-element layout.element size: 30
+                 (H null
+                    size: 80
+                    (dom ok)
+                    size: undefined
+                    null))
     (setf w.resize-cback
           (lambda (x0 y0 x1 y1)
             (set-coords layout 0 0 (- x1 x0) (- y1 y0))))

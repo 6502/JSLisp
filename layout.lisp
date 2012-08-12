@@ -90,6 +90,27 @@
      (algorithm :H:)     ;; or :V:
      (spacing 0)))
 
+(defmethod add-element-method (node args) (hv? node)
+  (let ((i 0)
+        (min undefined)
+        (max undefined)
+        (class undefined)
+        (weight undefined))
+    (labels ((current () (aref args i))
+             (next () (aref args (1- (incf i)))))
+      (do () ((not (find (current) '(min: max: range: size: class: weight:))))
+        (case (next)
+          (min: (setf min (next)))
+          (max: (setf max (next)))
+          (range: (setf min (next)) (setf max (next)))
+          (size: (setf min (setf max (next))))
+          (class: (setf class (next)))
+          (weight: (setf weight (next)))))
+      (unless (= i (1- (length args)))
+        (error "A single element is expected"))
+      (push (new-hv-element (next) min max class weight)
+            node.elements))))
+
 (defmethod set-coords (node x0 y0 x1 y1) (hv? node)
   (let* ((epsilon 0.0001)
          (elements node.elements)
@@ -230,6 +251,21 @@
      (h-spacing 0)       ;; Space between elements on a row
      (v-spacing 0)))     ;; Space between rows
 
+(defmethod add-element-method (node args) (flow? node)
+  (let ((i 0)
+        (width undefined)
+        (height undefined))
+    (labels ((current () (aref args i))
+             (next () (aref args (1- (incf i)))))
+      (do () ((not (find (current) '(width: height:))))
+        (case (next)
+          (width: (setf width (next)))
+          (height: (setf height (next)))))
+      (unless (= i (1- (length args)))
+        (error "A single element is expected"))
+      (push (new-flow-element (next) width height)
+            node.elements))))
+
 (defmethod set-coords (node x0 y0 x1 y1) (flow? node)
   (let ((x x0)
         (y y0)
@@ -341,7 +377,10 @@
                  columns
                  rows))))
 
-(export set-coords
-        callback border flow H V table
+(defun add-element (node &rest args)
+  (add-element-method node args))
+
+(export set-coords add-element
+        callback border flow H V table add-element
         hv-element hv-element? new-hv-element make-hv-element
         flow-element flow-element? new-flow-element make-flow-element)
