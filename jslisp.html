@@ -476,7 +476,7 @@ try
     }
     else if (args["debug"]) {
         d$$$42_debug_load$42_ = true;
-        f$$load(f$$http_get(args["debug"]));
+        f$$load(f$$http_get(args["debug"]), args["debug"]);
     }
     else {
         f$$display("Boot completed.");
@@ -492,6 +492,7 @@ try
 catch(err)
 {
     f$$display("Error during bootstrap: " + err);
+    f$$display(prompt_message);
 }
 
     </script>

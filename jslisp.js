@@ -1792,7 +1792,7 @@ defun("load",
                       var line = file.substr(0, start).replace(/[^\n]/g,"").length;
                       var fragment = file.substr(start, stop - start).replace(/[\r\n]/g, " ").replace(/ +/g, " ");
                       if (fragment.length > 50)
-                          fragment = fragment.substr(0, 24) + "..." + fragment.slice(-23);
+                          fragment = fragment.substr(0, 47) + " ...";
                       f$$display("  " + fname + " : " + line + " " + fragment);
                   }
               }
