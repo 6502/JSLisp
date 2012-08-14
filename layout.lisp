@@ -56,6 +56,8 @@
           (top: (setf top (next)))
           (bottom: (setf bottom (next))))
         (setf any true))
+      (when (keyword? (current))
+        (error ~"Invalid keyword {(current)} for border layout element"))
       (unless any
         (let ((x (next)))
           (setf left x)
@@ -218,6 +220,8 @@
              (setf max undefined)
              (setf weight (next)))
           (otherwise
+             (when (keyword? (current))
+               (error ~"Invalid keyword {(current)} for H/V layout element"))
              (push (new-hv-element (next)
                                    min
                                    max
@@ -290,15 +294,19 @@
 
     (labels ((current () (aref args i))
              (next () (incf i) (aref args (1- i))))
-      (do () ((not (find (current) '(h-spacing: v-spacing:))))
+      (do () ((not (find (current) '(spacing: h-spacing: v-spacing:))))
         (case (next)
+          (spacing: (setf h-spacing (setf v-spacing (next))))
           (h-spacing: (setf h-spacing (next)))
           (v-spacing: (setf v-spacing (next)))))
       (do () ((= i (length args)))
         (case (current)
+          (size: (next) (setf width (setf height (next))))
           (width: (next) (setf width (next)))
           (height: (next) (setf height (next)))
           (otherwise
+             (when (keyword? (current))
+               (error ~"Invalid keyword {(current)} for flow layout element"))
              (push (new-flow-element (next)
                                      width
                                      height)

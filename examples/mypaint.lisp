@@ -1,6 +1,7 @@
 (import * from gui)
 (import * from graphics)
 (import * from examples/raster)
+(import * from layout)
 
 (defun color-button (parent color callback)
   (let ((div (create-element "div")))
@@ -25,24 +26,16 @@
 
 (defun palette (parent rows w h callback)
   (let ((colors (list))
-        (layout (H: spacing: 4))
-        (crow null))
+        (layout (border 4 (flow spacing: 4))))
     (dotimes (r 2)
       (dotimes (g 2)
         (dotimes (b 2)
           (push (list (* r 255) (* g 255) (* b 255) 255) colors)
           (push (list (+ 64 (* r 128)) (+ 64 (* g 128)) (+ 64 (* b 128)) 255) colors))))
     (dolist (c (sort colors (lambda (a b) (> (luma a) (luma b)))))
-      (when (null? crow)
-        (setf crow (V: size: w spacing: 4 (V:)))
-        (push crow layout.children))
-      (push (Vdiv: (color-button parent c callback) size: w)
-            crow.children)
-      (when (= (length crow.children) (1+ rows))
-        (setf crow null)))
-    (H: border: 4
-        (V: layout)
-        (H:))))
+      (add-element layout.element
+                   width: w height: h (dom (color-button parent c callback))))
+    layout))
 
 (defobject paint
   (frame
@@ -299,7 +292,7 @@
           (js-code "document.location.href=d$$s")))))
 
 (defmacro deftoolbar ()
-  `(defun toolbar (parent cols w h callback)
+  `(defun toolbar (parent cols callback)
      "Builds a toolbar with all self-registered tool functions"
      (let (,@(map (lambda (x)
                     `(,x (button ,(symbol-name x)
@@ -308,16 +301,16 @@
        ,@(map (lambda (x)
                 `(append-child parent ,x))
               *tools*)
-       (let ((layout (V: spacing: 4))
+       (let ((layout (V spacing: 4))
              (crow null))
          (dolist (x (list ,@*tools*))
            (unless crow
-             (setf crow (H: spacing: 4))
-             (push crow layout.children))
-           (push (Hdiv: x) crow.children)
-           (when (= (length crow.children) cols)
+             (setf crow (H spacing: 4))
+             (add-element layout crow))
+           (add-element crow (dom x))
+           (when (= (length crow.elements) cols)
              (setf crow null)))
-         (H: layout)))))
+         layout))))
 
 (deftoolbar)
 
@@ -410,17 +403,18 @@
                              (if (= button 2)
                                  (setf pw.bg color)
                                  (setf pw.fg color)))))
-         (toolbar (toolbar frame.client 2 70 30
+         (toolbar (toolbar frame.client 2
                            (lambda (f)
                              (let ((x (funcall f pw)))
                                (when x
                                  (setf current-tool x))
                                (update view pw)))))
-         (layout (V: spacing: 8 border: 8
-                     (H: spacing: 8
-                         (H: size: 140 toolbar)
-                         (Hdiv: view-div))
-                     (V: size: 68 palette))))
+         (layout (border 8
+                   (V spacing: 8
+                      (H  size: 140 (H toolbar)
+                          size: undefined (dom view-div))
+                      size: 68
+                      palette))))
 
     (set-style view-div
                position "absolute")
