@@ -311,12 +311,6 @@ function process()
                                              "f" : "function "}[s[0]] + f$$demangle(s.substr(1));
                                  });
         f$$display("**ERROR**: " + err);
-        if (loc)
-        {
-            f$$display("ERROR Location stack (innermost last):");
-            for (var i=loc.length-1; i>=0; i--)
-                f$$display("  " + JSON.stringify(loc[i]));
-        }
     }
     f$$display(prompt_message);
 }
@@ -479,7 +473,12 @@ try
     }
     if (args["load"]) {
         f$$load(f$$http_get(args["load"]));
-    } else {
+    }
+    else if (args["debug"]) {
+        d$$$42_debug_load$42_ = true;
+        f$$load(f$$http_get(args["debug"]));
+    }
+    else {
         f$$display("Boot completed.");
         f$$display(prompt_message);
     }

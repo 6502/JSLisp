@@ -1746,6 +1746,8 @@ defun("toplevel-eval",
       },
       [s$$x]);
 
+var d$$$42_debug_load$42_ = false;
+
 defun("load",
       "[[(load src &optional name)]]\n" +
       "Parses, compiles and evaluates all forms in the character source or string [src] " +
@@ -1776,6 +1778,24 @@ defun("load",
                                     ((phase != "parsing") ?
                                      f$$macroexpand_$49_(f$$str_value(form)) : ""));
               werr.location = err.location;
+              if (err.location)
+              {
+                  var filecache = {};
+                  f$$display("ERROR Location stack (innermost last):");
+                  for (var i=err.location.length-1; i>=0; i--)
+                  {
+                      var fname = err.location[i][0];
+                      var start = err.location[i][1];
+                      var stop = err.location[i][2];
+                      var file = (filecache[fname] ||
+                                  (filecache[fname] = f$$http_get(fname)));
+                      var line = file.substr(0, start).replace(/[^\n]/g,"").length;
+                      var fragment = file.substr(start, stop - start).replace(/[\r\n]/g, " ").replace(/ +/g, " ");
+                      if (fragment.length > 50)
+                          fragment = fragment.substr(0, 24) + "..." + fragment.slice(-23);
+                      f$$display("  " + fname + " : " + line + " " + fragment);
+                  }
+              }
               throw werr;
           }
           return last;
