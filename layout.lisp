@@ -24,54 +24,6 @@
 (defun callback (f element)
   (new-callback element f))
 
-;; A bordering node allowing space around a content element
-
-(defobject border
-    (element
-     (left 0)
-     (right 0)
-     (top 0)
-     (bottom 0)))
-
-(defmethod set-coords (node x0 y0 x1 y1) (border? node)
-  (set-coords node.element
-              (+ x0 node.left)
-              (+ y0 node.top)
-              (- x1 node.right)
-              (- y1 node.bottom)))
-
-(defun border (&rest args)
-  (let ((i 0)
-        (any false)
-        (left undefined)
-        (right undefined)
-        (top undefined)
-        (bottom undefined))
-    (labels ((current () (aref args i))
-             (next () (incf i) (aref args (1- i))))
-      (do () ((not (find (current) '(left: right: top: bottom:))))
-        (case (next)
-          (left: (setf left (next)))
-          (right: (setf right (next)))
-          (top: (setf top (next)))
-          (bottom: (setf bottom (next))))
-        (setf any true))
-      (when (keyword? (current))
-        (error ~"Invalid keyword {(current)} for border layout element"))
-      (unless any
-        (let ((x (next)))
-          (setf left x)
-          (setf right x)
-          (setf top x)
-          (setf bottom x)))
-      (unless (= i (1- (length args)))
-        (error "Exactly a single child node is expected"))
-      (make-border element: (next)
-                   left: left
-                   right: right
-                   top: top
-                   bottom: bottom))))
-
 ;; An horizontal or vertical sequence of optionally spaced elements.
 ;; Each element can have a minimum and maximum size, and has a class
 ;; and a weight. Elements with higher class are given precedence in
@@ -90,7 +42,8 @@
 (defobject hv
     (elements            ;; List of hv-element
      (algorithm :H:)     ;; or :V:
-     (spacing 0)))
+     (spacing 0)         ;; spacing between elements
+     (border 0)))        ;; uniform border
 
 (defmethod add-element-method (node args) (hv? node)
   (let ((i 0)
@@ -118,6 +71,7 @@
          (elements node.elements)
          (num-elements (length elements))
          (spacing (or node.spacing *spacing*))
+         (border node.border)
          (algo node.algorithm)
          (*spacing* spacing))
     (when (> num-elements 0)
@@ -128,18 +82,23 @@
              (avail (- (if (= algo :H:)
                            (- x1 x0)
                            (- y1 y0))
+                       (* 2 border)
                        (reduce #'+ assigned)
                        (* (1- num-elements) spacing))))
         (do () ((or (zero? (length active))
                     (<= avail epsilon))
                   (if (= algo :H:)
-                      (let ((x x0))
+                      (let ((x (+ border x0)))
                         (dolist ((w c) (zip assigned elements))
-                          (set-coords c.element x y0 (+ x w) y1)
+                          (set-coords c.element
+                                      x (+ y0 border)
+                                      (+ x w) (- y1 border))
                           (incf x (+ w spacing))))
-                      (let ((y y0))
+                      (let ((y (+ border y0)))
                         (dolist ((h c) (zip assigned elements))
-                          (set-coords c.element x0 y x1 (+ y h))
+                          (set-coords c.element
+                                      (+ x0 border) y
+                                      (- x1 border) (+ y h))
                           (incf y (+ h spacing))))))
           ;;
           ;; Algorithm:
@@ -185,12 +144,14 @@
         (class undefined)
         (weight undefined)
         (spacing undefined)
+        (border undefined)
         (elements (list)))
     (labels ((current () (aref args i))
-             (next () (incf i) (aref args (1- i))))
-      (when (= (current) spacing:)
-        (next)
-        (setf spacing (next)))
+             (next () (aref args (1- (incf i)))))
+      (do () ((not (find (current) '(spacing: border:))))
+        (case (next)
+          (spacing: (setf spacing (next)))
+          (border: (setf border (next)))))
       (do () ((= i (length args)))
         (case (current)
           (min:
@@ -219,6 +180,10 @@
              (setf min undefined)
              (setf max undefined)
              (setf weight (next)))
+          (:filler:
+           (next)
+           (push (new-hv-element null)
+                 elements))
           (otherwise
              (when (keyword? (current))
                (error ~"Invalid keyword {(current)} for H/V layout element"))
@@ -230,7 +195,8 @@
                    elements))))
       (new-hv elements
               algorithm
-              spacing))))
+              spacing
+              border))))
 
 (defun H (&rest args) (hv-parser :H: args))
 (defun V (&rest args) (hv-parser :V: args))
@@ -389,6 +355,4 @@
   (add-element-method node args))
 
 (export set-coords add-element
-        callback border flow H V table add-element
-        hv-element hv-element? new-hv-element make-hv-element
-        flow-element flow-element? new-flow-element make-flow-element)
+        callback flow H V table)

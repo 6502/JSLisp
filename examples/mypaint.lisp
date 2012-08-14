@@ -26,14 +26,14 @@
 
 (defun palette (parent rows w h callback)
   (let ((colors (list))
-        (layout (border 4 (flow spacing: 4))))
+        (layout (H border: 4 (flow spacing: 4))))
     (dotimes (r 2)
       (dotimes (g 2)
         (dotimes (b 2)
           (push (list (* r 255) (* g 255) (* b 255) 255) colors)
           (push (list (+ 64 (* r 128)) (+ 64 (* g 128)) (+ 64 (* b 128)) 255) colors))))
     (dolist (c (sort colors (lambda (a b) (> (luma a) (luma b)))))
-      (add-element layout.element
+      (add-element (first layout.elements).element
                    width: w height: h (dom (color-button parent c callback))))
     layout))
 
@@ -409,12 +409,11 @@
                                (when x
                                  (setf current-tool x))
                                (update view pw)))))
-         (layout (border 8
-                   (V spacing: 8
-                      (H  size: 140 (H toolbar)
-                          size: undefined (dom view-div))
-                      size: 68
-                      palette))))
+         (layout (V spacing: 8 border: 8
+                    (H  size: 140 (H toolbar)
+                        size: undefined (dom view-div))
+                    size: 68
+                    palette)))
 
     (set-style view-div
                position "absolute")

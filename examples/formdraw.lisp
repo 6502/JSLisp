@@ -2,6 +2,7 @@
 (import * from graphics)
 (import * from rpc-client)
 (import * from examples/forms)
+(import * from layout)
 
 (defvar *current-document* null)
 (defvar *current-page* null)
@@ -212,15 +213,11 @@
                    (cancel (button "Cancel"
                                    (lambda ()
                                      (hide-window w)))))
-                  (V: spacing: 8 border: 8
-                      (H: size: 35
-                          (Hdiv: url))
-                      (H:)
-                      (H: size: 30
-                          (H:)
-                          (Hdiv: ok size: 80)
-                          (Hdiv: cancel size: 80)
-                          (H:))))
+                  (V spacing: 8 border: 8
+                     size: 35 (dom url)
+                     :filler:
+                     size: 30
+                     (H :filler: size: 80 (dom ok) (dom cancel) :filler:)))
     (show-window w)
     (setf (text url) e.url)))
 
@@ -272,21 +269,22 @@
                    (cancel (button "Cancel"
                                    (lambda ()
                                      (hide-window w)))))
-                  (V: spacing: 8 border: 8
-                      (H: size: 100
-                          (Hdiv: family)
-                          (Hdiv: size size: 80)
-                          (Vdiv: effects border: 8 spacing: 4 size: 80
-                                 (V: size: 3)
-                                 (H: size: 20 (Hdiv: bold))
-                                 (H: size: 20 (Hdiv: italic))
-                                 (H: size: 30 (Hdiv: color))))
-                      (Hdiv: content)
-                      (H: size: 30
-                          (H:)
-                          (Hdiv: ok size: 80)
-                          (Hdiv: cancel size: 80)
-                          (H:))))
+                  (V spacing: 8 border: 8
+                     size: 94
+                     (H (dom family)
+                        size: 80 (dom size)
+                        size: 80 (dom effects
+                                      (V border: 8
+                                         size: 12
+                                         (dom bold)
+                                         (dom italic)
+                                         :filler:
+                                         size: 30
+                                         (dom color))))
+                     size: undefined
+                     (dom content)
+                     size: 30
+                     (H :filler: (dom ok) (dom cancel) :filler:)))
     (show-window w)
     (setf (text content) e.text)
     (setf (text size) e.size)
@@ -422,13 +420,10 @@
                      (cancel (button "Cancel" (lambda ()
                                                 (funcall f null)
                                                 (hide-window w)))))
-                    (V: border: 8 spacing: 8
-                        (Vdiv: doclist)
-                        (H: size: 35
-                            (H:)
-                            (Hdiv: ok size: 80)
-                            (Hdiv: cancel size: 80)
-                            (H:))))
+                    (V border: 8 spacing: 8
+                       (dom doclist)
+                       size: 30
+                       (H :filler: size: 80 (dom ok) (dom cancel) :filler:)))
       (let ((head (create-element "tr")))
         (setf doclist.border 1)
         (append-child doclist head)
@@ -556,30 +551,35 @@
                                                      (save-document *current-document*)))))))
                    (doc-save-as (button "Save as..." (lambda ()
                                                        (alert "To do")))))
-                  (V: spacing: 16 border: 8
-                      (Vdiv: new-commands border: 8 spacing: 2 weight: 300
-                             (Hdiv: rect)
-                             (Hdiv: text)
-                             (Hdiv: image))
-                      (Vdiv: edit-commands border: 8 spacing: 2 weight: 400
-                             (Hdiv: del)
-                             (Hdiv: front)
-                             (Hdiv: back)
-                             (Hdiv: clone))
-                      (Vdiv: page-commands border: 8 spacing: 2 weight: 300
-                             (Hdiv: next)
-                             (Hdiv: prev)
-                             (Hdiv: new))
-                      (Vdiv: view-commands border: 8 spacing: 2 weight: 400
-                             (Hdiv: zoom+)
-                             (Hdiv: zoom-)
-                             (Hdiv: show-borders)
-                             (Hdiv: show-grid))
-                      (Vdiv: document-commands border: 8 spacing: 2 weight: 400
-                             (Hdiv: doc-new)
-                             (Hdiv: doc-open)
-                             (Hdiv: doc-save)
-                             (Hdiv: doc-save-as))))
+                  (V spacing: 16 border: 8
+                       weight: 300 (dom new-commands
+                                        (V border: 8 spacing: 2
+                                           (dom rect)
+                                           (dom text)
+                                           (dom image)))
+                       weight: 400 (dom edit-commands
+                                        (V border: 8 spacing: 2
+                                           (dom del)
+                                           (dom front)
+                                           (dom back)
+                                           (dom clone)))
+                       weight: 300 (dom page-commands
+                                        (V border: 8 spacing: 2
+                                           (dom next)
+                                           (dom prev)
+                                           (dom new)))
+                       weight: 400 (dom view-commands
+                                        (V border: 8 spacing: 2
+                                           (dom zoom+)
+                                           (dom zoom-)
+                                           (dom show-borders)
+                                           (dom show-grid)))
+                       weight: 400 (dom document-commands
+                                        (V border: 8 spacing: 2
+                                           (dom doc-new)
+                                           (dom doc-open)
+                                           (dom doc-save)
+                                           (dom doc-save-as)))))
     (show-window w)))
 
 (defun main ()

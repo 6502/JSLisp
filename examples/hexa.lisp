@@ -217,19 +217,18 @@
                     (set-mode "check")))
       (append-child w.frame c)
       (append-child w.frame display)
-      (setf layout (border 8
-                     (V spacing: 8
-                        (dom c)
-                        max: 30
-                        (H class: 2 null
-                           class: 1
-                           max: 80
-                           (dom clear-btn)
-                           (dom wall-btn)
-                           (dom check-btn)
-                           max: 120
-                           (dom display)
-                           class: 2 null))))
+      (setf layout (V spacing: 8 border: 8
+                      (dom c)
+                      max: 30
+                      (H class: 2 null
+                         class: 1
+                         max: 80
+                         (dom clear-btn)
+                         (dom wall-btn)
+                         (dom check-btn)
+                         max: 120
+                         (dom display)
+                         class: 2 null)))
       (fixstyle)
       (setf w.resize-cback
             (lambda (x0 y0 x1 y1)

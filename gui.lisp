@@ -528,14 +528,13 @@
                    (cancel (button "Cancel" (lambda ()
                                               (funcall cback null)
                                               (hide-window w)))))
-                  (border 8
-                    (V spacing: 8
-                      (dom canvas)
-                      size: 30
-                      (H null
-                         size: 80 (dom ok) (dom cancel)
-                         size: undefined
-                         null))))
+                  (V spacing: 8 border: 8
+                     (dom canvas)
+                     size: 30
+                     (H null
+                        size: 80 (dom ok) (dom cancel)
+                        size: undefined
+                        null)))
     (dolist (cv (list cursor vcursor))
       (setf cv.width 20)
       (setf cv.height 20)

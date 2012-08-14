@@ -59,11 +59,10 @@
                             (do ()
                                 ((not (. scroll firstChild)))
                               (remove-child scroll (. scroll firstChild))))))
-           (layout (border 8
-                     (V spacing: 8
-                       (dom scroll)
-                       size: 30
-                       (H null size: 80 (dom clear) size: undefined null)))))
+           (layout (V spacing: 8 border: 8
+                      (dom scroll)
+                      size: 30
+                      (H :filler: size: 80 (dom clear) :filler:))))
       (setf *logwindow* (window *x0* *y0* *width* *height*
                                 title: "Log window"))
       (set-style scroll

@@ -74,22 +74,20 @@
                     title: title))
          (widgets (list))
          (title (create-element "input"))
-         (layout (border 16
-                   (V spacing: 4
-                      size: 25
-                      (H size: 20 null
-                         size: undefined
-                         (dom title)))))
+         (layout (V border: 16 spacing: 4
+                    size: 25
+                    (H size: 20 null
+                       size: undefined
+                       (dom title))))
          (ok (button "Show chart"
                      (lambda ()
                        (let ((data (list)))
                          (dolist (wl widgets)
                            (let* ((label (first wl))
                                   (value (second wl))
-                                  (tx (. value value))
-                                  (y (js-code "parseFloat(d$$tx)")))
+                                  (y (atof value.value)))
                              (unless (or (NaN? y) (<= y 0))
-                               (push (list (. label value) y) data))))
+                               (push (list label.value y) data))))
                          (when (>= (length data) 0))
                          (pie-chart-window data
                                            100 100 400 400
@@ -121,19 +119,15 @@
                    textAlign "center")
         (setf (. caption innerText) (1+ i))
         (push (list label value) widgets)
-        (add-element layout.element size: 25
+        (add-element layout size: 25
                      (H size: 20
                         (dom caption)
                         weight: 200
                         (dom label)
                         (dom value)))))
-    (add-element layout.element null)
-    (add-element layout.element size: 30
-                 (H null
-                    size: 80
-                    (dom ok)
-                    size: undefined
-                    null))
+    (add-element layout null)
+    (add-element layout size: 30
+                 (H :filler: size: 80 (dom ok) :filler:))
     (setf w.resize-cback
           (lambda (x0 y0 x1 y1)
             (set-coords layout 0 0 (- x1 x0) (- y1 y0))))

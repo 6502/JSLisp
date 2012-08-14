@@ -30,38 +30,35 @@
                                       (display ~"single-charge: {(checked single-charge)}")
                                       (hide-window w))))
                    (cancel (button "Cancel" (lambda () (hide-window w)))))
-                  (border 8
-                    (V spacing: 8
-                       size: 35
-                       (H weight: 15 (dom title)
-                          weight: 50 (dom first-name)
-                          weight: 50 (dom last-name))
-                       (H (dom address))
-                       (H (dom email) (dom phone) size: 70 (dom age))
-                       size: 10 null
-                       size: 80
-                       (H spacing: 8
-                          (V spacing: 4
-                             (dom freebies
-                                  (border 4
-                                    (V size: 10 null
-                                       size: 20
-                                       (dom newsletter)
-                                       (dom spam)))))
-                          weight: 60
-                          (V spacing: 4
-                             (dom billing
-                                  (border 4
-                                    (V size: 5 null
-                                       size: 16
-                                       (dom yearly-charge)
-                                       (dom monthly-charge)
-                                       (dom single-charge))))))
-                       size: undefined null
-                       size: 30
-                       (H null
-                          size: 80 (dom ok) (dom cancel)
-                          size: undefined null))))
+                  (V spacing: 8 border: 8
+                     size: 35
+                     (H weight: 15 (dom title)
+                        weight: 50 (dom first-name)
+                        weight: 50 (dom last-name))
+                     (H (dom address))
+                     (H (dom email) (dom phone) size: 70 (dom age))
+                     size: 10 null
+                     size: 80
+                     (H spacing: 8
+                        (V spacing: 4
+                           (dom freebies
+                                (V border: 4
+                                   size: 10 null
+                                   size: 20
+                                   (dom newsletter)
+                                   (dom spam))))
+                        weight: 60
+                        (V spacing: 4
+                           (dom billing
+                                (V border: 4
+                                   size: 5 null
+                                   size: 16
+                                   (dom yearly-charge)
+                                   (dom monthly-charge)
+                                   (dom single-charge)))))
+                     :filler:
+                     size: 30
+                     (H :filler: size: 80 (dom ok) (dom cancel) :filler:)))
     (show-window w)
     (setf (text title) "Mr.")
     (setf (text first-name) "Andrea")

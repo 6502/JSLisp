@@ -1746,7 +1746,7 @@ defun("toplevel-eval",
       },
       [s$$x]);
 
-var d$$$42_debug_load$42_ = false;
+d$$$42_debug_load$42_ = false;
 
 defun("load",
       "[[(load src &optional name)]]\n" +
