@@ -149,7 +149,7 @@ reverse engineering point of view.
       ;; Code metainformation removal
       (setf s (replace s "f\\.usedglobs=\\[[^\\]]*\\];f\\.outcalls=\\[[^\\]]*\\];f\\.arglist=lisp_literals\\[[^\\]]*\\];" ""))
       ;; Name shortening
-      (setf s (replace s "[a-zA-Z0-9_]*\\$\\$[a-zA-Z0-9_$]*" #'newname))
+      (setf s (replace s "([a-zA-Z0-9_]|\\$[0-9]+_)+\\$\\$[a-zA-Z0-9_$]*" #'newname))
       ;; Lisp literals renaming
       (setf s (replace s "lisp_literals\\[[0-9]+\\]*" #'newname))
       (setf s (replace s "lisp_literals=\\[\\];" ""))
