@@ -2294,7 +2294,10 @@ A name is either an unevaluated atom or an evaluated list."
              (setf ,(intern "*exports*" (symbol-name module)) (list))
              (load ,(if node-js
                         `(get-file ,(+ (symbol-name module) ".lisp"))
-                        `(http-get ,(+ (symbol-name module) ".lisp"))))
+                        `(http-get ,(+ (symbol-name module) ".lisp")))
+                   ,(if *debug-load*
+                        (+ (symbol-name module) ".lisp")
+                        undefined))
              (setf *current-module* cmod)
              (setf *symbol-aliases* salias)
              (setf *module-aliases* calias)))
