@@ -220,12 +220,6 @@ function show(x) {
     current_section.style.display = 'block';
 }
 
-function showoutput(x) {
-    var nodes = document.getElementById(x).getElementsByClassName('output');
-    for (var i=0; i<nodes.length; i++)
-        nodes[i].style.display = (nodes[i].style.display == 'none' ? 'inline' : 'none');
-}
-
 function samplesrc(x) {
     var w = window.open('jslisp.html?src=examples/'+x, '_blank',
                         'width=800, height=800, left=100, top=100');
@@ -248,9 +242,9 @@ show('About');
 (defun htmcode (x)
   (replace
    (replace (htm x)
-            "(^|\\n)((--&gt;|Ready\\.|WARNING:|\\*\\*ERROR\\*\\*:).*?)(?=\\n)"
+            "(^|\\n)((= |WARNING:|\\*\\*ERROR\\*\\*:).*?)(?=\\n)"
             "<span class=\"output\">$1$2</span>")
-   "(^|\\n)=(.*?)(?=\\n)"
+   "(^|\\n)\\.(.*?)(?=\\n)"
    "<span class=\"output\">$1$2</span>"))
 
 (defun generate-site ()
@@ -313,10 +307,8 @@ show('About');
              (setf inside-list false)
              (incf result "</ul>"))
            (incf result ~"<pre><center>{(htm x.title)}")
+           (incf result ~"<hr noshade size=1/></center>")
            (when (length x.content)
-             (when (funcall (. (regexp "(^|\\n)(=|-->|Ready\.)") exec) x.content)
-               (incf result ~"<span class=\"runcode\"><a onclick=\"showoutput('{(id x.title)}')\">show/hide output</a></span>"))
-             (incf result ~"<hr noshade size=1/></center>")
              (incf result ~"<div id=\"{(id x.title)}\">{(htmcode x.content)}</div>"))
            (incf result "</pre>"))
           (true (error "Unsupported element type"))))

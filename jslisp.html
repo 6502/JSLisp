@@ -33,7 +33,7 @@
   </head>
   <body style="margin:0px; padding:0px; border:none">
     <div style="position:absolute; left:0px; top:0px; right:0px; bottom:0px; padding:4px; background-color:#EEEEEE">
-      <textarea spellcheck=false type=text wrap=off id="repl" style="resize:none; position:absolute; left:0px; top:0px; width:100%; height:100%; white-space:pre; background-color:#EEEEEE; border:none; outline:none; padding:0px; margin:0px; font-family:Courier New; font-size:18px"
+      <textarea spellcheck=false type=text wrap=off id="repl" style="resize:none; position:absolute; left:0px; top:0px; width:100%; height:100%; white-space:pre; background-color:#EEEEEE; border:none; outline:none; padding:0px; margin:0px; font-family:Courier New; font-size:14pt"
         onkeydown = "keyDown(event)"
         onkeypress = "keyPress(event)"></textarea>
       <div id="clpar" style="position:absolute; width:22px; height:22px; border:solid 1px #FF0000"></div>
@@ -43,12 +43,25 @@
     </script>
     <script>
 
+var banner = (";;\n"+
+              ";; This is JsLisp 0.1 (c) 2012 by Andrea Griffini\n"+
+              ";;\n"+
+              ";; Welcome to the Read-Eval-Print-Loop\n"+
+              ";;\n"+
+              ";; [enter]  (at end of the buffer) evaluates up to previous prompt string\n"+
+              ";; [alt-/]  autocomplete (backspace to abort)\n"+
+              ";; [tab]    autoindent current line or current selection\n"+
+              ";; [esc]    hides documentation window\n"+
+              ";;\n");
+
 var char_width, char_height;
 
-(function(){
+function calcFontCell()
+{
     var nta = document.createElement("textarea");
-    nta.style.fontFamily = "Courier New";
-    nta.style.fontSize = "18px";
+    nta.style.fontFamily = repl.style.fontFamily;
+    nta.style.fontSize = repl.style.fontSize;
+    nta.style.fontWeight = repl.style.fontWeight;
     document.body.appendChild(nta);
     nta.rows = 10; nta.cols = 10;
     var w1 = nta.offsetWidth, h1 = nta.offsetHeight;
@@ -57,20 +70,26 @@ var char_width, char_height;
     document.body.removeChild(nta);
     char_width = (w2 - w1) / 10;
     char_height = (h2 - h1) / 10;
-})();
+}
 
 var completion_words = [];
-var prompt_message = "Ready.";
+var prompt_message = ">> ";
 var repl = document.getElementById("repl");
 var clpar = document.getElementById("clpar");
 var help = document.getElementById("help");
 repl.focus();
 
+d$$$42_repl$42_ = repl;
+
+calcFontCell();
+setInterval(calcFontCell, 1000);
+
 var lasthelp = null;
 var last_key = 0;
+var help_timeout = 0;
 
 setInterval(function() {
-    if (last_key != 27)
+    if (last_key != 27 && (new Date).getTime() > help_timeout)
     {
         var o = parseFloat(help.style.opacity) + 0.05;
         if (o > 1) o = 1;
@@ -82,6 +101,7 @@ function setHelp(txt, module)
 {
     if (txt != lasthelp)
     {
+        help_timeout = (new Date).getTime() + 1000;
         help.style.opacity = 0;
         lasthelp = txt;
         if (txt)
@@ -113,8 +133,8 @@ function updateClpar(text)
     if (text == undefined)
     {
         text = repl.value.substr(0, repl.selectionStart);
-        var li = text.lastIndexOf("\n"+prompt_message+"\n");
-        if (li != -1) i = li + 2 + prompt_message.length;
+        var li = text.lastIndexOf("\n"+prompt_message);
+        if (li != -1) i = li + 1 + prompt_message.length;
     }
 
     var indent = [];
@@ -273,9 +293,9 @@ function htmlesc(x)
 defun("display",
       "[[(display x)]]" +
       "Displays the string [x] in the browser window",
-      function(x)
+      function(x, noeol)
       {
-          repl.value += x + "\n";
+          repl.value += x + (noeol ? "" : "\n");
           var i = repl.value.length;
           repl.setSelectionRange(i, i);
           repl.scrollTop = repl.scrollHeight;
@@ -286,8 +306,8 @@ defun("display",
 function process()
 {
     var base = repl.value;
-    var li = base.lastIndexOf("\n"+prompt_message+"\n");
-    base = base.substr(li == -1 ? 0 : li+2+prompt_message.length).replace(/\t\n *$/,"");
+    var li = base.lastIndexOf("\n"+prompt_message);
+    base = base.substr(li == -1 ? 0 : li+1+prompt_message.length).replace(/\t\n *$/,"");
     try
     {
         var src = f$$make_source(base);
@@ -296,7 +316,7 @@ function process()
         {
             var parsed = f$$parse_value(src);
             var result = f$$toplevel_eval(parsed);
-            f$$display("--> " + f$$str_value(result));
+            f$$display("= " + f$$str_value(result) + "\n");
             f$$skip_spaces(src);
         }
     }
@@ -312,7 +332,7 @@ function process()
                                  });
         f$$display("**ERROR**: " + err);
     }
-    f$$display(prompt_message);
+    f$$display(prompt_message, true);
 }
 
 function keyDown(e)
@@ -443,10 +463,6 @@ function keyPress(e)
             process();
         repl.scrollTop = repl.scrollHeight;
     }
-    else if (e.which == 17)
-    {
-        repl.value = "";
-    }
 }
 
 // Bootstrap
@@ -479,8 +495,8 @@ try
         f$$load(f$$http_get(args["debug"]), args["debug"]);
     }
     else {
-        f$$display("Boot completed.");
-        f$$display(prompt_message);
+        f$$display(args["nobanner"] ? "" : banner);
+        f$$display(prompt_message, true);
     }
     if (args["src"]) {
         var req = new XMLHttpRequest();
@@ -492,7 +508,7 @@ try
 catch(err)
 {
     f$$display("Error during bootstrap: " + err);
-    f$$display(prompt_message);
+    f$$display(prompt_message, true);
 }
 
     </script>

@@ -197,26 +197,53 @@ with the unevaluated symbol [x] is accessible with [(macro x)] and
 there is no reader macro for this very infrequent need.
 
 Something that is used quite often in [boot.lisp] is the macro
- [defmacro/f] that allows defining at the same time a macro and a
- function and that but that can be used however only for functions
- with a fixed number of arguments.
+[defmacro/f] that allows defining at the same time a macro and a
+function. Note that [defmacro/f] can be used however only for functions
+with a fixed number of arguments.
 
 [defmacro/f
-(defmacro/f square (x)
-  (let ((y (gensym)))
-    `(let ((,y ,x))
-       (* ,y ,y))))
---> square
-Ready.
-(square 12)
---> 144
-Ready.
-(macroexpand-1 '(square (+ x y)))
---> (let ((G:12 (+ x y))) (* G:12 G:12))
-Ready.
-(map #'square (range 10))
---> (0 1 4 9 16 25 36 49 64 81)
-Ready.
+>> (defmacro/f square (x)
+     (let ((y (gensym)))
+       `(let ((,y ,x))
+          (* ,y ,y))))
+= square
+
+>> (square 12)
+= 144
+
+>> (macroexpand-1 '(square (+ x y)))
+= (let ((G:12 (+ x y))) (* G:12 G:12))
+
+>> (map #'square (range 10))
+= (0 1 4 9 16 25 36 49 64 81)
+]
+
+There is also an experimental [defun/inline] macro that allows
+defining a function ad a macro at the same time provided the
+function implementation.
+
+[defun/inline
+>> (defun/inline square (x)
+     (* x x))
+= square
+
+>> (square 12)
+= 144
+
+>> (js-compile '(square 12))
+= "((144))"
+
+>> (js-compile '(square x))
+WARNING: Undefined variable x
+WARNING: Undefined variable x
+= "((((d$$x)*(d$$x))))"
+
+>> (defun cube (x)
+     (* x x x))
+= cube
+
+>> (js-compile '(cube 33))
+= "f$$cube(33)"
 ]
 
 @@ Numbers
@@ -230,7 +257,7 @@ nine millions of billions).
 
 Also all math functions are simple wrappers of Javascript math
 functions and therefore the rules about [NaN] and [infinity] results
-of computations are dictated down there (e.g. [(/ 0) -> infinity]
+of computations are dictated down there (e.g. [(/ 0) -> infinity],
 and [(log -1) -> NaN]).
 
 @@ Reader
@@ -265,56 +292,55 @@ If an application is using a lot of anonymous functions this
 transformation could lead to a subjectively more readable code.
 
 [Reader customization example 1
-(setf (reader "{")
-      (lambda (src)
-        (next-char src)
-        (let ((form (parse-delimited-list src "}")))
-          (let ((i (index '-> form)))
-            (if (>= i 0)
-                `(lambda ,(slice form 0 i)
-                   ,@(slice form (1+ i)))
-                `(lambda (x) ,form))))))
---> #CODE
-Ready.
-(parse-value "{+ x 1}")
---> (lambda (x) (+ x 1))
-Ready.
-(parse-value "{x y -> (* x y)}")
---> (lambda (x y) (* x y))
-Ready.
-(map {* x x} (range 10))
---> (0 1 4 9 16 25 36 49 64 81)
-Ready.
+>> (setf (reader "{")
+         (lambda (src)
+           (next-char src)
+           (let ((form (parse-delimited-list src "}")))
+             (let ((i (index '-> form)))
+               (if (>= i 0)
+                   `(lambda ,(slice form 0 i)
+                      ,@(slice form (1+ i)))
+                   `(lambda (x) ,form))))))
+= #CODE
+
+>> (parse-value "{x y -> (* x y)}")
+= (lambda (x y) (* x y))
+
+>> (map {* x x} (range 10))
+= (0 1 4 9 16 25 36 49 64 81)
 ]
 
 ### 2) Redefining (wrapping) the [parse-value] predefined function
 
+
 The other option is replacing the [parse-value] function that is used
 every time JsLisp needs to read from a character source.
 
-For example consider the customization of the reader that handles
-symbols containing dots so that for example [document.write] is
-interpreted as [(. document write)] allowing a more "usual" access
-to DOM property values.
+For example consider the same customization as before but using
+regular parenthesis instead of braces and having the choice about
+to transform the form in an anonymous function depending on the
+presence of a [->] symbol at the form top level (of course the
+implicit [x] version will not be implemented).
 
 [Redefining parse-value
-(setf #'parse-value
-      (let ((oldf #'parse-value))
-        (lambda (src)
-          (let ((x (funcall oldf src)))
-            (when (and (symbol? x)
-                       (find "." (symbol-name x)))
-              (setf x `(. ,@(map #'intern
-                                 (split (symbol-name x) ".")))))
-            x))))
---> #CODE
-Ready.
-document.body.style.padding
---> "0px"
-Ready.
-(parse-value "document.body.style.padding")
---> (. document body style padding)
-Ready.
+>> (setf #'parse-value
+         (let ((oldf #'parse-value))
+           (lambda (src)
+             (let* ((x (funcall oldf src))
+                    (ix (if (list? x)
+                            (index '-> x)
+                            -1)))
+               (if (>= ix 0)
+                   `(lambda ,(slice x 0 ix)
+                      ,@(slice x (1+ ix)))
+                   x)))))
+= #CODE
+
+>> (parse-value "(x y -> (+ x y))")
+= (lambda (x y) (+ x y))
+
+>> (map (x -> (* x x)) (range 10))
+= (0 1 4 9 16 25 36 49 64 81)
 ]
 
 @ JsLisp <=> Javascript
@@ -346,9 +372,9 @@ function foo ()
         var x = y * y;
         // ... use x ...
     }
-    // Here x content has been destroyed; no matter how many
-    // var declarations you put only one x per function
-    // instance is allocated.
+    // Here x content has been destroyed; no
+    // matter how many var declarations you
+    // put only one x per function is allocated.
     // The commonly used approach is to use
     //
     //       (function(){var x = y*y; ... })();
@@ -363,10 +389,11 @@ function foo ()
        (let ((x (* y y)))
          ;; ... use x ...
        ))
-    ;; Here x content is still 1. The x variable inside the
-    ;; loop is a different separate value from the external one.
-    ;; Every (let ...) form introduces a new scope shielding
-    ;; unwanted changes
+    ;; Here x content is still 1. The x variable
+    ;; inside the loop is a different separate
+    ;; value from the external one.
+    ;; Every (let ...) form introduces a new
+    ;; scope shielding unwanted changes.
   ))
 ]
 
@@ -377,36 +404,35 @@ For both [&optional] and [&key] arguments it's possible to provide
 a default expression to be used.
 
 [Optional/keyword/rest
-(defun foo (x &optional y (z 42))
-  (list x y z))
---> foo
-Ready.
-(foo 1)
---> (1 undefined 42)
-Ready.
-(foo 1 2 3)
---> (1 2 3)
-Ready.
-(defun bar (x &key y (z 42))
-  (list x y z))
---> bar
-Ready.
-(bar 1)
---> (1 undefined 42)
-Ready.
-(bar 1 :z 99)
---> (1 undefined 99)
-Ready.
-(bar 1 :z 99 :y 33)
---> (1 33 99)
-Ready.
-(defun baz (x y &rest z)
-  (list x y z))
---> baz
-Ready.
-(baz 1 2 3 4 5)
---> (1 2 (3 4 5))
-Ready.
+>> (defun foo (x &optional y (z 42))
+     (list x y z))
+= foo
+
+>> (foo 1)
+= (1 undefined 42)
+
+>> (foo 1 2 3)
+= (1 2 3)
+
+>> (defun bar (x &key y (z 42))
+     (list x y z))
+= bar
+
+>> (bar 1)
+= (1 undefined 42)
+
+>> (bar 1 z: 99)
+= (1 undefined 99)
+
+>> (bar 1 z: 99 y: 33)
+= (1 33 99)
+
+>> (defun baz (x y &rest z)
+     (list x y z))
+= baz
+
+>> (baz 1 2 3 4 5)
+= (1 2 (3 4 5))
 ]
 
 @@ Static checks
@@ -424,68 +450,63 @@ The checks are also performed at runtime and in that case
 the result is an error and not a warning.
 
 [Undefined variables
-(defun foo (x)
-  (* x y))
+>> (defun foo (x)
+     (* x y))
 WARNING: Undefined variable y
---> foo
-Ready.
-(foo 12)
+= foo
+
+>> (foo 12)
 **ERROR**: ReferenceError: y is not defined
-Ready.
-(defvar z 99)
---> 99
-Ready.
-(defun bar (x)
-  (* x z))
---> bar
-Ready.
-(bar 33)
---> 3267
-Ready.
+>> (defvar z 99)
+= 99
+
+>> (defun bar (x)
+     (* x z))
+= bar
+
+>> (bar 33)
+= 3267
 ]
 
 [Undefined functions
-(defun bar (x)
-  (* x (foo (1+ x))))
+>> (defun bar (x)
+     (* x (foo (1+ x))))
 WARNING: Undefined function foo
---> bar
-Ready.
-(bar 12)
+= bar
+
+>> (bar 12)
 **ERROR**: ReferenceError: function foo is not defined
-Ready.
-(defun foo (x) (* x 2))
---> foo
-Ready.
-(bar 12)
---> 312
-Ready.
+>> (defun foo (x) (* x 2))
+= foo
+
+>> (bar 12)
+= 312
 ]
 
 [Wrong parameters in static call
-(defun square (x) (* x x))
---> square
-Ready.
-(defun bar ()
-  (square)
-  (square 12)
-  (square 1 2 3))
+>> (defun square (x) (* x x))
+= square
+
+>> (defun bar ()
+     (square)
+     (square 12)
+     (square 1 2 3))
 WARNING: Not enough arguments in (square)
 WARNING: Unexpected arguments in (square 1 2 3)
---> bar
-Ready.
-(defun foo (x &key y z)
-  (list x y z))
---> foo
-Ready.
-(defun baz ()
-  (foo)
-  (foo 1)
-  (foo 1 :z 2)
-  (foo 1 :k 99))
+= bar
+
+>> (defun foo (x &key y z)
+     (list x y z))
+= foo
+
+>> (defun baz ()
+     (foo)
+     (foo 1)
+     (foo 1 z: 2)
+     (foo 1 k: 99))
 WARNING: Not enough arguments in (foo)
-WARNING: Invalid keyword parameter :k in (foo 1 :k 99)
---> baz
-Ready.
+WARNING: Invalid keyword parameter k: in (foo 1 k: 99)
+= baz
 ]
 
 @Javascript integration
@@ -502,30 +523,6 @@ call or be called from Javascript. The only problems are
 - Keyword parameters cannot be easily passed from Javascript to
   JsLisp functions
 
-@@ Simple interfacing
-
-There a simple tool to interface an external Javascript function from
-JsLisp:
-
-[Simple javascript interfacing
-Ready.
-(bind-js-functions Math.sin Math.cos Math.log)
---> Math.log
-Ready.
-(Math.sin 2)
---> 0.9092974268256817
-Ready.
-(Math.log 12)
---> 2.4849066497880004
-Ready.
-(bind-js-functions JSON.stringify)
---> JSON.stringify
-Ready.
-(JSON.stringify (list 1 2 3))
---> "[1,2,3]"
-Ready.
-]
-
 @@ Inline Javascript
 
 It is possible to inline Javascript code from JsLisp, note however
@@ -537,17 +534,19 @@ often in macros (it's actually how the compiler is implemented).
 In "leaf" cases the output of a macro is a single [js-code] form.
 
 [Inline Javascript code
-(display (+ "Hello "
-            (js-code "prompt('What is your name?')")
-            ",\nhow's going?"))
-=Hello Andrea,
-=how's going?
---> "Hello Andrea,\nhow's going?"
-Ready.
-(macroexpand-1 '(set-aref x 1 42))
+>> (display (+ "Hello "
+               (js-code "prompt('What is your name?')")
+               ",\nhow's going?"))
+Hello Andrea,
+how's going?
+= "Hello Andrea,\nhow's going?"
+
+>> (macroexpand-1 '(aref x i j k))
 WARNING: Undefined variable x
---> (js-code "(d$$x[1]=42)")
-Ready.
+WARNING: Undefined variable i
+WARNING: Undefined variable j
+WARNING: Undefined variable k
+= (js-code "(d$$x[d$$i][d$$j][d$$k])")
 ]
 
 @ Reference
@@ -574,57 +573,55 @@ and [load]s a lisp source file. Then possibly adds to the current
 symbol alias table some or all of the exported names.
 
 [Modules
-; This imports all exported names from the objects module
-; into the current *symbol-aliases* table.
-(import * from examples/raster)
---> ("hline" "box" "clear" "frame" "line" "bezier"
-=     "ellipse" "ellipse-frame" "fill")
-Ready.
-'hline
---> examples__raster:hline
-Ready.
+>> ; This imports all exported names from the
+   ; examples/raster module into the current
+   ; *symbol-aliases* table.
+   (import * from examples/raster)
+= ("hline" "box" "clear" "frame" "line" ... )
 
-; This imports (loads) the module and assigns a nickname,
-; but defines no symbol aliases
-(import graphics as g)
---> ("random-color" "with-canvas")
-Ready.
-'random-color
---> random-color
-Ready.
-(random-color)
+>> 'hline
+= examples/raster:hline
+
+>> ; This imports (loads) the module and assigns
+   ; a nickname, but defines no symbol aliases
+   (import graphics as g)
+= ("rgb" "rgba" "css-color" "random-color" "with-canvas")
+
+>> (random-color)
 WARNING: Undefined function random-color
-**ERROR**: ReferenceError: function random-color is not defined
-Ready.
-(g:random-color)
---> "rgb(179,150,140)"
+**ERROR**: ReferenceError: function random-color
+.           is not defined
 
-; This imports only specific names from a module
-(import (show set-style) from gui)
---> ("set-style" "element-pos" "event-pos" "show" ... )
-Ready.
-'set-style
---> gui:set-style
-Ready.
-'element-pos
---> element-pos
-Ready.
+>> (g:random-color)
+= {"r":182,"g":132,"b":188}
 
-; All currently active symbol aliases are kept in the *symbol-aliases* map
-; and are checked first by the reader when interpreting a symbol
-(map #'display (keys *symbol-aliases*))
-=hline
-=box
-=clear
-=frame
-=line
-=bezier
-=ellipse
-=ellipse-frame
-=fill
-=show
-=set-style
-Ready.
+>> ; This imports only two specific names from
+   ; the gui module
+   (import (show set-style) from gui)
+= ("set-style" "element-pos" "event-pos" ...)
+
+>> 'set-style
+= gui:set-style
+
+>> 'element-pos
+= element-pos
+
+>> ; All currently active symbol aliases are kept
+   ; in the *symbol-aliases* map and are checked
+   ; first by the reader when interpreting a symbol
+   (map #'display (keys *symbol-aliases*))
+.!hline
+.!box
+.!clear
+.!frame
+.!line
+.!bezier
+.!ellipse
+.!ellipse-frame
+.!fill
+.!show
+.!set-style
+= ("!hline" "!box" "!clear" "!frame" "!line" ...)
 ]
 
 When defining a macro in a module that needs to intern symbols in
@@ -643,26 +640,26 @@ allow several implementations to be accessed using a single name
 performing the required multiplex at runtime on general conditions.
 
 [Generic functions
-(defun fact (x)
-  (* x (fact (1- x))))
---> fact
-Ready.
-(defmethod fact (x) (< x 2)
-  1)
---> #CODE
-Ready.
-(map #'fact (range 10))
---> (1 1 2 6 24 120 720 5040 40320 362880)
-Ready.
-(defmethod fact (x) (symbol? x)
-  (intern ~"{x}!"))
---> #CODE
-Ready.
-(fact 'x)
---> x!
-Ready.
-(fact 10)
---> 3628800
+>> (defun fact (x)
+     (* x (fact (1- x))))
+= fact
+
+>> (defmethod fact (x) (< x 2)
+     1)
+= (fact (< x 2))
+
+>> (map #'fact (range 10))
+= (1 1 2 6 24 120 720 5040 40320 362880)
+
+>> (defmethod fact (x) (symbol? x)
+     #"{x}!")
+= (fact (symbol? x))
+
+>> (fact 'x)
+= x!
+
+>> (fact 10)
+= 3628800
 ]
 
 The macro [(defmethod name args test &rest body)] is similar to
@@ -685,9 +682,9 @@ the given name and also defines:
 
 - a type-check function by appending "[?]" to the class name
 
-Also each instance of an object provides two meta-fields named
-"[%class]" and "[%fields]". The first is a symbol named after the
-object class defined and the second is a list of all fields defined.
+Also each instance of an object provides a meta-field named
+"[%class]" that contains (as strings) the name of the class
+and the names of all defined fields.
 
 Each field in the [(defobject ...)] form can be either a symbol or
 a list [(<symbol> <default>)] to specify values to be used instead of
@@ -698,70 +695,69 @@ JsLisp [(defmethod ...)] and this allows both multimethods and
 EQL-specializations of CLOS.
 
 [Object Oriented Programming support
-(defobject animal (name))
---> animal
-Ready.
-(defobject dog (name))
---> dog
-Ready.
-(defmethod animal? (x) (dog? x) true)
---> (animal? (dog? x))
-Ready.
-(defobject cat (name))
---> cat
-Ready.
-(defmethod animal? (x) (cat? x) true)
---> (animal? (cat? x))
-Ready.
-(animal? (new-dog "fido"))
---> true
-Ready.
-(defmethod run (x) (animal? x)
-  (display ~"{x.name} is running"))
---> (run (animal? x))
-Ready.
-(defmethod sing (x) (dog? x)
-  (display "woof!"))
---> (sing (dog? x))
-Ready.
-(defmethod sing (x) (cat? x)
-  (display "meow!"))
---> (sing (cat? x))
-Ready.
-(defvar *tobi* (new-cat "tobi"))
---> {"name":"tobi"}
-Ready.
-(defvar *fido* (new-dog "fido"))
---> {"name":"fido"}
-Ready.
-(run *tobi*)
-=tobi is running
---> "tobi is running"
-Ready.
-(run *fido*)
-=fido is running
---> "fido is running"
-Ready.
-(defmethod run (x) (= x *tobi*)
-  (display "no way..."))
---> (run (= x *tobi*))
-Ready.
-(run (new-cat "sissi"))
-=sissi is running
---> "sissi is running"
-Ready.
-(run *tobi*)
-=no way...
---> "no way..."
-Ready.
-(sing *fido*)
-=woof!
---> "woof!"
-Ready.
-(sing *tobi*)
-=meow!
---> "meow!"
-Ready.
+>> (defobject animal (name))
+= animal
+
+>> (defobject dog (name))
+= dog
+
+>> (defmethod animal? (x) (dog? x) true)
+= (animal? (dog? x))
+
+>> (defobject cat (name))
+= cat
+
+>> (defmethod animal? (x) (cat? x) true)
+= (animal? (cat? x))
+
+>> (animal? (new-dog "fido"))
+= true
+
+>> (defmethod run (x) (animal? x)
+     (display ~"{x.name} is running"))
+= (run (animal? x))
+
+>> (defmethod sing (x) (dog? x)
+     (display "woof!"))
+= (sing (dog? x))
+
+>> (defmethod sing (x) (cat? x)
+     (display "meow!"))
+= (sing (cat? x))
+
+>> (defvar *tobi* (new-cat "tobi"))
+= {"name":"tobi"}
+
+>> (defvar *fido* (new-dog "fido"))
+= {"name":"fido"}
+
+>> (run *tobi*)
+tobi is running
+= "tobi is running"
+
+>> (run *fido*)
+fido is running
+= "fido is running"
+
+>> (defmethod run (x) (= x *tobi*)
+     (display "no way ..."))
+= (run (= x *tobi*))
+
+>> (run (new-cat "sissi"))
+sissi is running
+= "sissi is running"
+
+>> (run *tobi*)
+no way ...
+= "no way ..."
+
+>> (sing *fido*)
+woof!
+= "woof!"
+
+>> (sing *tobi*)
+meow!
+= "meow!"
 ]
 
 @@ Treeshaker
