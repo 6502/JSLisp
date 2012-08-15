@@ -1170,6 +1170,17 @@ If only one parameter is passed it's assumed to be [stop]."
       (js-code "(d$$seq.indexOf(d$$x,d$$start))")
       (js-code "(d$$seq.indexOf(d$$x))")))
 
+;; Destructuring setf
+
+(defmacro set-list (&rest args)
+  (let ((res (gensym)))
+    `(let ((,res ,(last args)))
+       (unless (= (length ,res) ,(1- (length args)))
+         (error "Invalid list length in destructuring assignment"))
+       ,@(map (lambda (i)
+                `(setf ,(aref args i) (aref ,res ,i)))
+              (range (1- (length args)))))))
+
 ;; Any/all
 (defmacro any ((var list) &rest body)
   "Returns the first logical true evaluation of [body] forms after binding [var] to [list] elements or [null] if none
