@@ -439,10 +439,17 @@
                                  ")" ,jsname "("
                                  (js-compile (aref args (- (length args) 1)))
                                  "))"))))))
+       ;; Constant folding
        (when (and (list? res)
                   (= (first res) 'js-code)
                   (js-code "d$$res[1].match(/^\\(\\((-?[0-9]+\\.?[0-9]*|\"([^\"]|\\\\.)*\")\\).\\((-?[0-9]+\\.?[0-9]*|\"([^\"]|\\\\.)*\")\\)\\)$/)"))
-         (js-code "(d$$res[1]=JSON.stringify(eval(d$$res[1])))"))
+         (let ((x (js-code "eval(d$$res[1])")))
+           (when (or (string? x)
+                     (and (number? x)
+                          (not (NaN? x))
+                          (not (infinity? x))
+                          (not (-infinity? x))))
+             (js-code "(d$$res[1]=JSON.stringify(d$$x))"))))
        res)))
 
 (defmacro defmathop-func (name)
@@ -1351,7 +1358,10 @@ If only one parameter is passed it's assumed to be [stop]."
 
 (defun regexp-escape (x)
   "Returns a string with all regexp-meaningful characters escaped"
-  (replace x "([$^\\][()+*?\\\\])" "\\$1"))
+  (replace (replace x "([$^\\][()+*?\\\\])" "\\$1")
+           "[\\x00-\\x1F]"
+           (lambda (x)
+             (js-code "'\\\\x'+('0'+d$$x.charCodeAt(0).toString(16).slice(-2))"))))
 
 ;; Whitespace stripping
 (defun lstrip (x)
