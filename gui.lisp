@@ -475,11 +475,52 @@
              px/height (- y1 y0))
   (when node.element."data-resize"
     (node.element."data-resize" x0 y0 x1 y1))
-  (when node.layout
-    (set-coords node.layout x0 y0 x1 y1)))
+  (if node.layout
+      (set-coords node.layout x0 y0 x1 y1)
+      (list x0 y0 x1 y1)))
 
 (defun dom (element &optional layout)
   (new-dom element layout))
+
+;; Table widget
+
+(defun table (data cols rows)
+  (let ((cells (list))
+        (table (create-element "div")))
+    (dolist (row data)
+      (push (list) cells)
+      (dolist (col row)
+        (let ((cell (create-element "div")))
+          (set-style cell
+                     overflow "hidden"
+                     textAlign "center"
+                     position "absolute"
+                     backgroundColor "#EEEEEE")
+          (setf cell.textContent col)
+          (append-child table cell)
+          (push (dom cell) (last cells)))))
+    (let ((layout (V border: 4
+                     (tablayout columns: cols
+                                rows: rows
+                                cells))))
+      (set-style table
+                 position "absolute"
+                 backgroundColor "#CCCCCC"
+                 overflow "hidden")
+      (setf table."data-resize"
+            (lambda ()
+              (setf table.style.overflow "hidden")
+              (let* ((w table.offsetWidth)
+                     (h table.offsetHeight)
+                     ((x0 y0 x1 y1) (set-coords layout 0 0 w h)))
+                (when (or (< x0 0) (> x1 w) (< y0 0) (> y1 h))
+                  (setf table.style.overflow "auto")
+                  (setf w table.clientWidth)
+                  (setf h table.clientHeight)
+                  (set-coords layout 0 0 w h)))))
+      table)))
+
+;;
 
 (defmacro with-window ((var options widgets layout) &rest body)
   "Evaluates [body] forms by first binding [var] to a new window object"
@@ -703,4 +744,5 @@
         text-area
         group
         static-text
-        select selection set-selection)
+        select selection set-selection
+        table)

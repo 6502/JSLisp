@@ -7,7 +7,7 @@
 (defmethod set-coords (node x0 y0 x1 y1) (or (null? node)
                                              (string? node)
                                              (number? node))
-  null)
+  (list x0 y0 x1 y1))
 
 ;; A callback node; used to inform someone of geometry computation
 
@@ -88,18 +88,28 @@
         (do () ((or (zero? (length active))
                     (<= avail epsilon))
                   (if (= algo :H:)
-                      (let ((x (+ border x0)))
+                      (let ((x (+ border x0))
+                            (mx x0)
+                            (my y0))
                         (dolist ((w c) (zip assigned elements))
-                          (set-coords c.element
-                                      x (+ y0 border)
-                                      (+ x w) (- y1 border))
-                          (incf x (+ w spacing))))
-                      (let ((y (+ border y0)))
+                          (let (((xa ya xb yb) (set-coords c.element
+                                                           x (+ y0 border)
+                                                           (+ x w) (- y1 border))))
+                            (setf mx (max mx xb))
+                            (setf my (max my yb)))
+                          (incf x (+ w spacing)))
+                        (list x0 y0 (+ mx border) (+ my border)))
+                      (let ((y (+ border y0))
+                            (mx x0)
+                            (my y0))
                         (dolist ((h c) (zip assigned elements))
-                          (set-coords c.element
-                                      (+ x0 border) y
-                                      (- x1 border) (+ y h))
-                          (incf y (+ h spacing))))))
+                          (let (((xa ya xb yb) (set-coords c.element
+                                                           (+ x0 border) y
+                                                           (- x1 border) (+ y h))))
+                            (setf mx (max mx xb))
+                            (setf my (max my yb)))
+                          (incf y (+ h spacing)))
+                        (list x0 y0 (+ mx border) (+ my border)))))
           ;;
           ;; Algorithm:
           ;;
@@ -239,7 +249,8 @@
 (defmethod set-coords (node x0 y0 x1 y1) (flow? node)
   (let ((x x0)
         (y y0)
-        (row-height 0))
+        (row-height 0)
+        (max-x x0))
     (dolist (c node.elements)
       (when (and (> x x0)
                  (> (+ x c.width) x1))
@@ -247,8 +258,10 @@
         (setf row-height 0)
         (setf x x0))
       (set-coords c.element x y (+ x c.width) (+ y c.height))
+      (setf max-x (max max-x (+ x c.width)))
       (setf row-height (max row-height c.height))
-      (incf x (+ c.width node.h-spacing)))))
+      (incf x (+ c.width node.h-spacing)))
+    (list x0 y0 max-x (+ y row-height))))
 
 (defun flow (&rest args)
   (let ((i 0)
@@ -285,56 +298,67 @@
 ;; of hv-element used to hold the parameters for row and column
 ;; position allocation.
 
-(defobject table
-    (elements            ;; Bi-dimensional matrix
-     columns             ;; hv of type :H:
-     rows))              ;; hv of type :V:
+(defobject tablayout
+    (elements  ;; Bi-dimensional matrix
+     columns   ;; hv of type :H:
+     rows))    ;; hv of type :V:
 
-(defmethod set-coords (node x0 y0 x1 y1) (table? node)
+(defmethod set-coords (node x0 y0 x1 y1) (tablayout? node)
   (let ((col-pos (list))
         (row-pos (list))
         (columns node.columns)
-        (rows node.rows))
+        (rows node.rows)
+        (elements node.elements)
+        ((xa ya xb yb) (list x0 y0 x1 y1)))
     (unless rows
-      (setf rows (apply #'V (range (length node.elements)))))
+      (setf rows (V null)))
     (unless columns
-      (setf columns (apply #'H (range (length (aref node.elements 0))))))
+      (setf columns (H null)))
     ;; Compute rows and columns layout
-    (let ((h (make-hv elements: (map (lambda (c)
-                                       (make-hv-element
-                                        element: (new-callback
-                                                  null
-                                                  (lambda (x0 y0 x1 y1)
-                                                    (push (list x0 x1) col-pos)))
-                                        min: c.min
-                                        max: c.max
-                                        class: c.class
-                                        weight: c.weight))
-                                     columns.elements)
-                      algorithm: :H:
-                      spacing: columns.spacing))
-          (v  (make-hv elements: (map (lambda (c)
-                                        (make-hv-element
-                                         element: (new-callback
-                                                   null
-                                                   (lambda (x0 y0 x1 y1)
-                                                     (push (list y0 y1) row-pos)))
-                                         min: c.min
-                                         max: c.max
-                                         class: c.class
-                                         weight: c.weight))
-                                      rows.elements)
+    (let* ((nc (length columns.elements))
+           (h (make-hv elements: (map (lambda (i)
+                                        (let ((c (aref columns.elements (min i (1- nc)))))
+                                          (make-hv-element
+                                           element: (new-callback
+                                                     null
+                                                     (lambda (x0 y0 x1 y1)
+                                                       (push (list x0 x1) col-pos)))
+                                           min: c.min
+                                           max: c.max
+                                           class: c.class
+                                           weight: c.weight)))
+                                      (range (length (first elements))))
+                       algorithm: :H:
+                       spacing: columns.spacing))
+           (nr (length rows.elements))
+           (v (make-hv elements: (map (lambda (i)
+                                        (let ((c (aref rows.elements (min i (1- nr)))))
+                                          (make-hv-element
+                                           element: (new-callback
+                                                     null
+                                                     (lambda (x0 y0 x1 y1)
+                                                       (push (list y0 y1) row-pos)))
+                                           min: c.min
+                                           max: c.max
+                                           class: c.class
+                                           weight: c.weight)))
+                                      (range (length elements)))
                        algorithm: :V:
                        spacing: rows.spacing)))
-      (set-coords h x0 y0 x1 y1)
-      (set-coords v x0 y0 x1 y1))
+      (dolist (L (list h v))
+        (let (((xxa yya xxb yyb) (set-coords L x0 y0 x1 y1)))
+          (setf xa (min xa xxa))
+          (setf ya (min ya yya))
+          (setf xb (max xb xxb))
+          (setf yb (max yb yyb))))
 
-    ;; Fix elements
-    (enumerate (row (ya yb) row-pos)
-      (enumerate (col (xa xb) col-pos)
-        (set-coords (aref node.elements row col) xa ya xb yb)))))
+      ;; Fix elements and return extension
+      (enumerate (row (ya yb) row-pos)
+        (enumerate (col (xa xb) col-pos)
+          (set-coords (aref elements row col) xa ya xb yb)))
+      (list xa ya xb yb))))
 
-(defun table (&rest args)
+(defun tablayout (&rest args)
   (let ((i 0)
         (columns undefined)
         (rows undefined)
@@ -343,16 +367,16 @@
              (next () (incf i) (aref args (1- i))))
       (do () ((not (find (current) '(columns: rows:))))
         (case (next)
-          (columns: (setf cols (next)))
+          (columns: (setf columns (next)))
           (rows: (setf rows (next)))))
       (unless (= i (1- (length args)))
-        (error "Table needs exactly one data element"))
-      (new-table (next)
-                 columns
-                 rows))))
+        (error "Tablayout needs exactly one data element"))
+      (new-tablayout (next)
+                     columns
+                     rows))))
 
 (defun add-element (node &rest args)
   (add-element-method node args))
 
 (export set-coords add-element
-        callback flow H V table)
+        callback flow H V tablayout)

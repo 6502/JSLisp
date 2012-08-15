@@ -323,7 +323,7 @@ function process()
     catch (err)
     {
         var loc = err.location;
-        err = ("" + err).replace(/[dmf]\$\$([a-zA-Z_]|(\$[0-9]+\$))*/g,
+        err = ("" + err).replace(/[dmf]\$\$([a-zA-Z_]|(\$[0-9]+\_))*/g,
                                  function(s)
                                  {
                                      return {"d" : "",
