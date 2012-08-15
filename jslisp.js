@@ -493,25 +493,32 @@ defmacro("let",
                  }
              }
              res += "){";
-             for (var i=0; i<spe.length; i++)
+             if (spe.length)
              {
-                 res += "var osd" + spe[i] + "=d" + spe[i] + ";";
-                 res += "d" + spe[i] + "=sd" + spe[i] + ";";
+                 for (var i=0; i<spe.length; i++)
+                 {
+                     res += "var osd" + spe[i] + "=d" + spe[i] + ";";
+                     res += "d" + spe[i] + "=sd" + spe[i] + ";";
+                 }
+                 res += "var res=";
+                 res += implprogn(body);
+                 res += ";";
+                 for (var i=0; i<spe.length; i++)
+                 {
+                     res += "d" + spe[i] + "=osd" + spe[i] + ";";
+                 }
+                 res += "return res;})(";
              }
-             res += "var res=";
-             res += implprogn(body);
+             else
+             {
+                 res += "return " + implprogn(body) + "})(";
+             }
 
              lexsmacro.end();
              lexvar.end();
              for (var i=0; i<osmacro.length; i++)
                  osmacro[i][0].symbol_macro = osmacro[i][1];
 
-             res += ";";
-             for (var i=0; i<spe.length; i++)
-             {
-                 res += "d" + spe[i] + "=osd" + spe[i] + ";";
-             }
-             res += "return res;})(";
              for (var i=0; i<bindings.length; i++)
              {
                  if (i > 0) res += ",";
@@ -968,12 +975,19 @@ defmacro("do",
              }
              res += "for(;;){";
              res += "if(" + f$$js_compile(test[0]) + "){";
-             res += "var res=" + implprogn(test.slice(1)) + ";";
-             for (var i=0; i<spe.length; i++)
+             if (spe.length)
              {
-                 res += "d" + spe[i] + "=osd" + spe[i] + ";";
+                 res += "var res=" + implprogn(test.slice(1)) + ";";
+                 for (var i=0; i<spe.length; i++)
+                 {
+                     res += "d" + spe[i] + "=osd" + spe[i] + ";";
+                 }
+                 res += "return res;}";
              }
-             res += "return res;}";
+             else
+             {
+                 res += "return " + implprogn(test.slice(1)) + "}";
+             }
              res += implprogn(body) + ";";
              for (var i=0; i<vars.length; i++)
              {
