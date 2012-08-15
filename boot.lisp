@@ -1548,18 +1548,25 @@ A name is either an unevaluated atom or an evaluated list."
          (setf (aref *constructors* ,(symbol-full-name name))
                (list ',(map #'symbol-name fieldnames)
                      #',#"new-{name}"))
-         (setf prototype.%class ',class)
-         (setf prototype.%getters (list))
-         (setf prototype.%setters (list))
-         (setf prototype.%copy
-               (lambda ()
-                 (js-code ,(let ((res "(new this.constructor(")
-                                 (sep ""))
-                                (dolist (f fieldnames)
-                                  (incf res sep)
-                                  (incf res (js-compile `(. (js-code "this") ,f)))
-                                  (setf sep ","))
-                                (+ res "))"))))))
+         ((js-code "Object.defineProperty") prototype
+          "%class" #((enumerable false)
+                     (value ',class)))
+         ((js-code "Object.defineProperty") prototype
+          "%getters" #((enumerable false)
+                       (value (list))))
+         ((js-code "Object.defineProperty") prototype
+          "%setters" #((enumerable false)
+                       (value (list))))
+         ((js-code "Object.defineProperty") prototype
+          "%copy" #((enumerable false)
+                    (value (lambda ()
+                             (js-code ,(let ((res "(new this.constructor(")
+                                             (sep ""))
+                                         (dolist (f fieldnames)
+                                           (incf res sep)
+                                           (incf res (js-compile `(. (js-code "this") ,f)))
+                                           (setf sep ","))
+                                         (+ res "))"))))))))
        (defun ,(intern ~"{name}?") (x)
          ,~"True if and only if [x] is an instance of [{name}]"
          ;; Next line is a NOP but needed for deploy machinery
