@@ -68,6 +68,7 @@
 (defobject bullet (text))
 (defobject para (text))
 (defobject title (text))
+(defobject subtitle (text))
 (defobject pre (text))
 (defobject img (src))
 
@@ -107,6 +108,16 @@
                       cursor "default")
            (setf h1.innerHTML (fix c.text))
            (append-child div h1)))
+        ((subtitle? c)
+         (setf ul null)
+         (let ((h2 (create-element "h2")))
+           (set-style h2
+                      textAlign "center"
+                      fontSize "120%"
+                      fontWeight "bold"
+                      cursor "default")
+           (setf h2.innerHTML (fix c.text))
+           (append-child div h2)))
         ((bullet? c)
          (unless ul
            (setf ul (create-element "ul"))
@@ -174,6 +185,10 @@
                (next))))
           ((= (slice L 0 2) "= ")
            (push (new-title (slice L 2))
+                 (last slides).content)
+           (next))
+          ((= (slice L 0 3) "== ")
+           (push (new-subtitle (slice L 3))
                  (last slides).content)
            (next))
           ((= (slice L 0 2) "[[")

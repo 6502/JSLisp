@@ -30,7 +30,11 @@ entering JsLisp code:
 - Word autocompletion
 - Documentation lookup
 
-*3.1 Parenthesis matching
+*3.1.1
+= Parenthesis matching
+))))) 42))))))) T)))
+
+*3.1.2 Parenthesis matching
 
 Whenever the cursor is right after a closed
 parenthesis [")"] the corresponding open
@@ -42,7 +46,11 @@ the last prompt. Matching knows about simple
 quoted strings but not about interpolated
 strings and reader macros in general.
 
-*3.2 Autoidenting
+*3.2.1
+= Autoindenting
+in the ONLY correct way ;-)
+
+*3.2.2 Autoidenting
 
 When pressing [ENTER] the REPL auto-indents
 next line placing the cursor where it will
@@ -51,7 +59,8 @@ most probably start next typing.
 The rules are quite simple and there are no
 hardcoded forms in the REPL.
 
-*3.2.1 Autoindenting rules (1)
+*3.2.3 Autoindenting rules (1)
+== 1: nested lists
 When an open parenthesis follows an open
 parenthesis (nested lists like for [(let ...)]
 forms) then the list elements are aligned
@@ -63,7 +72,8 @@ the containing list.
         (y 20)))
 ]]
 
-*3.2.2 Autoidenting rules (2)
+*3.2.4 Autoidenting rules (2)
+== 2: regular forms
 When the list looks like a regular form then
 elements are aligned to where the [second]
 element (i.e. the first parameter) was started.
@@ -74,7 +84,8 @@ element (i.e. the first parameter) was started.
                radius)
 ]]
 
-*3.2.3 Autoindenting rules (3)
+*3.2.5 Autoindenting rules (3)
+== 3: [(... &rest body)]
 When the function or macro however has a
 [&rest] parameter with name [body] then
 all [body] elements will be indented
@@ -87,7 +98,10 @@ two spaces to the right of containing form:
     (* x x))        ;; Body form 2
 ]]
 
-*4.1 Word autocompletion (1)
+*4.1 Word autocompletion
+= Autocom[pletion]
+
+*4.1 Autocompletion (1)
 Typing [ALT-/] invokes word autocompletion
 filtering on the preceding characters and
 proposes a first completion.
@@ -96,7 +110,7 @@ Typing [ALT-/] again cycles on selected
 words, [Backspace] aborts and any other
 character accepts the completion.
 
-*4.2 Word autocompletion (2)
+*4.2 Autocompletion (2)
 Words matching the already typed characters
 are proposed in the following order:
 
@@ -122,3 +136,17 @@ bold and monospace.
 The argument list is always available
 and added to any explicit docstring.
 Typing [ESC] hides the display.
+
+*6 Warning
+= WARNING
+
+*6.1 It's just a textarea
+== It's just a [<textarea>]
+Please note that the REPL is no substitute
+for a decent editor. For example:
+
+- Undo sucks (only one level)
+- Closing the window is one keystroke away
+  without any warning (e.g. ctrl-w)
+- Cannot do search/replace
+- Good for experimenting, not for coding.
