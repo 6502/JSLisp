@@ -408,50 +408,40 @@
     (map (lambda (editor) editor.e) editors)))
 
 (defun document-selector (prompt f)
-  (let ((selection null)
-        (cursel null)
-        (docs (list-documents)))
-    (with-window (w (100 100 500 500
-                         title: prompt)
-                    ((doclist (create-element "table"))
+  (let* ((selection null)
+         (cursel null))
+    (with-window (w ((/ (- (js-code "window").innerWidth 500) 2)
+                     (/ (- (js-code "window").innerHeight 300) 2)
+                     500 300
+                     title: prompt)
+                    ((doclist (table (list-documents)
+                                     cols: (H weight: 25 null
+                                              weight: 100 null)
+                                     rows: 25
+                                     row-click: (lambda (row rowcells)
+                                                  (if (= cursel rowcells)
+                                                      (progn
+                                                        ;; Double click
+                                                        (funcall f selection)
+                                                        (hide-window w))
+                                                      (progn
+                                                        (when cursel
+                                                          (dolist (x cursel)
+                                                            (setf x.style.backgroundColor "#EEEEEE")))
+                                                        (setf cursel rowcells)
+                                                        (dolist (x cursel)
+                                                          (setf x.style.backgroundColor "#FFFF00"))
+                                                        (setf selection (first row)))))))
                      (ok (button "OK" (lambda ()
                                         (funcall f selection)
                                         (hide-window w))))
                      (cancel (button "Cancel" (lambda ()
                                                 (funcall f null)
                                                 (hide-window w)))))
-                    (V border: 8 spacing: 8
-                       (dom doclist)
+                    (V border: 8 spacing: 16
+                       (H spacing: 4 (dom doclist))
                        size: 30
                        (H :filler: size: 80 (dom ok) (dom cancel) :filler:)))
-      (let ((head (create-element "tr")))
-        (setf doclist.border 1)
-        (append-child doclist head)
-        (setf head.height 20)
-        (labels ((add-th (x) (let ((th (create-element "th")))
-                               (setf th.textContent x)
-                               (append-child head th))))
-          (add-th "Name")
-          (add-th "Description")))
-      (dolist ((name description) docs)
-        (let ((row (create-element "tr")))
-          (setf row.height 20)
-          (set-handler row onclick
-                       (event.preventDefault)
-                       (event.stopPropagation)
-                       (setf selection name)
-                       (when cursel
-                         (set-style cursel
-                                    backgroundColor "#FFFFFF"))
-                       (set-style row
-                                  backgroundColor "#FFFF00")
-                       (setf cursel row))
-          (append-child doclist row)
-          (labels ((add-td (x) (let ((td (create-element "td")))
-                                 (setf td.textContent x)
-                                 (append-child row td))))
-            (add-td name)
-            (add-td description))))
       (show-window w))))
 
 (defun make-toolbar ()

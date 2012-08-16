@@ -300,8 +300,8 @@
 
 (defobject tablayout
     (elements  ;; Bi-dimensional matrix
-     columns   ;; hv of type :H:
-     rows))    ;; hv of type :V:
+     columns   ;; hv of type :H: or number
+     rows))    ;; hv of type :V: or number
 
 (defmethod set-coords (node x0 y0 x1 y1) (tablayout? node)
   (let ((col-pos (list))
@@ -314,6 +314,10 @@
       (setf rows (V null)))
     (unless columns
       (setf columns (H null)))
+    (when (number? rows)
+      (setf rows (V size: rows null)))
+    (when (number? columns)
+      (setf columns (H size: columns null)))
     ;; Compute rows and columns layout
     (let* ((nc (length columns.elements))
            (h (make-hv elements: (map (lambda (i)

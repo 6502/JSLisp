@@ -484,21 +484,37 @@
 
 ;; Table widget
 
-(defun table (data cols rows)
+(defun table (data &key cols rows row-click cell-click)
   (let ((cells (list))
         (table (create-element "div")))
     (dolist (row data)
-      (push (list) cells)
-      (dolist (col row)
-        (let ((cell (create-element "div")))
-          (set-style cell
-                     overflow "hidden"
-                     textAlign "center"
-                     position "absolute"
-                     backgroundColor "#EEEEEE")
-          (setf cell.textContent col)
-          (append-child table cell)
-          (push (dom cell) (last cells)))))
+      (let ((rowcells (list)))
+        (push (list) cells)
+        (dolist (col row)
+          (let ((cell col))
+            (when (string? cell)
+              (setf cell (create-element "div"))
+              (set-style cell
+                         overflow "hidden"
+                         textAlign "center"
+                         position "absolute"
+                         cursor "default"
+                         backgroundColor "#EEEEEE")
+              (setf cell.textContent col))
+            (append-child table cell)
+            (push cell rowcells)
+            (cond
+              (row-click
+               (set-handler cell onmousedown
+                            (event.preventDefault)
+                            (event.stopPropagation)
+                            (funcall row-click row rowcells)))
+              (cell-click
+               (set-handler cell onmousedown
+                            (event.preventDefault)
+                            (event.stopPropagation)
+                            (funcall cell-click col cell))))
+            (push (dom cell) (last cells))))))
     (let ((layout (V border: 4
                      (tablayout columns: cols
                                 rows: rows
