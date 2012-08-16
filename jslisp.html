@@ -302,6 +302,10 @@ defun("display",
           return x;
       });
 
+d$$$42_$42_$42_ = null;
+d$$$42_$42_ = null;
+d$$$42_ = null;
+
 function process()
 {
     var base = repl.value;
@@ -315,6 +319,9 @@ function process()
         {
             var parsed = f$$parse_value(src);
             var result = f$$toplevel_eval(parsed);
+            d$$$42_$42_$42_ = d$$$42_$42_;
+            d$$$42_$42_ = d$$$42_;
+            d$$$42_ = result;
             f$$display("= " + f$$str_value(result) + "\n");
             f$$skip_spaces(src);
         }
