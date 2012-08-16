@@ -168,8 +168,7 @@ function updateClpar(text)
                     ii[2] = ii[0];
                 }
                 else if ((s = f$$intern(fname, undefined, true)) &&
-                         (ff = (window["f" + f$$mangle(fname)] ||
-                                window["m" + f$$mangle(fname)])) &&
+                         (ff = (f$$symbol_function(s) || f$$symbol_macro(s))) &&
                          ff.arglist &&
                          (ffi = ff.arglist.indexOf(s$$$38_rest)) != -1 &&
                          ff.arglist[ffi+1] == s$$body &&
