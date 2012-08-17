@@ -373,7 +373,7 @@
   (append-child *screen* *canvas*)
   (setf *dirty* true)
   (setf *current-page* (new-page 2100 2970 (list)))
-  (setf *document* (new-document "<unnamed>" "New document" (list *current-page*)))
+  (setf *current-document* (new-document "<unnamed>" "New document" (list *current-page*)))
   (macrolet ((coords ()
                `(let ((cp (event-pos event))
                       (sp (element-pos *screen*)))
@@ -443,6 +443,30 @@
                        size: 30
                        (H :filler: size: 80 (dom ok) (dom cancel) :filler:)))
       (show-window w))))
+
+(defun document-save (prompt f)
+    (with-window (w ((/ (- (js-code "window").innerWidth 450) 2)
+                     (/ (- (js-code "window").innerHeight 200) 2)
+                     450 200
+                     title: prompt)
+                    ((name (input "name"))
+                     (description (input "description"))
+                     (ok (button "OK" (lambda ()
+                                        (funcall f (text name))
+                                        (hide-window w))))
+                     (cancel (button "Cancel" (lambda ()
+                                                (hide-window w)))))
+                    (V spacing: 16 border: 8
+                       size: 35
+                       (dom name)
+                       (dom description)
+                       :filler:
+                       (H :filler: size: 80 (dom ok) (dom cancel) :filler:)))
+      (show-window w)
+      (setf (text name) *current-document*.name)
+      (setf (text description) *current-document*.description)
+      (name.lastChild.focus)
+      (name.lastChild.setSelectionRange 0 (length (text name)))))
 
 (defun make-toolbar ()
   (with-window (w (20 50 120 650
@@ -534,13 +558,11 @@
                                                      (setf *current-page* (first *current-document*.pages))
                                                      (setf *dirty* true)))))))
                    (doc-save (button "Save" (lambda ()
-                                              (document-selector "Save"
+                                              (document-save "Save"
                                                  (lambda (name)
                                                    (when name
                                                      (setf *current-document*.name name)
-                                                     (save-document *current-document*)))))))
-                   (doc-save-as (button "Save as..." (lambda ()
-                                                       (alert "To do")))))
+                                                     (save-document *current-document*))))))))
                   (V spacing: 16 border: 8
                        weight: 300 (dom new-commands
                                         (V border: 8 spacing: 2
@@ -564,12 +586,11 @@
                                            (dom zoom-)
                                            (dom show-borders)
                                            (dom show-grid)))
-                       weight: 400 (dom document-commands
+                       weight: 300 (dom document-commands
                                         (V border: 8 spacing: 2
                                            (dom doc-new)
                                            (dom doc-open)
-                                           (dom doc-save)
-                                           (dom doc-save-as)))))
+                                           (dom doc-save)))))
     (show-window w)))
 
 (defun main ()
