@@ -1104,6 +1104,7 @@ function f$$receive_debugger()
 }
 
 var f$$local_js_eval;
+var global_unwinding_trace = [];
 
 function erl(x, f, local_js_eval)
 {
@@ -1136,6 +1137,7 @@ function erl(x, f, local_js_eval)
         if (!err.location)
             err.location = [];
         err.location.push(x);
+        global_unwinding_trace.push(x);
         throw err;
     }
 }
@@ -1762,6 +1764,32 @@ defun("toplevel-eval",
 
 d$$$42_debug_load$42_ = false;
 
+defun("stack-trace",
+      "[[(stack-trace location)]]\n"+
+      "Displays a stack trace of specified error location stack in an "+
+      "exception if that information is available or does nothing otherwise. "+
+      "Stack trace information is enabled if at the time the module was "+
+      "loaded te variable [*debug-load*] was [true].",
+      function(location)
+      {
+          var filecache = {};
+          f$$display("ERROR Location stack (innermost last):");
+          for (var i=location.length-1; i>=0; i--)
+          {
+              var fname = location[i][0];
+              var start = location[i][1];
+              var stop = location[i][2];
+              var file = (filecache[fname] ||
+                          (filecache[fname] = f$$http_get(fname)));
+              var line = 1 + file.substr(0, start).replace(/[^\n]/g,"").length;
+              var fragment = file.substr(start, stop - start).replace(/[\r\n]/g, " ").replace(/ +/g, " ");
+              if (fragment.length > 50)
+                  fragment = fragment.substr(0, 47) + " ...";
+              f$$display("  " + fname + " : " + line + " " + fragment);
+          }
+      },
+      [f$$intern("location")]);
+
 defun("load",
       "[[(load src &optional name)]]\n" +
       "Parses, compiles and evaluates all forms in the character source or string [src] " +
@@ -1792,24 +1820,7 @@ defun("load",
                                     ((phase != "parsing") ?
                                      f$$macroexpand_$49_(f$$str_value(form)) : ""));
               werr.location = err.location;
-              if (err.location)
-              {
-                  var filecache = {};
-                  f$$display("ERROR Location stack (innermost last):");
-                  for (var i=err.location.length-1; i>=0; i--)
-                  {
-                      var fname = err.location[i][0];
-                      var start = err.location[i][1];
-                      var stop = err.location[i][2];
-                      var file = (filecache[fname] ||
-                                  (filecache[fname] = f$$http_get(fname)));
-                      var line = file.substr(0, start).replace(/[^\n]/g,"").length;
-                      var fragment = file.substr(start, stop - start).replace(/[\r\n]/g, " ").replace(/ +/g, " ");
-                      if (fragment.length > 50)
-                          fragment = fragment.substr(0, 47) + " ...";
-                      f$$display("  " + fname + " : " + line + " " + fragment);
-                  }
-              }
+              f$$stack_trace(err.location);
               throw werr;
           }
           return last;
