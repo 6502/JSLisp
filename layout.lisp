@@ -74,78 +74,79 @@
          (border node.border)
          (algo node.algorithm)
          (*spacing* spacing))
-    (when (> num-elements 0)
-      (let* ((assigned (map (get .min) elements))
-             (active (filter (lambda (i) (< (aref assigned i)
-                                            (aref elements i).max))
-                             (range num-elements)))
-             (avail (- (if (= algo :H:)
-                           (- x1 x0)
-                           (- y1 y0))
-                       (* 2 border)
-                       (reduce #'+ assigned)
-                       (* (1- num-elements) spacing))))
-        (do () ((or (zero? (length active))
-                    (<= avail epsilon))
-                  (if (= algo :H:)
-                      (let ((x (+ border x0))
-                            (mx x0)
-                            (my y0))
-                        (dolist ((w c) (zip assigned elements))
-                          (let (((xa ya xb yb) (set-coords c.element
-                                                           x (+ y0 border)
-                                                           (+ x w) (- y1 border))))
-                            (setf mx (max mx xb))
-                            (setf my (max my yb)))
-                          (incf x (+ w spacing)))
-                        (list x0 y0 (+ mx border) (+ my border)))
-                      (let ((y (+ border y0))
-                            (mx x0)
-                            (my y0))
-                        (dolist ((h c) (zip assigned elements))
-                          (let (((xa ya xb yb) (set-coords c.element
-                                                           (+ x0 border) y
-                                                           (- x1 border) (+ y h))))
-                            (setf mx (max mx xb))
-                            (setf my (max my yb)))
-                          (incf y (+ h spacing)))
-                        (list x0 y0 (+ mx border) (+ my border)))))
-          ;;
-          ;; Algorithm:
-          ;;
-          ;; First select the highest priority class among all active
-          ;; nodes, then try to distribute the available space in
-          ;; proportion to weights but not exceeding the maximum for a
-          ;; given node.  Finally remove saturated nodes from the
-          ;; active list.
-          ;;
-          ;; At every step at least one node is saturated, or all
-          ;; available space is distributed.
-          ;;
-          ;; IOW we're not going to loop forever (unless there's a
-          ;; numeric precision problem, that's why epsilon is used).
-          ;;
-          (let* ((minclass (apply #'min (map (lambda (i)
-                                               (aref elements i).class)
-                                             active)))
-                 (selected (filter (lambda (i) (= (aref elements i).class
-                                                  minclass))
-                                   active))
-                 (selected-nodes (map (lambda (i) (aref elements i))
-                                      selected))
-                 (total-weight (reduce #'+ (map (get .weight)
-                                                selected-nodes)))
-                 (share (/ avail total-weight)))
-            (dolist (i selected)
-              (let* ((n (aref elements i))
-                     (quota (min (- n.max (aref assigned i))
-                                 (* share n.weight))))
-                (decf avail quota)
-                (incf (aref assigned i) quota)))
-            (setf active (filter (lambda (i)
-                                   (< (+ (aref assigned i) epsilon)
-                                      (aref elements i).max))
-                                 active))))))))
+    (if (= num-elements 0)
+        (list x0 y0 x1 y1)
+        (let* ((assigned (map (get .min) elements))
+               (active (filter (lambda (i) (< (aref assigned i)
+                                              (aref elements i).max))
+                               (range num-elements)))
+               (avail (- (if (= algo :H:)
+                             (- x1 x0)
+                             (- y1 y0))
+                         (* 2 border)
+                         (reduce #'+ assigned)
+                         (* (1- num-elements) spacing))))
+          (do () ((or (zero? (length active))
+                      (<= avail epsilon))
+                    (if (= algo :H:)
+                        (let ((x (+ border x0))
+                              (mx x0)
+                              (my y0))
+                          (dolist ((w c) (zip assigned elements))
+                            (let (((xa ya xb yb) (set-coords c.element
+                                                             x (+ y0 border)
+                                                             (+ x w) (- y1 border))))
+                              (setf mx (max mx xb))
+                              (setf my (max my yb)))
+                            (incf x (+ w spacing)))
+                          (list x0 y0 (+ mx border) (+ my border)))
+                        (let ((y (+ border y0))
+                              (mx x0)
+                              (my y0))
+                          (dolist ((h c) (zip assigned elements))
+                            (let (((xa ya xb yb) (set-coords c.element
+                                                             (+ x0 border) y
+                                                             (- x1 border) (+ y h))))
+                              (setf mx (max mx xb))
+                              (setf my (max my yb)))
+                            (incf y (+ h spacing)))
+                          (list x0 y0 (+ mx border) (+ my border)))))
+            ;;
+            ;; Algorithm:
+            ;;
+            ;; First select the highest priority class among all active
+            ;; nodes, then try to distribute the available space in
+            ;; proportion to weights but not exceeding the maximum for a
+            ;; given node.  Finally remove saturated nodes from the
+            ;; active list.
+            ;;
+            ;; At every step at least one node is saturated, or all
+            ;; available space is distributed.
+            ;;
+            ;; IOW we're not going to loop forever (unless there's a
+            ;; numeric precision problem, that's why epsilon is used).
+            ;;
+            (let* ((minclass (apply #'min (map (lambda (i)
+                                                 (aref elements i).class)
+                                               active)))
+                   (selected (filter (lambda (i) (= (aref elements i).class
+                                                    minclass))
+                                     active))
+                   (selected-nodes (map (lambda (i) (aref elements i))
+                                        selected))
+                   (total-weight (reduce #'+ (map (get .weight)
+                                                  selected-nodes)))
+                   (share (/ avail total-weight)))
+              (dolist (i selected)
+                (let* ((n (aref elements i))
+                       (quota (min (- n.max (aref assigned i))
+                                   (* share n.weight))))
+                  (decf avail quota)
+                  (incf (aref assigned i) quota)))
+              (setf active (filter (lambda (i)
+                                     (< (+ (aref assigned i) epsilon)
+                                        (aref elements i).max))
+                                   active))))))))
 
 (defun hv-parser (algorithm args)
   (let ((i 0)
@@ -304,12 +305,14 @@
      rows))    ;; hv of type :V: or number
 
 (defmethod set-coords (node x0 y0 x1 y1) (tablayout? node)
-  (let ((col-pos (list))
-        (row-pos (list))
-        (columns node.columns)
-        (rows node.rows)
-        (elements node.elements)
-        ((xa ya xb yb) (list x0 y0 x1 y1)))
+  (let* ((col-pos (list))
+         (row-pos (list))
+         (columns node.columns)
+         (rows node.rows)
+         (elements node.elements)
+         ((xa ya xb yb) (list x0 y0 x1 y1))
+         (drows (length elements))
+         (dcols (and drows (length (first elements)))))
     (unless rows
       (setf rows (V null)))
     (unless columns
@@ -331,7 +334,7 @@
                                            max: c.max
                                            class: c.class
                                            weight: c.weight)))
-                                      (range (length (first elements))))
+                                      (range dcols))
                        algorithm: :H:
                        spacing: columns.spacing))
            (nr (length rows.elements))
@@ -346,7 +349,7 @@
                                            max: c.max
                                            class: c.class
                                            weight: c.weight)))
-                                      (range (length elements)))
+                                      (range drows))
                        algorithm: :V:
                        spacing: rows.spacing)))
       (dolist (L (list h v))
