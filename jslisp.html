@@ -416,7 +416,23 @@ function keyDown(e)
           repl.setSelectionRange(repl.selectionEnd, repl.selectionEnd);
         return;
     }
+
     completion_words = [];
+
+    if (e.which == 8)
+    {
+        // Don't backspace over a prompt
+        var i = repl.selectionStart;
+        if (i == repl.selectionEnd &&
+            i > prompt_message.length + 1 &&
+            repl.value.substr(i - prompt_message.length - 1,
+                              prompt_message.length + 1) == "\n" + prompt_message)
+        {
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+        }
+    }
 
     if (e.which == 9)
     {
