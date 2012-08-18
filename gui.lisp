@@ -791,23 +791,23 @@
 (defun message-box (htmltext &key (title "Message")
                                   cback
                                   (buttons (list "OK"))
-                                  (modal false))
+                                  (modal false)
+                                  (width (/ (screen-width) 2))
+                                  (height (/ (screen-height) 3)))
   (let ((btnrow (H spacing: 16 :filler:)))
-    (with-window (w (0 0 (/ (screen-width) 2) (/ (screen-height) 4)
-                     title: title)
+    (with-window (w (0 0 width height title: title)
                     ((message (create-element "div")))
                     (V spacing: 8 border: 8
                        (dom message)
                        :filler:
                        size: 30
                        btnrow))
-      (unless cback
-        (setf cback (lambda () (hide-window w))))
       (setf message.innerHTML htmltext)
       (dolist (btn-text buttons)
         (let ((b (button btn-text (lambda ()
                                     (hide-window w)
-                                    (funcall cback btn-text)))))
+                                    (when cback
+                                      (funcall cback btn-text))))))
           (append-child w.client b)
           (add-element btnrow size: 80 (dom b))))
       (add-element btnrow null)
