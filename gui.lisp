@@ -109,6 +109,26 @@
                 (setf x0 x)
                 (setf y0 y)))))
 
+;; Modal gray screen
+
+(defun modal-screen ()
+  "Creates, displays and returns a modal translucent screen that blocks mouse clicks"
+  (let ((modal (create-element "div")))
+    (set-style modal
+               position "absolute"
+               px/left 0
+               px/top 0
+               px/right 0
+               px/bottom 0
+               backgroundColor "rgba(0,0,0,0.25)")
+    (set-handler modal onmousedown
+                 (event.preventDefault)
+                 (event.stopPropagation))
+    (show modal)
+    modal))
+
+;; A gui window object
+
 (defobject window
     (frame            ;; DOM node
      titlebar         ;; DOM node
@@ -259,17 +279,38 @@
     (w.close-cback))
   (hide w.frame))
 
-(defun show-window (w)
+(defun screen-width ()
+  "Returns the width of the usable area in the browser"
+  (js-code "window").innerWidth)
+
+(defun screen-height ()
+  "Returns the height of the usable area in the browser"
+  (js-code "window").innerHeight)
+
+(defun show-window (w &key center modal)
   "Displays the specified window"
-  (show w.frame)
-  (when w.resize-cback
-    (let ((client w.client))
-      (w.resize-cback client.offsetLeft
-                      client.offsetTop
-                      (+ client.offsetLeft
-                         client.offsetWidth)
-                      (+ client.offsetTop
-                         client.offsetHeight)))))
+  (let ((modal (when modal (modal-screen))))
+    (show w.frame)
+
+    (when center
+      (set-style w.frame
+                 px/left (/ (- (screen-width) w.frame.offsetWidth) 2)
+                 px/top (/ (- (screen-height) w.frame.offsetHeight) 2)))
+    (when w.resize-cback
+      (let ((client w.client))
+        (w.resize-cback client.offsetLeft
+                        client.offsetTop
+                        (+ client.offsetLeft
+                           client.offsetWidth)
+                        (+ client.offsetTop
+                           client.offsetHeight))))
+    (when modal
+      (let ((ocb w.close-cback))
+        (setf w.close-cback
+              (lambda ()
+                (setf w.close-cback ocb)
+                (hide modal)
+                (when ocb (funcall ocb))))))))
 
 (defun button (text action)
   "Creates a button DOM object with provided [text] and callback [action]"
@@ -745,6 +786,78 @@
 
       (show-window w))))
 
+;; Simple message or question box
+
+(defun message-box (htmltext &key (title "Message")
+                                  cback
+                                  (buttons (list "OK"))
+                                  (modal false))
+  (let ((btnrow (H spacing: 16 :filler:)))
+    (with-window (w (0 0 (/ (screen-width) 2) (/ (screen-height) 4)
+                     title: title)
+                    ((message (create-element "div")))
+                    (V spacing: 8 border: 8
+                       (dom message)
+                       :filler:
+                       size: 30
+                       btnrow))
+      (unless cback
+        (setf cback (lambda () (hide-window w))))
+      (setf message.innerHTML htmltext)
+      (dolist (btn-text buttons)
+        (let ((b (button btn-text (lambda ()
+                                    (hide-window w)
+                                    (funcall cback btn-text)))))
+          (append-child w.client b)
+          (add-element btnrow size: 80 (dom b))))
+      (add-element btnrow null)
+      (show-window w center: true modal: modal))))
+
+;; Login/password request
+
+(defun login (cback &key (title "Login")
+                         (user-value "")
+                         (password-value "")
+                         (user-caption "user")
+                         (show-password-checkbox false)
+                         (width 400)
+                         (height (if show-password-checkbox 230 210)))
+  "Displays a user/password dialog calling [cback] with provided values on confirm
+   or passing [null] values in case the user cancels"
+  (with-window (w (0 0 width height title: title close: false)
+                  ((user (input user-caption))
+                   (password (input "password"))
+                   (showpass (if show-password-checkbox
+                                 (checkbox "Show password")
+                                 (create-element "div")))
+                   (ok (button "OK"
+                               (lambda ()
+                                 (hide-window w)
+                                 (funcall cback (text user) (text password)))))
+                   (cancel (button "Cancel"
+                                   (lambda ()
+                                     (hide-window w)
+                                     (funcall cback null null)))))
+                  (V spacing: 16 border: 16
+                     size: 30
+                     (dom user)
+                     (dom password)
+                     size: (if show-password-checkbox 20 0)
+                     (dom showpass)
+                     :filler:
+                     size: 30
+                     (H :filler: size: 80 (dom ok) (dom cancel) :filler:)))
+    (show-window w modal: true center: true)
+    (setf password.lastChild.type "password")
+    (setf (text user) user-value)
+    (setf (text password) password-value)
+    (when show-password-checkbox
+      (set-handler showpass onchange
+                   (setf password.lastChild.type (if (checked showpass)
+                                                     "text"
+                                                     "password"))))
+    (user.lastChild.focus)))
+
 (export set-style
         element-pos event-pos relative-pos
         show hide
@@ -761,4 +874,6 @@
         group
         static-text
         select selection set-selection
-        table)
+        table
+        screen-width screen-height
+        message-box)
