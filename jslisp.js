@@ -1489,7 +1489,10 @@ d$$$42_readers$42_ = { "|": function(src)
 
                        '"': function(src)
                        {
+                           var i0 = src.i;
+                           while (i0 > 0 && src.s[i0-1] != '\n') --i0;
                            src.i++;
+                           var ilev = src.i - i0;
                            var res = "";
                            while (src.s[src.i] != undefined && src.s[src.i] != '"')
                            {
@@ -1526,6 +1529,13 @@ d$$$42_readers$42_ = { "|": function(src)
                                            hx = hx*16 + d;
                                        }
                                        res += String.fromCharCode(hx);
+                                   }
+                                   else if (c === "\n")
+                                   {
+                                       // Indent-aware line continuation
+                                       var i1 = src.i + ilev;
+                                       while (src.s[src.i] === ' ' && src.i < i1)
+                                           src.i++;
                                    }
                                    else
                                    {
@@ -1772,20 +1782,23 @@ defun("stack-trace",
       "loaded te variable [*debug-load*] was [true].",
       function(location)
       {
-          var filecache = {};
-          f$$display("ERROR Location stack (innermost last):");
-          for (var i=location.length-1; i>=0; i--)
+          if (location)
           {
-              var fname = location[i][0];
-              var start = location[i][1];
-              var stop = location[i][2];
-              var file = (filecache[fname] ||
-                          (filecache[fname] = f$$http_get(fname)));
-              var line = 1 + file.substr(0, start).replace(/[^\n]/g,"").length;
-              var fragment = file.substr(start, stop - start).replace(/[\r\n]/g, " ").replace(/ +/g, " ");
-              if (fragment.length > 50)
-                  fragment = fragment.substr(0, 47) + " ...";
-              f$$display("  " + fname + " : " + line + " " + fragment);
+              var filecache = {};
+              f$$display("ERROR Location stack (innermost last):");
+              for (var i=location.length-1; i>=0; i--)
+              {
+                  var fname = location[i][0];
+                  var start = location[i][1];
+                  var stop = location[i][2];
+                  var file = (filecache[fname] ||
+                              (filecache[fname] = f$$http_get(fname)));
+                  var line = 1 + file.substr(0, start).replace(/[^\n]/g,"").length;
+                  var fragment = file.substr(start, stop - start).replace(/[\r\n]/g, " ").replace(/ +/g, " ");
+                  if (fragment.length > 50)
+                      fragment = fragment.substr(0, 47) + " ...";
+                  f$$display("  " + fname + " : " + line + " " + fragment);
+              }
           }
       },
       [f$$intern("location")]);
@@ -1880,16 +1893,40 @@ defun("http-get",
        f$$intern("success-function"), f$$intern("failure-function")]);
 
 defun("get-file",
-      "[[(get-file filename &optional (encoding \"ascii\"))]]\n" +
+      "[[(get-file filename &optional (encoding \"utf-8\"))]]\n" +
       "Reads and returns the content of the specified file",
       function(name, encoding)
       {
           if ((typeof encoding) === "undefined")
-              encoding = "ascii";
+              encoding = "utf-8";
           var fs = require("fs");
           return fs.readFileSync(name, encoding);
       },
       [f$$intern("filename"), f$$intern("&optional"), f$$intern("encoding")]);
+
+defun("put-file",
+      "[[(put-file filename data &optional (encoding \"utf-8\"))]]\n" +
+      "Writes a file with specified [data]",
+      function(name, data, encoding)
+      {
+          if ((typeof encoding) === "undefined")
+              encoding = "utf-8";
+          var fs = require("fs");
+          return fs.writeFileSync(name, data, encoding);
+      },
+      [f$$intern("filename"), f$$intern("data"), f$$intern("&optional"), f$$intern("encoding")]);
+
+defun("append-file",
+      "[[(append-file filename data &optional (encoding \"utf-8\"))]]\n" +
+      "Appends to a file the specified [data]",
+      function(name, data, encoding)
+      {
+          if ((typeof encoding) === "undefined")
+              encoding = "utf-8";
+          var fs = require("fs");
+          return fs.appendFileSync(name, data, encoding);
+      },
+      [f$$intern("filename"), f$$intern("data"), f$$intern("&optional"), f$$intern("encoding")]);
 
 if (d$$node_js)
 {

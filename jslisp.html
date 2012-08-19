@@ -320,7 +320,9 @@ function process()
     base = base.substr(li == -1 ? 0 : li+1+prompt_message.length).replace(/\t\n *$/,"");
     try
     {
-        var src = f$$make_source(base);
+        var spaces = "";
+        for (var i=0; i<prompt_message.length; i++) spaces += " ";
+        var src = f$$make_source(spaces + base);
         f$$skip_spaces(src);
         while (src.s[src.i] != undefined)
         {
