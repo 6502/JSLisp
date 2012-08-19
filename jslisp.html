@@ -30,6 +30,11 @@
     -->
   <head>
     <title>JsLisp REPL</title>
+    <style type="text/css">
+     .code { font-family: monospace;
+             font-weight: bold;
+             font-size: 110%; }
+    </style>
   </head>
   <body style="margin:0px; padding:0px; border:none">
     <div style="position:absolute; left:0px; top:0px; right:0px; bottom:0px; padding:4px; background-color:#EEEEEE">
@@ -80,11 +85,17 @@ function calcFontCell()
 }
 
 var completion_words = [];
-var prompt_message = ">> ";
 var repl = document.getElementById("repl");
 var clpar = document.getElementById("clpar");
 var help = document.getElementById("help");
 repl.focus();
+
+function activeIndex(s)
+{
+    var i = s.lastIndexOf("\n;;");
+    i += (s.substr(i)+"\n\n").indexOf("\n\n") + 2;
+    return i;
+}
 
 d$$$42_repl$42_ = repl;
 
@@ -104,15 +115,37 @@ setInterval(function() {
     }
 }, 100);
 
-function setHelp(txt, module)
+var morehelp = false;
+var typing = false;
+
+repl.onmousedown = function()
+{
+    typing = true;
+};
+
+function helpLookup(x, f)
+{
+    var s = f$$intern(x, undefined, true);
+    var ff = (s &&
+              (window["f" + s.name] ||
+               window["m" + s.name]));
+    setHelp(ff && ff.documentation, ff && f$$symbol_module(s), f?1:0);
+}
+
+function setHelp(txt, module, opa)
 {
     if (txt != lasthelp)
     {
         help_timeout = (new Date).getTime() + 1000;
-        help.style.opacity = 0;
+        help.style.opacity = opa || 0;
         lasthelp = txt;
+        if (opa) repl.focus();
         if (txt)
         {
+            var otxt = txt;
+            var s = txt.split("\n");
+            if (!morehelp)
+                txt = s.slice(0,2).join("\n");
             if (module != "") txt = "(from [" + module + "] module)\n" + txt;
             help.innerHTML= (txt
                              .replace(/&/g,"&amp;")
@@ -120,10 +153,25 @@ function setHelp(txt, module)
                              .replace(/>/g,"&gt;")
                              .replace(/"/g,"&quot;")
                              .replace(/\n/g,"<br/>")
-                             .replace(/\[\[/g,"<pre style=\"font-weight:bold\">")
+                             .replace(/\[\[/g,"<pre class='code'\">")
                              .replace(/\]\]/g,"</pre>")
-                             .replace(/\[/g,"<span style=\"font-family:monospace; font-weight:bold\">")
-                             .replace(/\]/g,"</span>"));
+                             .replace(/\[/g,"<span class='code'\">")
+                             .replace(/\]/g,"</span>")
+                             .replace(/{{(.*?)}}/g, "<a href='javascript:helpLookup(\"$1\",true)'><span class='code'\">$1</span></a>"));
+            if (s.length > 2)
+            {
+                var moreorless = document.createElement("input");
+                moreorless.type = "button";
+                moreorless.value = morehelp ? "less..." : "more...";
+                moreorless.style.fontSize = "80%";
+                moreorless.style.display = "block";
+                moreorless.onclick = function() {
+                    lasthelp = null;
+                    morehelp = !morehelp;
+                    setHelp(otxt, module, 1);
+                };
+                help.appendChild(moreorless);
+            }
             help.style.display = "block";
         }
         else
@@ -140,8 +188,7 @@ function updateClpar(text)
     if (text == undefined)
     {
         text = repl.value.substr(0, repl.selectionStart);
-        var li = text.lastIndexOf("\n"+prompt_message);
-        if (li != -1) i = li + 1 + prompt_message.length;
+        var li = activeIndex(text);
     }
 
     var indent = [];
@@ -251,11 +298,11 @@ function updateClpar(text)
     }
     catch(indent)
     {
-        var s = f$$intern(indent[indent.length-1][3], undefined, true);
-        var ff = (s &&
-                  (window["f" + s.name] ||
-                   window["m" + s.name]));
-        setHelp(ff && ff.documentation, ff && f$$symbol_module(s));
+        if (typing)
+        {
+            typing = false;
+            helpLookup(indent[indent.length-1][3]);
+        }
         if (!quote && text[text.length-1] == ")")
         {
             var s = indent[indent.length-1][0];
@@ -279,7 +326,11 @@ function updateClpar(text)
         return i - text.lastIndexOf("\n", i);
     }
     clpar.style.display = "none";
-    setHelp(null);
+    if (typing)
+    {
+        typing = false;
+        setHelp(null);
+    }
     return 0;
 }
 
@@ -316,13 +367,11 @@ d$$$42_ = null;
 function process()
 {
     var base = repl.value;
-    var li = base.lastIndexOf("\n"+prompt_message);
-    base = base.substr(li == -1 ? 0 : li+1+prompt_message.length).replace(/\t\n *$/,"");
+    var li = activeIndex(base);
+    base = base.substr(li).replace(/\t\n *$/,"");
     try
     {
-        var spaces = "";
-        for (var i=0; i<prompt_message.length; i++) spaces += " ";
-        var src = f$$make_source(spaces + base);
+        var src = f$$make_source(base);
         f$$skip_spaces(src);
         while (src.s[src.i] != undefined)
         {
@@ -331,7 +380,7 @@ function process()
             d$$$42_$42_$42_ = d$$$42_$42_;
             d$$$42_$42_ = d$$$42_;
             d$$$42_ = result;
-            f$$display("= " + f$$str_value(result) + "\n");
+            f$$display(";; ==> " + f$$str_value(result) + "\n");
             f$$skip_spaces(src);
         }
     }
@@ -346,12 +395,13 @@ function process()
                                              "f" : "function "}[s[0]] + f$$demangle(s.substr(1));
                                  });
         f$$display("**ERROR**: " + err);
+        f$$display(";; Ready\n");
     }
-    f$$display(prompt_message, true);
 }
 
 function keyDown(e)
 {
+    typing = true;
     help.style.opacity = 0;
     last_key = e.which;
     if (e.altKey && e.which == 191)
@@ -419,22 +469,13 @@ function keyDown(e)
         return;
     }
 
-    completion_words = [];
-
-    if (e.which == 8)
+    if (e.which == 27)
     {
-        // Don't backspace over a prompt
-        var i = repl.selectionStart;
-        if (i == repl.selectionEnd &&
-            i > prompt_message.length + 1 &&
-            repl.value.substr(i - prompt_message.length - 1,
-                              prompt_message.length + 1) == "\n" + prompt_message)
-        {
-            e.preventDefault();
-            e.stopPropagation();
-            return;
-        }
+        lasthelp = null;
+        morehelp = false;
     }
+
+    completion_words = [];
 
     if (e.which == 9)
     {
@@ -472,6 +513,7 @@ function keyDown(e)
 
 function keyPress(e)
 {
+    typing = true;
     help.style.opacity = 0;
     last_key = e.which;
     if (e.which == 10 || (e.which == 13 && (e.ctrlKey || e.shiftKey)))
@@ -526,8 +568,7 @@ try
         f$$load(f$$http_get(args["debug"]), args["debug"]);
     }
     else {
-        f$$display(args["nobanner"] ? "" : banner);
-        f$$display(prompt_message, true);
+        f$$display(args["nobanner"] ? "" : banner + ";;\n");
     }
     if (args["src"]) {
         var req = new XMLHttpRequest();
@@ -539,7 +580,7 @@ try
 catch(err)
 {
     f$$display("Error during bootstrap: " + err);
-    f$$display(prompt_message, true);
+    f$$display(";; Ready\n");
 }
 
     </script>

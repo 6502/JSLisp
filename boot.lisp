@@ -44,16 +44,74 @@
                                   (list 'symbol-macro (list 'quote name))
                                   (list 'quote args))
                             (list 'quote name)))))
+(set-documentation
+ (symbol-macro 'defmacro)
+ "[[(defmacro name args &rest body)]]\n\
+  Defines or redefines a compile-time macro.\n\
+  Macros are like functions but they receive their parameters \
+  unevaluated and the return will be re-considerd as source \
+  code in place of the macro invocation.\n\
+  Macros are executed at compile time, not at run time and are \
+  code that processes code (the input unevaluated source code forms) \
+  and that returns code. \
+  Care should be taken so the generated code that will not \
+  accidentally redefine names that were used in the context of \
+  the macro call. See also {{macroexpand-1}}, {{gensym}}.[[\n\
+  (defmacro assert (test)\n\
+    `(unless ,test\n\
+       (error ,~\"Assertion error: {(str-value test)}\")))\n\
+  ;; ==> assert\n\
+  \n\
+  (assert (< 1 2))\n\
+  ;; ==> null\n\
+  \n\
+  (assert (> 1 2))\n\
+  **ERROR**: Assertion error: (> 1 2)\n\
+  ;; Ready\n\
+  ]]")
+
+(set-arglist (symbol-macro 'defmacro)
+             '(name args &rest body))
 
 (defmacro when (condition &rest body)
-  "Evaluates all forms in [body] returning last value only if [condition] evaluates to a true value, otherwise the value is [null]"
+  "Evaluates all forms in [body] returning last value only if [condition] \
+   evaluates to a true value, otherwise the value is [null].\n\
+   It's preferable to use [when] forms in cases in which the conditional \
+   only has code in the [true] path.[[\n\
+   (when (string? x)\n\
+     ;; One string; split on newlines\n\
+     (setf x (split x \"\\n\")))\n\
+   ]]"
   (list 'if condition (append (list 'progn) body) null))
 
 (defmacro unless (condition &rest body)
-  "Evaluates all forms in [body] returning last value only if [condition] evaluates to a false value, otherwise the value is [null]"
+  "Evaluates all forms in [body] returning last value only if [condition] \
+   evaluates to a false value, otherwise the value is [null].\n\
+   It's preferable to use [unless] forms in cases in which the
+   conditional only has code in the [false] path and in which
+   the condition is more natural than its negation.[[\n\
+   (unless *data-ready*\n\
+     (setf *db-data* (load-data))\n\
+     (setf *data-ready* true))\n\
+   ]]"
   (list 'if condition null (append (list 'progn) body)))
 
 (defmacro defun (name args &rest body)
+  "Defines or redefines a regular function.\n\
+   The function [name] is always interned in current module even if an \
+   identical name is present in [*symbol-aliases*].\n\
+   If the first element of [body] is a string literal and it's not the \
+   only element in [body] then it's assumed to be the function documentation \
+   string. Given a function object the documentation is available using \
+   {{documentation}} and {{arglist}} functions.[[\n\
+   (defun square (x)
+     \"Computes the square of [x]\"
+     (* x x))\n\
+   ;; ==> square\n\
+   \n\
+   (square 12)\n\
+   ;; ==> 144\n\
+   ]]"
   (setq name (module-symbol name))
   (let ((doc (str-value (append (list name) args))))
     (setq doc (js-code "('[['+d$$doc+']]')"))
@@ -84,30 +142,21 @@
                 (list 'symbol-function (list 'quote name))
                 (list 'quote args))
           (list 'quote name))))
-(set-documentation (symbol-macro 'defmacro)
-                   "[[(defmacro name args &rest body)]]\nDefines or redefines a compile-time macro.")
-
-(set-arglist (symbol-macro 'defmacro)
-             '(name args &rest body))
-
-(set-documentation (symbol-macro 'defun)
-                   "[[(defun name args &rest body)]]\nDefines or redefines a regular function.")
-(set-arglist (symbol-macro 'defun)
-             '(name args &rest body))
 
 ;; Length function
 (defun length (x)
-  "Returns the length of string/list [x]"
+  "Returns the length of string/list [x]\n\
+   [(length x)] can also be used as a place for {{setf}} to truncate
+   or extend [x] (adding [undefined] values) when it is a list
+   (strings are immutable).[[\n\
+   (let ((x (list 1 2 3))\n\
+         (y \"Hey...\")\n\
+         (z (list 100 99 98 97)))\n\
+     (setf (length z) 2)\n\
+     (list (length x) (length y) z))\n\
+   ;; ==> (3 6 (100 99))\n\
+   ]]"
   (js-code "d$$x.length"))
-
-;; Uppercase/lowercase
-(defun uppercase (x)
-  "Returns the string [x] converted to uppercase"
-  (js-code "d$$x.toUpperCase()"))
-
-(defun lowercase (x)
-  "Returns the string [x] converted to lowercase"
-  (js-code "d$$x.toLowerCase()"))
 
 ;; Simple versions of a few operators needed for bootstrap, they will be redefined
 (defun = (a b) (js-code "(d$$a===d$$b)"))
@@ -121,27 +170,81 @@
 
 ;; Logical not
 (defun not (x)
-  "Logical negation of [x]"
+  "Logical negation of [x]\n\
+   The result of [(not x)] is always [true] or [false] even if the \
+   parameter [x] is a value of different type. The only logically false \
+   values are [undefined], [null], [NaN], [0] and [\"\"] (the empty string).\n\
+   Other \"empty\" values like the empty list [()] or the empty object [#()] \
+   are instead considered to be logically true.[[\n\
+   (map #'not (list null undefined NaN 0 \"\"\n\
+                    (list) #() infinity))\n\
+   ;; ==> (true true true true true\n\
+           false false false)\n\
+   ]]"
   (js-code "!d$$x"))
 
 (defmacro not (x)
-  "Logical negation of [x]"
   (list 'js-code (+ "(!" (js-compile x) ")")))
 
 ;; Error throwing
 (defun error (x)
-  "Throws an error message [x] (doesn't return)"
+  "Throws an error message [x] (doesn't return)\n\
+   The containing forms and functions will be exited immediately without \
+   evaluating subsequent forms until a dyncamically enclosing \
+   exception-capturing form like {{try}}, {{unwind-protect}} or \
+   {{catch}} is found.\n\
+   The exception object being thrown is a [boxed Javascript String] \
+   object containing the error message.\n\
+   If the exception reaches the main program and the code was being executed \
+   int the REPL with debugging enabled then a full stack trace of where the \
+   exception has been originated from will be displayed.[[\n\
+   (unless (list? x)\n\
+     (error ~\"Invalid argument {x}\"))\n\
+   ]]"
   (js-code "((function(x){throw new String(x);})(d$$x))"))
 
 ;; Function accessor
 (defmacro function (x)
-  "Returns the function currently bound to the unevaluated symbol [x] (including lexical bindings)"
+  "Returns the function currently bound to the unevaluated symbol \
+   [x] (including lexical bindings).\n\
+   [(function x)] can also be used as a {{setf}} place to change \
+   the function bound to the specified name. [(function x)] can \
+   also be abbreviated as [(#'x)]. See also {{symbol-function}}.[[\n\
+   (defun square (x) (* x x))\n\
+   ;; ==> square\n\
+   \n\
+   (labels ((square (x) (* x 2))\n\
+            (cube (x) (* x x x)))\n\
+     (setf (function cube)\n\
+           (lambda (x) 42))\n\
+     (list (funcall (function square) 3)\n\
+           (funcall #'cube 12)))\n\
+   ;; ==> (6 42)\n\
+   ]]"
   (js-code "(lexfunc.vars[d$$x.name]?null:(d$$$42_outgoing_calls$42_[d$$x.name]=true))")
   (list 'js-code (+ "f" (js-code "d$$x.name"))))
 
 ;; Macro accessor
 (defmacro macro (x)
-  "Returns the macro currently bound to the unevaluated symbol [x] (including lexical bindings)"
+  "Returns the macro currently bound to the unevaluated symbol \
+   [x] (including lexical bindings).\n\
+   See also {{symbol-macro}}.[[\n\
+   (defmacro onemore (x) `(+ ,x 1))\n\
+   ;; ==> onemore\n\
+   \n\
+   (defmacro ninenine (x)\n\
+     (append (funcall (macro onemore) x)\n\
+             (list 99)))\n\
+   ;; ==> ninenine\n\
+   \n\
+   (macroexpand-1 '(ninenine 2))\n\
+   ;; ==> (+ 2 1 99)\n\
+   \n\
+   (macrolet ((onemore (x) `(* ,x 2)))\n\
+     (list (ninenine 2)\n\
+           (macroexpand-1 '(ninenine 2))))\n\
+   ;; ==> (396 (+ 2 1 99))\n\
+   ]]"
   (list 'or
         (list 'lexical-macro (list 'quote x))
         (list 'symbol-macro (list 'quote x))))
@@ -1675,6 +1778,15 @@ A name is either an unevaluated atom or an evaluated list."
      (defmacro ,name (&optional ,@fields)
        ,~"Creates an instance of tuple [{name}]"
        (list ',#"new-{name}" ,@fields))))
+
+;; Case conversion
+(defun uppercase (x)
+  "Returns the string [x] converted to uppercase"
+  (js-code "d$$x.toUpperCase()"))
+
+(defun lowercase (x)
+  "Returns the string [x] converted to lowercase"
+  (js-code "d$$x.toLowerCase()"))
 
 ;; Char <-> numeric code conversion
 (defun char (x)
