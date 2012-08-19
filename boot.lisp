@@ -933,6 +933,37 @@ The resulting list length is equal to the shortest input sequence."
 (set-arglist (symbol-function 'sort) '(x &optional (condition #'<)))
 (set-arglist (symbol-macro 'sort) '(x &optional (condition #'<)))
 
+;; let** (like letrec of scheme)
+(defmacro let** (bindings &rest body)
+  "Like [let*] but all variables are created first, initially [undefined] and then \
+   they are assigned the values. When evaluating the value part all bindings are \
+   visible. Also the name of a variable is allowed to be [#'<symbol>] and in this \
+   case the binding is indeed a label entry.[[\n\
+   >> (let** ((x 42)\n\
+              (y (lambda () (incf x)))\n\
+              (#'dec () (decf x)))\n\
+        (list (funcall y) (dec) (dec) x))\n\
+   = (43 42 41 41)\n\
+   ]]"
+  (let ((funcs (list))
+        (vars (list)))
+    (dolist (b bindings)
+      (if (symbol? (first b))
+          (push `(setf ,(first b) ,(second b)) vars)
+          (progn
+            (unless (and (list? (first b))
+                         (= 'function (first (first b)))
+                         (and (= (length (first b)) 2))
+                         (and (symbol? (second (first b)))))
+              (error "Either a symbol or a (function x) form was expected"))
+            (push `(,(second (first b)) ,@(rest b)) funcs))))
+    `(let ,(map (lambda (v)
+                  `(,(second v) undefined))
+            vars)
+       (labels ,funcs
+         ,@vars
+         ,@body))))
+
 ;; &optional
 
 (defmacro argument-count ()
