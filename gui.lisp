@@ -521,7 +521,8 @@
       (list x0 y0 x1 y1)))
 
 (defun dom (element &optional layout)
-  (new-dom element layout))
+  (setf element."data-layout-node"
+        (new-dom element layout)))
 
 ;; Table widget
 
