@@ -60,7 +60,7 @@ var banner = (";;\n"+
               ";;\n"+
               ";; Welcome to the Read-Eval-Print-Loop\n"+
               ";;\n"+
-              ";; [enter]  (at end of the buffer) evaluates up to previous prompt string\n"+
+              ";; [enter]  (at end of the buffer) evaluates from last result to end\n"+
               ";; [alt-/]  autocomplete (backspace to abort)\n"+
               ";; [tab]    autoindent current line or current selection\n"+
               ";; [esc]    hides documentation window\n"+
@@ -162,9 +162,10 @@ function setHelp(txt, module, opa)
             {
                 var moreorless = document.createElement("input");
                 moreorless.type = "button";
-                moreorless.value = morehelp ? "less..." : "more...";
-                moreorless.style.fontSize = "80%";
-                moreorless.style.display = "block";
+                moreorless.value = morehelp ? "-" : "+";
+                moreorless.style.position = "absolute";
+                moreorless.style.top = "0px";
+                moreorless.style.right = "0px";
                 moreorless.onclick = function() {
                     lasthelp = null;
                     morehelp = !morehelp;
