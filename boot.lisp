@@ -259,39 +259,180 @@
   (js-code "((typeof d$$x)==='boolean')"))
 
 (defun undefined? (x)
-  "True if and only if [x] is the undefined value"
+  "True if and only if [x] is the undefined value.\n\
+   The value [undefined] is returned also for function parameters \
+   that have not been passed and for object properties that are not \
+   part of or inherited by the object instance.\n\
+   Note that explicitly passing [undefined] as a function optional or \
+   keyword parameter with make the function processing the default \
+   value if there is one. The [undefined] value is logically false and \
+   is not an object (cannot be inspected for properties). The [undefined] \
+   value also cannot be serialized to {{json}}/{{json*}} format and \
+   is replaced by the [null] value in that context.[[\n\
+   (defun foo (&optional (x 1) (y 2))\n\
+     (list x y))\n\
+   ;; ==> foo\n\
+   \n\
+   (foo)\n\
+   ;; ==> (1 2)\n\
+   \n\
+   (foo undefined 99)\n\
+   ;; ==> (1 99)\n\
+   \n\
+   undefined.x\n\
+   **ERROR**: TypeError: Cannot read property 'x' of undefined\n\
+   ;; Ready\n\
+   \n\
+   (json undefined)\n\
+   ;; ==> \"null\"\n\
+   ]]"
   (js-code "((typeof d$$x)==='undefined')"))
 
 (defun null? (x)
-  "True if and only if [x] is the null value"
+  "True if and only if [x] is the null value.\n\
+   The value [null] is sometimes used to mean the absence of a real \
+   value. Note that [null] value is logically false value and is not \
+   an object (cannot be inspected for properties).[[\n\
+   (if null 1 2)\n\
+   ;; ==> 2\n\
+   \n\
+   (aref null 3)\n\
+   **ERROR**: TypeError: Cannot read property '3' of null\n\
+   ;; Ready\n\
+   ]]"
   (js-code "(d$$x===null)"))
 
 (defun infinity? (x)
-  "True if and only if [x] is the positive infinity value"
+  "True if and only if [x] is the positive infinity value.\n\
+   The [infinity] value is used as the result of certain computations. \
+   It is a logically true value, it is a number, it can be inspected \
+   for properties and cannot be serialized to {{json}}/{{json*}} format.[[\n\
+   (infinity? (/ 0))\n\
+   ;; ==> true\n\
+   \n\
+   (if infinity 1 2)\n\
+   ;; ==> 1\n\
+   \n\
+   (json infinity)\n\
+   ;; ==> \"null\"\n\
+   \n\
+   infinity.x\n\
+   ;; ==> undefined\n\
+   ]]"
   (js-code "(d$$x===Infinity)"))
 
 (defun -infinity? (x)
-  "True if and only if [x] is the negative infinity value"
+  "True if and only if [x] is the negative infinity value.\n\
+   The [-infinity] value is used as the result of certain computations. \
+   It is a logically true value, it is a number, it can be inspected \
+   for properties and cannot be serialized to {{json}}/{{json*}} format.[[\n\
+   (-infinity? (/ -1 0))\n\
+   (if -infinity 1 2)\n\
+   ;; ==> 1\n\
+   \n\
+   (json -infinity)\n\
+   ;; ==> \"null\"\n\
+   \n\
+   (aref -infinity 2)\n\
+   ;; ==> undefined\n\
+   ]]"
   (js-code "(d$$x===-Infinity)"))
 
 (defun NaN? (x)
-  "True if and only if [x] is the NaN value"
+  "True if and only if [x] is the NaN value \
+   The [NaN] value is used as the result of certain computations. \
+   It is a logically false value, it is a number (even if the name \
+   literally means \"Not A Number\"), can be inspected for \
+   properties and cannot be serialized to {{json}}/{{json*}} format.[[\n\
+   (NaN? (log -1))\n\
+   ;; ==> true\n\
+   \n\
+   (if NaN 1 2)\n\
+   ;; ==> 2\n\
+   \n\
+   (json NaN)\n\
+   ;; ==> "null"\n\
+   \n\
+   NaN.x\n\
+   ;; ==> undefined\n\
+   ]]"
   (js-code "((typeof d$$x)==='number'&&!d$$x&&!(d$$x===0))"))
 
 (defun object? (x)
-  "True if and only if [x] is a javascript object"
+  "True if and only if [x] is an anonymous javascript object.\n\
+   Anonymous objects are created with {{js-object}} or its \
+   reader macro [#(...)].\n\
+   Anonymous Javascript objects are logically true values (even \
+   the empty anonymous object [#()]) and can be serialized with \
+   {{json}} or {{json*}}.[[\n\
+   (object? (list))\n\
+   ;; ==> false\n\
+   \n\
+   (object? #())\n\
+   ;; ==> true\n\
+   \n\
+   (if #() 1 2)\n\
+   ;; ==> 1\n\
+   \n\
+   (defobject xy (x y))\n\
+   ;; ==> xy\n\
+   \n\
+   (object? (new-xy 10 20))\n\
+   ;; ==> false\n\
+   \n\
+   (json #((x 10)(y 20)))\n\
+   ;; ==> \"{\\\"x\\\":10,\\\"y\\\":20}\"\n\
+   ]]"
   (js-code "((d$$x&&d$$x.constructor&&d$$x.constructor===Object)===true)"))
 
 (defun zero? (x)
-  "True if and only if [x] is the number zero"
+  "True if and only if [x] is the number zero."
   (and (number? x) (= x 0)))
 
 (defun odd? (x)
-  "True if number [x] is odd"
+  "True if the integer number [x] is odd.\n\
+   Note that JsLisp uses floating point numbers for numeric computations \
+   and there is no predefined arbitrary integer precision math. This means \
+   for example that there are numbers like 9007199254740992 that are even \
+   and that remain even after adding 1.[[
+   (let ((x 1))\n\
+     (dotimes (i 53)\n\
+       (setf x (+ x x)))\n\
+     x)\n\
+   ;; ==> 9007199254740992\n\
+   \n\
+   (odd? *)\n\
+   ;; ==> false\n\
+   \n\
+   (odd? (1+ **))\n\
+   ;; ==> false\n\
+   \n\
+   (= *** (1+ ***))\n\
+   ;; ==> true\n\
+   ]]"
   (js-code "(!!(d$$x&1))"))
 
 (defun even? (x)
-  "True if number [x] is even"
+  "True if the integer number [x] is even.\n\
+   Note that JsLisp uses floating point numbers for numeric computations \
+   and there is no predefined arbitrary integer precision math. This means \
+   for example that there are numbers like 9007199254740992 that are even \
+   and that remain even after adding 1.[[
+   (let ((x 1))\n\
+     (dotimes (i 53)\n\
+       (setf x (+ x x)))\n\
+     x)\n\
+   ;; ==> 9007199254740992\n\
+   \n\
+   (odd? *)\n\
+   ;; ==> false\n\
+   \n\
+   (odd? (1+ **))\n\
+   ;; ==> false\n\
+   \n\
+   (= *** (1+ ***))\n\
+   ;; ==> true\n\
+   ]]"
   (js-code "(!(d$$x&1))"))
 
 ;; Dolist macro
