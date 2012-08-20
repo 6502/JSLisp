@@ -296,7 +296,24 @@
 
 ;; Dolist macro
 (defmacro dolist (var+list &rest body)
-  "Evaluates [body] forms after binding [var] to each element of [list]"
+  "Evaluates [body] forms after binding [var] to each element of [list].\n\
+   [var] receives a new fresh binding for each iteration and also allows \
+   simple destructuring. See also {{dotimes}} and {{enumerate}}[[\n\
+   (let ((res (list)))\n\
+     (dolist (i (range 10))\n\
+       (push (lambda () i) res))\n\
+     (map #'funcall res))\n\
+   ;; ==> (0 1 2 3 4 5 6 7 8 9)\n\
+   \n\
+   (dolist ((i j) (zip (range 5) (range 5 10)))\n\
+     (display (str-value (list i j))))\n\
+   (0 5)\n\
+   (1 6)\n\
+   (2 7)\n\
+   (3 8)\n\
+   (4 9)\n\
+   ;; ==> undefined\n\
+   ]]"
   (list 'js-code (+ "((function(list){var f="
                     (js-compile (append (list 'lambda
                                               (list (js-code "d$$var$43_list[0]")))
@@ -307,7 +324,15 @@
 
 ;; Dotimes macro
 (defmacro dotimes (var+count &rest body)
-  "Evaluates [body] forms after binding [var] to 0, 1, ... [(1- count)]"
+  "Evaluates [body] forms after binding [var] to 0, 1, ... [(1- count)].\n\
+   [var] receives a new fresh binding for each iteration. See also {{dolist}} \
+   and {{enumerate}}.[[\n\
+   (let ((res (list)))\n\
+     (dotimes (i 10)\n\
+       (push (lambda () i) res))\n\
+     (map #'funcall res))\n\
+   ;; ==> (0 1 2 3 4 5 6 7 8 9)\n\
+   ]]"
   (list 'js-code (+ "((function(n){var f="
                     (js-compile (append (list 'lambda
                                               (list (js-code "d$$var$43_count[0]")))
@@ -320,7 +345,18 @@
 
 ;; Enumeration macro
 (defmacro enumerate (index+var+list &rest body)
-  "Evaluates [body] froms after binding [index] to 0, 1, ... and [var] to each element of [list]"
+  "Evaluates [body] froms after binding [index] to 0, 1, ... and [var] to \
+   each element of [list].\n\
+   Both [index] and [var] receive a new fresh binding at each iteration \
+   and [var] also allows simple destructuring. See also {{dotimes}} and \
+   {{dolist}}.[[\n\
+   (let ((res (list)))\n\
+     (enumerate (i (x y) (zip \"abc\"\n\
+                              \"def\"))\n\
+       (push (lambda () (list i x y)) res))\n\
+     (map #'funcall res))\n\
+   ;; ==> ((0 \"a\" \"d\") (1 \"b\" \"e\") (2 \"d\" \"f\"))\n\
+   ]]"
   (list 'js-code (+ "((function(L){var f="
                     (js-compile (append (list 'lambda
                                               (list (js-code "d$$index$43_var$43_list[0]")
@@ -330,9 +366,8 @@
                     (js-compile (js-code "d$$index$43_var$43_list[2]"))
                     "))")))
 
-;; Funcall macro
+;; Funcall (macro version)
 (defmacro funcall (f &rest args)
-  "Calls the function object [f] passing specified values as parameters."
   (let ((res (+ (js-compile f) "("))
         (sep ""))
     (dolist (x args)
@@ -342,11 +377,9 @@
 
 ;; List-related macros (can't be defined before '+')
 (defmacro length (x)
-  "Returns the length of a list or string object [x]"
   (list 'js-code (+ "(" (js-compile x) ".length)")))
 
 (defmacro list (&rest args)
-  "Returns a new fresh list containing the passed values"
   (let ((res "[")
         (sep ""))
     (dolist (x args)
@@ -357,19 +390,47 @@
     (list 'js-code (+ res "]"))))
 
 (defun push (value list)
-  "Adds the specified [value] to the end of [list]"
+  "Adds the specified [value] to the END of [list].\n\
+   JsLisp [list] objects are implemented using native Javascript \
+   arrays (that are similar to [vector] objects of Common Lisp) so \
+   adding to the END of the list is the \"natural\" implementation. \
+   For the same reason in JsLisp [push] can be a regular function \
+   (it must be instead a macro in Common Lisp).\n\
+   In JsLisp both {{reverse}} and {{nreverse}} are available, but \
+   they're used less frequently because lists elements often happen \
+   to be already in the correct order.[[\n\
+   (let ((res (list)))\n\
+     (dotimes (i 10)\n\
+       (push (* i i) res))\n\
+     res)\n\
+   ;; ==> (0 1 4 9 16 25 36 49 64 81)\n\
+   ]]"
   (js-code "d$$list.push(d$$value)"))
 
 (defmacro rest (x)
-  "Returns a string or list obtained from [x] by removing first element"
   (list 'js-code (+ "(" (js-compile x) ".slice(1))")))
 
 (defun rest (x)
-  "Returns a list or string obtained from [x] by removing first element"
+  "Returns a string or list obtained from [x] by removing first element.\n\
+   In JsLisp [list] objects are implemented using Javascrip arrays and \
+   no tail sharing is possible (sharing is still possible at the whole \
+   list level in tree structures). [rest] therefore returns a shallow COPY \
+   of the list excluding first element.[[\n\
+   (let* ((x (list 0 1 2 3 4))\n\
+          (y (rest x)))\n\
+     (setf (first y) 99)\n\
+     (list x y))\n\
+   ;; ==> ((0 1 2 3 4) (99 2 3 4))\n\
+   ;; in CL would be ((0 99 2 3 4) (99 2 3 4))\n\
+   \n\
+   (let ((x (range 10)))\n\
+     (= (rest x)\n\
+        (rest x)))\n\
+   ;; ==> false\n\
+   ]]"
   (js-code "(d$$x.slice(1))"))
 
 (defmacro splice (x start size)
-  "Removes and returns [size] elements (or all remaining) from a given [start] point or from the beginning."
   (list 'js-code (+ "("
                     (js-compile x)
                     ".splice("
@@ -379,7 +440,8 @@
                     "))")))
 
 (defun splice (x start size)
-  "Removes and returns [size] elements (or all remaining) from a given [start] point or from the beginning."
+  "Removes and returns [size] elements (or all remaining) \
+   from a given [start] point or from the beginning."
   (js-code "(d$$x.splice(d$$start,d$$size))"))
 
 (defun insert (x i y)
