@@ -215,7 +215,7 @@ constants[f$$intern('false').name] = 'false';
 constants[f$$intern('undefined').name] = 'undefined';
 constants[f$$intern('NaN').name] = 'NaN';
 constants[f$$intern('infinity').name] = 'Infinity';
-constants[f$$intern('-infinity').name] = '-Infinity';
+constants[f$$intern('-infinity').name] = '(-Infinity)';
 
 f$$intern("js-code");
 
