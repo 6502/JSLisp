@@ -33,7 +33,17 @@
     <style type="text/css">
      .code { font-family: monospace;
              font-weight: bold;
-             font-size: 110%; }
+             font-size: 120%;
+             color: #000080;
+             white-space: pre; }
+     .help { position: absolute;
+             max-width: 50%;
+             right: 8px;
+             top: 8px;
+             color: #444444;
+             border: solid 1px #888888;
+             background-color: #FFFFFF;
+             padding: 8px; }
     </style>
   </head>
   <body style="margin:0px; padding:0px; border:none">
@@ -42,7 +52,7 @@
         onkeydown = "keyDown(event)"
         onkeypress = "keyPress(event)"></textarea>
       <div id="clpar" style="position:absolute; width:22px; height:22px; border:solid 1px #FF0000"></div>
-      <div id="help" style="position:absolute; max-width:50%; right:0px; top:0px; color:#000080; border:solid 1px #000080; background-color:#FFFFFF; padding:4px;"></div>
+      <div id="help" class="help"></div>
     </div>
     <script src="jslisp.js">
     </script>
@@ -147,17 +157,20 @@ function setHelp(txt, module, opa)
             if (!morehelp)
                 txt = s.slice(0,2).join("\n");
             if (module != "") txt = "(from [" + module + "] module)\n" + txt;
-            help.innerHTML= (txt
-                             .replace(/&/g,"&amp;")
-                             .replace(/</g,"&lt;")
-                             .replace(/>/g,"&gt;")
-                             .replace(/"/g,"&quot;")
-                             .replace(/\n/g,"<br/>")
-                             .replace(/\[\[/g,"<pre class='code'\">")
-                             .replace(/\]\]/g,"</pre>")
-                             .replace(/\[/g,"<span class='code'\">")
-                             .replace(/\]/g,"</span>")
-                             .replace(/{{(.*?)}}/g, "<a href='javascript:helpLookup(\"$1\",true)'><span class='code'\">$1</span></a>"));
+            txt = (txt
+                   .replace(/&/g,"&amp;")
+                   .replace(/</g,"&lt;")
+                   .replace(/>/g,"&gt;")
+                   .replace(/"/g,"&quot;")
+                   .replace(/\n/g,"<br/>")
+                   .replace(/\[\[/g,"<pre class='code'\">")
+                   .replace(/\]\]/g,"</pre>")
+                   .replace(/\[/g,"<span class='code'\">")
+                   .replace(/\]/g,"</span>")
+                   .replace(/{{(.*?)}}/g,
+                            "<a href='javascript:helpLookup(\"$1\",true)'>"+
+                            "<span class='code'\">$1</span></a>"));
+            help.innerHTML = txt;
             if (s.length > 2)
             {
                 var moreorless = document.createElement("input");
