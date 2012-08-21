@@ -327,6 +327,8 @@
    It is a logically true value, it is a number, it can be inspected \
    for properties and cannot be serialized to {{json}}/{{json*}} format.[[\
    (-infinity? (/ -1 0))\n\
+   ;; ==> true\n\
+   \n\
    (if -infinity 1 2)\n\
    ;; ==> 1\n\
    \n\
@@ -351,7 +353,7 @@
    ;; ==> 2\n\
    \n\
    (json NaN)\n\
-   ;; ==> "null"\n\
+   ;; ==> \"null\"\n\
    \n\
    NaN.x\n\
    ;; ==> undefined\n\
@@ -393,21 +395,16 @@
   "True if the integer number [x] is odd.\n\
    Note that JsLisp uses floating point numbers for numeric computations \
    and there is no predefined arbitrary integer precision math. This means \
-   for example that there are numbers like 9007199254740992 that are even \
-   and that remain even after adding 1.[[
-   (let ((x 1))\n\
-     (dotimes (i 53)\n\
-       (setf x (+ x x)))\n\
-     x)\n\
-   ;; ==> 9007199254740992\n\
-   \n\
-   (odd? *)\n\
+   for example that there are numbers like 9007199254740992 (2**53) that \
+   are even and that remain even after adding 1.[[
+   (odd? 9007199254740992)\n\
    ;; ==> false\n\
    \n\
-   (odd? (1+ **))\n\
+   (odd? (1+ 9007199254740992))\n\
    ;; ==> false\n\
    \n\
-   (= *** (1+ ***))\n\
+   (= 9007199254740992
+      (1+ 9007199254740992))\n\
    ;; ==> true\n\
    ]]"
   (js-code "(!!(d$$x&1))"))
@@ -416,21 +413,16 @@
   "True if the integer number [x] is even.\n\
    Note that JsLisp uses floating point numbers for numeric computations \
    and there is no predefined arbitrary integer precision math. This means \
-   for example that there are numbers like 9007199254740992 that are even \
-   and that remain even after adding 1.[[
-   (let ((x 1))\n\
-     (dotimes (i 53)\n\
-       (setf x (+ x x)))\n\
-     x)\n\
-   ;; ==> 9007199254740992\n\
-   \n\
-   (odd? *)\n\
+   for example that there are numbers like 9007199254740992 (2**53) that \
+   are even and that remain even after adding 1.[[
+   (odd? 9007199254740992)\n\
    ;; ==> false\n\
    \n\
-   (odd? (1+ **))\n\
+   (odd? (1+ 9007199254740992))\n\
    ;; ==> false\n\
    \n\
-   (= *** (1+ ***))\n\
+   (= 9007199254740992
+      (1+ 9007199254740992))\n\
    ;; ==> true\n\
    ]]"
   (js-code "(!(d$$x&1))"))
@@ -496,7 +488,7 @@
                               \"def\"))\n\
        (push (lambda () (list i x y)) res))\n\
      (map #'funcall res))\n\
-   ;; ==> ((0 \"a\" \"d\") (1 \"b\" \"e\") (2 \"d\" \"f\"))\n\
+   ;; ==> ((0 \"a\" \"d\") (1 \"b\" \"e\") (2 \"c\" \"f\"))\n\
    ]]"
   (list 'js-code (+ "((function(L){var f="
                     (js-compile (append (list 'lambda
@@ -1902,7 +1894,7 @@ If only one parameter is passed it's assumed to be [stop]."
 
 (defun strip (x)
   "Remove both initial and final spaces from string [x]"
-  (replace x (regexp "^\\s*(.*?)\\s*$") "$1"))
+  (lstrip (rstrip x)))
 
 ;; Anonymous JS object access/creation
 (defun valid-js-name (x)
