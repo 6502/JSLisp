@@ -604,55 +604,53 @@
   x)
 
 ;; Quasiquoting
-(defun bqconst (x)
-  "True if the form [x] is constant in respect to backquoting"
-  (if (list? x)
-      (if (or (= (aref x 0) '\,)
-              (= (aref x 0) '\`)
-              (= (aref x 0) '\,@))
-          false
-          (do ((i 0 (+ i 1)))
-              ((or (= i (length x)) (not (bqconst (aref x i))))
-               (= i (length x)))))
-      true))
-
-(defun bquote (x)
-  "Returns the backquote expansion of [x]"
-  (cond
-   ((or (number? x) (string? x) (= x null))
-    x)
-   ((bqconst x)
-    (list 'quote x))
-   ((list? x)
-    (cond
-     ((= (aref x 0) '\`)
-      (list '\` (bquote (aref x 1))))
-     ((= (aref x 0) '\,)
-      (aref x 1))
-     ((= (aref x 0) '\,@)
-      (error ",@ must be used inside lists"))
-     (true
-      (let ((res (list 'append))
-            (clist (list 'list)))
-        (dolist (el x)
-          (cond
-           ((and (list? el) (= (aref el 0) '\,@))
-            (when (> (length clist) 1)
-              (push clist res)
-              (setq clist (list 'list)))
-            (push (aref el 1) res))
-           (true
-            (push (bquote el) clist))))
-        (when (> (length clist) 1)
-          (push clist res))
-        (if (> (length res) 2)
-            res
-            (aref res 1))))))
-   (true (list 'quote x))))
-
 (defmacro |`| (x)
-    "Backquoting macro"
-    (bquote x))
+  "Backquoting macro"
+  (labels ((bqconst (x)
+             "True if the form [x] is constant in respect to backquoting"
+             (if (list? x)
+                 (if (or (= (aref x 0) '\,)
+                         (= (aref x 0) '\`)
+                         (= (aref x 0) '\,@))
+                     false
+                     (do ((i 0 (+ i 1)))
+                         ((or (= i (length x)) (not (bqconst (aref x i))))
+                            (= i (length x)))))
+                 true))
+           (bquote (x)
+             "Returns the backquote expansion of [x]"
+             (cond
+               ((or (number? x) (string? x) (= x null))
+                x)
+               ((bqconst x)
+                (list 'quote x))
+               ((list? x)
+                (cond
+                  ((= (aref x 0) '\`)
+                   (list '\` (bquote (aref x 1))))
+                  ((= (aref x 0) '\,)
+                   (aref x 1))
+                  ((= (aref x 0) '\,@)
+                   (error ",@ must be used inside lists"))
+                  (true
+                   (let ((res (list 'append))
+                         (clist (list 'list)))
+                     (dolist (el x)
+                       (cond
+                         ((and (list? el) (= (aref el 0) '\,@))
+                          (when (> (length clist) 1)
+                            (push clist res)
+                            (setq clist (list 'list)))
+                          (push (aref el 1) res))
+                         (true
+                          (push (bquote el) clist))))
+                     (when (> (length clist) 1)
+                       (push clist res))
+                     (if (> (length res) 2)
+                         res
+                         (aref res 1))))))
+               (true (list 'quote x)))))
+    (bquote x)))
 
 ;; defmacro/f
 (defmacro defmacro/f (name args &rest body)
