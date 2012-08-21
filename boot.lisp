@@ -736,11 +736,35 @@
      `(js-code ,(+ "(" (js-compile x) ".slice(" (js-compile start) "," (js-compile end) "))")))))
 
 (defmacro/f reverse (list)
-  "Returns a copy of the elements in the opposite ordering"
+  "Returns a copy of the elements in the opposite ordering.
+   Note that one difference between Common Lisp and JsLisp is \
+   that {{push}} adds element at the END of a list and not \
+   at the beginning: in many cases lists are already correctly \
+   ordered. Note also that [reverse] always creates a new list \
+   even if the input list is empty. See also {{nreverse}}[[
+   (let ((x (range 5)))
+     (list x (reverse x)))
+   ;; ==> ((0 1 2 3 4) (4 3 2 1 0))
+
+   (reverse (list))
+   ;; ==> ()
+
+   (let ((x (list)))
+     (= x (reverse x)))
+   ;; ==> false
+   ]]"
   `(js-code ,(+ "(" (js-compile list) ".slice().reverse())")))
 
 (defmacro/f nreverse (list)
-  "Reverses in place the ordering of the elements"
+  "Reverses in place the ordering of the elements of [list].
+   Note that one difference between Common Lisp and JsLisp is \
+   that {{push}} adds element at the END of a list and not \
+   at the beginning: in many cases lists are already correctly \
+   ordered. See also {{reverse}}[[
+   (let ((x (range 5)))
+     (list x (nreverse x)))
+   ;; ==> ((4 3 2 1 0) #1)
+   ]]"
   `(js-code ,(+ "(" (js-compile list) ".reverse())")))
 
 (defmacro/f first (x) "First element of list/string [x]" `(aref ,x 0))
