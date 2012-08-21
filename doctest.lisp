@@ -25,13 +25,13 @@
                          (reference (replace
                                      (strip (replace
                                              (if (find "\n**ERROR**: " case)
-                                                 (slice case (+ 1 (index "\n**ERROR**: " case)))
+                                                 "**ERROR**"
                                                  (slice case (+ 8 (index "\n;; ==> " case))))
                                              "\n;;.*" ""))
                                      "\\n\\s+" " "))
                          (result (try
                                   (str-value (toplevel-eval (parse-value src)))
-                                  ~"**ERROR**: {*exception*}")))
+                                  "**ERROR**")))
                     (unless (= result reference)
                       (incf failed)
                       (alert ~"FAILURE: {name} (test #{(1+ num)})\n\n\
