@@ -44,6 +44,8 @@
              border: solid 1px #888888;
              background-color: #FFFFFF;
              padding: 8px; }
+     .helptitle { font-size: 110%;
+                  text-align: center; }
     </style>
   </head>
   <body style="margin:0px; padding:0px; border:none">
@@ -156,7 +158,6 @@ function setHelp(txt, module, opa)
             var s = txt.split("\n");
             if (!morehelp)
                 txt = s.slice(0,2).join("\n");
-            if (module != "") txt = "(from [" + module + "] module)\n" + txt;
             txt = (txt
                    .replace(/&/g,"&amp;")
                    .replace(/</g,"&lt;")
@@ -170,6 +171,12 @@ function setHelp(txt, module, opa)
                    .replace(/{{(.*?)}}/g,
                             "<a href='javascript:helpLookup(\"$1\",true)'>"+
                             "<span class='code'\">$1</span></a>"));
+            var hix = txt.indexOf("<br/>");
+            txt = ("<div class=\"helptitle\">" +
+                   txt.substr(0, hix) +
+                   "</div>" +
+                   txt.substr(hix));
+            if (module != "") txt = "(from <span class=\"code\">" + module + "</span> module)\n" + txt;
             help.innerHTML = txt;
             if (s.length > 2)
             {
