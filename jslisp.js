@@ -536,6 +536,11 @@ defmacro("lambda",
          "in [body] in sequence returning the last evaluated form value as result",
          function(args)
          {
+             // Poor version of &optional to help bootstrapping (no support for
+             // default values; just removes the keyword from the arg list)
+             var iopt = args.indexOf(s$$$38_optional);
+             if (iopt >= 0) args = args.slice(0,iopt).concat(args.slice(1+iopt));
+
              var current_outgoing_calls = d$$$42_outgoing_calls$42_;
              d$$$42_outgoing_calls$42_ = {};
              var current_used_globals = d$$$42_used_globals$42_;

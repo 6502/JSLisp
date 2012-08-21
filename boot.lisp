@@ -710,14 +710,16 @@
    ]]"
   (setq name (module-symbol name))
   `(progn
-     (defmacro ,name ,args ,@body)
-     (defun ,name ,args (,name ,@args))
+     (defmacro ,name ,args
+       ,@body)
+     (defun ,name ,args
+       (,name ,@(js-code "d$$args.filter(function(x){return x!=s$$$38_optional})")))
      (set-documentation (symbol-function ',name)
                         (documentation (symbol-macro ',name)))
      ',name))
 
 ;; List utilities
-(defmacro/f slice (x start end)
+(defmacro/f slice (x &optional start end)
   "Returns elements of string or list [x] from [start] to \
    before [end] or all remaining if no [end] is specified.\n\
    Without arguments does a full shallow copy.[[\
@@ -740,8 +742,6 @@
      `(js-code ,(+ "(" (js-compile x) ").slice(" (js-compile start) ")")))
     (true
      `(js-code ,(+ "(" (js-compile x) ".slice(" (js-compile start) "," (js-compile end) "))")))))
-(set-arglist (symbol-function 'slice) '(x &optional start end))
-(set-arglist (symbol-macro 'slice) '(x &optional start end))
 
 (defmacro/f reverse (list)
   "Returns a copy of the elements in the opposite ordering"
@@ -1019,7 +1019,7 @@
           (error (+ "Unsupported setf place " (str-value place)))))))
     (true (error "Invalid setf place"))))
 
-(defmacro incf (place inc)
+(defmacro incf (place &optional inc)
   "Increments the content of a place by the specified increment or by 1 if not specified.
    A place is either a symbol or a form (e.g. [(aref x i)]) for which a corresponding
    increment form is defined (e.g. [(inc-aref x i inc)]) either as function or macro
@@ -1050,9 +1050,8 @@
          (true
           (error "Unsupported incf place")))))
     (true (error "Invalid incf place"))))
-(set-arglist (symbol-macro 'incf) '(place &optional (inc 1)))
 
-(defmacro decf (place dec)
+(defmacro decf (place &optional dec)
   "Decrements the content of a place by the specified decrement or by 1 if not specified.
    A place is either a symbol or a form (e.g. [(aref x i)]) for which a corresponding
    decrement form is defined (e.g. [(dec-aref x i dec)]) either as function or macro
@@ -1083,7 +1082,6 @@
          (true
           (error "Unsupported decf place")))))
     (true (error "Invalid decf place"))))
-(set-arglist (symbol-macro 'decf) '(place &optional (dec 1)))
 
 (defmacro set-js-code (x value)
   "Set of js literal lvalue as last resort on (setf (...))"
@@ -1288,14 +1286,10 @@ The resulting list length is equal to the shortest input sequence."
   (if (= condition undefined)
       `(js-code ,(+ "(" (js-compile x) ").sort(function(a,b){return a<b?-1:1;})"))
       `(js-code ,(+ "(" (js-compile x) ").sort(function(a,b){return (" (js-compile condition) ")(a,b)?-1:1;})"))))
-(set-arglist (symbol-function 'nsort) '(x &optional (condition #'<)))
-(set-arglist (symbol-macro 'nsort) '(x &optional (condition #'<)))
 
 (defmacro/f sort (x condition)
   "Returns a copy of a sequence [x] with elements sorted according to the specified [condition] or [#'<] if no condition is given."
   `(nsort (slice ,x) ,condition))
-(set-arglist (symbol-function 'sort) '(x &optional (condition #'<)))
-(set-arglist (symbol-macro 'sort) '(x &optional (condition #'<)))
 
 ;; let** (like letrec of scheme)
 (defmacro let** (bindings &rest body)
