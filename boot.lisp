@@ -767,16 +767,32 @@
    ]]"
   `(js-code ,(+ "(" (js-compile list) ".reverse())")))
 
-(defmacro/f first (x) "First element of list/string [x]" `(aref ,x 0))
-(defmacro/f second (x) "Second element of list/string [x]" `(aref ,x 1))
-(defmacro/f third (x) "Third element of list/string [x]" `(aref ,x 2))
-(defmacro/f fourth (x) "Fourth element of list/string [x]" `(aref ,x 3))
-(defmacro/f fifth (x) "Fifth element of list/string [x]" `(aref ,x 4))
-(defmacro/f sixth (x) "Sixth element of list/string [x]" `(aref ,x 5))
-(defmacro/f seventh (x) "Seventh element of list/string [x]" `(aref ,x 6))
-(defmacro/f eighth (x) "Eighth element of list/string [x]" `(aref ,x 7))
-(defmacro/f ninth (x) "Ninth element of list/string [x]" `(aref ,x 8))
-(defmacro/f tenth (x) "Tenth element of list/string [x]" `(aref ,x 9))
+(defmacro defnth-accessor (name i)
+  "Defines a named accessor for [(aref x k)] where [k] is a constant."
+  `(defmacro/f ,name (x)
+     ,(+ "Accessor for " name " element of list/string [x]\n"
+         "The accessor is equivalent to [(aref x " i ")] but it can "
+         "be more readable in certain cases. The accessor can be used "
+         "for reading and (when [x] is a list) as a place in a {{setf}}, "
+         "{{incf}} or {{decf}} form. It is defined both as a macro "
+         "and as a function.[[\n"
+         "(let ((x (range " (+ i 10) ")))\n"
+         "  (incf (" name " x))\n"
+         "  (aref x " i "))\n"
+         ";; ==> " (+ 1 i) "\n"
+         "]]")
+     (list 'aref x ,i)))
+
+(defnth-accessor first   0)
+(defnth-accessor second  1)
+(defnth-accessor third   2)
+(defnth-accessor fourth  3)
+(defnth-accessor fifth   4)
+(defnth-accessor sixth   5)
+(defnth-accessor seventh 6)
+(defnth-accessor eighth  7)
+(defnth-accessor ninth   8)
+(defnth-accessor tenth   9)
 
 ;; String splitting and joining
 (defmacro/f split (x separator)
