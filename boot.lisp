@@ -805,7 +805,7 @@
    Finally if a separator is a regular expression that also has \
    capturing groups then the value of the groups will be also \
    spliced into the resulting list (using [undefined] for non \
-   matching groups).[[
+   matching groups). See also {{join}}[[
    (split \"abc/def/gh/\" \"/\")
    ;; ==> (\"abc\" \"def\" \"gh\" \"\")
 
@@ -843,7 +843,22 @@
                 "))")))
 
 (defmacro/f join (x separator)
-  "Joins the content of list [x] of strings placing specified [separator] between elements"
+  "Joins the content of list [x] converting elements to strings \
+   and placing specified [separator] between elements.
+   The total number of separators inserted will be one less than \
+   [(length x)]. See also {{split}}[[
+   (join (range 10) \"/\")
+   ;; ==> \"0/1/2/3/4/5/6/7/8/9\"
+
+   (join (list) \"/\")
+   ;; ==> \"\"
+
+   (join (list 3) \"/\")
+   ;; ==> \"3\"
+
+   (join (split \"Andrea\" \"\") \"\")
+   ;; ==> \"Andrea\"
+   ]]"
   `(js-code ,(+ "("
                 (js-compile x)
                 ".join("
