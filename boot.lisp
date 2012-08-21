@@ -796,7 +796,46 @@
 
 ;; String splitting and joining
 (defmacro/f split (x separator)
-  "Splits a string [x] using the specified separator"
+  "Splits a string [x] using the specified separator.
+   The separator can be both a string or a {{regexp}} object. \
+   If the separator matches an empty string then it's not \
+   considered matching at start and end of the string, but only \
+   at intermediate positions. Also a separator cannot match more \
+   than once at a given position.
+   Finally if a separator is a regular expression that also has \
+   capturing groups then the value of the groups will be also \
+   spliced into the resulting list (using [undefined] for non \
+   matching groups).[[
+   (split \"abc/def/gh/\" \"/\")
+   ;; ==> (\"abc\" \"def\" \"gh\" \"\")
+
+   (split \"abcd\" \"x\")
+   ;; ==> (\"abcd\")
+
+   (split \"Andrea\" \"\")
+   ;; ==> (\"A\" \"n\" \"d\" \"r\" \"e\" \"a\")
+
+   (split \"this-is/a:test!\" (regexp \"[^a-z]+\"))
+   ;; ==> (\"this\" \"is\" \"a\" \"test\" \"\")
+
+   (split \"\" \"/\")
+   ;; ==> (\"\")
+
+   (split \"\" \"\")
+   ;; ==> ()
+
+   (split \"ab\" (regexp \"a*\"))
+   ;; ==> (\"\" \"b\")
+
+   (split \"ab\" (regexp \"a*?\"))
+   ;; ==> (\"a\" \"b\")
+
+   (split \"07/07/1966\" (regexp \"[-/.]\"))
+   ;; ==> (\"07\" \"07\" \"1966\")
+
+   (split \"07/07/1966\" (regexp \"([-/.])\"))
+   ;; ==> (\"07\" \"/\" \"07\" \"/\" \"1966\")
+   ]]"
   `(js-code ,(+ "("
                 (js-compile x)
                 ".split("
