@@ -1191,9 +1191,23 @@ The resulting list length is equal to the shortest input sequence."
         (push x res)))
     res))
 
-(defun index0 (x L)
-  "Returns the index position in which [x] appears in list/string [L] or -1 if it's not present"
-  (js-code "d$$L.indexOf(d$$x)"))
+(defun index (x L &optional start)
+  "Returns the index position in which [x] appears in \
+   list/string [L] or -1 if it's not present.\n\
+   If the parameter [start] is specified then it is \
+   the position from where to start the search.[[\
+   (index \"r\" \"Andrea Griffini\")\n\
+   ;; ==> 3\n\
+   \n\
+   (index \"r\" \"Andrea Griffini\" 4)\n\
+   ;; ==> 8\n\
+   \n\
+   (index 42 (list 1 3 5 7))\n\
+   ;; ==> -1\n\
+   ]]"
+  (if start
+      (js-code "d$$L.indexOf(d$$x,d$$start)")
+      (js-code "d$$L.indexOf(d$$x)")))
 
 (defun last-index (x L)
   "Returns the last index position in which [x] appears in list/string [L] or -1 if it's not present"
@@ -1201,7 +1215,7 @@ The resulting list length is equal to the shortest input sequence."
 
 (defun find (x L)
   "True if element [x] is included in [L]"
-  (/= -1 (index0 x L)))
+  (/= -1 (index x L)))
 
 (defun remove (x L)
   "Returns a copy of [L] after all instances of [x] have been removed"
@@ -1223,14 +1237,14 @@ The resulting list length is equal to the shortest input sequence."
 
 (defun remove-first (x L)
   "Returns a copy of [L] after removing first instance of [x] if present"
-  (let ((i (index0 x L)))
+  (let ((i (index x L)))
     (if (>= i 0)
         (append (slice L 0 i) (slice L (1+ i)))
         (slice L))))
 
 (defun nremove-first (x L)
   "Remove first element [x] from list [L] if present. Returns true if found."
-  (let ((i (index0 x L)))
+  (let ((i (index x L)))
     (when (>= i 0)
       (splice L i 1))
     (>= i 0)))
@@ -1280,14 +1294,14 @@ The resulting list length is equal to the shortest input sequence."
         (push x res)))
     res))
 
-(defmacro/f nsort (x condition)
+(defmacro/f nsort (x &optional condition)
   "Modifies a sequence [x] inplace by sorting the elements according to the
    specified [condition] or [#'<] if no condition is given."
-  (if (= condition undefined)
+  (if (undefined? condition)
       `(js-code ,(+ "(" (js-compile x) ").sort(function(a,b){return a<b?-1:1;})"))
       `(js-code ,(+ "(" (js-compile x) ").sort(function(a,b){return (" (js-compile condition) ")(a,b)?-1:1;})"))))
 
-(defmacro/f sort (x condition)
+(defmacro/f sort (x &optional condition)
   "Returns a copy of a sequence [x] with elements sorted according to the specified [condition] or [#'<] if no condition is given."
   `(nsort (slice ,x) ,condition))
 
@@ -1335,8 +1349,8 @@ The resulting list length is equal to the shortest input sequence."
                   (let* ((doc (if (string? (first body))
                                   (js-code "d$$body.slice(0,1)")
                                   (list)))
-                         (i (index0 '&optional args))
-                         (r (index0 '&rest args)))
+                         (i (index '&optional args))
+                         (r (index '&rest args)))
                     (if (= i -1)
                         (apply oldcf `(,args
                                        ,@doc
@@ -1383,19 +1397,19 @@ The resulting list length is equal to the shortest input sequence."
   "True iff [x] is a keyword"
   (when (symbol? x)
     (let ((n (symbol-full-name x)))
-      (= (index0 ":" n) (- (length n) 1)))))
+      (= (index ":" n) (- (length n) 1)))))
 
 (setf (symbol-macro 'lambda)
       (let* ((oldcf (symbol-macro 'lambda))
              (oldcomm (documentation oldcf))
              (f (lambda (args &rest body)
-                  (let ((i (index0 '&key args)))
+                  (let ((i (index '&key args)))
                     (if (= i -1)
                         (apply oldcf (append (list args) body))
                         (let ((rest '#.(gensym-prefix "rest"))
                               (nrest '#.(gensym-prefix "nrest"))
                               (ix '#.(gensym-prefix "ix")))
-                          (unless (= -1 (index0 '&rest args))
+                          (unless (= -1 (index '&rest args))
                             (error "&key and &rest are incompatible"))
                           (apply oldcf `((,@(slice args 0 i) &rest ,rest)
                                          (let ((,nrest (length ,rest))
@@ -1535,29 +1549,6 @@ If only one parameter is passed it's assumed to be [stop]."
   (if prefix
       `(gensym-prefix ,prefix)
       `(gensym-noprefix)))
-
-;; Generic index
-(defmacro index (x seq &optional start)
-  "Returns the index of element [x] in [seq] or -1 if not present, eventually starting from the specified [start] position."
-  (if start
-      `(js-code ,(+ "("
-                    (js-compile seq)
-                    ".indexOf("
-                    (js-compile x)
-                    ","
-                    (js-compile start)
-                    "))"))
-      `(js-code ,(+ "("
-                    (js-compile seq)
-                    ".indexOf("
-                    (js-compile x)
-                    "))"))))
-
-(defun index (x seq &optional start)
-  "Returns the index of element [x] in [seq] or -1 if not present, eventually starting from the specified [start] position"
-  (if start
-      (js-code "(d$$seq.indexOf(d$$x,d$$start))")
-      (js-code "(d$$seq.indexOf(d$$x))")))
 
 ;; Destructuring setf
 
