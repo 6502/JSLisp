@@ -605,7 +605,39 @@
 
 ;; Quasiquoting
 (defmacro |`| (x)
-  "Backquoting macro"
+  "Backquoting macro.\n\
+   Backquoting syntax [`...] works like normal quoting but allows \
+   inserting in the backquoted part variables in two ways: normal \
+   insertion using a comma [,x] and splice insertion with a comma \
+   followed by an at-sign [,@x]. The last one requires the value \
+   [x] being inserted is a list and also can be used only inside \
+   lists; what it does is inserting individual elements in the \
+   containing list instead of inserting the list.\n\
+   Backquoting is implemented as this macro and three reader macros \
+   for improved readability: [`x => (` x)], [,x => (, x)] and \
+   [,@x => (,@ x)]; this means that to use the backquote or comma \
+   in a symbol you need to quote it e.g. with [|`|].\n\
+   Note that the value returned from evaluating a backquoted \
+   expression is not guaranteed to be \"fresh\" and may share \
+   parts with previous evaluations (see last example)[[\n\
+   `(+ 1 2 3)\n\
+   ;; ==> (+ 1 2 3)\n\
+   \n\
+   (let ((x 'value)\n\
+         (y '(v1 v2 v3)))\n\
+     (list `(a b x d e)\n\
+           `(a b ,x d e)\n\
+           `(a b ,y d e)\n\
+           `(a b ,@y d e)))\n\
+   ;; ==> ((a b x d e)\n\
+           (a b value d e)\n\
+           (a b (v1 v2 v3) d e)\n\
+           (a b v1 v2 v3 d e))\n\
+   \n\
+   (labels ((bq (x) `((1 2) ,x (3 4))))\n\
+     (list (bq \"A\") (bq \"B\")))\n\
+   ;; ==> (((1 2) \"A\" (3 4)) (#2 \"B\" #3))\n\
+   ]]"
   (labels ((bqconst (x)
              "True if the form [x] is constant in respect to backquoting"
              (if (list? x)
