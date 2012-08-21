@@ -1420,7 +1420,7 @@ defun("make-source",
       "Creates a character source that will produce the content of the specified string [x].",
       function(s)
       {
-          return ({"s":s, i:0});
+          return ({"s":s.replace(/\r/g,""), i:0});
       },
       [s$$x]);
 
@@ -1815,7 +1815,7 @@ defun("load",
       function(src, name)
       {
           if (f$$string$63_(src))
-              src = ({"s":src, "i":0, "location": name});
+              src = ({"s":src.replace(/\r/g,""), "i":0, "location": name});
           var nforms = 0;
           var last = null;
           try
