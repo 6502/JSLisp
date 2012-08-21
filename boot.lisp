@@ -1260,7 +1260,8 @@ The resulting list length is equal to the shortest input sequence."
    The check is performed using equality operator {{=}} that \
    does no type conversions. Given the rules of Javascript \
    about [NaN] equality this means however that [remove] \
-   cannot be used for removing [NaN]s. See {{nremove}}[[\
+   cannot be used for removing [NaN]s. \
+   See also {{nremove}}, {{remove-first}}, {{remove-last}}[[\
    (remove 3 (list 1 2 3 2 3 1))\n\
    ;; ==> (1 2 2 1)\n\
    \n\
@@ -1282,7 +1283,8 @@ The resulting list length is equal to the shortest input sequence."
    The check is performed using equality operator {{=}} that \
    does no type conversions. Given the rules of Javascript \
    about [NaN] equality this means however that [nremove] \
-   cannot be used for removing [NaN]s. See {{remove}}[[\
+   cannot be used for removing [NaN]s. \
+   See also {{remove}}, {{nremove-first}}, {{nremove-last}}[[\
    (let ((x (range 5)))\n\
      (list x (nremove 2 x)))\n\
    ;; ==> ((0 1 3 4) 1)\n\
@@ -1302,14 +1304,40 @@ The resulting list length is equal to the shortest input sequence."
     (- n wp)))
 
 (defun remove-first (x L)
-  "Returns a copy of [L] after removing first instance of [x] if present"
+  "Returns a copy of [L] after removing first instance of [x] \
+   if present.\n\
+   The check is performed using equality operator {{=}} that \
+   does no type conversions. Given the rules of Javascript \
+   about [NaN] equality this means however that [remove-first] \
+   cannot be used for removing [NaN]s. \
+   See also {{nremove-first}}, {{nremove-last}}, {{remove}}[[\
+   (remove-first 3 (list 1 2 3 2 3 1))\n\
+   ;; ==> (1 2 2 3 1)\n\
+   \n\
+   (remove-first 3 (list 1 2 4 8))\n\
+   ;; ==> (1 2 4 8)\n\
+   \n\
+   (let ((x (range 5)))\n\
+     (list x (remove-first 3 x)))\n\
+   ;; ==> ((0 1 2 3 4) (0 1 2 4))\n\
+   \n\
+   (remove-first NaN (list 1 2 NaN 3 4))\n\
+   ;; ==> (1 2 NaN 3 4)\n\
+   ]]"
   (let ((i (index x L)))
     (if (>= i 0)
         (append (slice L 0 i) (slice L (1+ i)))
         (slice L))))
 
 (defun nremove-first (x L)
-  "Remove first element [x] from list [L] if present. Returns true if found."
+  "Remove first element [x] from list [L] if present. \
+   Returns true if found.\n\
+   The check is performed using equality operator {{=}} that \
+   does no type conversions. Given the rules of Javascript \
+   about [NaN] equality this means however that [nremove-first] \
+   cannot be used for removing [NaN]s. \
+   See also {{remove-first}}, {{nremove-last}}, {{nremove}}[[\
+   ]]"
   (let ((i (index x L)))
     (when (>= i 0)
       (splice L i 1))
