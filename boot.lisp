@@ -708,24 +708,31 @@
    WARNING: Undefined variable x\n\
    ;; ==> \"(d$$x[0])\"\n\
    ]]"
-  ;; Note: Defmacro must be done at macro expansion time
-  ;;       because we need the macro in place when
-  ;;       defun is macroexpanded
   (setq name (module-symbol name))
-  (eval `(defmacro ,name ,args ,@body))
-  (let ((doc (if (and (> (length body) 1)
-                      (string? (aref body 0)))
-                 (splice body 0 1)
-                 (list))))
-    `(progn
-       (defun ,name ,args (,name ,@args))
-       (set-documentation (symbol-function ',name)
-                          (documentation (symbol-macro ',name)))
-       ',name)))
+  `(progn
+     (defmacro ,name ,args ,@body)
+     (defun ,name ,args (,name ,@args))
+     (set-documentation (symbol-function ',name)
+                        (documentation (symbol-macro ',name)))
+     ',name))
 
-;; Utilities
+;; List utilities
 (defmacro/f slice (x start end)
-  "Returns elements of [x] from [start] to before [end] or all remaining if no [end] is specified. Without args does a full shallow copy."
+  "Returns elements of string or list [x] from [start] to \
+   before [end] or all remaining if no [end] is specified.\n\
+   Without arguments does a full shallow copy.[[\
+   (slice \"abcdef\" 2 4)\n\
+   ;; ==> \"cd\"\n\
+   \n\
+   (slice \"abcdef\" 2)\n\
+   ;; ==> \"cdef\"\n\
+   \n\
+   (let* ((x (range 5))\n\
+          (y (slice x)))\n\
+     (setf (first y) 99)\n\
+     (list x y))\n\
+   ;; ==> ((0 1 2 3 4) (99 1 2 3 4))\n\
+   ]]"
   (cond
     ((and (undefined? start) (undefined? end))
      `(js-code ,(+ "(" (js-compile x) ").slice()")))
