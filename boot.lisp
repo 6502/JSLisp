@@ -56,7 +56,7 @@
   and that returns code. \
   Care should be taken so the generated code that will not \
   accidentally redefine names that were used in the context of \
-  the macro call. See also {{macroexpand-1}}, {{gensym}}.[[\n\
+  the macro call. See also {{macroexpand-1}}, {{gensym}}.[[\
   (defmacro assert (test)\n\
     `(unless ,test\n\
        (error ,~\"Assertion error: {(str-value test)}\")))\n\
@@ -77,7 +77,7 @@
   "Evaluates all forms in [body] returning last value only if [condition] \
    evaluates to a true value, otherwise the value is [null].\n\
    It's preferable to use [when] forms in cases in which the conditional \
-   only has code in the [true] path.[[\n\
+   only has code in the [true] path.[[\
    (when (string? x)\n\
      ;; One string; split on newlines\n\
      (setf x (split x \"\\n\")))\n\
@@ -89,7 +89,7 @@
    evaluates to a false value, otherwise the value is [null].\n\
    It's preferable to use [unless] forms in cases in which the
    conditional only has code in the [false] path and in which
-   the condition is more natural than its negation.[[\n\
+   the condition is more natural than its negation.[[\
    (unless *data-ready*\n\
      (setf *db-data* (load-data))\n\
      (setf *data-ready* true))\n\
@@ -103,7 +103,7 @@
    If the first element of [body] is a string literal and it's not the \
    only element in [body] then it's assumed to be the function documentation \
    string. Given a function object the documentation is available using \
-   {{documentation}} and {{arglist}} functions.[[\n\
+   {{documentation}} and {{arglist}} functions.[[\
    (defun square (x)
      \"Computes the square of [x]\"
      (* x x))\n\
@@ -148,7 +148,7 @@
   "Returns the length of string/list [x]\n\
    [(length x)] can also be used as a place for {{setf}} to truncate
    or extend [x] (adding [undefined] values) when it is a list
-   (strings are immutable).[[\n\
+   (strings are immutable).[[\
    (let ((x (list 1 2 3))\n\
          (y \"Hey...\")\n\
          (z (list 100 99 98 97)))\n\
@@ -175,7 +175,7 @@
    parameter [x] is a value of different type. The only logically false \
    values are [undefined], [null], [NaN], [0] and [\"\"] (the empty string).\n\
    Other \"empty\" values like the empty list [()] or the empty object [#()] \
-   are instead considered to be logically true.[[\n\
+   are instead considered to be logically true.[[\
    (map #'not (list null undefined NaN 0 \"\"\n\
                     (list) #() infinity))\n\
    ;; ==> (true true true true true\n\
@@ -197,7 +197,7 @@
    object containing the error message.\n\
    If the exception reaches the main program and the code was being executed \
    int the REPL with debugging enabled then a full stack trace of where the \
-   exception has been originated from will be displayed.[[\n\
+   exception has been originated from will be displayed.[[\
    (unless (list? x)\n\
      (error ~\"Invalid argument {x}\"))\n\
    ]]"
@@ -209,7 +209,7 @@
    [x] (including lexical bindings).\n\
    [(function x)] can also be used as a {{setf}} place to change \
    the function bound to the specified name. [(function x)] can \
-   also be abbreviated as [(#'x)]. See also {{symbol-function}}.[[\n\
+   also be abbreviated as [(#'x)]. See also {{symbol-function}}.[[\
    (defun square (x) (* x x))\n\
    ;; ==> square\n\
    \n\
@@ -228,7 +228,7 @@
 (defmacro macro (x)
   "Returns the macro currently bound to the unevaluated symbol \
    [x] (including lexical bindings).\n\
-   See also {{symbol-macro}}.[[\n\
+   See also {{symbol-macro}}.[[\
    (defmacro onemore (x) `(+ ,x 1))\n\
    ;; ==> onemore\n\
    \n\
@@ -268,7 +268,7 @@
    value if there is one. The [undefined] value is logically false and \
    is not an object (cannot be inspected for properties). The [undefined] \
    value also cannot be serialized to {{json}}/{{json*}} format and \
-   is replaced by the [null] value in that context.[[\n\
+   is replaced by the [null] value in that context.[[\
    (defun foo (&optional (x 1) (y 2))\n\
      (list x y))\n\
    ;; ==> foo\n\
@@ -292,7 +292,7 @@
   "True if and only if [x] is the null value.\n\
    The value [null] is sometimes used to mean the absence of a real \
    value. Note that [null] value is logically false value and is not \
-   an object (cannot be inspected for properties).[[\n\
+   an object (cannot be inspected for properties).[[\
    (if null 1 2)\n\
    ;; ==> 2\n\
    \n\
@@ -306,7 +306,7 @@
   "True if and only if [x] is the positive infinity value.\n\
    The [infinity] value is used as the result of certain computations. \
    It is a logically true value, it is a number, it can be inspected \
-   for properties and cannot be serialized to {{json}}/{{json*}} format.[[\n\
+   for properties and cannot be serialized to {{json}}/{{json*}} format.[[\
    (infinity? (/ 0))\n\
    ;; ==> true\n\
    \n\
@@ -325,7 +325,7 @@
   "True if and only if [x] is the negative infinity value.\n\
    The [-infinity] value is used as the result of certain computations. \
    It is a logically true value, it is a number, it can be inspected \
-   for properties and cannot be serialized to {{json}}/{{json*}} format.[[\n\
+   for properties and cannot be serialized to {{json}}/{{json*}} format.[[\
    (-infinity? (/ -1 0))\n\
    (if -infinity 1 2)\n\
    ;; ==> 1\n\
@@ -343,7 +343,7 @@
    The [NaN] value is used as the result of certain computations. \
    It is a logically false value, it is a number (even if the name \
    literally means \"Not A Number\"), can be inspected for \
-   properties and cannot be serialized to {{json}}/{{json*}} format.[[\n\
+   properties and cannot be serialized to {{json}}/{{json*}} format.[[\
    (NaN? (log -1))\n\
    ;; ==> true\n\
    \n\
@@ -364,7 +364,7 @@
    reader macro [#(...)].\n\
    Anonymous Javascript objects are logically true values (even \
    the empty anonymous object [#()]) and can be serialized with \
-   {{json}} or {{json*}}.[[\n\
+   {{json}} or {{json*}}.[[\
    (object? (list))\n\
    ;; ==> false\n\
    \n\
@@ -439,7 +439,7 @@
 (defmacro dolist (var+list &rest body)
   "Evaluates [body] forms after binding [var] to each element of [list].\n\
    [var] receives a new fresh binding for each iteration and also allows \
-   simple destructuring. See also {{dotimes}} and {{enumerate}}[[\n\
+   simple destructuring. See also {{dotimes}} and {{enumerate}}[[\
    (let ((res (list)))\n\
      (dolist (i (range 10))\n\
        (push (lambda () i) res))\n\
@@ -467,7 +467,7 @@
 (defmacro dotimes (var+count &rest body)
   "Evaluates [body] forms after binding [var] to 0, 1, ... [(1- count)].\n\
    [var] receives a new fresh binding for each iteration. See also {{dolist}} \
-   and {{enumerate}}.[[\n\
+   and {{enumerate}}.[[\
    (let ((res (list)))\n\
      (dotimes (i 10)\n\
        (push (lambda () i) res))\n\
@@ -490,7 +490,7 @@
    each element of [list].\n\
    Both [index] and [var] receive a new fresh binding at each iteration \
    and [var] also allows simple destructuring. See also {{dotimes}} and \
-   {{dolist}}.[[\n\
+   {{dolist}}.[[\
    (let ((res (list)))\n\
      (enumerate (i (x y) (zip \"abc\"\n\
                               \"def\"))\n\
@@ -539,7 +539,7 @@
    (it must be instead a macro in Common Lisp).\n\
    In JsLisp both {{reverse}} and {{nreverse}} are available, but \
    they're used less frequently because lists elements often happen \
-   to be already in the correct order.[[\n\
+   to be already in the correct order.[[\
    (let ((res (list)))\n\
      (dotimes (i 10)\n\
        (push (* i i) res))\n\
@@ -556,7 +556,7 @@
    In JsLisp [list] objects are implemented using Javascrip arrays and \
    no tail sharing is possible (sharing is still possible at the whole \
    list level in tree structures). [rest] therefore returns a shallow COPY \
-   of the list excluding first element.[[\n\
+   of the list excluding first element.[[\
    (let* ((x (list 0 1 2 3 4))\n\
           (y (rest x)))\n\
      (setf (first y) 99)\n\
@@ -619,7 +619,7 @@
    in a symbol you need to quote it e.g. with [|`|].\n\
    Note that the value returned from evaluating a backquoted \
    expression is not guaranteed to be \"fresh\" and may share \
-   parts with previous evaluations (see last example)[[\n\
+   parts with previous evaluations (see last example)[[\
    `(+ 1 2 3)\n\
    ;; ==> (+ 1 2 3)\n\
    \n\
@@ -686,7 +686,28 @@
 
 ;; defmacro/f
 (defmacro defmacro/f (name args &rest body)
-  "Defines a macro and an equivalent function. Variadic macros are not supported."
+  "Defines a macro and an equivalent function.\n\
+   JsLisp allows having both a function and a macro with the \
+   same name. When compiling a form with a symbol in the first \
+   position [(<xxx> ...)] first a macro is searched and if no \
+   macro is present then function call code is generated.\n\
+   [defmacro/f] allows defining both the function and the macro \
+   version providing only the macro (the function body will contain \
+   a macro invocation). Variadic functions are NOT suported.[[\
+   (deftuple rgb (r g b))\n\
+   ;; ==> rgb\n\
+   \n\
+   (defmacro/f red (x) `(aref ,x 0))\n\
+   ;; ==> red\n\
+   \n\
+   (map #'red (list (rgb 1 2 3)\n\
+                    (rgb 4 5 6)))\n\
+   ;; ==> (1 4)\n\
+   \n\
+   (js-compile `(red x))\n\
+   WARNING: Undefined variable x\n\
+   ;; ==> \"(d$$x[0])\"\n\
+   ]]"
   ;; Note: Defmacro must be done at macro expansion time
   ;;       because we need the macro in place when
   ;;       defun is macroexpanded
@@ -1274,7 +1295,7 @@ The resulting list length is equal to the shortest input sequence."
   "Like [let*] but all variables are created first, initially [undefined] and then \
    they are assigned the values. When evaluating the value part all bindings are \
    visible. Also the name of a variable is allowed to be [#'<symbol>] and in this \
-   case the binding is indeed a label entry.[[\n\
+   case the binding is indeed a label entry.[[\
    >> (let** ((x 42)\n\
               (y (lambda () (incf x)))\n\
               (#'dec () (decf x)))\n\
