@@ -1547,6 +1547,14 @@ d$$$42_readers$42_ = { "|": function(src)
                                        res += c;
                                    }
                                }
+                               else if (src.s[src.i] === "\n")
+                               {
+                                   // Indent-aware newline
+                                   res += src.s[src.i++];
+                                   var i1 = src.i + ilev;
+                                   while (src.s[src.i] === ' ' && src.i < i1)
+                                       src.i++;
+                               }
                                else
                                {
                                    res += src.s[src.i++];

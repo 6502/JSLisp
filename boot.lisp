@@ -46,28 +46,28 @@
                             (list 'quote name)))))
 (set-documentation
  (symbol-macro 'defmacro)
- "[[(defmacro name args &rest body)]]\n\
-  Defines or redefines a compile-time macro.\n\
+ "[[(defmacro name args &rest body)]]
+  Defines or redefines a compile-time macro.
   Macros are like functions but they receive their parameters \
   unevaluated and the return will be re-considerd as source \
-  code in place of the macro invocation.\n\
+  code in place of the macro invocation.
   Macros are executed at compile time, not at run time and are \
   code that processes code (the input unevaluated source code forms) \
   and that returns code. \
   Care should be taken so the generated code that will not \
   accidentally redefine names that were used in the context of \
   the macro call. See also {{macroexpand-1}}, {{gensym}}.[[\
-  (defmacro assert (test)\n\
-    `(unless ,test\n\
-       (error ,~\"Assertion error: {(str-value test)}\")))\n\
-  ;; ==> assert\n\
-  \n\
-  (assert (< 1 2))\n\
-  ;; ==> null\n\
-  \n\
-  (assert (> 1 2))\n\
-  **ERROR**: Assertion error: (> 1 2)\n\
-  ;; Ready\n\
+  (defmacro assert (test)
+    `(unless ,test
+       (error ,~\"Assertion error: {(str-value test)}\")))
+  ;; ==> assert
+
+  (assert (< 1 2))
+  ;; ==> null
+
+  (assert (> 1 2))
+  **ERROR**: Assertion error: (> 1 2)
+  ;; Ready
   ]]")
 
 (set-arglist (symbol-macro 'defmacro)
@@ -75,42 +75,42 @@
 
 (defmacro when (condition &rest body)
   "Evaluates all forms in [body] returning last value only if [condition] \
-   evaluates to a true value, otherwise the value is [null].\n\
+   evaluates to a true value, otherwise the value is [null].
    It's preferable to use [when] forms in cases in which the conditional \
    only has code in the [true] path.[[\
-   (when (string? x)\n\
-     ;; One string; split on newlines\n\
-     (setf x (split x \"\\n\")))\n\
+   (when (string? x)
+     ;; One string; split on newlines
+     (setf x (split x \"\\n\")))
    ]]"
   (list 'if condition (append (list 'progn) body) null))
 
 (defmacro unless (condition &rest body)
   "Evaluates all forms in [body] returning last value only if [condition] \
-   evaluates to a false value, otherwise the value is [null].\n\
+   evaluates to a false value, otherwise the value is [null].
    It's preferable to use [unless] forms in cases in which the
    conditional only has code in the [false] path and in which
    the condition is more natural than its negation.[[\
-   (unless *data-ready*\n\
-     (setf *db-data* (load-data))\n\
-     (setf *data-ready* true))\n\
+   (unless *data-ready*
+     (setf *db-data* (load-data))
+     (setf *data-ready* true))
    ]]"
   (list 'if condition null (append (list 'progn) body)))
 
 (defmacro defun (name args &rest body)
-  "Defines or redefines a regular function.\n\
+  "Defines or redefines a regular function.
    The function [name] is always interned in current module even if an \
-   identical name is present in [*symbol-aliases*].\n\
+   identical name is present in [*symbol-aliases*].
    If the first element of [body] is a string literal and it's not the \
    only element in [body] then it's assumed to be the function documentation \
    string. Given a function object the documentation is available using \
    {{documentation}} and {{arglist}} functions.[[\
    (defun square (x)
      \"Computes the square of [x]\"
-     (* x x))\n\
-   ;; ==> square\n\
-   \n\
-   (square 12)\n\
-   ;; ==> 144\n\
+     (* x x))
+   ;; ==> square
+
+   (square 12)
+   ;; ==> 144
    ]]"
   (setq name (module-symbol name))
   (let ((doc (str-value (append (list name) args))))
@@ -145,16 +145,16 @@
 
 ;; Length function
 (defun length (x)
-  "Returns the length of string/list [x]\n\
+  "Returns the length of string/list [x]
    [(length x)] can also be used as a place for {{setf}} to truncate
    or extend [x] (adding [undefined] values) when it is a list
    (strings are immutable).[[\
-   (let ((x (list 1 2 3))\n\
-         (y \"Hey...\")\n\
-         (z (list 100 99 98 97)))\n\
-     (setf (length z) 2)\n\
-     (list (length x) (length y) z))\n\
-   ;; ==> (3 6 (100 99))\n\
+   (let ((x (list 1 2 3))
+         (y \"Hey...\")
+         (z (list 100 99 98 97)))
+     (setf (length z) 2)
+     (list (length x) (length y) z))
+   ;; ==> (3 6 (100 99))
    ]]"
   (js-code "d$$x.length"))
 
@@ -170,16 +170,16 @@
 
 ;; Logical not
 (defun not (x)
-  "Logical negation of [x]\n\
+  "Logical negation of [x]
    The result of [(not x)] is always [true] or [false] even if the \
    parameter [x] is a value of different type. The only logically false \
-   values are [undefined], [null], [NaN], [0] and [\"\"] (the empty string).\n\
+   values are [undefined], [null], [NaN], [0] and [\"\"] (the empty string).
    Other \"empty\" values like the empty list [()] or the empty object [#()] \
    are instead considered to be logically true.[[\
-   (map #'not (list null undefined NaN 0 \"\"\n\
-                    (list) #() infinity))\n\
-   ;; ==> (true true true true true\n\
-           false false false)\n\
+   (map #'not (list null undefined NaN 0 \"\"
+                    (list) #() infinity))
+   ;; ==> (true true true true true
+           false false false)
    ]]"
   (js-code "!d$$x"))
 
@@ -188,38 +188,38 @@
 
 ;; Error throwing
 (defun error (x)
-  "Throws an error message [x] (doesn't return)\n\
+  "Throws an error message [x] (doesn't return)
    The containing forms and functions will be exited immediately without \
    evaluating subsequent forms until a dyncamically enclosing \
    exception-capturing form like {{try}}, {{unwind-protect}} or \
-   {{catch}} is found.\n\
+   {{catch}} is found.
    The exception object being thrown is a [boxed Javascript String] \
-   object containing the error message.\n\
+   object containing the error message.
    If the exception reaches the main program and the code was being executed \
    int the REPL with debugging enabled then a full stack trace of where the \
    exception has been originated from will be displayed.[[\
-   (unless (list? x)\n\
-     (error ~\"Invalid argument {x}\"))\n\
+   (unless (list? x)
+     (error ~\"Invalid argument {x}\"))
    ]]"
   (js-code "((function(x){throw new String(x);})(d$$x))"))
 
 ;; Function accessor
 (defmacro function (x)
   "Returns the function currently bound to the unevaluated symbol \
-   [x] (including lexical bindings).\n\
+   [x] (including lexical bindings).
    [(function x)] can also be used as a {{setf}} place to change \
    the function bound to the specified name. [(function x)] can \
    also be abbreviated as [(#'x)]. See also {{symbol-function}}.[[\
-   (defun square (x) (* x x))\n\
-   ;; ==> square\n\
-   \n\
-   (labels ((square (x) (* x 2))\n\
-            (cube (x) (* x x x)))\n\
-     (setf (function cube)\n\
-           (lambda (x) 42))\n\
-     (list (funcall (function square) 3)\n\
-           (funcall #'cube 12)))\n\
-   ;; ==> (6 42)\n\
+   (defun square (x) (* x x))
+   ;; ==> square
+
+   (labels ((square (x) (* x 2))
+            (cube (x) (* x x x)))
+     (setf (function cube)
+           (lambda (x) 42))
+     (list (funcall (function square) 3)
+           (funcall #'cube 12)))
+   ;; ==> (6 42)
    ]]"
   (js-code "(lexfunc.vars[d$$x.name]?null:(d$$$42_outgoing_calls$42_[d$$x.name]=true))")
   (list 'js-code (+ "f" (js-code "d$$x.name"))))
@@ -227,23 +227,23 @@
 ;; Macro accessor
 (defmacro macro (x)
   "Returns the macro currently bound to the unevaluated symbol \
-   [x] (including lexical bindings).\n\
+   [x] (including lexical bindings).
    See also {{symbol-macro}}.[[\
-   (defmacro onemore (x) `(+ ,x 1))\n\
-   ;; ==> onemore\n\
-   \n\
-   (defmacro ninenine (x)\n\
-     (append (funcall (macro onemore) x)\n\
-             (list 99)))\n\
-   ;; ==> ninenine\n\
-   \n\
-   (macroexpand-1 '(ninenine 2))\n\
-   ;; ==> (+ 2 1 99)\n\
-   \n\
-   (macrolet ((onemore (x) `(* ,x 2)))\n\
-     (list (ninenine 2)\n\
-           (macroexpand-1 '(ninenine 2))))\n\
-   ;; ==> (396 (+ 2 1 99))\n\
+   (defmacro onemore (x) `(+ ,x 1))
+   ;; ==> onemore
+
+   (defmacro ninenine (x)
+     (append (funcall (macro onemore) x)
+             (list 99)))
+   ;; ==> ninenine
+
+   (macroexpand-1 '(ninenine 2))
+   ;; ==> (+ 2 1 99)
+
+   (macrolet ((onemore (x) `(* ,x 2)))
+     (list (ninenine 2)
+           (macroexpand-1 '(ninenine 2))))
+   ;; ==> (396 (+ 2 1 99))
    ]]"
   (list 'or
         (list 'lexical-macro (list 'quote x))
@@ -259,84 +259,84 @@
   (js-code "((typeof d$$x)==='boolean')"))
 
 (defun undefined? (x)
-  "True if and only if [x] is the undefined value.\n\
+  "True if and only if [x] is the undefined value.
    The value [undefined] is returned also for function parameters \
    that have not been passed and for object properties that are not \
-   part of or inherited by the object instance.\n\
+   part of or inherited by the object instance.
    Note that explicitly passing [undefined] as a function optional or \
    keyword parameter with make the function processing the default \
    value if there is one. The [undefined] value is logically false and \
    is not an object (cannot be inspected for properties). The [undefined] \
    value also cannot be serialized to {{json}}/{{json*}} format and \
    is replaced by the [null] value in that context.[[\
-   (defun foo (&optional (x 1) (y 2))\n\
-     (list x y))\n\
-   ;; ==> foo\n\
-   \n\
-   (foo)\n\
-   ;; ==> (1 2)\n\
-   \n\
-   (foo undefined 99)\n\
-   ;; ==> (1 99)\n\
-   \n\
-   undefined.x\n\
-   **ERROR**: TypeError: Cannot read property 'x' of undefined\n\
-   ;; Ready\n\
-   \n\
-   (json undefined)\n\
-   ;; ==> \"null\"\n\
+   (defun foo (&optional (x 1) (y 2))
+     (list x y))
+   ;; ==> foo
+
+   (foo)
+   ;; ==> (1 2)
+
+   (foo undefined 99)
+   ;; ==> (1 99)
+
+   undefined.x
+   **ERROR**: TypeError: Cannot read property 'x' of undefined
+   ;; Ready
+
+   (json undefined)
+   ;; ==> \"null\"
    ]]"
   (js-code "((typeof d$$x)==='undefined')"))
 
 (defun null? (x)
-  "True if and only if [x] is the null value.\n\
+  "True if and only if [x] is the null value.
    The value [null] is sometimes used to mean the absence of a real \
    value. Note that [null] value is logically false value and is not \
    an object (cannot be inspected for properties).[[\
-   (if null 1 2)\n\
-   ;; ==> 2\n\
-   \n\
-   (aref null 3)\n\
-   **ERROR**: TypeError: Cannot read property '3' of null\n\
-   ;; Ready\n\
+   (if null 1 2)
+   ;; ==> 2
+
+   (aref null 3)
+   **ERROR**: TypeError: Cannot read property '3' of null
+   ;; Ready
    ]]"
   (js-code "(d$$x===null)"))
 
 (defun infinity? (x)
-  "True if and only if [x] is the positive infinity value.\n\
+  "True if and only if [x] is the positive infinity value.
    The [infinity] value is used as the result of certain computations. \
    It is a logically true value, it is a number, it can be inspected \
    for properties and cannot be serialized to {{json}}/{{json*}} format.[[\
-   (infinity? (/ 0))\n\
-   ;; ==> true\n\
-   \n\
-   (if infinity 1 2)\n\
-   ;; ==> 1\n\
-   \n\
-   (json infinity)\n\
-   ;; ==> \"null\"\n\
-   \n\
-   infinity.x\n\
-   ;; ==> undefined\n\
+   (infinity? (/ 0))
+   ;; ==> true
+
+   (if infinity 1 2)
+   ;; ==> 1
+
+   (json infinity)
+   ;; ==> \"null\"
+
+   infinity.x
+   ;; ==> undefined
    ]]"
   (js-code "(d$$x===Infinity)"))
 
 (defun -infinity? (x)
-  "True if and only if [x] is the negative infinity value.\n\
+  "True if and only if [x] is the negative infinity value.
    The [-infinity] value is used as the result of certain computations. \
    It is a logically true value, it is a number, it can be inspected \
    for properties and cannot be serialized to {{json}}/{{json*}} format.[[\
-   (-infinity? (/ -1 0))\n\
-   ;; ==> true\n\
-   \n\
-   (if -infinity 1 2)\n\
-   ;; ==> 1\n\
-   \n\
-   (json -infinity)\n\
-   ;; ==> \"null\"\n\
-   \n\
-   (aref -infinity 2)\n\
-   ;; ==> undefined\n\
+   (-infinity? (/ -1 0))
+   ;; ==> true
+
+   (if -infinity 1 2)
+   ;; ==> 1
+
+   (json -infinity)
+   ;; ==> \"null\"
+
+   (aref -infinity 2)
+   ;; ==> undefined
    ]]"
   (js-code "(d$$x===-Infinity)"))
 
@@ -346,44 +346,44 @@
    It is a logically false value, it is a number (even if the name \
    literally means \"Not A Number\"), can be inspected for \
    properties and cannot be serialized to {{json}}/{{json*}} format.[[\
-   (NaN? (log -1))\n\
-   ;; ==> true\n\
-   \n\
-   (if NaN 1 2)\n\
-   ;; ==> 2\n\
-   \n\
-   (json NaN)\n\
-   ;; ==> \"null\"\n\
-   \n\
-   NaN.x\n\
-   ;; ==> undefined\n\
+   (NaN? (log -1))
+   ;; ==> true
+
+   (if NaN 1 2)
+   ;; ==> 2
+
+   (json NaN)
+   ;; ==> \"null\"
+
+   NaN.x
+   ;; ==> undefined
    ]]"
   (js-code "((typeof d$$x)==='number'&&!d$$x&&!(d$$x===0))"))
 
 (defun object? (x)
-  "True if and only if [x] is an anonymous javascript object.\n\
+  "True if and only if [x] is an anonymous javascript object.
    Anonymous objects are created with {{js-object}} or its \
-   reader macro [#(...)].\n\
+   reader macro [#(...)].
    Anonymous Javascript objects are logically true values (even \
    the empty anonymous object [#()]) and can be serialized with \
    {{json}} or {{json*}}.[[\
-   (object? (list))\n\
-   ;; ==> false\n\
-   \n\
-   (object? #())\n\
-   ;; ==> true\n\
-   \n\
-   (if #() 1 2)\n\
-   ;; ==> 1\n\
-   \n\
-   (defobject xy (x y))\n\
-   ;; ==> xy\n\
-   \n\
-   (object? (new-xy 10 20))\n\
-   ;; ==> false\n\
-   \n\
-   (json #((x 10)(y 20)))\n\
-   ;; ==> \"{\\\"x\\\":10,\\\"y\\\":20}\"\n\
+   (object? (list))
+   ;; ==> false
+
+   (object? #())
+   ;; ==> true
+
+   (if #() 1 2)
+   ;; ==> 1
+
+   (defobject xy (x y))
+   ;; ==> xy
+
+   (object? (new-xy 10 20))
+   ;; ==> false
+
+   (json #((x 10)(y 20)))
+   ;; ==> \"{\\\"x\\\":10,\\\"y\\\":20}\"
    ]]"
   (js-code "((d$$x&&d$$x.constructor&&d$$x.constructor===Object)===true)"))
 
@@ -392,60 +392,60 @@
   (and (number? x) (= x 0)))
 
 (defun odd? (x)
-  "True if the integer number [x] is odd.\n\
+  "True if the integer number [x] is odd.
    Note that JsLisp uses floating point numbers for numeric computations \
    and there is no predefined arbitrary integer precision math. This means \
    for example that there are numbers like 9007199254740992 (2**53) that \
    are even and that remain even after adding 1.[[
-   (odd? 9007199254740992)\n\
-   ;; ==> false\n\
-   \n\
-   (odd? (1+ 9007199254740992))\n\
-   ;; ==> false\n\
-   \n\
+   (odd? 9007199254740992)
+   ;; ==> false
+
+   (odd? (1+ 9007199254740992))
+   ;; ==> false
+
    (= 9007199254740992
-      (1+ 9007199254740992))\n\
-   ;; ==> true\n\
+      (1+ 9007199254740992))
+   ;; ==> true
    ]]"
   (js-code "(!!(d$$x&1))"))
 
 (defun even? (x)
-  "True if the integer number [x] is even.\n\
+  "True if the integer number [x] is even.
    Note that JsLisp uses floating point numbers for numeric computations \
    and there is no predefined arbitrary integer precision math. This means \
    for example that there are numbers like 9007199254740992 (2**53) that \
    are even and that remain even after adding 1.[[
-   (odd? 9007199254740992)\n\
-   ;; ==> false\n\
-   \n\
-   (odd? (1+ 9007199254740992))\n\
-   ;; ==> false\n\
-   \n\
+   (odd? 9007199254740992)
+   ;; ==> false
+
+   (odd? (1+ 9007199254740992))
+   ;; ==> false
+
    (= 9007199254740992
-      (1+ 9007199254740992))\n\
-   ;; ==> true\n\
+      (1+ 9007199254740992))
+   ;; ==> true
    ]]"
   (js-code "(!(d$$x&1))"))
 
 ;; Dolist macro
 (defmacro dolist (var+list &rest body)
-  "Evaluates [body] forms after binding [var] to each element of [list].\n\
+  "Evaluates [body] forms after binding [var] to each element of [list].
    [var] receives a new fresh binding for each iteration and also allows \
    simple destructuring. See also {{dotimes}} and {{enumerate}}[[\
-   (let ((res (list)))\n\
-     (dolist (i (range 10))\n\
-       (push (lambda () i) res))\n\
-     (map #'funcall res))\n\
-   ;; ==> (0 1 2 3 4 5 6 7 8 9)\n\
-   \n\
-   (dolist ((i j) (zip (range 5) (range 5 10)))\n\
-     (display (str-value (list i j))))\n\
-   (0 5)\n\
-   (1 6)\n\
-   (2 7)\n\
-   (3 8)\n\
-   (4 9)\n\
-   ;; ==> undefined\n\
+   (let ((res (list)))
+     (dolist (i (range 10))
+       (push (lambda () i) res))
+     (map #'funcall res))
+   ;; ==> (0 1 2 3 4 5 6 7 8 9)
+
+   (dolist ((i j) (zip (range 5) (range 5 10)))
+     (display (str-value (list i j))))
+   (0 5)
+   (1 6)
+   (2 7)
+   (3 8)
+   (4 9)
+   ;; ==> undefined
    ]]"
   (list 'js-code (+ "((function(list){var f="
                     (js-compile (append (list 'lambda
@@ -457,14 +457,14 @@
 
 ;; Dotimes macro
 (defmacro dotimes (var+count &rest body)
-  "Evaluates [body] forms after binding [var] to 0, 1, ... [(1- count)].\n\
+  "Evaluates [body] forms after binding [var] to 0, 1, ... [(1- count)].
    [var] receives a new fresh binding for each iteration. See also {{dolist}} \
    and {{enumerate}}.[[\
-   (let ((res (list)))\n\
-     (dotimes (i 10)\n\
-       (push (lambda () i) res))\n\
-     (map #'funcall res))\n\
-   ;; ==> (0 1 2 3 4 5 6 7 8 9)\n\
+   (let ((res (list)))
+     (dotimes (i 10)
+       (push (lambda () i) res))
+     (map #'funcall res))
+   ;; ==> (0 1 2 3 4 5 6 7 8 9)
    ]]"
   (list 'js-code (+ "((function(n){var f="
                     (js-compile (append (list 'lambda
@@ -479,16 +479,16 @@
 ;; Enumeration macro
 (defmacro enumerate (index+var+list &rest body)
   "Evaluates [body] froms after binding [index] to 0, 1, ... and [var] to \
-   each element of [list].\n\
+   each element of [list].
    Both [index] and [var] receive a new fresh binding at each iteration \
    and [var] also allows simple destructuring. See also {{dotimes}} and \
    {{dolist}}.[[\
-   (let ((res (list)))\n\
-     (enumerate (i (x y) (zip \"abc\"\n\
-                              \"def\"))\n\
-       (push (lambda () (list i x y)) res))\n\
-     (map #'funcall res))\n\
-   ;; ==> ((0 \"a\" \"d\") (1 \"b\" \"e\") (2 \"c\" \"f\"))\n\
+   (let ((res (list)))
+     (enumerate (i (x y) (zip \"abc\"
+                              \"def\"))
+       (push (lambda () (list i x y)) res))
+     (map #'funcall res))
+   ;; ==> ((0 \"a\" \"d\") (1 \"b\" \"e\") (2 \"c\" \"f\"))
    ]]"
   (list 'js-code (+ "((function(L){var f="
                     (js-compile (append (list 'lambda
@@ -523,20 +523,20 @@
     (list 'js-code (+ res "]"))))
 
 (defun push (value list)
-  "Adds the specified [value] to the END of [list].\n\
+  "Adds the specified [value] to the END of [list].
    JsLisp [list] objects are implemented using native Javascript \
    arrays (that are similar to [vector] objects of Common Lisp) so \
    adding to the END of the list is the \"natural\" implementation. \
    For the same reason in JsLisp [push] can be a regular function \
-   (it must be instead a macro in Common Lisp).\n\
+   (it must be instead a macro in Common Lisp).
    In JsLisp both {{reverse}} and {{nreverse}} are available, but \
    they're used less frequently because lists elements often happen \
    to be already in the correct order.[[\
-   (let ((res (list)))\n\
-     (dotimes (i 10)\n\
-       (push (* i i) res))\n\
-     res)\n\
-   ;; ==> (0 1 4 9 16 25 36 49 64 81)\n\
+   (let ((res (list)))
+     (dotimes (i 10)
+       (push (* i i) res))
+     res)
+   ;; ==> (0 1 4 9 16 25 36 49 64 81)
    ]]"
   (js-code "d$$list.push(d$$value)"))
 
@@ -544,22 +544,22 @@
   (list 'js-code (+ "(" (js-compile x) ".slice(1))")))
 
 (defun rest (x)
-  "Returns a string or list obtained from [x] by removing first element.\n\
+  "Returns a string or list obtained from [x] by removing first element.
    In JsLisp [list] objects are implemented using Javascrip arrays and \
    no tail sharing is possible (sharing is still possible at the whole \
    list level in tree structures). [rest] therefore returns a shallow COPY \
    of the list excluding first element.[[\
-   (let* ((x (list 0 1 2 3 4))\n\
-          (y (rest x)))\n\
-     (setf (first y) 99)\n\
-     (list x y))\n\
-   ;; ==> ((0 1 2 3 4) (99 2 3 4))\n\
-   ;; in CL would be ((0 99 2 3 4) (99 2 3 4))\n\
-   \n\
-   (let ((x (range 10)))\n\
-     (= (rest x)\n\
-        (rest x)))\n\
-   ;; ==> false\n\
+   (let* ((x (list 0 1 2 3 4))
+          (y (rest x)))
+     (setf (first y) 99)
+     (list x y))
+   ;; ==> ((0 1 2 3 4) (99 2 3 4))
+   ;; in CL would be ((0 99 2 3 4) (99 2 3 4))
+
+   (let ((x (range 10)))
+     (= (rest x)
+        (rest x)))
+   ;; ==> false
    ]]"
   (js-code "(d$$x.slice(1))"))
 
@@ -597,38 +597,38 @@
 
 ;; Quasiquoting
 (defmacro |`| (x)
-  "Backquoting macro.\n\
+  "Backquoting macro.
    Backquoting syntax [`...] works like normal quoting but allows \
    inserting in the backquoted part variables in two ways: normal \
    insertion using a comma [,x] and splice insertion with a comma \
    followed by an at-sign [,@x]. The last one requires the value \
    [x] being inserted is a list and also can be used only inside \
    lists; what it does is inserting individual elements in the \
-   containing list instead of inserting the list.\n\
+   containing list instead of inserting the list.
    Backquoting is implemented as this macro and three reader macros \
    for improved readability: [`x => (` x)], [,x => (, x)] and \
    [,@x => (,@ x)]; this means that to use the backquote or comma \
-   in a symbol you need to quote it e.g. with [|`|].\n\
+   in a symbol you need to quote it e.g. with [|`|].
    Note that the value returned from evaluating a backquoted \
    expression is not guaranteed to be \"fresh\" and may share \
    parts with previous evaluations (see last example)[[\
-   `(+ 1 2 3)\n\
-   ;; ==> (+ 1 2 3)\n\
-   \n\
-   (let ((x 'value)\n\
-         (y '(v1 v2 v3)))\n\
-     (list `(a b x d e)\n\
-           `(a b ,x d e)\n\
-           `(a b ,y d e)\n\
-           `(a b ,@y d e)))\n\
-   ;; ==> ((a b x d e)\n\
-           (a b value d e)\n\
-           (a b (v1 v2 v3) d e)\n\
-           (a b v1 v2 v3 d e))\n\
-   \n\
-   (labels ((bq (x) `((1 2) ,x (3 4))))\n\
-     (list (bq \"A\") (bq \"B\")))\n\
-   ;; ==> (((1 2) \"A\" (3 4)) (#2 \"B\" #3))\n\
+   `(+ 1 2 3)
+   ;; ==> (+ 1 2 3)
+
+   (let ((x 'value)
+         (y '(v1 v2 v3)))
+     (list `(a b x d e)
+           `(a b ,x d e)
+           `(a b ,y d e)
+           `(a b ,@y d e)))
+   ;; ==> ((a b x d e)
+           (a b value d e)
+           (a b (v1 v2 v3) d e)
+           (a b v1 v2 v3 d e))
+
+   (labels ((bq (x) `((1 2) ,x (3 4))))
+     (list (bq \"A\") (bq \"B\")))
+   ;; ==> (((1 2) \"A\" (3 4)) (#2 \"B\" #3))
    ]]"
   (labels ((bqconst (x)
              "True if the form [x] is constant in respect to backquoting"
@@ -678,27 +678,27 @@
 
 ;; defmacro/f
 (defmacro defmacro/f (name args &rest body)
-  "Defines a macro and an equivalent function.\n\
+  "Defines a macro and an equivalent function.
    JsLisp allows having both a function and a macro with the \
    same name. When compiling a form with a symbol in the first \
    position [(<xxx> ...)] first a macro is searched and if no \
-   macro is present then function call code is generated.\n\
+   macro is present then function call code is generated.
    [defmacro/f] allows defining both the function and the macro \
    version providing only the macro (the function body will contain \
    a macro invocation). Variadic functions are NOT suported.[[\
-   (deftuple rgb (r g b))\n\
-   ;; ==> rgb\n\
-   \n\
-   (defmacro/f red (x) `(aref ,x 0))\n\
-   ;; ==> red\n\
-   \n\
-   (map #'red (list (rgb 1 2 3)\n\
-                    (rgb 4 5 6)))\n\
-   ;; ==> (1 4)\n\
-   \n\
-   (js-compile `(red x))\n\
-   WARNING: Undefined variable x\n\
-   ;; ==> \"(d$$x[0])\"\n\
+   (deftuple rgb (r g b))
+   ;; ==> rgb
+
+   (defmacro/f red (x) `(aref ,x 0))
+   ;; ==> red
+
+   (map #'red (list (rgb 1 2 3)
+                    (rgb 4 5 6)))
+   ;; ==> (1 4)
+
+   (js-compile `(red x))
+   WARNING: Undefined variable x
+   ;; ==> \"(d$$x[0])\"
    ]]"
   (setq name (module-symbol name))
   `(progn
@@ -713,19 +713,19 @@
 ;; List utilities
 (defmacro/f slice (x &optional start end)
   "Returns elements of string or list [x] from [start] to \
-   before [end] or all remaining if no [end] is specified.\n\
+   before [end] or all remaining if no [end] is specified.
    Without arguments does a full shallow copy.[[\
-   (slice \"abcdef\" 2 4)\n\
-   ;; ==> \"cd\"\n\
-   \n\
-   (slice \"abcdef\" 2)\n\
-   ;; ==> \"cdef\"\n\
-   \n\
-   (let* ((x (range 5))\n\
-          (y (slice x)))\n\
-     (setf (first y) 99)\n\
-     (list x y))\n\
-   ;; ==> ((0 1 2 3 4) (99 1 2 3 4))\n\
+   (slice \"abcdef\" 2 4)
+   ;; ==> \"cd\"
+
+   (slice \"abcdef\" 2)
+   ;; ==> \"cdef\"
+
+   (let* ((x (range 5))
+          (y (slice x)))
+     (setf (first y) 99)
+     (list x y))
+   ;; ==> ((0 1 2 3 4) (99 1 2 3 4))
    ]]"
   (cond
     ((and (undefined? start) (undefined? end))
@@ -1185,26 +1185,26 @@ The resulting list length is equal to the shortest input sequence."
 
 (defun index (x L &optional start)
   "Returns the index position in which [x] appears in \
-   list/string [L] or -1 if it's not present.\n\
+   list/string [L] or -1 if it's not present.
    If the parameter [start] is specified then it is \
-   the position from where to start the search.\n\
+   the position from where to start the search.
    The search is performed using equality operator {{=}} that \
    does no type conversions. Given the rules of Javascript \
    about [NaN] equality this means however that [index] \
    cannot be used for searching [NaN]. \
    See also {{last-index}}, {{find}}[[\
    [[\
-   (index \"r\" \"Andrea Griffini\")\n\
-   ;; ==> 3\n\
-   \n\
-   (index \"r\" \"Andrea Griffini\" 4)\n\
-   ;; ==> 8\n\
-   \n\
-   (index 42 (list 1 3 5 7))\n\
-   ;; ==> -1\n\
-   \n\
-   (index NaN (list 1 2 NaN 3 4))\n\
-   ;; ==> -1\n\
+   (index \"r\" \"Andrea Griffini\")
+   ;; ==> 3
+
+   (index \"r\" \"Andrea Griffini\" 4)
+   ;; ==> 8
+
+   (index 42 (list 1 3 5 7))
+   ;; ==> -1
+
+   (index NaN (list 1 2 NaN 3 4))
+   ;; ==> -1
    ]]"
   (if start
       (js-code "d$$L.indexOf(d$$x,d$$start)")
@@ -1212,80 +1212,80 @@ The resulting list length is equal to the shortest input sequence."
 
 (defun last-index (x L)
   "Returns the last index position in which [x] \
-   appears in list/string [L] or -1 if it's not present.\n\
+   appears in list/string [L] or -1 if it's not present.
    The search is performed using equality operator {{=}} that \
    does no type conversions. Given the rules of Javascript \
    about [NaN] equality this means however that [last-index] \
    cannot be used for searching [NaN]. \
    See also {{index}}, {{find}}[[\
-   (last-index \"f\" \"Griffini\")\n\
-   ;; ==> 4\n\
-   \n\
-   (last-index 42 (range 10))\n\
-   ;; ==> -1\n\
-   \n\
-   (last-index NaN (list 1 2 NaN 3 4))\n\
-   ;; ==> -1\n\
+   (last-index \"f\" \"Griffini\")
+   ;; ==> 4
+
+   (last-index 42 (range 10))
+   ;; ==> -1
+
+   (last-index NaN (list 1 2 NaN 3 4))
+   ;; ==> -1
    ]]"
   (js-code "d$$L.lastIndexOf(d$$x)"))
 
 (defun find (x L)
-  "True iff element [x] is present in list/string [L].\n\
+  "True iff element [x] is present in list/string [L].
    The search is performed using equality operator {{=}} that \
    does no type conversions. Given the rules of Javascript \
    about [NaN] equality this means that [find] cannot be
    used for searching [NaN]. See also {{index}}, {{last-index}}[[\
-   (find 3 (range 10))\n\
-   ;; ==> true\n\
-   \n\
-   (find \"3\" (range 10))\n\
-   ;; ==> false\n\
-   \n\
-   (find NaN (list 1 2 NaN 3 4))\n\
-   ;; ==> false\n\
+   (find 3 (range 10))
+   ;; ==> true
+
+   (find \"3\" (range 10))
+   ;; ==> false
+
+   (find NaN (list 1 2 NaN 3 4))
+   ;; ==> false
    ]]"
   (/= -1 (index x L)))
 
 (defun remove (x L)
   "Returns a copy of list [L] after all instances of [x] have \
-   been removed.\n\
+   been removed.
    The check is performed using equality operator {{=}} that \
    does no type conversions. Given the rules of Javascript \
    about [NaN] equality this means however that [remove] \
    cannot be used for removing [NaN]s. \
    See also {{nremove}}, {{remove-first}}, {{remove-last}}[[\
-   (remove 3 (list 1 2 3 2 3 1))\n\
-   ;; ==> (1 2 2 1)\n\
-   \n\
-   (remove 3 (list 1 2 4 8))\n\
-   ;; ==> (1 2 4 8)\n\
-   \n\
-   (remove NaN (list 1 2 NaN 3 4))\n\
-   ;; ==> (1 2 NaN 3 4)\n\
-   \n\
-   (let ((x (range 5)))\n\
-     (list x (remove 2 x)))\n\
-   ;; ==> ((0 1 2 3 4) (0 1 3 4))\n\
+   (remove 3 (list 1 2 3 2 3 1))
+   ;; ==> (1 2 2 1)
+
+   (remove 3 (list 1 2 4 8))
+   ;; ==> (1 2 4 8)
+
+   (remove NaN (list 1 2 NaN 3 4))
+   ;; ==> (1 2 NaN 3 4)
+
+   (let ((x (range 5)))
+     (list x (remove 2 x)))
+   ;; ==> ((0 1 2 3 4) (0 1 3 4))
    ]]"
   (js-code "d$$L.filter(function(x){return x!==d$$x})"))
 
 (defun nremove (x L)
   "Removes all elements [x] from [L] and returns how many \
-   elements have been removed.\n\
+   elements have been removed.
    The check is performed using equality operator {{=}} that \
    does no type conversions. Given the rules of Javascript \
    about [NaN] equality this means however that [nremove] \
    cannot be used for removing [NaN]s. \
    See also {{remove}}, {{nremove-first}}, {{nremove-last}}[[\
-   (let ((x (range 5)))\n\
-     (list x (nremove 2 x)))\n\
-   ;; ==> ((0 1 3 4) 1)\n\
-   \n\
-   (nremove 42 (range 5))\n\
-   ;; ==> 0\n\
-   \n\
-   (nremove NaN (list 1 2 NaN 3 4))\n\
-   ;; ==> 0\n\
+   (let ((x (range 5)))
+     (list x (nremove 2 x)))
+   ;; ==> ((0 1 3 4) 1)
+
+   (nremove 42 (range 5))
+   ;; ==> 0
+
+   (nremove NaN (list 1 2 NaN 3 4))
+   ;; ==> 0
    ]]"
   (let ((wp 0)
         (n (length L)))
@@ -1297,24 +1297,24 @@ The resulting list length is equal to the shortest input sequence."
 
 (defun remove-first (x L)
   "Returns a copy of [L] after removing first instance of [x] \
-   if present.\n\
+   if present.
    The check is performed using equality operator {{=}} that \
    does no type conversions. Given the rules of Javascript \
    about [NaN] equality this means however that [remove-first] \
    cannot be used for removing [NaN]s. \
    See also {{nremove-first}}, {{nremove-last}}, {{remove}}[[\
-   (remove-first 3 (list 1 2 3 2 3 1))\n\
-   ;; ==> (1 2 2 3 1)\n\
-   \n\
-   (remove-first 3 (list 1 2 4 8))\n\
-   ;; ==> (1 2 4 8)\n\
-   \n\
-   (let ((x (range 5)))\n\
-     (list x (remove-first 3 x)))\n\
-   ;; ==> ((0 1 2 3 4) (0 1 2 4))\n\
-   \n\
-   (remove-first NaN (list 1 2 NaN 3 4))\n\
-   ;; ==> (1 2 NaN 3 4)\n\
+   (remove-first 3 (list 1 2 3 2 3 1))
+   ;; ==> (1 2 2 3 1)
+
+   (remove-first 3 (list 1 2 4 8))
+   ;; ==> (1 2 4 8)
+
+   (let ((x (range 5)))
+     (list x (remove-first 3 x)))
+   ;; ==> ((0 1 2 3 4) (0 1 2 4))
+
+   (remove-first NaN (list 1 2 NaN 3 4))
+   ;; ==> (1 2 NaN 3 4)
    ]]"
   (let ((i (index x L)))
     (if (>= i 0)
@@ -1323,22 +1323,22 @@ The resulting list length is equal to the shortest input sequence."
 
 (defun nremove-first (x L)
   "Remove first element [x] from list [L] if present. \
-   Returns true if found.\n\
+   Returns true if found.
    The check is performed using equality operator {{=}} that \
    does no type conversions. Given the rules of Javascript \
    about [NaN] equality this means however that [nremove-first] \
    cannot be used for removing [NaN]s. \
    See also {{remove-first}}, {{nremove-last}}, {{nremove}}[[\
-   (let ((x (list 1 2 3 2 3 1)))\n\
-     (list x (nremove-first 3 x)))\n\
-   ;; ==> ((1 2 2 3 1) true)\n\
-   \n\
-   (let ((x (list 1 2 3 2 3 1)))\n\
-     (list x (nremove-first 99 x)))\n\
-   ;; ==> ((1 2 3 2 3 1) false)\n\
-   \n\
-   (nremove-first NaN (list 1 2 NaN 3 4))\n\
-   ;; ==> false\n\
+   (let ((x (list 1 2 3 2 3 1)))
+     (list x (nremove-first 3 x)))
+   ;; ==> ((1 2 2 3 1) true)
+
+   (let ((x (list 1 2 3 2 3 1)))
+     (list x (nremove-first 99 x)))
+   ;; ==> ((1 2 3 2 3 1) false)
+
+   (nremove-first NaN (list 1 2 NaN 3 4))
+   ;; ==> false
    ]]"
   (let ((i (index x L)))
     (when (>= i 0)
@@ -1347,21 +1347,21 @@ The resulting list length is equal to the shortest input sequence."
 
 (defun remove-last (x L)
   "Returns a copy of [L] after removing first instance of \
-   [x] if present.\n\
+   [x] if present.
    The check is performed using equality operator {{=}} that \
    does no type conversions. Given the rules of Javascript \
    about [NaN] equality this means however that [remove-last] \
    cannot be used for removing [NaN]s. \
    See also {{nremove-last}}, {{remove-first}}, {{remove}}[[\
-   (let ((x (list 1 2 3 2 3 1)))\n\
-     (list x (remove-last 3 x)))\n\
-   ;; ==> ((1 2 3 2 3 1) (1 2 3 2 1))\n\
-   \n\
-   (remove-last 42 (range 5))\n\
-   ;; ==> (0 1 2 3 4)\n\
-   \n\
-   (remove-last NaN (list 1 2 NaN 3 4))\n\
-   ;; ==> (1 2 NaN 3 4)\n\
+   (let ((x (list 1 2 3 2 3 1)))
+     (list x (remove-last 3 x)))
+   ;; ==> ((1 2 3 2 3 1) (1 2 3 2 1))
+
+   (remove-last 42 (range 5))
+   ;; ==> (0 1 2 3 4)
+
+   (remove-last NaN (list 1 2 NaN 3 4))
+   ;; ==> (1 2 NaN 3 4)
    ]]"
   (let ((i (last-index x L)))
     (if (>= i 0)
@@ -1370,22 +1370,22 @@ The resulting list length is equal to the shortest input sequence."
 
 (defun nremove-last (x L)
   "Remove last element [x] from list [L] if present. \
-   Returns true if found.\n\
+   Returns true if found.
    The check is performed using equality operator {{=}} that \
    does no type conversions. Given the rules of Javascript \
    about [NaN] equality this means however that [nremove-last] \
    cannot be used for removing [NaN]s. \
    See also {{remove-last}}, {{nremove-first}}, {{nremove}}[[\
-   (let ((x (list 1 2 3 2 3 1)))\n\
-     (list x (nremove-last 3 x)))\n\
-   ;; ==> ((1 2 3 2 1) true)\n\
-   \n\
-   (let ((x (list 1 2 3 2 3 1)))\n\
-     (list x (nremove-last 99 x)))\n\
-   ;; ==> ((1 2 3 2 3 1) false)\n\
-   \n\
-   (nremove-last NaN (list 1 2 NaN 3 4))\n\
-   ;; ==> false\n\
+   (let ((x (list 1 2 3 2 3 1)))
+     (list x (nremove-last 3 x)))
+   ;; ==> ((1 2 3 2 1) true)
+
+   (let ((x (list 1 2 3 2 3 1)))
+     (list x (nremove-last 99 x)))
+   ;; ==> ((1 2 3 2 3 1) false)
+
+   (nremove-last NaN (list 1 2 NaN 3 4))
+   ;; ==> false
    ]]"
   (let ((i (last-index x L)))
     (when (>= i 0)
@@ -1440,11 +1440,11 @@ The resulting list length is equal to the shortest input sequence."
    they are assigned the values. When evaluating the value part all bindings are \
    visible. Also the name of a variable is allowed to be [#'<symbol>] and in this \
    case the binding is indeed a label entry.[[\
-   >> (let** ((x 42)\n\
-              (y (lambda () (incf x)))\n\
-              (#'dec () (decf x)))\n\
-        (list (funcall y) (dec) (dec) x))\n\
-   = (43 42 41 41)\n\
+   >> (let** ((x 42)
+              (y (lambda () (incf x)))
+              (#'dec () (decf x)))
+        (list (funcall y) (dec) (dec) x))
+   = (43 42 41 41)
    ]]"
   (let ((funcs (list))
         (vars (list)))
