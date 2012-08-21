@@ -1195,7 +1195,13 @@ The resulting list length is equal to the shortest input sequence."
   "Returns the index position in which [x] appears in \
    list/string [L] or -1 if it's not present.\n\
    If the parameter [start] is specified then it is \
-   the position from where to start the search.[[\
+   the position from where to start the search.\n\
+   The search is performed using equality operator {{=}} that \
+   does no type conversions. Given the rules of Javascript \
+   about [NaN] equality this means however that [index] \
+   cannot be used for searching [NaN]. \
+   See also {{last-index}}, {{find}}[[\
+   [[\
    (index \"r\" \"Andrea Griffini\")\n\
    ;; ==> 3\n\
    \n\
@@ -1204,29 +1210,89 @@ The resulting list length is equal to the shortest input sequence."
    \n\
    (index 42 (list 1 3 5 7))\n\
    ;; ==> -1\n\
+   \n\
+   (index NaN (list 1 2 NaN 3 4))\n\
+   ;; ==> -1\n\
    ]]"
   (if start
       (js-code "d$$L.indexOf(d$$x,d$$start)")
       (js-code "d$$L.indexOf(d$$x)")))
 
 (defun last-index (x L)
-  "Returns the last index position in which [x] appears in list/string [L] or -1 if it's not present"
+  "Returns the last index position in which [x] \
+   appears in list/string [L] or -1 if it's not present.\n\
+   The search is performed using equality operator {{=}} that \
+   does no type conversions. Given the rules of Javascript \
+   about [NaN] equality this means however that [last-index] \
+   cannot be used for searching [NaN]. \
+   See also {{index}}, {{find}}[[\
+   (last-index \"f\" \"Griffini\")\n\
+   ;; ==> 4\n\
+   \n\
+   (last-index 42 (range 10))\n\
+   ;; ==> -1\n\
+   \n\
+   (last-index NaN (list 1 2 NaN 3 4))\n\
+   ;; ==> -1\n\
+   ]]"
   (js-code "d$$L.lastIndexOf(d$$x)"))
 
 (defun find (x L)
-  "True if element [x] is included in [L]"
+  "True iff element [x] is present in list/string [L].\n\
+   The search is performed using equality operator {{=}} that \
+   does no type conversions. Given the rules of Javascript \
+   about [NaN] equality this means that [find] cannot be
+   used for searching [NaN]. See also {{index}}, {{last-index}}[[\
+   (find 3 (range 10))\n\
+   ;; ==> true\n\
+   \n\
+   (find \"3\" (range 10))\n\
+   ;; ==> false\n\
+   \n\
+   (find NaN (list 1 2 NaN 3 4))\n\
+   ;; ==> false\n\
+   ]]"
   (/= -1 (index x L)))
 
 (defun remove (x L)
-  "Returns a copy of [L] after all instances of [x] have been removed"
-  (let ((res (list)))
-    (dolist (y L)
-      (unless (= x y)
-        (push y res)))
-    res))
+  "Returns a copy of list [L] after all instances of [x] have \
+   been removed.\n\
+   The check is performed using equality operator {{=}} that \
+   does no type conversions. Given the rules of Javascript \
+   about [NaN] equality this means however that [remove] \
+   cannot be used for removing [NaN]s. See {{nremove}}[[\
+   (remove 3 (list 1 2 3 2 3 1))\n\
+   ;; ==> (1 2 2 1)\n\
+   \n\
+   (remove 3 (list 1 2 4 8))\n\
+   ;; ==> (1 2 4 8)\n\
+   \n\
+   (remove NaN (list 1 2 NaN 3 4))\n\
+   ;; ==> (1 2 NaN 3 4)\n\
+   \n\
+   (let ((x (range 5)))\n\
+     (list x (remove 2 x)))\n\
+   ;; ==> ((0 1 2 3 4) (0 1 3 4))\n\
+   ]]"
+  (js-code "d$$L.filter(function(x){return x!==d$$x})"))
 
 (defun nremove (x L)
-  "Removes all elements [x] from [L] and returns how many elements have been removed"
+  "Removes all elements [x] from [L] and returns how many \
+   elements have been removed.\n\
+   The check is performed using equality operator {{=}} that \
+   does no type conversions. Given the rules of Javascript \
+   about [NaN] equality this means however that [nremove] \
+   cannot be used for removing [NaN]s. See {{remove}}[[\
+   (let ((x (range 5)))\n\
+     (list x (nremove 2 x)))\n\
+   ;; ==> ((0 1 3 4) 1)\n\
+   \n\
+   (nremove 42 (range 5))\n\
+   ;; ==> 0\n\
+   \n\
+   (nremove NaN (list 1 2 NaN 3 4))\n\
+   ;; ==> 0\n\
+   ]]"
   (let ((wp 0)
         (n (length L)))
     (dotimes (rp n)
