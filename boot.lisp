@@ -1337,6 +1337,16 @@ The resulting list length is equal to the shortest input sequence."
    about [NaN] equality this means however that [nremove-first] \
    cannot be used for removing [NaN]s. \
    See also {{remove-first}}, {{nremove-last}}, {{nremove}}[[\
+   (let ((x (list 1 2 3 2 3 1)))\n\
+     (list x (nremove-first 3 x)))\n\
+   ;; ==> ((1 2 2 3 1) true)\n\
+   \n\
+   (let ((x (list 1 2 3 2 3 1)))\n\
+     (list x (nremove-first 99 x)))\n\
+   ;; ==> ((1 2 3 2 3 1) false)\n\
+   \n\
+   (nremove-first NaN (list 1 2 NaN 3 4))\n\
+   ;; ==> false\n\
    ]]"
   (let ((i (index x L)))
     (when (>= i 0)
@@ -1344,14 +1354,47 @@ The resulting list length is equal to the shortest input sequence."
     (>= i 0)))
 
 (defun remove-last (x L)
-  "Returns a copy of [L] after removing first instance of [x] if present"
+  "Returns a copy of [L] after removing first instance of \
+   [x] if present.\n\
+   The check is performed using equality operator {{=}} that \
+   does no type conversions. Given the rules of Javascript \
+   about [NaN] equality this means however that [remove-last] \
+   cannot be used for removing [NaN]s. \
+   See also {{nremove-last}}, {{remove-first}}, {{remove}}[[\
+   (let ((x (list 1 2 3 2 3 1)))\n\
+     (list x (remove-last 3 x)))\n\
+   ;; ==> ((1 2 3 2 3 1) (1 2 3 2 1))\n\
+   \n\
+   (remove-last 42 (range 5))\n\
+   ;; ==> (0 1 2 3 4)\n\
+   \n\
+   (remove-last NaN (list 1 2 NaN 3 4))\n\
+   ;; ==> (1 2 NaN 3 4)\n\
+   ]]"
   (let ((i (last-index x L)))
     (if (>= i 0)
         (append (slice L 0 i) (slice L (1+ i)))
         (slice L))))
 
 (defun nremove-last (x L)
-  "Remove first element [x] from list [L] if present. Returns true if found."
+  "Remove last element [x] from list [L] if present. \
+   Returns true if found.\n\
+   The check is performed using equality operator {{=}} that \
+   does no type conversions. Given the rules of Javascript \
+   about [NaN] equality this means however that [nremove-last] \
+   cannot be used for removing [NaN]s. \
+   See also {{remove-last}}, {{nremove-first}}, {{nremove}}[[\
+   (let ((x (list 1 2 3 2 3 1)))\n\
+     (list x (nremove-last 3 x)))\n\
+   ;; ==> ((1 2 3 2 1) true)\n\
+   \n\
+   (let ((x (list 1 2 3 2 3 1)))\n\
+     (list x (nremove-last 99 x)))\n\
+   ;; ==> ((1 2 3 2 3 1) false)\n\
+   \n\
+   (nremove-last NaN (list 1 2 NaN 3 4))\n\
+   ;; ==> false\n\
+   ]]"
   (let ((i (last-index x L)))
     (when (>= i 0)
       (splice L i 1))
