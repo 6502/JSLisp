@@ -524,6 +524,15 @@
   (setf element."data-layout-node"
         (new-dom element layout)))
 
+(defun dom-replace (element new-element)
+  "Replaces an [element] that has been wrapped in a [dom] \
+   layout node with a [new-element]. See {{dom}}."
+  (let ((layout element."data-layout-node"))
+    (append-child element.parentNode new-element)
+    (setf layout.element new-element)
+    (setf new-element."data-layout-node" layout)
+    (hide element)))
+
 ;; Table widget
 
 (defun table (data &key cols rows row-click cell-click)
@@ -534,7 +543,8 @@
         (push (list) cells)
         (dolist (col row)
           (let ((cell col))
-            (when (string? cell)
+            (when (or (number? cell)
+                      (string? cell))
               (setf cell (create-element "div"))
               (set-style cell
                          overflow "hidden"
@@ -577,6 +587,41 @@
                   (setf h table.clientHeight)
                   (set-coords layout 0 0 w h)))))
       table)))
+
+(defun add-widget (window widget)
+  "Adds a widget to a window client
+   This function prepares a widget (a DOM element) for being \
+   managed as a control of a window. This means making its \
+   positionig \"absolute\" and adding it as a children of \
+   the window's client area.
+   The call returns as value the passed [widget]."
+  (setf widget.style.position "absolute")
+  (append-child window.client widget)
+  widget)
+
+(defun set-layout (window layout)
+  "Sets the [layout] for the content of specified [window].
+   The function installs as [resize-callback] for the window \
+   a closure that passes the whole client area to the \
+   specified layout manager. It also sets the window client \
+   overflow property to \"hidden\" assuming that the layout \
+   will be able to put all widgets in the provided area.[[
+   (let** ((w (window 0 0 400 600 title: \"sub-browser\"))
+           (browser (add-widget w (create-element \"iframe\")))
+           (close (add-widget w (button \"Close\" #'close)))
+           (#'close () (hide-window w)))
+     (set-layout w (V spacing: 8 border: 8
+                      (dom browser)
+                      size: 30 (H :filler:
+                                  size: 80 (dom close)
+                                  :filler:)))
+     (setf browser.src \"http://www.jslisp.org\")
+     (show-window w center: true))
+   ]]"
+  (setf window.client.style.overflow "hidden")
+  (setf window.resize-cback
+        (lambda (x0 y0 x1 y1)
+          (set-coords layout 0 0 (- x1 x0) (- y1 y0)))))
 
 ;;
 
@@ -803,6 +848,7 @@
                        :filler:
                        size: 30
                        btnrow))
+      (setf message.style.position "absolute")
       (setf message.innerHTML htmltext)
       (dolist (btn-text buttons)
         (let ((b (button btn-text (lambda ()
@@ -864,10 +910,11 @@
         show hide
         set-handler
         tracking dragging
-        dom
+        dom dom-replace
         window
         ask-color
         show-window hide-window with-window
+        add-widget set-layout
         button
         radio checkbox checked set-checked
         input text set-text
