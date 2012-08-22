@@ -1195,7 +1195,32 @@
 (defmathop-func logxor)
 
 (defmacro/f % (a b)
-  "Modulo operation"
+  "Modulo operation
+   The result is [(- a (* b (floor (/ a b))))] when [a] and [b] are \
+   positive numbers; the result can be negative if [a] is negative. \
+   Non-numbers are converted to numbers first using Javascript \
+   rules. Modulo operator works also for non-integer arguments.[[
+   (% 10 3)
+   ;; ==> 1
+
+   (% 10 0)
+   ;; ==> NaN
+
+   (% -10 3)
+   ;; ==> -1
+
+   (% 10 -3)
+   ;; ==> 1
+
+   (% -10 -3)
+   ;; ==> -1
+
+   (% 10 \"0x03\")
+   ;; ==> 1
+
+   (% 10.5 3)
+   ;; ==> 1.5
+   ]]"
   `(js-code ,(+ "("
                 (js-compile a)
                 "%"
@@ -1203,7 +1228,25 @@
                 ")")))
 
 (defmacro/f ash (x count)
-  "Arithmetic shift left [(> count 0)] or right [(< count 0)]"
+  "Arithmetic shift left [(> count 0)] or right [(< count 0)]
+   Computation is done using 32-bit signed integer arithmetic and \
+   operands are converted to 3d-bit integers using Javascript rules.
+   The result of shifting more than 32 times is undefined.[[
+   (ash 16 3)
+   ;; ==> 128
+
+   (ash 16 -3)
+   ;; ==> 2
+
+   (ash \"0x8000\" 16)
+   ;; ==> -2147483648
+
+   (ash \"0x8000\" 17)
+   ;; ==> 0
+
+   (ash NaN 2)
+   ;; ==> 0
+   ]]"
   (if (number? count)
       (if (> count 0)
           `(js-code ,(+ "((" (js-compile x) ")<<(" count "))"))
