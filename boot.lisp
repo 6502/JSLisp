@@ -2674,7 +2674,9 @@ A name is either an unevaluated atom or an evaluated list."
 
 (defun alert (x)
   "Displays an alert message x to the user"
-  (js-code "alert(d$$x)"))
+  (if node-js
+      (js-code "console.log('***ALERT***: '+d$$x)")
+      (js-code "alert(d$$x)")))
 
 (defun yesno (x)
   "Asks the user to reply either yes or no to a question. Returns True if the answer is yes or False otherwise"

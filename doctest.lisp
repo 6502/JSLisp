@@ -29,12 +29,24 @@
                                                  (slice case (+ 8 (index "\n;; ==> " case))))
                                              "\n;;.*" ""))
                                      "\\n\\s+" " "))
-                         (result (try
-                                  (str-value (toplevel-eval (parse-value src)))
-                                  "**ERROR**")))
+                         (result null)
+                         (out (list)))
+                    (let ((od #'display)
+                          (ow #'warning)
+                          (oa #'alert))
+                      (setf #'display (lambda (x) (push (list "d" x) out)))
+                      (setf #'warning (lambda (x) (push (list "w" x) out)))
+                      (setf #'alert (lambda (x) (push (list "a" x) out)))
+                      (setf result (try
+                                    (str-value (toplevel-eval
+                                                (parse-value src)))
+                                    "**ERROR**"))
+                      (setf #'alert oa)
+                      (setf #'display od)
+                      (setf #'warning ow))
                     (unless (= result reference)
                       (incf failed)
-                      (alert ~"FAILURE: {name} (test #{(1+ num)})\n\n\
+                      (alert ~"FAILURE: {name} ({(first n)}) test #{(1+ num)}\n\n\
                                src={(json src)}\n\n\
                                result={(json result)}\n\n\
                                reference={(json reference)}"))))))
