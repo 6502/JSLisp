@@ -1020,9 +1020,11 @@
    The operator works only on numeric types and other values \
    make the result [NaN]. Special cases are however [true] \
    that is considered as [1] and [false], [null], \"\", [()] \
-   that are considered as [0]. Note also that JsLisp doesn't \
-   provide arbitrary precision integer arithmetic by default \
-   and unit-accurate integer math is available up to 2**53.[[
+   that are considered as [0] as also other objects for which \
+   the Javascript conversion to string is the empty string.
+   Note that JsLisp doesn't provide arbitrary precision integer \
+   arithmetic by default and unit-accurate integer math \
+   is available up to [2^53].[[
    (list (-) (- 2) (- 20 5) (- 10 5 4))
    ;; ==> (0 -2 15 1)
 
@@ -1035,15 +1037,62 @@
    (list (- \"a\") (- undefined) (- #()))
    ;; ==> (NaN NaN NaN)
 
+   (- (list (list)))
+   ;; ==> 0
+
    (- -9007199254740992 1)
    ;; ==> -9007199254740992
    ]]"
   0 `(js-code ,(+ "-" (js-compile (aref args 0)))) "-")
 
-(defmathop * "Numeric multiplication"
+(defmathop *
+  "Numeric multiplication.
+   Without arguments the result is [1]. With only one argument \
+   the function returns the passed value and with more than one \
+   argument the result is the product of the arguments.
+   Non-numeric values are considered [NaN]s with the exception \
+   of [true] that is considered [1] and [false], [null], [\"\"], \
+   [()] that are considered [0] as also any object for which the \
+   Javascript conversion to string is the empty string.[[
+   (list (*) (* 2) (* 1 2 3 4))
+   ;; ==> (1 2 24)
+
+   (* true 19)
+   ;; ==> 19
+
+   (map (lambda (x) (* x 2))
+        (list null \"\" false (list)))
+   ;; ==> (0 0 0 0)
+
+   (* \"abc\" 2)
+   ;; ==> NaN
+
+   (* (list 1 2 3))
+   ;; ==> (1 2 3)
+   ]]"
   1 (aref args 0) "*")
 
-(defmathop / "Numeric division. When called with a single operand returns the inverse."
+(defmathop /
+  "Numeric division. When called with a single operand \
+   returns the inverse.
+   The operator works only on numeric types and other values \
+   make the result [NaN]. Special cases are however [true] \
+   that is considered as [1] and [false], [null], \"\", [()] \
+   that are considered as [0] as also other objects for which \
+   the Javascript conversion to string is the empty string.[[
+   (list (/) (/ 2) (/ 8 32) (/ 27 3 6))
+   ;; ==> (1 0.5 0.25 1.5)
+
+   (/ \"abc\")
+   ;; ==> NaN
+
+   (/ null)
+   ;; ==> infinity
+
+   (map (lambda (x) (/ x 2))
+        (list null \"\" (list) (list (list)) true false))
+   ;; ==> (0 0 0 0 0.5 0)
+   ]]"
   1 `(/ 1 ,(aref args 0)) "/")
 
 (defmathop logior "Bitwise inclusive or"
