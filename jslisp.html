@@ -65,6 +65,7 @@ window.onerror = function(m)
     f$$display("** RUNTIME ERROR **: " + m);
     f$$stack_trace((m && m.location) || global_unwinding_trace);
     global_unwinding_trace = [];
+    f$$display(";; Ready");
 };
 
 var banner = (";;\n"+
@@ -391,33 +392,17 @@ function process()
     var base = repl.value;
     var li = activeIndex(base);
     base = base.substr(li).replace(/\t\n *$/,"");
-    try
+    var src = f$$make_source(base);
+    f$$skip_spaces(src);
+    while (src.s[src.i] != undefined)
     {
-        var src = f$$make_source(base);
+        var parsed = f$$parse_value(src);
+        var result = f$$toplevel_eval(parsed);
+        d$$$42_$42_$42_ = d$$$42_$42_;
+        d$$$42_$42_ = d$$$42_;
+        d$$$42_ = result;
+        f$$display(";; ==> " + f$$str_value(result) + "\n");
         f$$skip_spaces(src);
-        while (src.s[src.i] != undefined)
-        {
-            var parsed = f$$parse_value(src);
-            var result = f$$toplevel_eval(parsed);
-            d$$$42_$42_$42_ = d$$$42_$42_;
-            d$$$42_$42_ = d$$$42_;
-            d$$$42_ = result;
-            f$$display(";; ==> " + f$$str_value(result) + "\n");
-            f$$skip_spaces(src);
-        }
-    }
-    catch (err)
-    {
-        var loc = err.location;
-        err = ("" + err).replace(/[dmf]\$\$([a-zA-Z_]|(\$[0-9]+\_))*/g,
-                                 function(s)
-                                 {
-                                     return {"d" : "",
-                                             "m" : "macro ",
-                                             "f" : "function "}[s[0]] + f$$demangle(s.substr(1));
-                                 });
-        f$$display("**ERROR**: " + err);
-        f$$display(";; Ready\n");
     }
 }
 
