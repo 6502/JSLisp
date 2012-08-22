@@ -1014,7 +1014,30 @@
    ]]"
   0 (aref args 0) "+")
 
-(defmathop - "Numeric subtraction. When called with a single argument negates the operand."
+(defmathop -
+  "Numeric subtraction. When called with a single argument \
+   negates the operand.
+   The operator works only on numeric types and other values \
+   make the result [NaN]. Special cases are however [true] \
+   that is considered as [1] and [false], [null], \"\", [()] \
+   that are considered as [0]. Note also that JsLisp doesn't \
+   provide arbitrary precision integer arithmetic by default \
+   and unit-accurate integer math is available up to 2**53.[[
+   (list (-) (- 2) (- 20 5) (- 10 5 4))
+   ;; ==> (0 -2 15 1)
+
+   (- true)
+   ;; ==> -1
+
+   (list (- false) (- \"\") (- null) (- (list)))
+   ;; ==> (0 0 0 0)
+
+   (list (- \"a\") (- undefined) (- #()))
+   ;; ==> (NaN NaN NaN)
+
+   (- -9007199254740992 1)
+   ;; ==> -9007199254740992
+   ]]"
   0 `(js-code ,(+ "-" (js-compile (aref args 0)))) "-")
 
 (defmathop * "Numeric multiplication"
