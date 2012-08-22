@@ -976,7 +976,7 @@
    to be a numeric 0 if the running sum is numeric, [true] that is \
    considered a numeric 1 and [undefined] that added to a number \
    results in [NaN].
-   Math operators are defined both a macro and a function \
+   Math operators are defined both as macro and as function \
    so redefining an operator will not affect code that was \
    compiled before the change.[[
    (list (+) (+ 2) (+ 1 2 3) (+ \"a\" \"bc\"))
@@ -1021,7 +1021,9 @@
    make the result [NaN]. Special cases are however [true] \
    that is considered as [1] and [false], [null], \"\", [()] \
    that are considered as [0] as also other objects for which \
-   the Javascript conversion to string is the empty string.
+   the Javascript conversion to string is the empty string. \
+   Strings are also converted implicitly to numbers (including \
+   e.g. hex formats) generating [NaN]s when the conversion fails.
    Note that JsLisp doesn't provide arbitrary precision integer \
    arithmetic by default and unit-accurate integer math \
    is available up to [2^53].[[
@@ -1040,6 +1042,9 @@
    (- (list (list)))
    ;; ==> 0
 
+   (- \"0x1dfc\" 6)
+   ;; ==> 7670
+
    (- -9007199254740992 1)
    ;; ==> -9007199254740992
    ]]"
@@ -1053,7 +1058,9 @@
    Non-numeric values are considered [NaN]s with the exception \
    of [true] that is considered [1] and [false], [null], [\"\"], \
    [()] that are considered [0] as also any object for which the \
-   Javascript conversion to string is the empty string.[[
+   Javascript conversion to string is the empty string. \
+   String values are converted to numbers (including e.g. hex formats) \
+   and generate [NaN]s when the conversion fails.[[
    (list (*) (* 2) (* 1 2 3 4))
    ;; ==> (1 2 24)
 
@@ -1066,6 +1073,9 @@
 
    (* \"abc\" 2)
    ;; ==> NaN
+
+   (* \"0xFF\" 2)
+   ;; ==> 510
 
    (* (list 1 2 3))
    ;; ==> (1 2 3)
