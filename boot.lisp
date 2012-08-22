@@ -1095,13 +1095,85 @@
    ]]"
   1 `(/ 1 ,(aref args 0)) "/")
 
-(defmathop logior "Bitwise inclusive or"
+(defmathop logior
+  "Bitwise INCLUSIVE OR operation
+   The result is computed in 32-bit signed integer arithmetic \
+   and operands are converted to 32-bit signed integers before \
+   the operation. Special values [undefined] [NaN] [infinity] are
+   converted to [0]. The operator does NOT use short-circuit \
+   even when the result is known to be [-1] after evaluating only \
+   some of the operands.[[
+   (logior)
+   ;; ==> 0
+
+   (logior (list))
+   ;; ==> ()
+
+   (logior 1 2 4)
+   ;; ==> 7
+
+   (logior 2 \"65\")
+   ;; ==> 67
+
+   (logior infinity 0)
+   ;; ==> 0
+
+   (let ((x (list)))
+     (list x (logior -1 (progn (push 42 x) 0))))
+   ;; ==> ((42) -1)
+   ]]"
   0 (aref args 0) "|")
 
-(defmathop logand "Bitwise and"
+(defmathop logand
+  "Bitwise AND operation
+   The result is computed in 32-bit signed integer arithmetic \
+   and operands are converted to 32-bit signed integers before \
+   the operation. Special values [undefined] [NaN] [infinity] are
+   converted to [0]. The operator does NOT use short-circuit \
+   even when the result is known to be [0] after evaluating only \
+   some of the operands.[[
+   (logand)
+   ;; ==> -1
+
+   (logand (list))
+   ;; ==> ()
+
+   (logand 15 12 8)
+   ;; ==> 8
+
+   (logand 7 \"65\")
+   ;; ==> 1
+
+   (logand infinity -1)
+   ;; ==> 0
+
+   (let ((x (list)))
+     (list x (logand 0 (progn (push 42 x) 0))))
+   ;; ==> ((42) 0)
+   ]]"
   -1 (aref args 0) "&")
 
-(defmathop logxor "Bitwise exclusive or"
+(defmathop logxor
+  "Bitwise EXCLUSIVE OR operation
+   The result is computed in 32-bit signed integer arithmetic \
+   and operands are converted to 32-bit signed integers before \
+   the operation. Special values [undefined] [NaN] [infinity] are
+   converted to [0].[[
+   (logxor)
+   ;; ==> 0
+
+   (logxor (list))
+   ;; ==> ()
+
+   (logxor 15 12 8)
+   ;; ==> 11
+
+   (logxor 7 \"65\")
+   ;; ==> 70
+
+   (logxor infinity 33)
+   ;; ==> 33
+   ]]"
   0 (aref args 0) "^")
 
 (defmathop-func +)
