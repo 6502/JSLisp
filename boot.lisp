@@ -964,20 +964,74 @@
 
 ;; Math n-ary operators macros and functions
 
-(defmathop + "Numeric addition or string concatenation"
+(defmathop +
+  "Numeric addition or string concatenation.
+   Addition of no parameters returns 0, and passing \
+   a single parameter returns the parameter. \
+   With more parameters the addition is grouping left to right \
+   and as soon a non-number is found the remaining additions will \
+   be string concatenations as any non-string object will be \
+   converted to a string.
+   Special cases are the [null] and [false] values that are considered \
+   to be a numeric 0 if the running sum is numeric, [true] that is \
+   considered a numeric 1 and [undefined] that added to a number \
+   results in [NaN].
+   Math operators are defined both a macro and a function \
+   so redefining an operator will not affect code that was \
+   compiled before the change.[[
+   (list (+) (+ 2) (+ 1 2 3) (+ \"a\" \"bc\"))
+   ;; ==> (0 2 6 \"abc\")
+
+   (+ 1 2 \"a\" 3 4)
+   ;; ==> \"3a34\"
+
+   (+ (list))
+   ;; ==> ()
+
+   (+ 1 2 NaN 3 4)
+   ;; ==> NaN
+
+   (+ 1 2 null 3 4)
+   ;; ==> 10
+
+   (+ 1 2 undefined 3 4)
+   ;; ==> NaN
+
+   (+ 1 2 NaN \"test\")
+   ;; ==> \"NaNtest\"
+
+   (+ 3 true false)
+   ;; ==> 4
+
+   (+ undefined \"foo\")
+   ;; ==> \"undefinedfoo\"
+
+   (+ 1 #())
+   ;; ==> \"1[object Object]\"
+
+   (+ 1 (list 2 3))
+   ;; ==> \"12,3\"
+   ]]"
   0 (aref args 0) "+")
+
 (defmathop - "Numeric subtraction. When called with a single argument negates the operand."
   0 `(js-code ,(+ "-" (js-compile (aref args 0)))) "-")
+
 (defmathop * "Numeric multiplication"
   1 (aref args 0) "*")
+
 (defmathop / "Numeric division. When called with a single operand returns the inverse."
   1 `(/ 1 ,(aref args 0)) "/")
+
 (defmathop logior "Bitwise inclusive or"
   0 (aref args 0) "|")
+
 (defmathop logand "Bitwise and"
   -1 (aref args 0) "&")
+
 (defmathop logxor "Bitwise exclusive or"
   0 (aref args 0) "^")
+
 (defmathop-func +)
 (defmathop-func -)
 (defmathop-func *)
