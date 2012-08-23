@@ -51,6 +51,8 @@
                     `(setf (. ,',ctx lineWidth) ,x))
                   (,#"fill" ()
                     `(funcall (. ,',ctx fill)))
+                  (,#"fill-rect" (x0 y0 w h)
+                    `(funcall (. ,',ctx fillRect) ,x0 ,y0 ,w ,h))
                   (,#"stroke" ()
                     `(funcall (. ,',ctx stroke)))
                   (,#"clip" ()
