@@ -11,8 +11,10 @@
                 px/height 300)
 ]]
   The [px/] prefix means a CSS unit that will be appended to the expression."
-  (let ((elstyle (gensym)))
-    `(let ((,elstyle (. ,element style)))
+  (let ((el '#.(gensym))
+        (elstyle '#.(gensym)))
+    `(let* ((,el ,element)
+            (,elstyle (. ,el style)))
        ,@(map (lambda (i)
                 (let* ((prop (aref properties i))
                        (value (aref properties (1+ i)))
@@ -23,7 +25,7 @@
                       `(setf (. ,elstyle ,(intern (slice pname (1+ um))))
                              (+ ,value ,(slice pname 0 um))))))
               (range 0 (length properties) 2))
-       ,elstyle)))
+       ,el)))
 
 (defun element-pos (x)
   "Returns [(left top)] position of specified DOM element."
@@ -75,17 +77,16 @@
 
 (defun tracking (f &optional end cursor)
   "Starts tracking mouse movements with calls to [f] until mouseup and then call [end]"
-  (let ((cover (create-element "div")))
-    (set-style cover
-               position "absolute"
-               zIndex 999999999
-               cursor cursor
-               px/left 0
-               px/top 0
-               px/right 0
-               px/bottom 0
-               opacity 0.001
-               backgroundColor "#000000")
+  (let ((cover (set-style (create-element "div")
+                          position "absolute"
+                          zIndex 999999999
+                          cursor cursor
+                          px/left 0
+                          px/top 0
+                          px/right 0
+                          px/bottom 0
+                          opacity 0.001
+                          backgroundColor "#000000")))
     (set-handler cover oncontextmenu
                  (event.preventDefault)
                  (event.stopPropagation))
@@ -113,14 +114,13 @@
 
 (defun modal-screen ()
   "Creates, displays and returns a modal translucent screen that blocks mouse clicks"
-  (let ((modal (create-element "div")))
-    (set-style modal
-               position "absolute"
-               px/left 0
-               px/top 0
-               px/right 0
-               px/bottom 0
-               backgroundColor "rgba(0,0,0,0.25)")
+  (let ((modal (set-style (create-element "div")
+                          position "absolute"
+                          px/left 0
+                          px/top 0
+                          px/right 0
+                          px/bottom 0
+                          backgroundColor "rgba(0,0,0,0.25)")))
     (set-handler modal onmousedown
                  (event.preventDefault)
                  (event.stopPropagation))
@@ -643,29 +643,21 @@
 (defun ask-color (prompt color cback)
   "Asks for a color (initially [color]) and calls [cback] passing the selection or [null]"
   (with-window (w (100 100 300 320 title: prompt close: false)
-                  ((canvas (let ((c (create-element "canvas")))
-                             (set-style c
-                                        position "absolute"
-                                        cursor "default")
-                             c))
-                   (dark (let ((c (create-element "canvas")))
-                           (set-style c
+                  ((canvas (set-style (create-element "canvas")
+                                      position "absolute"
+                                      cursor "default"))
+                   (dark (set-style (create-element "canvas")
+                                    position "absolute"
+                                    cursor "pointer"
+                                    pointerEvents "none"))
+                   (cursor (set-style (create-element "canvas")
                                       position "absolute"
                                       cursor "pointer"
-                                      pointerEvents "none")
-                           c))
-                   (cursor (let ((c (create-element "canvas")))
-                             (set-style c
-                                        position "absolute"
-                                        cursor "pointer"
-                                        pointerEvents "none")
-                             c))
-                   (vcursor (let ((c (create-element "canvas")))
-                              (set-style c
-                                         position "absolute"
-                                         cursor "pointer"
-                                         pointerEvents "none")
-                              c))
+                                      pointerEvents "none"))
+                   (vcursor (set-style (create-element "canvas")
+                                       position "absolute"
+                                       cursor "pointer"
+                                       pointerEvents "none"))
                    (ok (button "OK" (lambda ()
                                       (funcall cback color)
                                       (hide-window w))))
