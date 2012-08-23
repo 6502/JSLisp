@@ -1,6 +1,6 @@
 
 (defun set-coords (node x0 y0 x1 y1)
-  (error ~"Unable to set coords for {(str-value node)}"))
+  (error ~"Unable to set coords"))
 
 ;; Setting the coordinates of a null, string or number node is a NOP
 
