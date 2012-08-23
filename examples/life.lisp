@@ -1,8 +1,8 @@
 (import * from gui)
-(defconstant SHIFT 6)
+(defconstant SHIFT 7)
 (defconstant SZ (ash 1 SHIFT))
 (defconstant MASK (1- (* SZ SZ)))
-(defconstant SF 4)
+(defconstant SF 2)
 (import * from layout)
 (import * from graphics)
 
@@ -14,8 +14,9 @@
                                             position "absolute"
                                             px/width (* SF SZ)
                                             px/height (* SF SZ))))
-          (start/stop (add-widget w (button "Start/stop" #'start/stop)))
-          (clear (add-widget w (button "Clear" #'clear)))
+          (run/stop (add-widget w (button "Run" #'run/stop)))
+          (step (add-widget w (button "Step" #'step)))
+          (test (add-widget w (button "Test" #'test)))
           (random (add-widget w (button "Random" #'random)))
           (run-timer null)
           (alive (list))
@@ -36,10 +37,12 @@
                                         (,item (+ ,var SZ))
                                         (,item (+ ,var (1+ SZ))))))
                   (labels ((check (i)
-                             (unless (new-cell i)
-                               (setf (new-cell i) 1)
+                             (setf i (logand i MASK))
+                             (unless (aref new-field i)
+                               (setf (aref new-field i) 1)
                                (push i checklist))))
                     (dolist (x alive)
+                      (check x)
                       (nhbor progn x check))
                     (dolist (i checklist)
                       (let ((n (nhbor + i cell)))
@@ -55,7 +58,7 @@
                               (push i new-alive))
                             (progn
                               (when (cell i)
-                                (fill-style "#FFFFFF")
+                                (fill-style "#EEEEEE")
                                 (fill-rect (* SF (logand i (1- SZ)))
                                            (* SF (ash i (- SHIFT)))
                                            SF SF))
@@ -69,25 +72,51 @@
               (let ((p 0))
                 (dotimes (y SZ)
                   (dotimes (x SZ)
-                    (fill-style (if (aref field p) "#000000" "#FFFFFF"))
+                    (fill-style (if (aref field p) "#000000" "#EEEEEE"))
                     (fill-rect (* SF x) (* SF y) SF SF)
                     (incf p))))))
-          (#'start/stop ()
+          (#'run/stop ()
             (if (null? run-timer)
-                (setf run-timer (set-interval #'recalc 10))
+                (progn
+                  (setf run-timer (set-interval #'recalc 10))
+                  (setf run/stop.value "Stop"))
                 (progn
                   (clear-interval run-timer)
-                  (setf run-timer null))))
+                  (setf run-timer null)
+                  (setf run/stop.value "Run"))))
+          (#'step ()
+              (recalc))
+          (#'test ()
+            (setf alive (list))
+            (dotimes (i (* SZ SZ))
+              (when (setf (aref field i)
+                          (let* ((img '("::::::::::::::::::::::::#:::::::::::"
+                                        "::::::::::::::::::::::#:#:::::::::::"
+                                        "::::::::::::##::::::##::::::::::::##"
+                                        ":::::::::::#:::#::::##::::::::::::##"
+                                        "##::::::::#:::::#:::##::::::::::::::"
+                                        "##::::::::#:::#:##::::#:#:::::::::::"
+                                        "::::::::::#:::::#:::::::#:::::::::::"
+                                        ":::::::::::#:::#::::::::::::::::::::"
+                                        "::::::::::::##::::::::::::::::::::::"))
+                                 (y (+ (ash i (- SHIFT))
+                                       (- (ash SZ -1))
+                                       (ash (length img) -1)))
+                                 (x (+ (logand i (1- SZ))
+                                       (- (ash SZ -1))
+                                       (ash (length (aref img 0)) -1))))
+                            (if (and (< -1 y (length img))
+                                     (< -1 x (length (aref img 0)))
+                                     (= (aref img y x) "#"))
+                                1 0)))
+                (push i alive)))
+            (refresh))
           (#'random ()
             (setf alive (list))
             (dotimes (i (* SZ SZ))
-              (when (setf (aref field i) (random-int 2))
+              (when (setf (aref field i)
+                          (random-int 2))
                 (push i alive)))
-            (refresh))
-          (#'clear ()
-            (setf alive (list))
-            (dotimes (i (* SZ SZ))
-              (setf (aref field i) 0))
             (refresh)))
     (set-layout w (V spacing: 8 border: 8
                      :filler:
@@ -96,10 +125,14 @@
                      :filler:
                      size: 30
                      (H :filler:
-                        size: 80 (dom start/stop) (dom clear) (dom random)
+                        size: 60
+                        (dom run/stop)
+                        (dom step)
+                        (dom test)
+                        (dom random)
                         :filler:)))
     (setf w.close-cback
-          (lambda () (when run-timer (start/stop))))
+          (lambda () (when run-timer (run/stop))))
     (random)
     (show-window w center: true)))
 
