@@ -76,7 +76,7 @@ var banner = (";;\n"+
               ";; [enter]  (at end of the buffer) evaluates from last result to end\n"+
               ";; [alt-/]  autocomplete (backspace to abort)\n"+
               ";; [tab]    autoindent current line or current selection\n"+
-              ";; [esc]    hides documentation window\n"+
+              ";; [esc]    hides documentation window (F1 shows again)\n"+
               ";;\n");
 
 var char_width, char_height;
@@ -117,11 +117,11 @@ calcFontCell();
 setInterval(calcFontCell, 1000);
 
 var lasthelp = null;
-var last_key = 0;
+var hide_help = 0;
 var help_timeout = 0;
 
 setInterval(function() {
-    if (last_key != 27 && (new Date).getTime() > help_timeout)
+    if (!hide_help && (new Date).getTime() > help_timeout)
     {
         var o = parseFloat(help.style.opacity) + 0.05;
         if (o > 1) o = 1;
@@ -410,7 +410,24 @@ function keyDown(e)
 {
     typing = true;
     help.style.opacity = 0;
-    last_key = e.which;
+
+    if (e.which == 27)
+    {
+        e.preventDefault();
+        e.stopPropagation();
+        hide_help = false;
+        hide_help = true;
+        setHelp(null);
+    }
+
+    if (e.which == 112)
+    {
+        e.preventDefault();
+        e.stopPropagation();
+        hide_help = false;
+        return;
+    }
+
     if (e.altKey && e.which == 191)
     {
         // Alt-/ ==> autocomplete
