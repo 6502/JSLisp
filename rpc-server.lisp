@@ -68,9 +68,10 @@
 (setf (symbol-macro 'rpc:defun)
       (lambda (name args &rest body)
         (setf name (module-symbol name))
-        (let ((fields (map (lambda (f)
-                             (if (list? f) (first f) f))
-                           args)))
+        (let ((fields (filter (lambda (x) (/= x '&optional))
+                              (map (lambda (f)
+                                     (if (list? f) (first f) f))
+                                   args))))
           `(progn
              (defun ,name ,args ,@body)
              (defobject ,#"{name}-req" ,fields)

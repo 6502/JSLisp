@@ -6,9 +6,10 @@
 
 (setf (symbol-macro 'rpc:defun)
       (lambda (name args &rest body)
-        (let ((fields (map (lambda (f)
-                             (if (list? f) (first f) f))
-                           args)))
+        (let ((fields (filter (lambda (x) (/= x '&optional))
+                              (map (lambda (f)
+                                     (if (list? f) (first f) f))
+                                   args))))
           `(progn
              ;;
              ;; Client side; create the tunneling stub only
