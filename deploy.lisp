@@ -37,7 +37,6 @@ making the resulting javascript close to stripped machine code from a
 reverse engineering point of view.
 "
 (defun minimize (s)
-  (return-from minimize s)
   (let ((seen #())
         (lits #())
         (rlits #())
