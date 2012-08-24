@@ -371,16 +371,22 @@
   "Sets the state of a [checkbox/radio]"
   (setf checkbox/radio.firstChild.checked value))
 
+(defun label (txt)
+  (let ((label (create-element "div")))
+    (setf label.textContent txt)
+    (set-style label
+               fontFamily "sans-serif"
+               %/fontSize 80
+               whiteSpace 3
+               fontWeight "bold")))
+
 (defun input (caption)
   "Creates an input field with specified [caption]"
   (let ((input (create-element "input"))
-        (label (create-element "div"))
+        (label (label caption))
         (container (create-element "div")))
     (set-style container
                position "absolute")
-    (set-style label
-               %/fontSize 80
-               fontWeight "bold")
     (set-style input
                %/width 100
                %/fontSize 110
@@ -388,7 +394,6 @@
                px/padding 1
                px/margin 0
                backgroundColor "#EEEEEE")
-    (setf label.textContent caption)
     (setf input.type "text")
     (append-child container label)
     (append-child container input)
@@ -402,16 +407,59 @@
   "Sets content of a text [input] to a new [value]"
   (setf input.lastChild.value value))
 
-(defun text-area (caption)
-  "Creates a multiline input field with specified [caption]"
-  (let ((input (create-element "textarea"))
-        (label (create-element "div"))
+(defun input-with-help (caption helper)
+  "Creates an input field with specified [caption] and an helper button"
+  (let ((input (create-element "input"))
+        (label (label caption))
+        (help (create-element "input"))
         (container (create-element "div")))
     (set-style container
                position "absolute")
-    (set-style label
-               %/fontSize 80
-               fontWeight "bold")
+    (set-style input
+               position "absolute"
+               %/fontSize 110
+               border "none"
+               px/padding 1
+               px/margin 0
+               backgroundColor "#EEEEEE")
+    (set-style help
+               position "absolute"
+               px/width 30)
+    (setf help.type "button")
+    (setf help.value "?")
+    (setf input.type "text")
+    (append-child container label)
+    (append-child container help)
+    (append-child container input)
+    (setf container."data-resize"
+          (lambda (x0 y0 x1 y1)
+            (set-style input
+                       px/left 0
+                       px/right 30
+                       px/top (+ label.offsetTop label.offsetHeight)
+                       px/bottom 0)
+            (set-style help
+                       px/right 0
+                       px/top (- (+ label.offsetTop label.offsetHeight) 2)
+                       px/bottom -2
+                       px/width 30)))
+    (set-handler help onclick
+                 (funcall helper container))
+    (setf help.tabIndex -1)
+    (set-handler input onkeydown
+                 (when (= event.which 112)
+                   (event.preventDefault)
+                   (event.stopPropagation)
+                   (funcall helper container)))
+    container))
+
+(defun text-area (caption)
+  "Creates a multiline input field with specified [caption]"
+  (let ((input (create-element "textarea"))
+        (label (label caption))
+        (container (create-element "div")))
+    (set-style container
+               position "absolute")
     (set-style input
                %/fontSize 110
                position "absolute"
@@ -439,7 +487,6 @@
             (set-style input
                        px/width (- container.offsetWidth 8)
                        px/height (- container.offsetHeight 16 8))))
-    (setf label.textContent caption)
     (append-child container label)
     (append-child container input)
     container))
@@ -447,13 +494,10 @@
 (defun select (caption values)
   "Creates an select field with specified [caption] and list of [values]"
   (let ((select (create-element "select"))
-        (label (create-element "div"))
+        (label (label caption))
         (container (create-element "div")))
     (set-style container
                position "absolute")
-    (set-style label
-               %/fontSize 80
-               fontWeight "bold")
     (set-style select
                %/width 100
                %/fontSize 110
@@ -461,7 +505,6 @@
                px/padding 0
                px/margin 0
                backgroundColor "#EEEEEE")
-    (setf label.textContent caption)
     (dolist (x values)
       (let ((item (create-element "option")))
         (setf item.textContent x)
@@ -910,6 +953,7 @@
         button
         radio checkbox checked set-checked
         input text set-text
+        input-with-help
         text-area
         group
         static-text
