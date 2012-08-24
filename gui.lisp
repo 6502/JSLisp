@@ -377,7 +377,7 @@
     (set-style label
                fontFamily "sans-serif"
                %/fontSize 80
-               whiteSpace 3
+               whiteSpace "pre"
                fontWeight "bold")))
 
 (defun input (caption)
