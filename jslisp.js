@@ -66,21 +66,18 @@ function stringify(x)
 function Symbol(name, interned)
 {
     this.name = name;
-    this.interned = interned;
-
-    this.toString = function () {
-        var ix = this.name.indexOf("$$");
-        var mod = f$$demangle("$$" + this.name.substr(0, ix)) + ":";
-        if (mod === ":" || mod === d$$$42_current_module$42_ + ":")
-            mod = "";
-        return mod + f$$demangle(this.name);
-    };
-
-    // Cells (used only for uninterned symbols)
-    this.d = undefined;
-    this.f = undefined;
-    this.m = undefined;
+    if (!interned) this.interned = interned;
 }
+
+Symbol.prototype.interned = true;
+
+Symbol.prototype.toString = function () {
+    var ix = this.name.indexOf("$$");
+    var mod = f$$demangle("$$" + this.name.substr(0, ix)) + ":";
+    if (mod === ":" || mod === d$$$42_current_module$42_ + ":")
+        mod = "";
+    return mod + f$$demangle(this.name);
+};
 
 function Namespace()
 {
