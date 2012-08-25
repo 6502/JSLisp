@@ -452,7 +452,7 @@
                     ((name (input "name"))
                      (description (input "description"))
                      (ok (button "OK" (lambda ()
-                                        (funcall f (text name))
+                                        (funcall f (text name) (text description))
                                         (hide-window w))))
                      (cancel (button "Cancel" (lambda ()
                                                 (hide-window w)))))
@@ -547,8 +547,9 @@
                                                                   *current-page*.width
                                                                   *current-page*.height
                                                                   (list)))
-                                            (setf *current-document*.pages (new-document "<unnamed>" "New document"
-                                                                                         (list *current-page*)))
+                                            (setf *current-document*
+                                                  (new-document "<unnamed>" "New document"
+                                                                (list *current-page*)))
                                             (setf *dirty* true))))
                    (doc-open (button "Open" (lambda ()
                                               (document-selector "Open"
@@ -559,9 +560,10 @@
                                                      (setf *dirty* true)))))))
                    (doc-save (button "Save" (lambda ()
                                               (document-save "Save"
-                                                 (lambda (name)
+                                                 (lambda (name description)
                                                    (when name
                                                      (setf *current-document*.name name)
+                                                     (setf *current-document*.description description)
                                                      (save-document *current-document*))))))))
                   (V spacing: 16 border: 8
                        weight: 300 (dom new-commands

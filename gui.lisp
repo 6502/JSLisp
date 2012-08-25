@@ -377,6 +377,7 @@
     (set-style label
                fontFamily "sans-serif"
                %/fontSize 80
+               color "#666666"
                whiteSpace "pre"
                fontWeight "bold")))
 
@@ -390,6 +391,7 @@
     (set-style input
                %/width 100
                %/fontSize 110
+               fontWeight "bold"
                border "none"
                px/padding 1
                px/margin 0
@@ -418,6 +420,7 @@
     (set-style input
                position "absolute"
                %/fontSize 110
+               fontWeight "bold"
                border "none"
                px/padding 1
                px/margin 0
@@ -462,6 +465,7 @@
                position "absolute")
     (set-style input
                %/fontSize 110
+               fontWeight "bold"
                position "absolute"
                px/left 0
                px/top 16
@@ -501,6 +505,7 @@
     (set-style select
                %/width 100
                %/fontSize 110
+               fontWeight "bold"
                border "none"
                px/padding 0
                px/margin 0
@@ -536,6 +541,7 @@
     (when title
       (set-style caption
                  %/fontSize 80
+                 color "#666666"
                  fontWeight "bold"
                  backgroundColor "#FFFFFF"
                  position "relative"
