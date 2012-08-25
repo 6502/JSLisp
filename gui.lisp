@@ -886,10 +886,10 @@
                     ((message (create-element "div")))
                     (V spacing: 8 border: 8
                        (dom message)
-                       :filler:
                        size: 30
                        btnrow))
       (setf message.style.position "absolute")
+      (setf message.style.overflow "auto")
       (setf message.innerHTML htmltext)
       (dolist (btn-text buttons)
         (let ((b (button btn-text (lambda ()
