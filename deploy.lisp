@@ -183,7 +183,7 @@ reverse engineering point of view.
        (when (= ix -1)
          (setf ix (length *repo*))
          (push x *repo*)
-         (let ((ii (+ "" x)))
+         (let ((ii (replace (+ "" x) "\r" "")))
            (setf ii (replace ii "f.usedglobs=\\[[^\\]]*\\];f.outcalls=\\[[^\\]]*\\];f.arglist=[^;]*;" ""))
            (incf *repcode* ~"r{ix}={ii};"))
          (when x.usedglobs
