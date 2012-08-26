@@ -221,12 +221,10 @@ reverse engineering point of view.
              (incf *repcode* ~"Object.defineProperty(r{ix}.prototype,\
                                \"%class\",\
                                \\{enumerable:false,value:{ii}\\});"))
-           (dolist ((name getter) x.prototype.%getters)
-             (let ((ii (rep getter)))
-               (incf *repcode* ~"r{ix}.prototype.__defineGetter__({(json name)},{ii});")))
-           (dolist ((name setter) x.prototype.%setters)
-             (let ((ii (rep setter)))
-               (incf *repcode* ~"r{ix}.prototype.__defineSetter__({(json name)},{ii});")))
+           (dolist ((name getter setter) x.prototype.%properties)
+             (let ((i0 (rep getter))
+                   (i1 (rep setter)))
+               (incf *repcode* ~"Object.defineProperty(r{ix}.prototype,{(json name)},\\{get:{i0},set:{i1}\\});")))
            (let ((ii (rep x.prototype.%copy)))
              (incf *repcode* ~"Object.defineProperty(r{ix}.prototype,\
                                \"%copy\",\

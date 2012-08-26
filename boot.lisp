@@ -2469,11 +2469,8 @@ A name is either an unevaluated atom or an evaluated list."
           "%class" #((enumerable false)
                      (value ',class)))
          ((js-code "Object.defineProperty") prototype
-          "%getters" #((enumerable false)
-                       (value (list))))
-         ((js-code "Object.defineProperty") prototype
-          "%setters" #((enumerable false)
-                       (value (list))))
+          "%properties" #((enumerable false)
+                          (value (list))))
          ((js-code "Object.defineProperty") prototype
           "%copy" #((enumerable false)
                     (value (lambda ()
@@ -2495,31 +2492,45 @@ A name is either an unevaluated atom or an evaluated list."
          (,(intern ~"new-{name}") ,@fieldnames))
        ',name)))
 
-(defmacro defgetter (class name &rest body)
-  "Defines a getter for a [class] with specified [name] and implementation [body].
-   In [body] forms the symbol [this] is available to refer to current instance."
-  (let ((lf (gensym))
-        (proto (gensym)))
-    `(let ((,lf (lambda () (symbol-macrolet ((this (js-code "this")))
-                             ,@body)))
-           (,proto (function ,#"{class}-constructor")."prototype"))
-       (push (list ,(symbol-name name) ,lf)
-             (. ,proto "%getters"))
-       ((. ,proto "__defineGetter__") ,(symbol-name name) ,lf)
-       ',name)))
+(defmacro defproperty (class name getter setter)
+  "Defines a getter/setter for a [class] property with specified [name] and implementations.
+   In [getter] form the symbol [this] is available to refer to current instance and \
+   in [setter] form the symbol [this] and [value] are available to refer to current \
+   instance and to the value being written to the property.
+   Once defined a property cannot be redefined.[[
+   (defobject xy (x y))
+   ;; ==> xy
 
-(defmacro defsetter (class name &rest body)
-  "Defines a setter for a [class] with specified [name] and implementation [body].
-   In [body] forms the symbol [this] is available to refer to current instance
-   and the symbol [value] is bound to the value being written."
-  (let ((lf (gensym))
+   (defproperty xy abs
+     (sqrt (+ (* this.x this.x) (* this.y this.y)))
+     (let ((k (/ value this.abs)))
+       (setf this.x (* k this.x))
+       (setf this.y (* k this.y))))
+   ;; ==> abs
+
+   (new-xy 30 40).abs
+   ;; ==> 50
+
+   (let ((p (new-xy 30 40)))
+     (setf p.abs 5)
+     (list p.x p.y))
+   ;; ==> (3 4)
+
+   (defpropery xy abs 42 42)
+   **ERROR**: Cannot redefine property abs
+   ;; Ready
+   ]]"
+  (let ((gf (gensym))
+        (sf (gensym))
         (proto (gensym)))
-    `(let ((,lf (lambda (value) (symbol-macrolet ((this (js-code "this")))
-                                  ,@body)))
+    `(let ((,gf (lambda () (let ((this (js-code "this")))
+                             ,getter)))
+           (,sf (lambda (value) (let ((this (js-code "this")))
+                                  ,setter)))
            (,proto (function ,#"{class}-constructor")."prototype"))
-       (push (list ,(symbol-name name) ,lf)
-             (. ,proto "%setters"))
-       ((. ,proto "__defineSetter__") ,(symbol-name name) ,lf)
+       (push (list ,(symbol-name name) ,gf ,sf)
+             (. ,proto "%properties"))
+       ((js-code "Object.defineProperty") ,proto ,(symbol-name name) #((get ,gf) (set ,sf)))
        ',name)))
 
 (defmacro deftuple (name fields)
@@ -2529,14 +2540,11 @@ A name is either an unevaluated atom or an evaluated list."
   `(progn
      (defobject ,name ,fields)
      ,@(map (lambda (i)
-              `(defgetter ,name ,(intern (str-value i))
-                 (. this ,(aref fields i))))
-            (range (length fields)))
-     ,@(map (lambda (i)
-              `(defsetter ,name ,(intern (str-value i))
+              `(defproperty ,name ,(intern (str-value i))
+                 (. this ,(aref fields i))
                  (setf (. this ,(aref fields i)) value)))
             (range (length fields)))
-     (defgetter ,name length ,(length fields))
+     (defproperty ,name length ,(length fields) null)
      (defmacro ,name (&optional ,@fields)
        ,~"Creates an instance of tuple [{name}]"
        (list ',#"new-{name}" ,@fields))))
