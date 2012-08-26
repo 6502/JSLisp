@@ -25,6 +25,7 @@
 (defvar *sections* (list))
 
 (defun parse-site (txt)
+  (setf txt (replace txt "\r" ""))
   (symbol-macrolet ((line (aref lines line-index))
                     (line+ (aref lines (1- (incf line-index))))
                     (next-line (incf line-index))

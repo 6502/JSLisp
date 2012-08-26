@@ -161,7 +161,7 @@
     div))
 
 (defun load-slides (name)
-  (let ((lines (split (http-get name) "\n"))
+  (let ((lines (split (replace (http-get name) "\r" "") "\n"))
         (i 0)
         (slides (list)))
     (do ((L (aref lines (1- (incf i)))))
