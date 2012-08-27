@@ -133,7 +133,7 @@ be called with start/end squares (two numbers between 0 and 63)."
 (defun wmain ()
   (let ((pnames #())
         (w null)
-        (board #()))
+        (board (chess:chessboard)))
     (setf (aref pnames chess:+WP+) "P")
     (setf (aref pnames chess:+WR+) "R")
     (setf (aref pnames chess:+WN+) "N")
