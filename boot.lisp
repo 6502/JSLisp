@@ -563,34 +563,117 @@
    ]]"
   (js-code "(d$$x.slice(1))"))
 
-(defmacro splice (x start size)
-  (list 'js-code (+ "("
-                    (js-compile x)
-                    ".splice("
-                    (js-compile start)
-                    ","
-                    (js-compile size)
-                    "))")))
+(defmacro splice (x &optional start size)
+  (if (undefined? size)
+      (list 'js-code (+ "("
+                        (js-compile x)
+                        ".splice("
+                        (js-compile start)
+                        "))"))
+      (list 'js-code (+ "("
+                        (js-compile x)
+                        ".splice("
+                        (js-compile start)
+                        ","
+                        (js-compile size)
+                        "))"))))
 
-(defun splice (x start size)
+(defun splice (x &optional start size)
   "Removes and returns [size] elements (or all remaining) \
-   from a given [start] point or from the beginning."
-  (js-code "(d$$x.splice(d$$start,d$$size))"))
+   from a given [start] index or from the beginning.
+   Calling [(splice x)] without other arguments removes all \
+   elements, making the list empty. If the start index is
+   negative then it's assumed as counting from the end of
+   the list (e.g. passing as [start] index [-1] is the same \
+   as passing [(1- (length x))]).[[
+   (let ((x (range 10)))
+     (list x (splice x 3 5)))
+   ;; ==> ((0 1 2 8 9) (3 4 5 6 7))
+
+   (let ((x (range 10)))
+     (list x (splice x 3)))
+   ;; ==> ((0 1 2) (3 4 5 6 7 8 9))
+
+   (let ((x (range 10)))
+     (list x (splice x 3 0)))
+   ;; ==> ((0 1 2 3 4 5 6 7 8 9) ())
+
+   (let ((x (range 10)))
+     (list x (splice x 3)))
+   ;; ==> ((0 1 2) (3 4 5 6 7 8 9))
+
+   (let ((x (range 10)))
+     (list x (splice x)))
+   ;; ==> (() (0 1 2 3 4 5 6 7 8 9))
+
+   (let ((x (range 10)))
+     (list x (splice x -2)))
+   ;; ==> ((0 1 2 3 4 5 6 7) (8 9))
+   ]]"
+  (if (undefined? size)
+      (js-code "(d$$x.splice(d$$start))")
+      (js-code "(d$$x.splice(d$$start,d$$size))")))
 
 (defun insert (x i y)
-  "Inserts element [y] into list [x] at index [i]"
+  "Inserts element [y] into list [x] at index [i].
+   Al elements with an index greater than [i] (if present) will \
+   be moved forward by one cell. If the index [i] is negative then \
+   it's assumed as counting from the end of the list (so [-1] is \
+   the same as [(1- (length x))]. The function returns the inserted \
+   value [y].[[
+   (let ((x (range 10)))
+     (list x (insert x 3 \"*NEW*\")))
+   ;; ==> ((0 1 2 \"*NEW*\" 3 4 5 6 7 8 9) \"*NEW*\")
+
+   (let ((x (range 10)))
+     (list x (insert x 0 \"*NEW*\")))
+   ;; ==> ((\"*NEW*\" 0 1 2 3 4 5 6 7 8 9) \"*NEW*\")
+
+   (let ((x (range 10)))
+     (list x (insert x -1 \"*NEW*\")))
+   ;; ==> ((0 1 2 3 4 5 6 7 8 \"*NEW*\" 9) \"*NEW*\")
+
+   (let ((x (range 10)))
+     (list x (insert x 999 \"*NEW*\")))
+   ;; ==> ((0 1 2 3 4 5 6 7 8 9 \"*NEW*\") \"*NEW*\")
+   ]]"
   (js-code "(d$$x.splice(d$$i,0,d$$y),d$$y)"))
 
 ;; Indexing
 (defmacro aref (x &rest indexes)
-  "Returns the element of [x] indexed by the specified values."
   (let ((res (js-compile x)))
     (dolist (i indexes)
       (setq res (+ res "[" (js-compile i) "]")))
     (list 'js-code (+ "(" res ")"))))
 
 (defun aref (x &rest indexes)
-  "Returns the element of [x] indexed by the specified values."
+  "Returns the element of [x] indexed by the specified values.
+   If there are more than one index the list is considered a \
+   multi-dimensional array with [(aref i j k)] being equivalent \
+   to [(aref (aref (aref x i) j) k)]. Without any index the \
+   result value is [x]. If the index is negative or greater than or \
+   equal to the length of [x] the result is [undefined].
+   [aref] indexing is also used to access object properties by name \
+   and therefore indexes are indeed allowed to be any value that can \
+   be converted to a string using Javascript rules. An [(aref ...)] \
+   form can be used also as a place for {{setf}}, {{incf}} or {{decf}}.[[
+   (aref (range 10) 3)
+   ;; ==> 3
+
+   (aref (range 10) -1)
+   ;; ==> undefined
+
+   (let ((x (make-array (list 3 3) 0)))
+     (setf (aref x 1 2) 42)
+     x)
+   ;; ==> ((0 0 0) (0 0 42) (0 0 0))
+
+   (aref #((x 10) (y 20)) \"x\")
+   ;; ==> 10
+
+   (aref (range 10) \"3\")
+   ;; ==> 3
+   ]]"
   (dolist (i indexes)
     (setq x (aref x i)))
   x)
@@ -1311,9 +1394,104 @@
                         (+ (documentation (symbol-macro ',name))
                            " Evaluation is short-circuiting."))))
 
-(defrelop <  "Strictly less than comparison." "<")
-(defrelop <= "Less than or equal comparison." "<=")
-(defrelop =  "Equality comparison." "===")
+(defrelop <  "Strictly less than comparison.
+              The test is true if arguments are in a strictly increasing chain \
+              sequence i.e. if for all pairs of consecutive arguments the element \
+              preceding in the sequence is strictly less than the element following. \
+              If the operator is called without arguments or with only one argument \
+              then the result is always [true] (empty truth: there are no pairs so \
+              any proposition about all pairs is logically true).
+              The operator is both a function and a macro, and when used in macro \
+              form the evaluation is \"short-circuiting\", i.e. the evaluation of \
+              arguments stops as soon as the result is known. Note that this means \
+              that invoking the macro version passing just one argument will return \
+              [true] WITHOUT EVALUATING THE ARGUMENT.[[
+              (< 1 2)
+              ;; ==> true
+
+              (< 2 1)
+              ;; ==> false
+
+              (< 1 2 3 4)
+              ;; ==> true
+
+              (< 1 2 3 3)
+              ;; ==> false
+
+              (< 1 \"10\" \"zap\")
+              ;; ==> true
+
+              (<)
+              ;; ==> true
+
+              (let ((x (list)))
+                (list (< (push 42 x)) x))
+              ;; ==> (true ())
+              ]]"
+             "<")
+(defrelop <= "Less than or equal comparison.
+              The test is true if arguments are in a non-decreasing chain \
+              sequence i.e. if for all pairs of consecutive arguments the element \
+              preceding in the sequence is not greater than the element following. \
+              If the operator is called without arguments or with only one argument \
+              then the result is always [true] (empty truth: there are no pairs so \
+              any proposition about all pairs is logically true).
+              The operator is both a function and a macro, and when used in macro \
+              form the evaluation is \"short-circuiting\", i.e. the evaluation of \
+              arguments stops as soon as the result is known. Note that this means \
+              that invoking the macro version passing just one argument will return \
+              [true] WITHOUT EVALUATING THE ARGUMENT.[[
+              (<= 1 2)
+              ;; ==> true
+
+              (<= 2 1)
+              ;; ==> false
+
+              (<= 1 2 3 3)
+              ;; ==> true
+
+              (<= 1 2 3 2)
+              ;; ==> false
+
+              (<= 1 \"10\" \"zap\")
+              ;; ==> true
+
+              (<=)
+              ;; ==> true
+
+              (let ((x (list)))
+                (list (<= (push 42 x)) x))
+              ;; ==> (true ())
+              ]]" "<=")
+(defrelop =  "Equality comparison.
+              Returns true if all elements are equal. Equality for lists or \
+              other objects means identity (two distinct lists with the \
+              same elements are not considered equal). When passed no arguments \
+              or only one argument the result is always [true].
+              The operator is both a function and a macro and the macro version \
+              is \"short-circuiting\" i.e. the evaluation of arguments will stop \
+              as soon as the result is known. This also means that using the macro \
+              with only one parameter returns [true] WITHOUT EVALUATING THE ARGUMENT.[[
+              (= 1 2)
+              ;; ==> false
+
+              (= 1 1)
+              ;; ==> true
+
+              (= (list) (list))
+              ;; ==> false
+
+              (let ((x (list)))
+                (= x x))
+              ;; ==> true
+
+              (=)
+              ;; ==> true
+
+              (let ((x (list)))
+                (list (= (push 42 x)) x))
+              ;; ==> (true ())
+              ]]" "===")
 (defrelop ~= "Equivalence comparison." "==")
 (defrelop >= "Greater than or equal comparison." ">=")
 (defrelop >  "Strictly greather than comparison." ">")
