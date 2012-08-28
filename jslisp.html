@@ -540,12 +540,7 @@ function keyPress(e)
     typing = true;
     help.style.opacity = 0;
     last_key = e.which;
-    if (e.which == 10 || (e.which == 13 && (e.ctrlKey || e.shiftKey)))
-    {
-        process();
-        e.preventDefault();
-    }
-    else if (e.which == 13)
+    if (e.which == 13)
     {
         e.preventDefault();
         var level = updateClpar();
