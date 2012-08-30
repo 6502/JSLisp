@@ -42,6 +42,7 @@
 (import-nomain examples/hexa)
 (import-nomain examples/guitest)
 (import-nomain examples/mypaint)
+(import-nomain examples/flood-fill)
 (import-nomain examples/asteroids)
 
 (defun main ()
