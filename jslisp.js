@@ -1011,6 +1011,41 @@ defmacro("do",
          },
          [f$$intern("init&step"), f$$intern("quit-condition"), f$$intern("&rest"), f$$intern("body")]);
 
+function domacrolet(bindings, body, body_process)
+{
+    lexmacro.begin();
+    for (var i=0; i<bindings.length; i++)
+    {
+        var name = bindings[i][0].name;
+        var args = bindings[i][1];
+        var mbody = bindings[i].slice(2);
+        var ouc = d$$$42_outgoing_calls$42_;
+        var oug = d$$$42_used_globals$42_;
+        d$$$42_outgoing_calls$42_ = {};
+        d$$$42_used_globals$42_ = {};
+        lexmacro.add(name, eval(f$$js_compile([f$$intern("lambda"), args].concat(mbody))));
+        d$$$42_outgoing_calls$42_ = ouc;
+        d$$$42_used_globals$42_ = oug;
+    }
+    var res = body_process(body);
+    lexmacro.end();
+    return res;
+}
+
+function dosymbolmacrolet(bindings, body, body_process)
+{
+    lexsmacro.begin();
+    for (var i=0; i<bindings.length; i++)
+    {
+        var name = bindings[i][0].name;
+        var value = bindings[i][1];
+        lexsmacro.add(name, value);
+    }
+    var res = body_process(body);
+    lexsmacro.end();
+    return res;
+}
+
 defmacro("macrolet",
          "[[(macrolet ((m1 (x1 x2 ...) b1 b2 ...) ...) &rest body)]]\n" +
          "Evaluates the body forms that are compiled by first installing " +
@@ -1019,23 +1054,7 @@ defmacro("macrolet",
          function(bindings)
          {
              var body = Array.prototype.slice.call(arguments, 1);
-             lexmacro.begin();
-             for (var i=0; i<bindings.length; i++)
-             {
-                 var name = bindings[i][0].name;
-                 var args = bindings[i][1];
-                 var mbody = bindings[i].slice(2);
-                 var ouc = d$$$42_outgoing_calls$42_;
-                 var oug = d$$$42_used_globals$42_;
-                 d$$$42_outgoing_calls$42_ = {};
-                 d$$$42_used_globals$42_ = {};
-                 lexmacro.add(name, eval(f$$js_compile([f$$intern("lambda"), args].concat(mbody))));
-                 d$$$42_outgoing_calls$42_ = ouc;
-                 d$$$42_used_globals$42_ = oug;
-             }
-             var res = implprogn(body);
-             lexmacro.end();
-             return [s$$js_code, res];
+             return [s$$js_code, domacrolet(bindings, body, implprogn)];
          },
          [f$$intern("bindings"), f$$intern("&rest"), f$$intern("body")]);
 
@@ -1046,16 +1065,7 @@ defmacro("symbol-macrolet",
          function(bindings)
          {
              var body = Array.prototype.slice.call(arguments, 1);
-             lexsmacro.begin();
-             for (var i=0; i<bindings.length; i++)
-             {
-                 var name = bindings[i][0].name;
-                 var value = bindings[i][1];
-                 lexsmacro.add(name, value);
-             }
-             var res = implprogn(body);
-             lexsmacro.end();
-             return [s$$js_code, res];
+             return [s$$js_code, dosymbolmacrolet(bindings, body, implprogn)];
          },
          [f$$intern("bindings"), f$$intern("&rest"), f$$intern("body")]);
 
@@ -1716,13 +1726,14 @@ defun("str-value",
 defun("toplevel-eval",
       "[[(toplevel-eval x)]]\n"+
       "Evaluates the form or symbol [x] by macroexpanding, compiling and "+
-      "executing it. If however the form is a [(progn/if ...)]"+
-      "form then conditions are evaluated immediately and recursive calls "+
-      "to toplevel-eval are used for evaluation. "+
-      "The main difference between [toplevel-eval] and [eval]"+
+      "executing it. If however the form to be compiled is a "+
+      "[(progn/if/macrolet/symbol-macrolet ...)] "+
+      "form then evaluation is performed by interpretation and recursive "+
+      "[toplevel-eval] calls are used for body forms. "+
+      "The main difference between [toplevel-eval] and [eval] "+
       "is about eventual macro and code side effects that can influence "+
-      "compilation of subsequent forms in [(progn...)] and that code in "+
-      "top-level conditional parts not being evaluated is also not compiled.",
+      "compilation of subsequent forms in [(progn/macrolet/symbol-macrolet...)] and " +
+      "that code in top-level conditional parts not being evaluated is also not compiled.",
       function(x)
       {
           // Ignore outgoing calls and used globals at toplevel
@@ -1759,6 +1770,22 @@ defun("toplevel-eval",
                   {
                       result = f$$toplevel_eval(x[3]);
                   }
+              }
+              else if (x[0] === s$$macrolet)
+              {
+                  result = null;
+                  domacrolet(x[1], x.slice(2), function(body) {
+                      for (var i=0; i<body.length; i++)
+                          result = f$$toplevel_eval(body[i]);
+                  });
+              }
+              else if (x[0] === s$$symbol_macrolet)
+              {
+                  result = null;
+                  dosymbolmacrolet(x[1], x.slice(2), function(body) {
+                      for (var i=0; i<body.length; i++)
+                          result = f$$toplevel_eval(body[i]);
+                  });
               }
               else if (f$$symbol$63_(x[0]) && (f = glob["m" + x[0].name]))
               {
