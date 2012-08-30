@@ -322,6 +322,10 @@
     (setf button.onclick (lambda (&rest args) (funcall action)))
     button))
 
+(defmacro lbutton (text &rest body)
+  "Syntactic sugar for simple buttons"
+  `(button ,text (lambda () ,@body)))
+
 (defun static-text (content)
   "Creates a static text object"
   (let ((text (create-element "div")))
@@ -956,7 +960,7 @@
         ask-color
         show-window hide-window with-window
         add-widget set-layout
-        button
+        button lbutton
         radio checkbox checked set-checked
         input text set-text
         input-with-help
