@@ -116,8 +116,23 @@
                              *missiles*))))
 
 (defun check-destruction ()
-  (setf *dead* (any (a *asteroids*)
-                    (hits *ship*.x *ship*.y a))))
+  (if *dead*
+      (when (= 0 (length *missiles*))
+        (setf *dead* false))
+      (when (setf *dead* (any (a *asteroids*)
+                              (hits *ship*.x *ship*.y a)))
+        (dotimes (i 100)
+          (let ((a (* (random) pi 2))
+                (s (* (random) 5)))
+            (push (make-missile x: *ship*.x
+                                y: *ship*.y
+                                angle: a
+                                xv: (* s (sin a))
+                                yv: (* s (cos a))
+                                anglev: 0
+                                geometry: *missile-geometry*
+                                count: (/ *canvas*.offsetWidth 4))
+                  *missiles*))))))
 
 (defun main ()
   (setf *screen* (set-style (create-element "div")
@@ -158,8 +173,9 @@
                   (dolist (e (append *asteroids* *missiles* (list *ship*)))
                     (update e)
                     (draw e *canvas*))
-                  (check-hits)
                   (check-destruction)
+                  (unless *dead*
+                    (check-hits))
                   (setf *missiles* (filter (lambda (m)
                                              (>= (decf m.count) 0))
                                            *missiles*))
@@ -195,8 +211,7 @@
                                              anglev: 0
                                              geometry: *missile-geometry*
                                              count: (/ *canvas*.offsetWidth 5 4))
-                               *missiles*))))
-                 (otherwise (display event.which)))
+                               *missiles*)))))
                (event.stopPropagation)
                (event.preventDefault))
 
