@@ -54,33 +54,44 @@
 (defun db-get (db id)
   (aref db.%all id))
 
+(defun db-okput? (db obj)
+  true)
+
+(defun db-okdelete? (db obj)
+  true)
+
 (defun db-put (db obj)
   (unless (and obj.%class (find "id" obj.%class))
     (error "First-level objects in database must have an [id] field"))
-  (unless obj.id
-    (setf obj.id (incf db.%maxid)))
-  (let ((id obj.id)
-        (class (first obj.%class)))
-    (when (> id db.%maxid)
-      (setf db.%maxid id))
-    (setf (aref db.%all id) obj)
-    (setf (aref (or (aref db class)
-                    (setf (aref db class) #()))
-                id) obj)
-    (if (list? db.%file)
-        (push (json* obj) db.%file)
-        (append-file db.%filename (+ (json* obj) "\n")))
-    obj))
+  (if (db-okput? db obj)
+      (progn
+        (unless obj.id
+          (setf obj.id (incf db.%maxid)))
+        (let ((id obj.id)
+              (class (first obj.%class)))
+          (when (> id db.%maxid)
+            (setf db.%maxid id))
+          (setf (aref db.%all id) obj)
+          (setf (aref (or (aref db class)
+                          (setf (aref db class) #()))
+                      id) obj)
+          (if (list? db.%file)
+              (push (json* obj) db.%file)
+              (append-file db.%filename (+ (json* obj) "\n")))
+          obj))
+      null))
 
 (defun db-delete (db obj)
-  (let ((id obj.id)
-        (class (first obj.%class)))
-    (remove-key db.%all id)
-    (remove-key (aref db class) id)
-    (if (list? db.%file)
-        (push (json id) db.%file)
-        (append-file db.%filename (+ (json id) "\n"))))
-  null)
+  (if (db-okdelete? db obj)
+      (let ((id obj.id)
+            (class (first obj.%class)))
+        (remove-key db.%all id)
+        (remove-key (aref db class) id)
+        (if (list? db.%file)
+            (push (json id) db.%file)
+            (append-file db.%filename (+ (json id) "\n")))
+        true)
+      false))
 
 (defmacro db-foreach ((var dbtable) &rest body)
   (unless (and (list? dbtable)
@@ -99,6 +110,14 @@
              ,@body)))
        ,result)))
 
+(defmacro defrecord (name fields)
+  `(progn
+     (defobject ,name (id ,@fields))
+     (defun ,name ,fields
+       (,#"new-{name}" null ,@fields))))
+
 (export db-load db-dump
         db-get db-put db-delete
-        db-foreach)
+        db-okput? db-okdelete?
+        db-foreach
+        defrecord)
