@@ -1,7 +1,7 @@
 ;;
-;; Database format is trivially simple: the file is a sequence of
-;; lines where each line is either a json*-serialized named object or
-;; a single number
+;; Database format is very simple: the file is a sequence of lines
+;; where each line is either a json*-serialized named object or a
+;; single number
 ;;
 ;; - if the line contains a named object then that object is the new
 ;;   version for the object with id [obj.id]
@@ -17,8 +17,12 @@
 ;; - .%all is the id->obj dictionary of all objects.
 ;; - .<classname> is an id->obj of objects of that class.
 ;;
+;; When on disk a reference to another record is represented with an
+;; instance of jdb:ref containing the id of the pointed record.
+;;
 
 (defobject database (%file %maxid %all))
+(defobject ref (id))
 
 (defun db-load (file)
   (let ((db (new-database file 0 #())))
@@ -40,11 +44,57 @@
                 (setf (aref (or (aref db class)
                                 (setf (aref db class) #()))
                             id) obj))))))
+    (labels ((fix (x)
+               (cond
+                 ((or (object? x)
+                      (and x x.%class))
+                  (dolist (k (keys x))
+                    (if (ref? (aref x k))
+                        (setf (aref x k) (aref db.%all (aref x k).id))
+                        (fix (aref x k)))))
+                 ((list? x)
+                  (dotimes (i (length x))
+                    (if (ref? (aref x i))
+                        (setf (aref x i) (aref db.%all (aref x i).id))
+                        (fix (aref x i))))))))
+      (fix db.%all))
     db))
+
+(defun db-json* (db obj)
+  (cond
+    ((and obj obj.%class obj.id
+          (= (aref db.%all obj.id) obj))
+     ~"\\{\"%class\":\"jdb:ref\",\"id\":{obj.id}\\}")
+    ((list? obj)
+     (let ((res "[")
+           (sep ""))
+       (dolist (x obj)
+         (incf res ~"{sep}{(db-json* db x)}")
+         (setf sep ","))
+       (+ res "]")))
+    ((object? obj)
+     (let ((res "{")
+           (sep ""))
+       (dolist (k (keys obj))
+         (incf res ~"{sep}{(json k)}:{(db-json* db (aref obj k))}")
+         (setf sep ","))
+       (+ res "}")))
+    ((and obj obj.%class)
+     (let ((res ~"\\{\"%class\":{(json (first obj.%class))}"))
+       (dolist (k (rest obj.%class))
+         (incf res ~",{(json k)}:{(db-json* db (aref obj k))}"))
+       (+ res "}")))
+    (true (json obj))))
+
+(defun db-json*-1 (db obj)
+  (let ((res ~"\\{\"%class\":{(json (first obj.%class))}"))
+    (dolist (k (rest obj.%class))
+      (incf res ~",{(json k)}:{(db-json* db (aref obj k))}"))
+    (+ res "}")))
 
 (defun db-dump (db)
   (let ((L (map (lambda (id)
-                  (json* (aref db.%all id)))
+                  (db-json*-1 db (aref db.%all id)))
                 (keys db.%all))))
     (if (list? db.%file)
         (setf db.%file L)
@@ -76,8 +126,8 @@
                           (setf (aref db class) #()))
                       id) obj)
           (if (list? db.%file)
-              (push (json* obj) db.%file)
-              (append-file db.%filename (+ (json* obj) "\n")))
+              (push (db-json*-1 db obj) db.%file)
+              (append-file db.%filename (+ (db-json*-1 db obj) "\n")))
           obj))
       null))
 
