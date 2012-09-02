@@ -2807,7 +2807,7 @@ A name is either an unevaluated atom or an evaluated list."
 
 (defmacro/f atoi (s)
   "Returns an integer from the start of the specified string (NaN if fails)"
-  `(js-code ,(+ "parseInt(" (js-compile s) ")")))
+  `(js-code ,(+ "parseInt(" (js-compile s) ",10)")))
 
 ;; Serialization (when str-value/load/eval is not appropriate, e.g. for rpc)
 
