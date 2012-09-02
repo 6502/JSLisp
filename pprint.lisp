@@ -16,7 +16,7 @@
   (let ((result "")
         (col 0)
         (row 0)
-        (indent (list)))
+        (indent (list 0)))
     (labels ((newline ()
                (incf result "\n")
                (dotimes (i (last indent))
