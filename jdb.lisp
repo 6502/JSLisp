@@ -1,173 +1,205 @@
+;; LEVEL 0 - key/value store ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; Database format is very simple: the file is a sequence of lines
-;; where each line is either a json*-serialized named object or a
-;; single number
+;; where each line is a JSON-serialized array with at least two elements.
+;; The last element is the value and the previous elements are the key
+;; path to reach the value.
 ;;
-;; - if the line contains a named object then that object is the new
-;;   version for the object with id [obj.id]
-;;
-;; - if the line contains a number then the number is the id of the
-;;   object to be removed from the database
-;;
-;; Database is updated by appending lines that either put a new
-;; version of an object or remove an existing object.
-;;
-;; - .%filename is the filename for persistence
-;; - .%maxid is the maximum of all object IDs in memory
-;; - .%all is the id->obj dictionary of all objects.
-;; - .<classname> is an id->obj of objects of that class.
-;;
-;; When on disk a reference to another record is represented with an
-;; instance of jdb:ref containing the id of the pointed record.
+;; A value of null means that the key should be removed.
 ;;
 
-(defobject database (%file %maxid %all))
-(defobject ref (id))
+(defobject database (file root))
+(defvar *db*)
 
 (defun db-load (file)
-  (let ((db (new-database file 0 #())))
-    (dolist (L (if (list? file)
-                   file
-                   (split (replace (try (get-file file) "") "\r" "")
-                          "\n")))
-      (unless (= L "")
-        (let ((obj (json-parse* L)))
-          (if (number? obj)
-              (let ((x (aref db.%all obj)))
-                (remove-key db.%all obj)
-                (remove-key (aref db (first obj.%class)) obj))
-              (let ((id obj.id)
-                    (class (first obj.%class)))
-                (setf (aref db.%all id) obj)
-                (when (> id db.%maxid)
-                  (setf db.%maxid id))
-                (setf (aref (or (aref db class)
-                                (setf (aref db class) #()))
-                            id) obj))))))
-    (labels ((fix (x)
-               (cond
-                 ((or (object? x)
-                      (and x x.%class))
-                  (dolist (k (keys x))
-                    (if (ref? (aref x k))
-                        (setf (aref x k) (aref db.%all (aref x k).id))
-                        (fix (aref x k)))))
-                 ((list? x)
-                  (dotimes (i (length x))
-                    (if (ref? (aref x i))
-                        (setf (aref x i) (aref db.%all (aref x i).id))
-                        (fix (aref x i))))))))
-      (fix db.%all))
-    db))
+  (setf *db* (new-database file #()))
+  (dolist (L (if (string? file)
+                 (split (replace (try (get-file file) "") "\r" "") "\n")
+                 file))
+    (unless (= L "")
+      (let* ((x (json-parse L))
+             (n (length x))
+             (value (aref x (1- n)))
+             (key (aref x (- n 2)))
+             (path (slice x 0 (- n 2)))
+             (obj *db*.root))
+        (dolist (k path)
+          (setf obj (aref obj k)))
+        (if (null? value)
+            (remove-key obj key)
+            (setf (aref obj key) value))))))
 
-(defun db-json* (db obj)
+(defun db-dump ()
+  (let ((L (map (lambda (k)
+                  (json (list k (aref *db*.root k))))
+                (keys *db*.root))))
+    (if (list? *db*.file)
+        (setf *db*.file L)
+        (put-file *db*.file (+ (join L "\n") "\n")))
+    (length L)))
+
+(defun db-set (&rest x)
+  (let* ((n (length x))
+         (value (aref x (1- n)))
+         (key (aref x (- n 2)))
+         (path (slice x 0 (- n 2)))
+         (obj *db*.root))
+    (dolist (k path)
+      (setf obj (aref obj k)))
+    (if (null? value)
+        (remove-key obj key)
+        (setf (aref obj key) value))
+    (if (list? *db*.file)
+        (push (json x) *db*.file)
+        (append-file *db*.file (+ (json x) "\n")))
+    null))
+
+(export *db* db-load db-dump db-set)
+
+;; LEVEL 1 - table/record ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; db.tables is a map tablename -> table
+;;
+;; a table is a map with three values
+;;
+;; .fields   a list of field names
+;; .maxid    the maximum id of all records in the table
+;; .records  a map id -> record
+;;
+;; each record is a map with the fields listed in .fields and also
+;; with a field .table with the name of the table and .id with the
+;; record id.
+;;
+
+(defun db-new-table (name fields)
+  (unless *db*.root.tables
+    (db-set "tables" #()))
+  (db-set "tables" name #((fields fields)
+                          (maxid 0)
+                          (records #()))))
+
+(defun db-delete-table (name)
+  (db-set "tables" name null))
+
+(defun db-new-record (table values)
+  (let* ((tab (aref *db*.root.tables table))
+         (fields tab.fields)
+         (id (1+ tab.maxid))
+         (record #((table table)
+                   (id id))))
+    (unless (= (length values) (length fields))
+      (error "Wrong number of values"))
+    (dolist ((field value) (zip fields values))
+      (setf (aref record field) value))
+    (db-set "tables" table "records" id record)
+    (db-set "tables" table "maxid" id)
+    id))
+
+(defun db-delete-record (obj)
+  (db-set "tables" obj.table "records" obj.id null))
+
+(defun db-eval (record expr)
   (cond
-    ((and obj obj.%class obj.id
-          (= (aref db.%all obj.id) obj))
-     ~"\\{\"%class\":\"jdb:ref\",\"id\":{obj.id}\\}")
-    ((list? obj)
-     (let ((res "[")
-           (sep ""))
-       (dolist (x obj)
-         (incf res ~"{sep}{(db-json* db x)}")
-         (setf sep ","))
-       (+ res "]")))
-    ((object? obj)
-     (let ((res "{")
-           (sep ""))
-       (dolist (k (keys obj))
-         (incf res ~"{sep}{(json k)}:{(db-json* db (aref obj k))}")
-         (setf sep ","))
-       (+ res "}")))
-    ((and obj obj.%class)
-     (let ((res ~"\\{\"%class\":{(json (first obj.%class))}"))
-       (dolist (k (rest obj.%class))
-         (incf res ~",{(json k)}:{(db-json* db (aref obj k))}"))
-       (+ res "}")))
-    (true (json obj))))
+    ((or (number? expr)
+         (null? expr)
+         (string? expr)
+         (bool? expr))
+     expr)
+    ((= expr 'null) null)
+    ((= expr 'true) true)
+    ((= expr 'false) false)
+    ((symbol? expr)
+     (aref record (symbol-name expr)))
+    ((list? expr)
+     (let ((op (first expr))
+           (args (map (lambda (x) (db-eval record x)) (rest expr))))
+       (cond
+         ((find op '(< <= = >= > /=
+                     find index last-index aref list slice append
+                     + - * / %))
+          (apply (symbol-function op) args))
+         ((= op 'if)
+          (if (first args) (second args) (third args)))
+         ((= op 'and)
+          (all (x args) x))
+         ((= op 'or)
+          (any (x args) x))
+         ((= op 'regexp)
+          ((regexp (first args)).exec (second args)))
+         (true (error ~"Unsupported function {op}")))))
+    (true (error "Unsupported expression"))))
 
-(defun db-json*-1 (db obj)
-  (let ((res ~"\\{\"%class\":{(json (first obj.%class))}"))
-    (dolist (k (rest obj.%class))
-      (incf res ~",{(json k)}:{(db-json* db (aref obj k))}"))
-    (+ res "}")))
+(defun db-select (table expression condition)
+  (let ((result (list))
+        (records (aref *db*.root.tables table).records))
+    (dolist (id (keys records))
+      (let ((record (aref records id)))
+        (when (db-eval record condition)
+          (push (db-eval record expression) result))))
+    result))
 
-(defun db-dump (db)
-  (let ((L (map (lambda (id)
-                  (db-json*-1 db (aref db.%all id)))
-                (keys db.%all))))
-    (if (list? db.%file)
-        (setf db.%file L)
-        (put-file db.%file (join L "\n"))))
-  db.%file)
+(defun db-update (table field expression condition)
+  (unless (find field (aref *db*.root.tables table).fields)
+    (error ~"Invalid field {field}"))
+  (let ((count 0)
+        (records (aref *db*.root.tables table).records))
+    (dolist (id (keys records))
+      (let ((record (aref records id)))
+        (when (db-eval record condition)
+          (incf count)
+          (db-set "tables" table "records" id field
+                  (db-eval record expression)))))
+    count))
 
-(defun db-get (db id)
-  (aref db.%all id))
+(defun db-delete (table condition)
+  (let ((count 0)
+        (records (aref *db*.root.tables table).records))
+    (dolist (id (keys records))
+      (let ((record (aref records id)))
+        (when (db-eval record condition)
+          (incf count)
+          (db-delete-record record))))
+    count))
 
-(defun db-okput? (db obj)
-  true)
+(defun db-add-field (table field &optional (default null))
+  (let ((fields (aref *db*.root.tables table).fields)
+        (records (aref *db*.root.tables table).records)
+        (count 0))
+    (when (find field fields)
+      (error ~"Field {field} already present"))
+    (db-set "tables" table "fields" (length fields) field)
+    (dolist (k (keys records))
+      (let ((record (aref records k)))
+        (incf count)
+        (setf (aref record field) (db-eval record default))))
+    count))
 
-(defun db-okdelete? (db obj)
-  true)
+(defun db-remove-field (table field)
+  (let ((fields (aref *db*.root.tables table).fields)
+        (records (aref *db*.root.tables table).records)
+        (count 0))
+    (unless (find field fields)
+      (error ~"Field {field} not present"))
+    (db-set "tables" table "fields" (remove field fields))
+    (dolist (k (keys records))
+      (let ((record (aref records k)))
+        (incf count)
+        (setf (aref record field) null)))
+    count))
 
-(defun db-put (db obj)
-  (unless (and obj.%class (find "id" obj.%class))
-    (error "First-level objects in database must have an [id] field"))
-  (if (db-okput? db obj)
-      (progn
-        (unless obj.id
-          (setf obj.id (incf db.%maxid)))
-        (let ((id obj.id)
-              (class (first obj.%class)))
-          (when (> id db.%maxid)
-            (setf db.%maxid id))
-          (setf (aref db.%all id) obj)
-          (setf (aref (or (aref db class)
-                          (setf (aref db class) #()))
-                      id) obj)
-          (if (list? db.%file)
-              (push (db-json*-1 db obj) db.%file)
-              (append-file db.%filename (+ (db-json*-1 db obj) "\n")))
-          obj))
-      null))
-
-(defun db-delete (db obj)
-  (if (db-okdelete? db obj)
-      (let ((id obj.id)
-            (class (first obj.%class)))
-        (remove-key db.%all id)
-        (remove-key (aref db class) id)
-        (if (list? db.%file)
-            (push (json id) db.%file)
-            (append-file db.%filename (+ (json id) "\n")))
-        true)
-      false))
-
-(defmacro db-foreach ((var dbtable) &rest body)
-  (unless (and (list? dbtable)
-               (= (first dbtable '.))
-               (symbol? (third dbtable)))
-    (error "Syntax is (foreach (<var> <db>.<class>) ...)"))
-  (let ((result '#.(gensym))
-        (x '#.(gensym))
-        (id '#.(gensym))
-        (db '#.(gensym)))
-    `(let ((,result (list))
-           (,db ,(second dbtable)))
-       (labels ((,#"collect" (,x) (push ,x ,result)))
-         (dolist (,id (keys (aref ,db ,(symbol-full-name (third dbtable)))))
-           (let ((,var (aref ,db "%all" ,id)))
-             ,@body)))
-       ,result)))
-
-(defmacro defrecord (name fields)
+(defmacro deftable (table fields)
   `(progn
-     (defobject ,name (id ,@fields))
-     (defun ,name ,fields
-       (,#"new-{name}" null ,@fields))))
+     (unless (and (aref *db* "root" "tables")
+                  (aref *db* "root" "tables" ,(symbol-name table)))
+       (db-new-table ,(symbol-name table)
+                     ',(map #'symbol-name fields)))
+     (defun ,table (id)
+       (aref (. *db* root tables ,table records) id))
+     (defun ,#"new-{table}" (&key ,@fields)
+       (db-new-record ,(symbol-name table)
+                      (list ,@fields)))))
 
-(export db-load db-dump
-        db-get db-put db-delete
-        db-okput? db-okdelete?
-        db-foreach
-        defrecord)
+(export db-new-table db-delete-table db-add-field db-remove-field
+        db-new-record db-delete-record
+        db-select db-update db-delete
+        deftable select-from)
