@@ -240,9 +240,10 @@
    (macroexpand-1 '(ninenine 2))
    ;; ==> (+ 2 1 99)
 
-   (macrolet ((onemore (x) `(* ,x 2)))
-     (list (ninenine 2)
-           (macroexpand-1 '(ninenine 2))))
+   (let ((dummy 42)) ;; To avoid toplevel evaluation
+     (macrolet ((onemore (x) `(* ,x 2)))
+       (list (ninenine 2)
+             (macroexpand-1 '(ninenine 2)))))
    ;; ==> (396 (+ 2 1 99))
    ]]"
   (list 'or
@@ -2419,6 +2420,36 @@ If only one parameter is passed it's assumed to be [stop]."
                 ");d$$$42_exception$42_=olderr;return res;}})())")))
 
 ;; Timing
+(defun date (&rest args)
+  "Returns a new javascript Date object.
+   The function can be called in 5 different ways: without any argument the \
+   resulting object will contain the current datetime, with one argument it \
+   expects a number of milliseconds since the Unix epoch, with three \
+   arguments expects [Year], [Month] (0-11) and [Day] (1-31), with 6 also \
+   expects [Hours] [Minutes] and [Seconds] and finally with 7 also accepts a \
+   number of [Milliseconds].[[
+   (date 75176) ;; 75176 milliseconds after epoch
+   ;; ==> \"1970-01-01T00:01:15.176Z\"
+
+   (date 1966 7 21) ;; Warning: 7 is August!
+   ;; ==> \"1966-08-20T22:00:00.000Z\"
+
+   (date 1966 7 21 19 45 28)
+   ;; ==> \"1966-08-21T17:45:28.000Z\"
+
+   (date 1966 7 21 19 45 28 176)
+   ;; ==> \"1966-08-21T17:45:28.176Z\"
+   ]]"
+  (cond
+    ((= (length args) 0) (js-code "new Date"))
+    ((= (length args) 1) (js-code "new Date(d$$args[0])"))
+    ((= (length args) 3) (js-code "new Date(d$$args[0],d$$args[1],d$$args[2])"))
+    ((= (length args) 6) (js-code "new Date(d$$args[0],d$$args[1],d$$args[2],\
+                                   d$$args[3],d$$args[4],d$$args[5])"))
+    ((= (length args) 7) (js-code "new Date(d$$args[0],d$$args[1],d$$args[2],\
+                                   d$$args[3],d$$args[4],d$$args[5],d$$args[6])"))
+    (true (error "Invalid number of arguments"))))
+
 (defun clock ()
   "Returns the number of millisecond passed since 00:00:00.000 of January 1st, 1970"
   (js-code "(new Date).getTime()"))
