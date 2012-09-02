@@ -2932,11 +2932,13 @@ A name is either an unevaluated atom or an evaluated list."
 ;; Class-aware JSON serialization
 
 (defun json* (x)
-  "A json-formatted string representation of object x. No loops, undefined, infinity, NaN or symbols allowed.
+  "A json-formatted string representation of object x. No loops, undefined, infinity, NaN allowed.
    Named objects get an extra %class field used to find constructor on parsing."
   (cond
     ((list? x)
      (+ "[" (join (map #'json* x) ",") "]"))
+    ((symbol? x)
+     ~"\\{\"%symbol\":{(json x.name)}\\}")
     ((and x x.%class)
      (+ "{"
         (join (append (list (+ "\"%class\":" (json (first x.%class))))
@@ -2960,7 +2962,12 @@ A name is either an unevaluated atom or an evaluated list."
              (cond
                ((list? x)
                 (map #'fix x))
-               ((and x (object? x) x.%class)
+               ((and (object? x) x.%symbol)
+                (let* ((name x.%symbol)
+                       (ix (index "$$" name))
+                       (module (demangle (+ "$$" (slice name 0 ix)))))
+                  (intern (demangle name) module)))
+               ((and (object? x) x.%class)
                 (let ((cs (aref *constructors* x.%class)))
                   (if cs
                       (let ((res (apply (second cs)
