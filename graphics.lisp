@@ -2,10 +2,29 @@
 (deftuple rgba (r g b a))
 
 (defmethod css-color (x) (rgb? x)
-  ~"rgb({x.r},{x.g},{x.b})")
+  (labels ((hexs (x)
+             (slice (+ "00" (uppercase (js-code "(d$$x.toString(16))"))) -2)))
+    ~"#{(hexs x.r)}{(hexs x.g)}{(hexs x.b)}"))
 
 (defmethod css-color (x) (rgba? x)
   ~"rgba({x.r},{x.g},{x.b},{x.a})")
+
+(defun parse-color (x)
+  (labels ((hexv (x) (logior 0 ~"0x{x}")))
+    (let ((rgb ((regexp "^rgb\\((\\d+),(\\d+),(\\d+)\\)$").exec x))
+          (rgba ((regexp "^rgba\\((\\d+),(\\d+),(\\d+),(\\d+)\\)$").exec x))
+          (hex3 ((regexp "^#([0-9a-fA-F])([0-9a-fA-F])([0-9a-fA-F])$").exec x))
+          (hex6 ((regexp "^#([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})$").exec x)))
+      (cond
+        (rgb (rgb (second rgb) (third rgb) (fourth rgb)))
+        (rgba (rgba (second rgba) (third rgba) (fourth rgba) (fifth rgba)))
+        (hex3 (rgb (* (hexv (second hex3)) 17)
+                   (* (hexv (third hex3)) 17)
+                   (* (hexv (fourth hex3)) 17)))
+        (hex6 (rgb (hexv (second hex6))
+                   (hexv (third hex6))
+                   (hexv (fourth hex6))))
+        (true (rgb 192 192 192))))))
 
 (defun random-color ()
   (new-rgb (+ 128 (random-int 64))
@@ -116,5 +135,5 @@
                        `(funcall (. ,',ctx drawImage) ,src ,sx ,sy ,sw ,sh ,x ,y ,w ,h)))))
          ,@body))))
 
-(export rgb rgba css-color random-color
+(export rgb rgba css-color parse-color random-color
         with-canvas)

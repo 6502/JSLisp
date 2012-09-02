@@ -183,7 +183,7 @@
 ;; Rectangle object
 
 (defmethod edit (e) (rect? e)
-  (ask-color "Fill color"
+  (ask-color 100 100 "Fill color"
              e.color
              (lambda (color)
                (when color
@@ -249,13 +249,14 @@
                    (bold (checkbox "Bold"))
                    (italic (checkbox "Italic"))
                    (effects (group "Effects"))
-                   (color (button "Color" (lambda ()
-                                            (ask-color "Text color"
-                                                       e.color
-                                                       (lambda (color)
-                                                         (when color
-                                                           (setf e.color color)
-                                                           (setf *dirty* true)))))))
+                   (color (button "Color"
+                                  (lambda ()
+                                    (ask-color 100 100 "Text color"
+                                               e.color
+                                               (lambda (color)
+                                                 (when color
+                                                   (setf e.color color)
+                                                   (setf *dirty* true)))))))
                    (content (text-area "content"))
                    (ok (button "OK"
                                (lambda ()

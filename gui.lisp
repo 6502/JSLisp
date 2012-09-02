@@ -693,9 +693,10 @@
              (set-coords layout 0 0 (- x1 x0) (- y1 y0))))
      ,@body))
 
-(defun ask-color (prompt color cback)
-  "Asks for a color (initially [color]) and calls [cback] passing the selection or [null]"
-  (with-window (w (100 100 300 320 title: prompt close: false)
+(defun ask-color (x y prompt color cback)
+  "Asks modally for a color (initially [color]) and calls [cback] \
+   passing the user selection or [null]"
+  (with-window (w (x y 300 320 title: prompt close: false)
                   ((canvas (set-style (create-element "canvas")
                                       position "absolute"
                                       cursor "default"))
@@ -875,7 +876,7 @@
                 (redraw)
                 (fixcursor))))
 
-      (show-window w))))
+      (show-window w modal: true))))
 
 ;; Simple message or question box
 
@@ -904,6 +905,133 @@
           (add-element btnrow size: 80 (dom b))))
       (add-element btnrow null)
       (show-window w center: true modal: modal))))
+
+;; Calendar
+
+(defun ask-date (x y cback selection)
+  "Shows a modal calendar widget at position [x] [y] that will \
+   call the specified function [cback] with the user \
+   selected date object starting as default with specified \
+   [selection] or today."
+  (let** ((w (window x y 220 220 resize: false close: false))
+          (prev (add-widget w (button "<<" #'prev)))
+          (go-today (add-widget w (button "" #'today)))
+          (current-month (add-widget w (set-style (create-element "div")
+                                                  position "absolute"
+                                                  textAlign "center"
+                                                  fontFamily "Arial"
+                                                  px/fontSize 14
+                                                  fontWeight "bold")))
+          (next (add-widget w (button ">>" #'next)))
+          (cells (let ((cells (make-array (list 7 7))))
+                   (dotimes (i 7)
+                     (dotimes (j 7)
+                       (setf (aref cells i j)
+                             (set-style (add-widget w (create-element "div"))
+                                        position "absolute"
+                                        textAlign "center"
+                                        cursor "pointer"
+                                        backgroundColor (if (= i 0) "#DDDDDD" "#FFFFFF")
+                                        px/borderRadius 4))
+                       (setf (aref cells i j).textContent "XX")))
+                   (let ((c (date 1970 0 4)))
+                     (dotimes (j 7)
+                       (setf (aref cells 0 j).textContent
+                             (first (c.toString)))
+                       (c.setDate (1+ (c.getDate)))))
+                   (set-style (aref cells 0 0)
+                              color "#FF0000")
+                   cells))
+          (today (date))
+          (year ((or selection today).getFullYear))
+          (month ((or selection today).getMonth))
+          (#'today ()
+                   (setf year (today.getFullYear))
+                   (setf month (today.getMonth))
+                   (recalc))
+          (#'next ()
+                  (when (= 12 (incf month))
+                    (setf month 0)
+                    (incf year))
+                  (recalc))
+          (#'prev ()
+                  (when (= -1 (decf month))
+                    (setf month 11)
+                    (decf year))
+                  (recalc))
+          (#'recalc ()
+                    (let ((d (date year month 1)))
+                      (setf go-today.value
+                            (+ (aref (split (d.toString) " ") 1)
+                               " / "
+                               year))
+                      (dolist (i (range 1 7))
+                        (dotimes (j 7)
+                          (setf (aref cells i j).textContent "")
+                          (setf (aref cells i j).style.backgroundColor "#FFFFFF")
+                          (setf (aref cells i j).onmousedown null)))
+                      (let ((x (d.getDay)))
+                        (dolist (i (range 1 7))
+                          (dolist (j (range x 7))
+                            (when (= (d.getMonth) month)
+                              (setf (aref cells i j).textContent (d.getDate))
+                              (set-style (aref cells i j)
+                                         border (if (= (d.toDateString)
+                                                       (today.toDateString))
+                                                    "solid 1px #FF0000"
+                                                    null)
+                                         backgroundColor (if (and selection
+                                                                  (= (d.toDateString)
+                                                                     (selection.toDateString)))
+                                                             "#FFFF80"
+                                                             "#FFFFFF"))
+                              (let ((dd (date (d.getTime))))
+                                (set-handler (aref cells i j) onmousedown
+                                  (setf selection dd)
+                                  (hide-window w)))
+                              (d.setDate (1+ (d.getDate)))))
+                          (setf x 0))))))
+    (set-style w.client
+               backgroundColor "#DDDDDD")
+    (set-style w.frame
+               backgroundColor "#DDDDDD")
+    (recalc)
+    (let ((layout (V spacing: 4 border: 8
+                     (H size: 40 (dom prev)
+                        size: undefined (dom go-today)
+                        size: 40 (dom next)))))
+      (dotimes (i 7)
+        (let ((h (H spacing: 4)))
+          (dotimes (j 7)
+            (add-element h (dom (aref cells i j))))
+          (add-element layout h)))
+      (set-layout w layout))
+    (setf w.close-cback
+          (lambda () (funcall cback selection)))
+    (show-window w modal: true)))
+
+(defun date-input (caption)
+  "Creates an input field for a date with an helper button \
+   that shows a calendar."
+  (labels ((calendar (input)
+             (let ((current (if ((regexp "\\d{4}-\\d{2}-\\d{2}").exec
+                                 (text input))
+                                (date (atoi (slice (text input) 0 4))
+                                      (1- (atoi (slice (text input) 5 7)))
+                                      (atoi (slice (text input) 8 10)))
+                                (date)))
+                   ((x y) (element-pos input)))
+               (ask-date x (+ y input.offsetHeight)
+                         (lambda (d)
+                           (when d
+                             (setf (text input)
+                                   (+ (slice ~"0000{(d.getFullYear)}" -4)
+                                      "-"
+                                      (slice ~"00{(+ 1 (d.getMonth))}" -2)
+                                      "-"
+                                      (slice ~"00{(d.getDate)}" -2)))))
+                         current))))
+    (input-with-help caption #'calendar)))
 
 ;; Login/password request
 
@@ -964,6 +1092,7 @@
         radio checkbox checked set-checked
         input text set-text
         input-with-help
+        ask-date date-input
         text-area
         group
         static-text
