@@ -2377,7 +2377,7 @@ If only one parameter is passed it's assumed to be [stop]."
 
 ;; Random
 
-(defmacro random ()
+(defmacro/f random ()
   "Random number between [0 < x < 1]"
   `(js-code "(Math.random())"))
 
