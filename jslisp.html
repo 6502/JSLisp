@@ -174,6 +174,7 @@ function setHelp(txt, module, opa)
                             "<a href='javascript:helpLookup(\"$1\",true)'>"+
                             "<span class='code'\">$1</span></a>"));
             var hix = txt.indexOf("<br/>");
+            if (hix < 0) hix = txt.length;
             txt = ("<div class=\"helptitle\">" +
                    txt.substr(0, hix) +
                    "</div>" +
