@@ -29,6 +29,8 @@
 \****************************************************************************/
     -->
   <head>
+    <link href='http://fonts.googleapis.com/css?family=Droid+Sans+Mono'
+          rel='stylesheet' type='text/css'>
     <title>JsLisp REPL</title>
     <style type="text/css">
      .code { font-family: monospace;
@@ -46,11 +48,18 @@
              padding: 8px; }
      .helptitle { font-size: 110%;
                   text-align: center; }
+     .repl { font-family: 'Droid Sans Mono', 'Courier New';
+             font-size: 14pt;
+             background-color: #EEEEEE;
+             border: none;
+             outline: none;
+             padding: 0px;
+             margin: 0px; }
     </style>
   </head>
   <body style="margin:0px; padding:0px; border:none">
     <div style="position:absolute; left:0px; top:0px; right:0px; bottom:0px; padding:4px; background-color:#EEEEEE">
-      <textarea spellcheck=false type=text wrap=off id="repl" style="resize:none; position:absolute; left:0px; top:0px; width:100%; height:100%; white-space:pre; background-color:#EEEEEE; border:none; outline:none; padding:0px; margin:0px; font-family:Courier New; font-size:14pt"
+      <textarea spellcheck=false type=text wrap=off id="repl" class="repl" style="resize:none; position:absolute; left:0px; top:0px; width:100%; height:100%; white-space:pre"
         onkeydown = "keyDown(event)"
         onkeypress = "keyPress(event)"></textarea>
       <div id="clpar" style="position:absolute; width:22px; height:22px; border:solid 1px #FF0000"></div>
@@ -68,25 +77,22 @@ window.onerror = function(m)
     f$$display(";; Ready\n");
 };
 
-var banner = (";;\n"+
-              ";; This is JsLisp 0.1 (c) 2012 by Andrea Griffini\n"+
+var banner = (";; This is JsLisp REPL 0.1 (c) 2012 by Andrea Griffini\n"+
               ";;\n"+
-              ";; Welcome to the Read-Eval-Print-Loop\n"+
-              ";;\n"+
-              ";; [enter]  (at end of the buffer) evaluates from last result to end\n"+
+              ";; [enter]  (at end of the buffer) evaluates last form\n"+
               ";; [alt-/]  autocomplete (backspace to abort)\n"+
               ";; [tab]    autoindent current line or current selection\n"+
-              ";; [esc]    hides documentation window (F1 shows again)\n"+
-              ";;\n");
+              ";; [esc]    hides documentation window (F1 shows again)\n");
 
 var char_width, char_height;
 
 function calcFontCell()
 {
     var nta = document.createElement("textarea");
-    nta.style.fontFamily = repl.style.fontFamily;
-    nta.style.fontSize = repl.style.fontSize;
-    nta.style.fontWeight = repl.style.fontWeight;
+    var cs = getComputedStyle(repl);
+    nta.style.fontFamily = cs.fontFamily;
+    nta.style.fontSize = cs.fontSize;
+    nta.style.fontWeight = cs.fontWeight;
     document.body.appendChild(nta);
     nta.rows = 10; nta.cols = 10;
     var w1 = nta.offsetWidth, h1 = nta.offsetHeight;
@@ -588,7 +594,7 @@ try
         f$$load(f$$http_get(args["debug"]), args["debug"]);
     }
     else {
-        f$$display(args["nobanner"] ? "" : banner + ";;\n");
+        f$$display(args["nobanner"] ? "" : banner);
     }
     if (args["src"]) {
         var req = new XMLHttpRequest();
