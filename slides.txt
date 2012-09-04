@@ -26,36 +26,7 @@ but it's not Common Lisp.
 - Macro hygiene is not forced
 - Looping constructs [do], [dotimes], [dolist] ...
 - [tagbody/go], [throw/catch], [unwind-protect]
-
-*3.1.1 Reading and compiling
-{Reading and compiling}
-
-In a Lisp system the process of translating
-source code characters to code consists in
-two separate steps: reading and compiling:
-
-[chars] ==> [A.S.T.] ==> [code]
-
-Both the steps can be customized with
-[reader macros] or [macros].
-
-*3.1.2 Example of a reader macro
-{Small reader macro example}
-
-[[
-(setf (reader "[")
-      (lambda (src)
-        (next-char src)
-        `(lambda (x)
-           ,(parse-delimited-value src "]"))))
-]]
-
-After which:
-
-[[
-(map [* x x] (range 10))
---> (0 1 4 9 16 25 36 49 64 81)
-]]
+- Namespace partitioning (similar to CL packages)
 
 *3.2 Common Lisp differences
 {JsLisp and Common Lisp differences}
@@ -64,26 +35,9 @@ After which:
 - No numeric tower (only [double-float]s)
 - No [T]/[NIL]
 - [true], [false], [null], [undefined], [NaN]
-- A namespace partitioning system similar
-  (but not identical) to CL packages.
 - [Lisp-3]: a function and a macro can have
   the same name. [(funcall #'x ...)] {may be}
   logically different from [(x ...)]. Rarely is.
-
-*3.2.1 An example of macro/function diversion
-{An example where semantic is not the same}
-
-[(< (f) (g) (h))] is short-circuiting and
-call to [(h)] may be skipped.
-
-[(funcall #'< (f) (g) (h))] obviously
-always calls [(f)], [(g)] and [(h)].
-
-[(< (f))] returns [true] and doesn't call [f]!
-
-Normally macro/function dual implementation
-only exists for performance reasons. JsLisp has
-no concept of CL compiler-macros, only macros.
 
 *4 Compiler
 {Compiler}
@@ -91,11 +45,11 @@ no concept of CL compiler-macros, only macros.
 JsLisp is a compiler-only implementation, there
 is no Lisp interpreter
 
+- Semantic checks at compile time
 - JsLisp functions are Javascript functions
 - Thanks to JIT speed is quite good
-- Semantic checks at compile time
 - There is a treeshaker/minifier that provides
-  source code IP protection
+  source code protection
 
 *4.1 Semantic checks
 {Semantic checks}
@@ -108,13 +62,24 @@ at compile time:
 - Bad parameter count in static function calls
 - Bad keyword paramters in static function calls
 
+*4.2 JsLisp functions are Javascript functions
+{compiles to Javascript functions}
+
+[[
+(defun square (x) (* x x))
+;; ==> square
+
+((function square).toString)
+;; ==> "function (d$$x){return
+           (((((d$$x)*(d$$x)))));}"
+]]
+
 *5 Targeting Javascript
 {Targeting Javascript}
 
-- Code is standard Javascript.
-- Runs in recent desktop browsers.
-- Runs in node.js.
-- Runs in HTML5 smartphones/tablets.
-- Using node.js allows a single seamless
-  environment for both client ans server
-  sides of a solution.
+- Runs in recent desktop browsers
+- Runs in HTML5 smartphones/tablets
+- Runs in node.js
+
+Running in [node.js] and in the browser allows a
+single-language solution for web applications
