@@ -41,6 +41,7 @@
 (import-nomain examples/piechart)
 (import-nomain examples/hexa)
 (import-nomain examples/guitest)
+(import-nomain examples/3d)
 (import-nomain examples/mypaint)
 (import-nomain examples/flood-fill)
 (import-nomain examples/asteroids)
