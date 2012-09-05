@@ -704,7 +704,7 @@ defmacro("labels",
                  lexmacro.add(v, undefined);
                  hmacros.push([v, glob["m" + v]]);
                  glob["m" + v] = undefined;
-                 lexfunc.add(v, "f" + v);
+                 lexfunc.add(v, {arglist:bindings[i][1]});
              }
 
              // Compile function definitions
@@ -1262,7 +1262,8 @@ defun("js-compile",
                       else
                       {
                           var gf = glob["f" + f.name];
-                          if (!lexfunc.get(f.name))
+                          var lf = null;
+                          if (!(lf = lexfunc.get(f.name)))
                           {
                               d$$$42_outgoing_calls$42_[f.name] = true;
                               if (!gf)
@@ -1275,6 +1276,12 @@ defun("js-compile",
                                   if (caf && caf!=42)
                                       caf(x, gf.arglist);
                               }
+                          }
+                          else
+                          {
+                              var caf = glob["f$$static_check_args"];
+                              if (caf && caf!=42)
+                                  caf(x, lf.arglist);
                           }
 
                           var res = "f" + f.name + "(";
