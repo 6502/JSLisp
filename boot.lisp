@@ -221,7 +221,7 @@
            (funcall #'cube 12)))
    ;; ==> (6 42)
    ]]"
-  (js-code "(lexfunc.vars[d$$x.name]?null:(d$$$42_outgoing_calls$42_[d$$x.name]=true))")
+  (js-code "(lexfunc.vars['!'+d$$x.name]?null:(d$$$42_outgoing_calls$42_[d$$x.name]=true))")
   (list 'js-code (+ "f" (js-code "d$$x.name"))))
 
 ;; Macro accessor
