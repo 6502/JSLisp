@@ -42,7 +42,7 @@
 (defobject hv
     (elements            ;; List of hv-element
      (algorithm :H:)     ;; or :V:
-     (spacing 0)         ;; spacing between elements
+     (spacing undefined) ;; spacing between elements
      (border 0)))        ;; uniform border
 
 (defmethod add-element-method (node args) (hv? node)
@@ -70,7 +70,7 @@
   (let* ((epsilon 0.0001)
          (elements node.elements)
          (num-elements (length elements))
-         (spacing (if (undefined? node.spacing) *spacing* node.spacing))
+         (spacing (if (number? node.spacing) node.spacing *spacing*))
          (border node.border)
          (algo node.algorithm)
          (*spacing* spacing))
