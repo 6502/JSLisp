@@ -54,8 +54,7 @@
                      (H (dom email) (dom phone) size: 70 (dom age))
                      size: 10 null
                      size: 80
-                     (H spacing: 8
-                        (V spacing: 4
+                     (H (V spacing: 4
                            (dom freebies
                                 (V border: 4
                                    size: 10 null

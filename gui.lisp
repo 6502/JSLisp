@@ -440,16 +440,17 @@
     (append-child container input)
     (setf container."data-resize"
           (lambda (x0 y0 x1 y1)
-            (set-style input
-                       px/left 0
-                       px/right 30
-                       px/top (+ label.offsetTop label.offsetHeight)
-                       px/bottom 0)
-            (set-style help
-                       px/right 0
-                       px/top (- (+ label.offsetTop label.offsetHeight) 2)
-                       px/bottom -2
-                       px/width 30)))
+            (let ((ly (+ label.offsetTop label.offsetHeight)))
+              (set-style input
+                         px/left 0
+                         px/top ly
+                         px/width (- x1 x0 25)
+                         px/height (- y1 y0 ly))
+              (set-style help
+                         px/left (- x1 x0 25 -2)
+                         px/top ly
+                         px/width 25
+                         px/height (- y1 y0 ly -2)))))
     (set-handler help onclick
                  (funcall helper container))
     (setf help.tabIndex -1)
