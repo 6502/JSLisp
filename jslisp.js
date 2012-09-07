@@ -51,6 +51,9 @@ if (typeof window === "undefined")
         console.log(x);
     };
 
+    f$$display.outcalls = [];
+    f$$display.usedglobs = [];
+
     d$$node_js = glob.d$$node_js = true;
 }
 else
@@ -216,13 +219,15 @@ constants[f$$intern('-infinity').name] = '(-Infinity)';
 
 f$$intern("js-code");
 
-function defun(name, doc, f, arglist)
+function defun(name, doc, f, arglist, usedglobs, outcalls)
 {
     var s = f$$intern(name);
     glob["f" + s.name] = f;
     eval("f" + s.name + " = glob['f" + s.name + "']");
     f.documentation = doc;
     f.arglist = arglist;
+    f.usedglobs = usedglobs || [];
+    f.outcalls = outcalls || [];
 }
 
 function defmacro(name, doc, f, arglist)
@@ -259,7 +264,7 @@ defun("symbol-module",
               return f$$demangle("$$" + x.name.substr(0, x.name.indexOf("$$")));
           return undefined;
       },
-      [s$$x]);
+      [s$$x],[],["$$demangle"]);
 
 defun("module-symbol",
       "[[(module-symbol x &optional module)]]\n"+
@@ -272,7 +277,7 @@ defun("module-symbol",
           return f$$intern(f$$demangle(x.name),
                            (typeof module === "undefined" ? d$$$42_current_module$42_ : module));
       },
-      [s$$x, f$$intern("&optional"), f$$intern("module")]);
+      [s$$x, f$$intern("&optional"), f$$intern("module")],[],["$$intern","$$demangle"]);
 
 defun("documentation",
       "[[(documentation x)]]\n" +
@@ -364,7 +369,7 @@ defun("set-symbol-macro",
 defun("symbol-name",
       "[[(symbol-name x)]]\n" +
       "Returns the lisp symbol name of a symbol [x] as a string object.",
-      function(x) { return f$$demangle(x.name); }, [s$$x]);
+      function(x) { return f$$demangle(x.name); }, [s$$x], [], ["$$demangle"]);
 
 defun("symbol-full-name",
       "[[(symbol-name x)]]\n" +
@@ -374,7 +379,7 @@ defun("symbol-full-name",
           var mod = f$$demangle("$$" + x.name.substr(0, ix)) + ":";
           if (mod === ":") mod = "";
           return mod + f$$demangle(x.name);
-      }, [s$$x]);
+      }, [s$$x], [], ["$$demangle"]);
 
 defmacro("define-symbol-macro",
          "[[(define-symbol-macro x y)]]\n" +
@@ -779,7 +784,7 @@ defun("eval",
           var jscode = f$$js_compile(x);
           return eval(jscode);
       },
-      [s$$x]);
+      [s$$x],[],["$$js_compile"]);
 
 defun("macroexpand-1",
       "[[(macroexpand-1 x)]]\n" +
@@ -1076,7 +1081,7 @@ defun("warning",
       {
           f$$display("WARNING: " + msg.replace(/\$\$[a-zA-Z_0-9\$]*/g, f$$demangle));
       },
-      [f$$intern("msg")]);
+      [f$$intern("msg")],[],["$$demangle"]);
 
 d$$$42_error_location$42_ = null;
 
