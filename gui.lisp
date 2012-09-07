@@ -590,7 +590,8 @@
     (setf layout.element new-element)
     (setf new-element."data-layout-node" layout)
     (set-coords layout layout.x0 layout.y0 layout.x1 layout.y1)
-    (hide element)))
+    (hide element)
+    new-element))
 
 ;; Table widget
 
@@ -646,6 +647,69 @@
                   (setf h table.clientHeight)
                   (set-coords layout 0 0 w h)))))
       table)))
+
+;; Tab control
+
+(defun select-tab (tabbed index)
+  (let ((c tabbed."data-content"))
+    (unless (= index c.current-index)
+      (set-style (aref c.tabs c.current-index)
+                 backgroundColor "#DDDDDD")
+      (dom-replace (aref c.pages c.current-index)
+                   (aref c.pages index))
+      (setf c.current-index index)
+      (set-style (aref c.tabs c.current-index)
+                 backgroundColor "#FFFFFF")
+      (append-child tabbed (aref c.tabs c.current-index)))))
+
+(defun tab-pages (tabbed)
+  tabbed."data-content".pages)
+
+(defun tab-labels (tabbed)
+  tabbed."data-content".tabs)
+
+(defun tabbed (labels)
+  (let* ((tabbed (set-style (create-element "div")
+                            position "absolute"
+                            fontFamily "Arial"
+                            fontWeight "bold"))
+         (ribbon (H spacing: 6))
+         (layout (V spacing: 0 size: 22 ribbon))
+         (tabs (list))
+         (pages (list)))
+    (dolist (x labels)
+      (let ((label (set-style (create-element "div")
+                              position "absolute"
+                              borderLeft "solid 1px #000000"
+                              borderRight "solid 1px #000000"
+                              borderTop "solid 1px #000000"
+                              px/borderTopLeftRadius 6
+                              px/borderTopRightRadius 6
+                              textAlign "center"
+                              cursor "pointer"
+                              backgroundColor (if (= x (first labels)) "#FFFFFF" "#DDDDDD")))
+            (page (set-style (create-element "div")
+                             position "absolute"
+                             border "solid 1px #000000"
+                             backgroundColor "#FFFFFF")))
+        (setf label.textContent x)
+        (append-child tabbed label)
+        (push label tabs)
+        (push page pages)
+        (set-handler label onclick
+                     (select-tab tabbed (index label tabs)))
+        (add-element ribbon max: 80 (dom label))))
+    (append-child tabbed (first pages))
+    (append-child tabbed (first tabs))
+    (add-element layout (dom (first pages)))
+    (setf tabbed."data-resize"
+          (lambda (x0 y0 x1 y1)
+            (set-coords layout 0 0 (- x1 x0) (- y1 y0))))
+    (setf tabbed."data-content" #((layout layout)
+                                  (tabs tabs)
+                                  (pages pages)
+                                  (current-index 0)))
+    tabbed))
 
 (defun add-widget (window widget)
   "Adds a widget to a window client
@@ -1104,5 +1168,6 @@
         static-text
         select selection set-selection
         table
+        select-tab tab-pages tab-labels tabbed
         screen-width screen-height
         message-box)
