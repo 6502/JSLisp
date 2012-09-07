@@ -559,7 +559,7 @@
 
 ;; Layout node for DOM elements
 
-(defobject dom (element layout))
+(defobject dom (element layout x0 y0 x1 y1))
 
 (defmethod set-coords (node x0 y0 x1 y1) (dom? node)
   (set-style node.element
@@ -567,6 +567,10 @@
              px/top y0
              px/width (- x1 x0)
              px/height (- y1 y0))
+  (setf node.x0 x0)
+  (setf node.y0 y0)
+  (setf node.x1 x1)
+  (setf node.y1 y1)
   (when node.element."data-resize"
     (node.element."data-resize" x0 y0 x1 y1))
   (if node.layout
@@ -584,6 +588,7 @@
     (append-child element.parentNode new-element)
     (setf layout.element new-element)
     (setf new-element."data-layout-node" layout)
+    (set-coords layout layout.x0 layout.y0 layout.x1 layout.y1)
     (hide element)))
 
 ;; Table widget
