@@ -70,7 +70,7 @@
   (let* ((epsilon 0.0001)
          (elements node.elements)
          (num-elements (length elements))
-         (spacing (or node.spacing *spacing*))
+         (spacing (if (undefined? node.spacing) *spacing* node.spacing))
          (border node.border)
          (algo node.algorithm)
          (*spacing* spacing))
