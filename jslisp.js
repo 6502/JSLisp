@@ -55,6 +55,10 @@ if (typeof window === "undefined")
     f$$display.usedglobs = [];
 
     d$$node_js = glob.d$$node_js = true;
+
+    glob["fnode$$require"] = fnode$$require = function(x) { return require(x); };
+    fnode$$require.outcalls = [];
+    fnode$$require.usedglobs = [];
 }
 else
 {
