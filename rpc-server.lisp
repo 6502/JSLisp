@@ -17,17 +17,12 @@
 (defun process-request (req)
   (error ~"Unknown request {req.%class}"))
 
-(defun process (url parms data response)
-  (display ~"Processing url={url}, parms={parms}, data={data}")
-  (when (and (= parms "") (not (null? data)))
-    (setf parms data))
+(defun process (url parsed-req response)
   (let ((content (try (cond
                         ((= url "/process")
-                         (uri-encode
-                          (json*
-                           (process-request (json-parse* (uri-decode parms))))))
+                         (json* (process-request parsed-req)))
                         (((regexp "^/process-as\\.[a-z0-9]+$").exec url)
-                         (process-request (json-parse* (uri-decode parms))))
+                         (process-request parsed-req))
                         (true (try (get-file (+ "." url) null)
                                    (progn
                                      (response.writeHead 404)
@@ -43,9 +38,10 @@
     (response.writeHead 200 #((Content-Type ctype)))
     (response.end content)))
 
-(defun multipart-form-data (buffers boundary)
-  (let* ((buf ((node:require "buffer").Buffer.concat buffers))
-         (bd (map #'char-code (+ "\r\n--" boundary)))
+(defobject uploaded-file (tmp-name uploaded-name))
+
+(defun multipart-form-data (buf boundary)
+  (let* ((bd (map #'char-code (+ "\r\n--" boundary)))
          (bd0 (map #'char-code (+ "--" boundary "\r\n")))
          (tlen (length buf))
          (cp0 null)
@@ -96,7 +92,7 @@
                                               "")
                                         ".upload.tmp")))
                         ((node:require "fs").writeFileSync dstfile (slice buf cp0 cp))
-                        (setf (aref result name) (list dstfile filename)))
+                        (setf (aref result name) (new-uploaded-file dstfile filename)))
                       (setf (aref result name) (+ "" (slice buf cp0 cp))))))
               (if (= (aref buf (+ cp (length bd))) 45)
                   (setf cp tlen)
@@ -105,30 +101,35 @@
             (incf cp))))
     result))
 
+(defobject http-request (parms))
+
 (defun rpc-handler (request response)
   (let ((url (. request url))
-        (parms null))
+        (parsed-req null))
     (when (find "?" url)
       (let ((i (index "?" url)))
-        (setf parms (slice url (1+ i)))
+        (setf parsed-req (new-http-request (uri-decode (slice url (1+ i)))))
         (setf url (slice url 0 i))))
     (if (= request.method "POST")
         (let ((data (list)))
+          (unless parsed-req
+            (setf parsed-req (new-http-request)))
           (request.on "data"
                       (lambda (chunk)
                         (push chunk data)))
           (request.on "end"
                       (lambda ()
                         (let ((bdcheck ((regexp "multipart.*boundary=(.*)").exec
-                                        request.headers."content-type")))
+                                        request.headers."content-type"))
+                              (buf ((node:require "buffer").Buffer.concat data)))
                           (if bdcheck
                               (progn
-                                (setf parms (multipart-form-data data (second bdcheck)))
-                                (display ~"multipart/form-data parms -> {(json parms)}")
-                                (setf data null))
-                              (setf data (join data "")))
-                          (process url parms data response)))))
-        (process url parms null response))))
+                                (let ((extra (multipart-form-data buf (second bdcheck))))
+                                  (dolist (k (keys extra))
+                                    (setf (aref parsed-req k) (aref extra k)))))
+                              (setf parsed-req (json-parse* (+ "" buf))))
+                          (process url parsed-req response)))))
+        (process url parsed-req response))))
 
 (defun start-server (address port)
   (let* ((http (node:require "http"))

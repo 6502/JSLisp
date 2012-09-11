@@ -1,7 +1,7 @@
 (defun remote (x)
   (let ((request (json* x)))
-    (let ((reply (http "POST" "process?" (uri-encode request))))
-      (let ((result (json-parse* (uri-decode reply))))
+    (let ((reply (http "POST" "process?" request)))
+      (let ((result (json-parse* reply)))
         result))))
 
 (setf (symbol-macro 'rpc:defun)
