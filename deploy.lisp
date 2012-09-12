@@ -59,6 +59,8 @@ reverse engineering point of view.
       ;; String literals collection
       (setf s (replace s "\"([^\"\\\\]|\\\\.)*\"" #'newlit))
       (setf s (replace s "'([^'\\\\]|\\\\.)*'" #'newlit))
+      ;; Strip comments
+      (setf s (replace s "//.*" ""))
       ;; Code metainformation removal
       (setf s (replace s "f\\.usedglobs=\\[[^\\]]*\\];f\\.outcalls=\\[[^\\]]*\\];f\\.arglist=lisp_literals\\[[^\\]]*\\];" ""))
       ;; Name shortening
@@ -114,6 +116,8 @@ reverse engineering point of view.
 (if node-js
     (setf #'warning
           (lambda (x) (js-code "process.stderr.write(\"WARNING: \"+d$$x+\"\\n\")"))))
+
+(defvar *fpath* "")
 
 (defun rep (x)
   (cond
@@ -205,17 +209,18 @@ reverse engineering point of view.
                       (incf *repcode* ii))))))))
          (when x.outcalls
            (dolist (y x.outcalls)
-             (setf y (+ "f" y))
-             (unless (aref *globs* y)
-               (setf (aref *globs* y) true)
-               (let ((v (aref (js-code "glob") y)))
-                 (if v
-                     (progn
-                       (unless v.usedglobs
-                         (warning ~"Reaching outer function {y}"))
-                       (let ((ii ~"{y}={(rep v)};"))
-                         (incf *repcode* ii)))
-                     (warning ~"Undefined function {y}"))))))
+             (let ((*fpath* (+ *fpath* "/" y)))
+               (setf y (+ "f" y))
+               (unless (aref *globs* y)
+                 (setf (aref *globs* y) true)
+                 (let ((v (aref (js-code "glob") y)))
+                   (if v
+                       (progn
+                         (unless v.usedglobs
+                           (warning ~"Reaching outer function {y} (from {*fpath*})"))
+                         (let ((ii ~"{y}={(rep v)};"))
+                           (incf *repcode* ii)))
+                       (warning ~"Undefined function {y}")))))))
          (when x.prototype.%class
            (let ((ii (rep x.prototype.%class)))
              (incf *repcode* ~"Object.defineProperty(r{ix}.prototype,\

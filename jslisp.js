@@ -211,6 +211,7 @@ f$$intern.documentation = ("[[(intern name &optional module lookup-only)]]\n" +
                            "returned if no symbol can be found.");
 f$$intern.arglist = [f$$intern("name"), f$$intern("&optional"), f$$intern("module")];
 f$$mangle.arglist = [f$$intern("x")];
+f$$intern.usedglobs = f$$intern.outcalls = f$$mangle.usedglobs = f$$mangle.outcalls = [];
 
 var constants = {};
 constants[f$$intern('null').name] = 'null';
@@ -230,8 +231,8 @@ function defun(name, doc, f, arglist, usedglobs, outcalls)
     eval("f" + s.name + " = glob['f" + s.name + "']");
     f.documentation = doc;
     f.arglist = arglist;
-    f.usedglobs = usedglobs || [];
-    f.outcalls = outcalls || [];
+    f.usedglobs = usedglobs;
+    f.outcalls = outcalls;
 }
 
 function defmacro(name, doc, f, arglist)
@@ -257,7 +258,7 @@ defun("demangle",
                            return String.fromCharCode(parseInt(s.substr(1, s.length-2)));
                        });
       },
-      [f$$intern("x")]);
+      [f$$intern("x")], [], []);
 
 defun("symbol-module",
       "[[(symbol-module x)]]\n" +
@@ -320,44 +321,44 @@ defun("set-arglist",
       [s$$x, f$$intern("arglist")]);
 
 defun("number?", "[[(number? x)]]\nReturns true if and only if [x] is a number (including [NaN])",
-      function(x) { return (typeof x) === "number"; }, [s$$x]);
+      function(x) { return (typeof x) === "number"; }, [s$$x], [], []);
 
 defun("string?", "[[(string? x)]]\nReturns true if and only if [x] is a string",
-      function(x) { return (typeof x) === "string"; }, [s$$x]);
+      function(x) { return (typeof x) === "string"; }, [s$$x], [], []);
 
 defun("list?", "[[(list? x)]]\nReturns true if and only if [x] is a list",
-      function(x) { return (x && x.constructor === Array)  ? true : false; }, [s$$x]);
+      function(x) { return (x && x.constructor === Array)  ? true : false; }, [s$$x], [], []);
 
 defun("symbol?", "[[(symbol? x)]]\nReturns true if and only if [x] is a symbol",
-      function(x) { return (x && x.constructor === Symbol) ? true : false; }, [s$$x]);
+      function(x) { return (x && x.constructor === Symbol) ? true : false; }, [s$$x], [], []);
 
 defun("js-eval",
       "[[(js-eval x)]]\n" +
       "Javascript evaluation of a string at runtime.",
-      function(x) { return eval(x); }, [s$$x]);
+      function(x) { return eval(x); }, [s$$x], [], []);
 
 defun("symbol-function",
       "[[(symbol-function x)]]\n" +
       "Returns the function cell of a symbol [x] or [undefined] if that function is not present. " +
       "Lookup doesn't consider lexical function definitions (e.g. [(labels ...)]).",
-      function(x) { return x.interned ? glob["f" + x.name] : x.f; }, [s$$x]);
+      function(x) { return x.interned ? glob["f" + x.name] : x.f; }, [s$$x], [], []);
 
 defun("set-symbol-function",
       "[[(set-symbol-function x f)]]\n" +
       "Sets the function cell of a symbol [x] to the specified function [f]. It doesn't affect "+
       "lexical function definitions (e.g. [(lables ...)]).",
-      function(x, y) { return x.interned ? (glob["f" + x.name] = y) : (x.f = y); }, [s$$x, f$$intern("f")]);
+      function(x, y) { return x.interned ? (glob["f" + x.name] = y) : (x.f = y); }, [s$$x, f$$intern("f")], [], []);
 
 defun("symbol-value",
       "[[(symbol-value x)]]\n" +
       "Returns the current value cell of a symbol [x] or [undefined] if that symbol has no value. " +
       "Lookup doesn't consider lexical symbols.",
-      function(x) { return x.interned ? glob["d" + x.name] : x.d; }, [s$$x]);
+      function(x) { return x.interned ? glob["d" + x.name] : x.d; }, [s$$x], [], []);
 
 defun("set-symbol-value",
       "[[(set-symbol-value x y)]]\n" +
       "Sets the current value cell of a symbol [x] to [y]. It doesn't affect lexical bindings.",
-      function(x, y) { return x.interned ? (glob["d" + x.name] = y) : (x.d = y); }, [s$$x, f$$intern("y")]);
+      function(x, y) { return x.interned ? (glob["d" + x.name] = y) : (x.d = y); }, [s$$x, f$$intern("y")], [], []);
 
 defun("symbol-macro",
       "[[(symbol-macro x)]]\n" +
@@ -829,7 +830,7 @@ defun("append",
           var res = [];
           return res.concat.apply(res, arguments);
       },
-      [f$$intern("&rest"), f$$intern("lists")]);
+      [f$$intern("&rest"), f$$intern("lists")], [], []);
 
 defun("nappend",
       "[[(nappend x y)]]\n"+
@@ -1929,7 +1930,7 @@ defun("http",
           return onSuccess ? req : req.responseText;
       },
       [f$$intern("verb"), f$$intern("url"), f$$intern("data"), f$$intern("&optional"),
-       f$$intern("success-function"), f$$intern("failure-function")]);
+       f$$intern("success-function"), f$$intern("failure-function")], [], []);
 
 defun("http-get",
       "[[(http-get url &optional success-function failure-function)]]\n" +
@@ -1943,7 +1944,7 @@ defun("http-get",
           return f$$http("GET", url, null, onSuccess, onFailure);
       },
       [f$$intern("url"), f$$intern("&optional"),
-       f$$intern("success-function"), f$$intern("failure-function")]);
+       f$$intern("success-function"), f$$intern("failure-function")], [], ["f$$http"]);
 
 defun("get-file",
       "[[(get-file filename &optional (encoding \"utf-8\"))]]\n" +
@@ -1955,7 +1956,7 @@ defun("get-file",
           var fs = require("fs");
           return fs.readFileSync(name, encoding);
       },
-      [f$$intern("filename"), f$$intern("&optional"), f$$intern("encoding")]);
+      [f$$intern("filename"), f$$intern("&optional"), f$$intern("encoding")], [], []);
 
 defun("put-file",
       "[[(put-file filename data &optional (encoding \"utf-8\"))]]\n" +
@@ -1967,7 +1968,7 @@ defun("put-file",
           var fs = require("fs");
           return fs.writeFileSync(name, data, encoding);
       },
-      [f$$intern("filename"), f$$intern("data"), f$$intern("&optional"), f$$intern("encoding")]);
+      [f$$intern("filename"), f$$intern("data"), f$$intern("&optional"), f$$intern("encoding")], [], []);
 
 defun("append-file",
       "[[(append-file filename data &optional (encoding \"utf-8\"))]]\n" +
@@ -1979,7 +1980,7 @@ defun("append-file",
           var fs = require("fs");
           return fs.appendFileSync(name, data, encoding);
       },
-      [f$$intern("filename"), f$$intern("data"), f$$intern("&optional"), f$$intern("encoding")]);
+      [f$$intern("filename"), f$$intern("data"), f$$intern("&optional"), f$$intern("encoding")], [], []);
 
 if (d$$node_js)
 {
