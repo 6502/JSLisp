@@ -2479,7 +2479,7 @@ If only one parameter is passed it's assumed to be [stop]."
            (lambda (x)
              (js-code "'\\\\x'+('0'+d$$x.charCodeAt(0).toString(16).slice(-2))"))))
 
-;; Whitespace stripping
+;; Whitespace stripping and padding
 (defun lstrip (x)
   "Removes initial spaces from string [x]"
   (replace x "^\\s+" ""))
@@ -2491,6 +2491,22 @@ If only one parameter is passed it's assumed to be [stop]."
 (defun strip (x)
   "Remove both initial and final spaces from string [x]"
   (lstrip (rstrip x)))
+
+(defun lpad (x size &optional padding)
+  "Returns a left-aligned string of length [size] by adding \
+   [padding] chars (or spaces) to the right of string [x] \
+   or by truncating it if it's longer."
+  (do () ((>= (length x) size)
+            (slice x 0 size))
+    (setf x (+ x (or padding " ")))))
+
+(defun rpad (x size &optional padding)
+  "Returns a right-aligned string of length [size] by adding \
+   [padding] chars (or spaces) to the left of string [x] or \
+   by truncating if it's longer."
+  (do () ((>= (length x) size)
+            (slice x (- size)))
+    (setf x (+ (or padding " ") x))))
 
 ;; Anonymous JS object access/creation
 (defun valid-js-name (x)
