@@ -3072,16 +3072,18 @@ A name is either an unevaluated atom or an evaluated list."
 (define-symbol-macro window (js-code "window"))
 (defmacro get-element-by-id (id)
   "Returns the DOM element with the specified id value"
-  `(js-code ,(+ "(document.getElementById(" (js-compile id) "))")))
+  `(document.getElementById id))
 (defmacro create-element (type)
   "Creates a new DOM element with the specified type passed as a string"
-  `(js-code ,(+ "(document.createElement(" (js-compile type) "))")))
-(defmacro append-child (parent child)
-  "Appends the DOM element [child] as last (frontmost) children of the [parent] DOM element"
-  `(js-code ,(+ "(" (js-compile parent) ".appendChild(" (js-compile child) "))")))
+  `(document.createElement ,type))
+(defmacro append-child (parent child &optional reference)
+  "Appends the DOM element [child] before specifed [reference] child \
+   element of the [parent] DOM element. When [reference] is not specified \
+   the [child] element is appended as last (frontmost) children."
+  `((. ,parent insertBefore) ,child (or ,reference null)))
 (defmacro remove-child (parent child)
   "Removes the DOM element [child] from the list of children of [parent] DOM element"
-  `(js-code ,(+ "(" (js-compile parent) ".removeChild(" (js-compile child) "))")))
+  `((. ,parent removeChild) ,child))
 
 ;; Timer events
 (defun set-timeout (f delay)
