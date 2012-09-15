@@ -1,5 +1,6 @@
 (import * from graphics)
 (import * from layout)
+(import * from locale)
 
 (defmacro set-style (element &rest properties)
   "Allows settings multiple style properties for a DOM node, example:[[
@@ -1084,22 +1085,14 @@
   "Creates an input field for a date with an helper button \
    that shows a calendar."
   (labels ((calendar (input)
-             (let ((current (if ((regexp "\\d{4}-\\d{2}-\\d{2}").exec
-                                 (text input))
-                                (date (atoi (slice (text input) 0 4))
-                                      (1- (atoi (slice (text input) 5 7)))
-                                      (atoi (slice (text input) 8 10)))
+             (let ((current (or (parse-date (text input))
                                 (date)))
                    ((x y) (element-pos input)))
                (ask-date x (+ y input.offsetHeight)
                          (lambda (d)
                            (when d
                              (setf (text input)
-                                   (+ (slice ~"0000{(d.getFullYear)}" -4)
-                                      "-"
-                                      (slice ~"00{(+ 1 (d.getMonth))}" -2)
-                                      "-"
-                                      (slice ~"00{(d.getDate)}" -2)))))
+                                   (str-date d))))
                          current))))
     (input-with-help caption #'calendar)))
 
