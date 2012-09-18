@@ -263,9 +263,6 @@
                               (setf line.sel-x0 x0)
                               (setf line.sel-x1 x1)
                               (let ((h (compute-html line.text line.sections)))
-                                (incf h (+ "<span style=\"color:#FFD0D0\">"
-                                           (setf line.count (1+ (or line.count 0)))
-                                           "</span>"))
                                 (setf line.div.innerHTML h))))
                           (incf cr)))))
           (#'fix ()
@@ -301,7 +298,24 @@
     (set-handler screen onscroll (update))
     (set-handler document.body onkeydown
       (let ((block true))
+        (display event.which)
         (case event.which
+          (33
+             (let ((y (- (aref lines row).div.offsetTop
+                         screen.offsetHeight)))
+               (do () ((or (= row 0)
+                           (< (aref lines row).div.offsetTop y)))
+                 (decf row))
+               (setf col (min col (length (aref lines row).text)))))
+          (34
+             (let ((y (+ (aref lines row).div.offsetTop
+                         screen.offsetHeight)))
+               (do () ((or (= row (1- (length lines)))
+                           (> (aref lines row).div.offsetTop y)))
+                 (incf row))
+               (setf col (min col (length (aref lines row).text)))))
+          (35
+             (setf col (length (aref lines row).text)))
           (36
              (setf col 0))
           (37
