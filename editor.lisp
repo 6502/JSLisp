@@ -193,12 +193,12 @@
 
 (defun editor (content)
   (let** ((screen (set-style (create-element "div")
-                             fontFamily "Droid Sans Mono"
-                             px/fontSize 16
-                             px/padding 4
-                             px/marginLeft -4
-                             px/marginTop -4
-                             overflow "auto"))
+                            fontFamily "Droid Sans Mono"
+                            px/fontSize 16
+                            px/padding 4
+                            px/marginLeft -4
+                            px/marginTop -4
+                            overflow "auto"))
           (lines (list))
           (cw null)
           (ch null)
@@ -222,7 +222,10 @@
                                          (aref lines cr).div.offsetHeight)
                                       screen.scrollTop)))
                         (incf cr))
-                      (do () ((>= cr (length lines)))
+                      (do () ((or (>= cr (length lines))
+                                  (>= (aref lines cr).div.offsetTop
+                                      (+ screen.scrollTop
+                                         screen.offsetHeight))))
                         (let ((current-context (if (= cr 0)
                                                    #()
                                                    (aref lines (1- cr)).end-context))
@@ -291,9 +294,11 @@
       (let ((line (append-child screen (create-element "div"))))
         (set-style line
                    whiteSpace "pre")
+        (setf line.textContent L)
         (push (new-line L line) lines)))
     (fix)
-    (setf screen."data-resize" #'fix)
+    (setf screen."data-resize" #'update)
+    (set-handler screen onscroll (update))
     (set-handler document.body onkeydown
       (let ((block true))
         (case event.which
@@ -371,33 +376,39 @@
             (setf s-col col))
           (fix))))
     (set-handler screen onmousedown
-      (event.preventDefault)
-      (event.stopPropagation)
       (labels ((pos (x y)
                     (let (((x0 y0) (element-pos screen)))
                       (decf x x0)
                       (decf y y0)
-                      (incf y screen.scrollTop)
-                      (do ((a 0)
-                           (b (length lines)))
-                          ((>= a (1- b))
-                           (setf a (max 0 (min a (1- (length lines)))))
-                           (list a (max 0 (min (floor (/ x cw)) (length (aref lines a).text)))))
-                        (let ((t (ash (+ a b) -1)))
-                          (if (< y (aref lines t).div.offsetTop)
-                              (setf b t)
-                              (setf a t)))))))
+                      (if (and (< 0 x screen.clientWidth)
+                               (< 0 y screen.clientHeight))
+                          (progn
+                            (incf y screen.scrollTop)
+                            (do ((a 0)
+                                 (b (length lines)))
+                                ((>= a (1- b))
+                                   (setf a (max 0 (min a (1- (length lines)))))
+                                   (list a (max 0 (min (floor (/ x cw)) (length (aref lines a).text)))))
+                              (let ((t (ash (+ a b) -1)))
+                                (if (< y (aref lines t).div.offsetTop)
+                                    (setf b t)
+                                    (setf a t)))))
+                          (list null null)))))
         (let (((r c) (apply #'pos (event-pos event))))
-          (setf row r)
-          (setf col c)
-          (setf s-row r)
-          (setf s-col c)
-          (fix)
-          (tracking (lambda (x y)
-                      (let (((r c) (pos x y)))
-                        (setf row r)
-                        (setf col c)
-                        (fix)))))))
+          (unless (null? r)
+            (event.preventDefault)
+            (event.stopPropagation)
+            (setf row r)
+            (setf col c)
+            (setf s-row r)
+            (setf s-col c)
+            (fix)
+            (tracking (lambda (x y)
+                        (let (((r c) (pos x y)))
+                          (unless (null? r)
+                            (setf row r)
+                            (setf col c)
+                            (fix)))))))))
     (set-handler document.body onkeypress
       (event.preventDefault)
       (event.stopPropagation)
@@ -415,7 +426,7 @@
 
 (defun test-editor ()
   (let** ((w (window 0 0 640 480 title: "Editor test"))
-          (editor (add-widget w (editor (replace (http-get "comm2.cpp") "\r" "")))))
+          (editor (add-widget w (editor (replace (http-get "bbchess64k.c") "\r" "")))))
     (set-layout w (V border: 8 spacing: 8
                      (dom editor)))
     (show-window w center: true)))
