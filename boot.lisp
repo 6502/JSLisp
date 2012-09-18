@@ -2492,21 +2492,28 @@ If only one parameter is passed it's assumed to be [stop]."
   "Remove both initial and final spaces from string [x]"
   (lstrip (rstrip x)))
 
+(defun str-repeat (s n)
+  "Returns the concatenation of [n] copies of string [s]"
+  (cond
+   ((<= n 0) "")
+   ((= n 1) s)
+   ((% n 2)
+    (+ (str-repeat s (1- n )) s))
+   (true
+    (let ((y (str-repeat s (ash n -1))))
+      (+ y y)))))
+
 (defun lpad (x size &optional padding)
   "Returns a left-aligned string of length [size] by adding \
    [padding] chars (or spaces) to the right of string [x] \
    or by truncating it if it's longer."
-  (do () ((>= (length x) size)
-            (slice x 0 size))
-    (setf x (+ x (or padding " ")))))
+  (slice (+ x (str-repeat (or padding " ") size)) 0 size))
 
 (defun rpad (x size &optional padding)
   "Returns a right-aligned string of length [size] by adding \
    [padding] chars (or spaces) to the left of string [x] or \
    by truncating if it's longer."
-  (do () ((>= (length x) size)
-            (slice x (- size)))
-    (setf x (+ (or padding " ") x))))
+  (slice (+ (str-repeat (or padding " ") size) x) (- size)))
 
 ;; Anonymous JS object access/creation
 (defun valid-js-name (x)
