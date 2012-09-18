@@ -298,7 +298,6 @@
     (set-handler screen onscroll (update))
     (set-handler document.body onkeydown
       (let ((block true))
-        (display event.which)
         (case event.which
           (33
              (let ((y (- (aref lines row).div.offsetTop
