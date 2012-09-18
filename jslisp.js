@@ -1944,7 +1944,7 @@ defun("http-get",
           return f$$http("GET", url, null, onSuccess, onFailure);
       },
       [f$$intern("url"), f$$intern("&optional"),
-       f$$intern("success-function"), f$$intern("failure-function")], [], ["f$$http"]);
+       f$$intern("success-function"), f$$intern("failure-function")], [], ["$$http"]);
 
 defun("get-file",
       "[[(get-file filename &optional (encoding \"utf-8\"))]]\n" +
