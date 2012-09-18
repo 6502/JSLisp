@@ -23,20 +23,19 @@
       (remove-child element x)
       result)))
 
-(defun same (d1 d2)
-  (dolist (k (keys d1))
-    (unless (= (aref d1 k)
-               (aref d2 k))
-      (return-from same false)))
-  (dolist (k (keys d2))
-    (unless (= (aref d1 k)
-               (aref d2 k))
-      (return-from same false)))
-  true)
+(defun signature (d)
+  (+ "{"
+     (join (map (lambda (k)
+                  ~"{k}:{(json (aref d k))}")
+                (sort (keys d)))
+           ",")
+     "}"))
 
 (defobject line
     (text
      div
+     start-signature
+     end-signature
      sel-x0 sel-x1
      (start-context #())
      (end-context #())
@@ -188,12 +187,12 @@
       (setf i s.to))
     (when (< i (length text))
       (incf res (htm (slice text i))))
-    (incf res "&nbsp;")
-    res))
+    ~"<span style=\"background-color:#FFFFFF\">{res}</span>"))
 
 (defun editor (content)
   (let** ((screen (set-style (create-element "div")
                             fontFamily "Droid Sans Mono"
+                            backgroundColor "#FFFFFF"
                             px/fontSize 16
                             px/padding 4
                             px/marginLeft -4
@@ -214,7 +213,7 @@
                                                   px/width 3
                                                   px/height 12)))
           (#'touch (line)
-                   (setf line.start-context null))
+                   (setf line.start-signature null))
           (#'update ()
                     (let ((cr 0))
                       (do () ((or (>= cr (length lines))
@@ -226,9 +225,9 @@
                                   (>= (aref lines cr).div.offsetTop
                                       (+ screen.scrollTop
                                          screen.offsetHeight))))
-                        (let ((current-context (if (= cr 0)
-                                                   #()
-                                                   (aref lines (1- cr)).end-context))
+                        (let ((current-signature (if (= cr 0)
+                                                     ""
+                                                     (aref lines (1- cr)).end-signature))
                               (x0 0)
                               (x1 0)
                               (line (aref lines cr)))
@@ -242,27 +241,38 @@
                                (setf x1 (max col s-col)))
                               ((= cr (min row s-row))
                                (setf x0 (if (= cr row) col s-col))
-                               (setf x1 (length line.text)))
+                               (setf x1 (1+ (length line.text))))
                               ((= cr (max row s-row))
                                (setf x0 0)
                                (setf x1 (if (= cr row) col s-col)))
                               (true
                                (setf x0 0)
-                               (setf x1 (length line.text)))))
-                          (unless (and (aref lines cr).start-context
-                                       (same current-context
-                                             (aref lines cr).start-context)
-                                       (= line.sel-x0 x0)
-                                       (= line.sel-x1 x1))
-                            (setf line.start-context (copy current-context))
-                            (let ((ec (compute-end-context line)))
+                               (setf x1 (1+ (length line.text))))))
+                          (unless (and (= x0 line.sel-x0)
+                                       (= x1 line.sel-x1)
+                                       (= current-signature line.start-signature))
+                            (setf line.start-context
+                                  (if (= cr 0)
+                                      #()
+                                      (copy (aref lines (1- cr)).end-context)))
+                            (let ((ec (compute-end-context line))
+                                  (text line.text))
                               (when (< x0 x1)
                                 (setf line.sections
                                       (fix-for-selection line.sections x0 x1)))
                               (setf line.end-context (copy ec))
                               (setf line.sel-x0 x0)
                               (setf line.sel-x1 x1)
-                              (let ((h (compute-html line.text line.sections)))
+                              (setf line.start-signature current-signature)
+                              (setf line.end-signature (signature line.end-context))
+                              (let ((h (compute-html text line.sections)))
+                                (if (> x1 (length text))
+                                    (setf h (+ "<div style=\"position:relative; background-color:#FFFF00\">&nbsp;"
+                                               "<div style=\"position:absolute; left:0px; top:0px\">"
+                                               h
+                                               "</div></div>"))
+                                    (when (= text "")
+                                      (incf h "&nbsp;")))
                                 (setf line.div.innerHTML h))))
                           (incf cr)))))
           (#'fix ()
@@ -291,9 +301,8 @@
       (let ((line (append-child screen (create-element "div"))))
         (set-style line
                    whiteSpace "pre")
-        (setf line.textContent L)
+        (setf line.textContent (+ L " "))
         (push (new-line L line) lines)))
-    (fix)
     (setf screen."data-resize" #'update)
     (set-handler screen onscroll (update))
     (set-handler document.body onkeydown
@@ -364,8 +373,7 @@
              (let ((line (aref lines row))
                    (newline (set-style (create-element "div")
                                        whiteSpace "pre")))
-               (setf newline (new-line "" newline line.end-context))
-               (setf newline.text (slice line.text col))
+               (setf newline (new-line (slice line.text col) newline))
                (setf line.text (slice line.text 0 col))
                (append-child screen newline.div line.div.nextSibling)
                (incf row)
@@ -435,6 +443,7 @@
         (setf s-col col)
         (touch line)
         (fix)))
+    (set-timeout #'fix 10)
     screen))
 
 (defun test-editor ()
@@ -444,4 +453,17 @@
                      (dom editor)))
     (show-window w center: true)))
 
-(test-editor)
+(defun test-editor-fs ()
+  (let ((editor (editor (replace (http-get "bbchess64k.c") "\r" ""))))
+    (set-style editor
+               position "absolute"
+               px/left 8
+               px/top 8
+               px/bottom 8
+               px/right 8)
+    (append-child document.body editor)))
+
+(defun main ()
+  (test-editor-fs))
+
+(main)
