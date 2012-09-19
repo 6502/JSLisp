@@ -1,27 +1,18 @@
 (import * from gui)
 (import * from layout)
 
-(defun char-cell (element)
-  (let ((x (append-child element (create-element "div"))))
-    (set-style x
-               position "absolute"
-               whiteSpace "pre"
-               display "hidden"
-               px/left 0
-               px/top 0)
-    (setf x.textContent "XXXXXXXXXX\n\
-                         XXXXXXXXXX\n\
-                         XXXXXXXXXX\n\
-                         XXXXXXXXXX\n\
-                         XXXXXXXXXX\n\
-                         XXXXXXXXXX\n\
-                         XXXXXXXXXX\n\
-                         XXXXXXXXXX\n\
-                         XXXXXXXXXX")
-    (let ((result (list (/ x.offsetWidth 10)
-                        (/ x.offsetHeight 10))))
-      (remove-child element x)
-      result)))
+(setf *font* "\"monospace\"")
+(setf *fontsz* 16)
+(setf *line* 19)
+
+(defun font (ctx opts)
+  (let ((font ""))
+    (when opts.bold
+      (incf font " bold"))
+    (when opts.italic
+      (incf font " italic"))
+    (setf ctx.fillStyle (or opts.color "#000000"))
+    (setf ctx.font ~"{(slice font 1)} {*fontsz*}px {*font*}")))
 
 (defun signature (d)
   (+ "{"
@@ -33,7 +24,6 @@
 
 (defobject line
     (text
-     div
      start-signature
      end-signature
      sel-x0 sel-x1
@@ -123,7 +113,7 @@
                           '("if" "while" "for" "return" "break" "case"
                             "struct" "union" "typedef"
                             "int" "double" "char" "const" "float" "unsigned"))
-                (push (new-section i0 i #((font-weight "bold")
+                (push (new-section i0 i #((bold true)
                                           (color "#0000CC")))
                       sections)))
            (incf i))))
@@ -169,62 +159,65 @@
     (sort new-sections
           (lambda (a b) (< a.from b.from)))))
 
-(defun compute-html (text sections)
-  (let ((res "")
-        (i 0))
+(defun draw-line (text sections h w
+                  ctx x y tx endsel)
+  (let ((xx 0))
     (dolist (s sections)
-      (when (< i s.from)
-        (incf res (htm (slice text i s.from)))
-        (setf i s.from))
-      (incf res "<span style=\"")
-      (incf res (join (map (lambda (k)
-                             ~"{k}:{(aref s.style k)}")
-                           (keys s.style))
-                      "; "))
-      (incf res ~"\">")
-      (incf res (htm (slice text s.from s.to)))
-      (incf res "</span>")
-      (setf i s.to))
-    (when (< i (length text))
-      (incf res (htm (slice text i))))
-    ~"<span style=\"background-color:#FFFFFF\">{res}</span>"))
+      (when (> s.from xx)
+        (let ((part (slice text xx s.from)))
+          (font ctx #())
+          (ctx.fillText part (+ tx x) y)
+          (incf x (ctx.measureText part).width)
+          (setf xx s.from)))
+      (when (< (+ tx x) w)
+        (let ((part (slice text s.from s.to)))
+          (font ctx s.style)
+          (let ((pw (ctx.measureText part).width))
+            (when s.style.background-color
+              (setf ctx.fillStyle s.style.background-color)
+              (ctx.fillRect (+ tx x) y pw h))
+            (setf ctx.fillStyle (or s.style.color "#000000"))
+            (ctx.fillText part (+ tx x) y)
+            (incf x pw)
+            (setf xx s.to)))))
+    (when (< (+ tx x) w)
+      (when (> (length text) xx)
+        (let ((part (slice text xx)))
+          (font ctx #())
+          (ctx.fillText part (+ tx x) y)
+          (incf x (ctx.measureText part).width)))
+      (when endsel
+        (setf ctx.fillStyle "#FFFF00")
+        (ctx.fillRect (+ tx x) y (- w x tx) h)))))
 
 (defun editor (content)
-  (let** ((screen (set-style (create-element "div")
-                            fontFamily "Droid Sans Mono"
-                            backgroundColor "#FFFFFF"
-                            px/fontSize 16
-                            px/padding 4
-                            px/marginLeft -4
-                            px/marginTop -4
-                            overflow "auto"))
+  (let** ((screen (create-element "canvas"))
           (lines (list))
           (cw null)
-          (ch null)
+          (ch *line*)
           (last-width null)
           (last-height null)
+          (top 0)
+          (left 0)
           (row 0)
           (col 0)
           (s-row 0)
           (s-col 0)
-          (cursor (append-child screen (set-style (create-element "div")
-                                                  position "absolute"
-                                                  backgroundColor "#FF0000"
-                                                  px/width 3
-                                                  px/height 12)))
           (#'touch (line)
                    (setf line.start-signature null))
           (#'update ()
-                    (let ((cr 0))
+                    (setf screen.width screen.offsetWidth)
+                    (setf screen.height screen.offsetHeight)
+                    (let ((cr top)
+                          (ctx (screen.getContext "2d")))
+                      (when (null? cw)
+                        (font ctx #())
+                        (setf cw (/ (ctx.measureText "XXXXXXXXXX").width 10)))
+                      (setf ctx.fillStyle "#FFFFFF")
+                      (ctx.fillRect 0 0 screen.width screen.height)
+                      (setf ctx.textBaseline "top")
                       (do () ((or (>= cr (length lines))
-                                  (>= (+ (aref lines cr).div.offsetTop
-                                         (aref lines cr).div.offsetHeight)
-                                      screen.scrollTop)))
-                        (incf cr))
-                      (do () ((or (>= cr (length lines))
-                                  (>= (aref lines cr).div.offsetTop
-                                      (+ screen.scrollTop
-                                         screen.offsetHeight))))
+                                  (>= (* (- cr top) ch) screen.offsetHeight)))
                         (let ((current-signature (if (= cr 0)
                                                      ""
                                                      (aref lines (1- cr)).end-signature))
@@ -236,18 +229,18 @@
                                      (or (<= row cr s-row)
                                          (<= s-row cr row)))
                             (cond
-                              ((= row s-row)
-                               (setf x0 (min col s-col))
-                               (setf x1 (max col s-col)))
-                              ((= cr (min row s-row))
-                               (setf x0 (if (= cr row) col s-col))
-                               (setf x1 (1+ (length line.text))))
-                              ((= cr (max row s-row))
-                               (setf x0 0)
-                               (setf x1 (if (= cr row) col s-col)))
-                              (true
-                               (setf x0 0)
-                               (setf x1 (1+ (length line.text))))))
+                             ((= row s-row)
+                              (setf x0 (min col s-col))
+                              (setf x1 (max col s-col)))
+                             ((= cr (min row s-row))
+                              (setf x0 (if (= cr row) col s-col))
+                              (setf x1 (1+ (length line.text))))
+                             ((= cr (max row s-row))
+                              (setf x0 0)
+                              (setf x1 (if (= cr row) col s-col)))
+                             (true
+                              (setf x0 0)
+                              (setf x1 (1+ (length line.text))))))
                           (unless (and (= x0 line.sel-x0)
                                        (= x1 line.sel-x1)
                                        (= current-signature line.start-signature))
@@ -264,38 +257,25 @@
                               (setf line.sel-x0 x0)
                               (setf line.sel-x1 x1)
                               (setf line.start-signature current-signature)
-                              (setf line.end-signature (signature line.end-context))
-                              (let ((h (compute-html text line.sections)))
-                                (if (> x1 (length text))
-                                    (setf h (+ "<div style=\"position:relative; background-color:#FFFF00\">&nbsp;"
-                                               "<div style=\"position:absolute; left:0px; top:0px\">"
-                                               h
-                                               "</div></div>"))
-                                    (when (= text "")
-                                      (incf h "&nbsp;")))
-                                (setf line.div.innerHTML h))))
+                              (setf line.end-signature (signature line.end-context))))
+                          (draw-line line.text line.sections
+                                     ch screen.offsetWidth
+                                     ctx 0 (* (- cr top) ch) (- (* cw left))
+                                     (> x1 (length line.text)))
+                          (when (= cr row)
+                            (setf ctx.fillStyle "#FF0000")
+                            (ctx.fillRect (* cw (- col left)) (* ch (- cr top))
+                                          2 *line*))
                           (incf cr)))))
           (#'fix ()
-                 (let ((sw screen.offsetWidth)
-                       (sh screen.offsetHeight))
-                   (when (or (/= sw last-width)
-                             (/= sh last-height))
-                     (setf last-width sw)
-                     (setf last-height sh)
-                     (let (((ccw cch) (char-cell screen)))
-                       (setf cw ccw)
-                       (setf ch cch))
-                     (setf cursor.style.height ~"{(+ ch 2)}px"))
-                   (let ((line (aref lines row)))
-                     (set-style cursor
-                                px/top (1+ line.div.offsetTop)
-                                px/left (+ 3 (* col cw))))
-                   (when (> (- cursor.offsetTop screen.scrollTop)
-                            (+ screen.offsetTop screen.offsetHeight -30))
-                     (setf screen.scrollTop
-                           (- cursor.offsetTop screen.offsetHeight -30)))
-                   (when (< cursor.offsetTop screen.scrollTop)
-                     (setf screen.scrollTop cursor.offsetTop)))
+                 (let ((screen-lines (floor (/ screen.offsetHeight ch)))
+                       (screen-cols (floor (/ screen.offsetWidth cw))))
+                   (setf row (max 0 (min (1- (length lines)) row)))
+                   (setf col (max 0 (min (length (aref lines row).text) col)))
+                   (setf s-row (max 0 (min (1- (length lines)) s-row)))
+                   (setf s-col (max 0 (min (length (aref lines s-row).text) s-col)))
+                   (setf left (max 0 (- col screen-cols) (min left col)))
+                   (setf top (max 0 (- row -1 screen-lines) (min row top (- (length lines) screen-lines)))))
                  (update)))
     (dolist (L (split content "\n"))
       (let ((line (append-child screen (create-element "div"))))
@@ -305,144 +285,145 @@
         (push (new-line L line) lines)))
     (setf screen."data-resize" #'update)
     (set-handler screen onscroll (update))
+    (set-handler document.body onmousewheel
+                 (let ((delta (floor (/ event.wheelDelta -60)))
+                       (screen-lines (floor (/ screen.offsetHeight ch))))
+                   (setf top (max 0 (min (+ top delta) (- (length lines) screen-lines)))))
+                 (update))
     (set-handler document.body onkeydown
-      (let ((block true))
-        (case event.which
-          (33
-             (let ((y (- (aref lines row).div.offsetTop
-                         screen.offsetHeight)))
-               (do () ((or (= row 0)
-                           (< (aref lines row).div.offsetTop y)))
-                 (decf row))
-               (setf col (min col (length (aref lines row).text)))))
-          (34
-             (let ((y (+ (aref lines row).div.offsetTop
-                         screen.offsetHeight)))
-               (do () ((or (= row (1- (length lines)))
-                           (> (aref lines row).div.offsetTop y)))
-                 (incf row))
-               (setf col (min col (length (aref lines row).text)))))
-          (35
-             (setf col (length (aref lines row).text)))
-          (36
-             (setf col 0))
-          (37
-             (if (> col 0)
-                 (decf col)
-                 (when (> row 0)
-                   (decf row)
-                   (setf col (length (aref lines row).text)))))
-          (39
-             (if (< col (length (aref lines row).text))
-                 (incf col)
-                 (when (< row (1- (length lines)))
-                   (incf row)
-                   (setf col 0))))
-          (40
-             (if (< row (1- (length lines)))
-                 (progn
-                   (incf row)
-                   (when (> col (length (aref lines row).text))
-                     (setf col (length (aref lines row).text))))
-                 (setf col (length (aref lines row).text))))
-          (38
-             (if (> row 0)
-                 (progn
-                   (decf row)
-                   (when (> col (length (aref lines row).text))
-                     (setf col (length (aref lines row).text))))
-                 (setf col 0)))
-          (8
-             (if (> col 0)
+                 (let ((block true))
+                   (case event.which
+                     (33
+                      (let ((delta (floor (/ screen.offsetHeight ch))))
+                        (decf top delta)
+                        (decf row delta)))
+                     (34
+                      (let ((delta (floor (/ screen.offsetHeight ch))))
+                        (incf top delta)
+                        (incf row delta)))
+                     (35
+                      (setf col (length (aref lines row).text)))
+                     (36
+                      (setf col 0))
+                     (37
+                      (if (> col 0)
+                          (decf col)
+                          (when (> row 0)
+                            (decf row)
+                            (setf col (length (aref lines row).text)))))
+                     (39
+                      (if (< col (length (aref lines row).text))
+                          (incf col)
+                          (when (< row (1- (length lines)))
+                            (incf row)
+                            (setf col 0))))
+                     (40
+                      (if (< row (1- (length lines)))
+                          (progn
+                            (incf row)
+                            (when (> col (length (aref lines row).text))
+                              (setf col (length (aref lines row).text))))
+                          (setf col (length (aref lines row).text))))
+                     (38
+                      (if (> row 0)
+                          (progn
+                            (decf row)
+                            (when (> col (length (aref lines row).text))
+                              (setf col (length (aref lines row).text))))
+                          (setf col 0)))
+                     (8
+                      (if (> col 0)
+                          (let ((line (aref lines row)))
+                            (decf col)
+                            (setf line.text
+                                  (+ (slice line.text 0 col)
+                                     (slice line.text (1+ col))))
+                            (touch line))
+                          (when (> row 0)
+                            (let ((line (aref lines row))
+                                  (prev-line (aref lines (1- row))))
+                              (setf col (length prev-line.text))
+                              (incf prev-line.text line.text)
+                              (splice lines row 1)
+                              (touch prev-line)
+                              (decf row)))))
+                     (13
+                      (let ((line (aref lines row))
+                            (newline (new-line (slice (aref lines row).text col))))
+                        (setf line.text (slice line.text 0 col))
+                        (incf row)
+                        (insert lines row newline)
+                        (setf col 0)
+                        (let ((indent (length (first ((regexp "^ *").exec line.text)))))
+                          (when (> indent 0)
+                            (setf newline.text
+                                  (+ (slice line.text 0 indent)
+                                     newline.text))
+                            (incf col indent)))
+                        (touch line)
+                        (touch newline)))
+                     (otherwise
+                      (setf block false)))
+                   (when block
+                     (event.preventDefault)
+                     (event.stopPropagation)
+                     (unless event.shiftKey
+                       (setf s-row row)
+                       (setf s-col col))
+                     (fix))))
+    (set-handler screen onmousedown
+                 (labels ((pos (x y)
+                               (let (((x0 y0) (element-pos screen)))
+                                 (decf x x0)
+                                 (decf y y0)
+                                 (if (and (< 0 x screen.clientWidth)
+                                          (< 0 y screen.clientHeight))
+                                     (let ((a (max 0 (min (1- (length lines)) (+ (floor (/ y ch)) top)))))
+                                       (list a (max 0 (min (floor (/ x cw)) (length (aref lines a).text)))))
+                                     (list null null)))))
+                   (let (((r c) (apply #'pos (event-pos event))))
+                     (unless (null? r)
+                       (event.preventDefault)
+                       (event.stopPropagation)
+                       (setf row r)
+                       (setf col c)
+                       (setf s-row r)
+                       (setf s-col c)
+                       (fix)
+                       (let* ((scroller-delta 0)
+                              (scroller (set-interval (lambda ()
+                                                        (incf top scroller-delta)
+                                                        (incf row scroller-delta)
+                                                        (fix))
+                                                      20)))
+                         (tracking (lambda (x y)
+                                     (let (((r c) (pos x y)))
+                                       (if (null? r)
+                                           (let (((sx sy) (element-pos screen))
+                                                 (sh screen.offsetHeight))
+                                             (when (< y sy)
+                                               (setf scroller-delta (floor (/ (- y sy) ch))))
+                                             (when (> y (+ sy sh))
+                                               (setf scroller-delta (1+ (floor (/ (- y (+ sy sh)) ch))))))
+                                           (progn
+                                             (setf scroller-delta 0)
+                                             (setf row r)
+                                             (setf col c)
+                                             (fix)))))
+                                   (lambda () (clear-interval scroller))))))))
+    (set-handler document.body onkeypress
+                 (event.preventDefault)
+                 (event.stopPropagation)
                  (let ((line (aref lines row)))
-                   (decf col)
                    (setf line.text
                          (+ (slice line.text 0 col)
-                            (slice line.text (1+ col))))
-                   (touch line))
-                 (when (> row 0)
-                   (let ((line (aref lines row))
-                         (prev-line (aref lines (1- row))))
-                     (setf col (length prev-line.text))
-                     (incf prev-line.text line.text)
-                     (remove-child screen line.div)
-                     (splice lines row 1)
-                     (touch prev-line)
-                     (decf row)))))
-          (13
-             (let ((line (aref lines row))
-                   (newline (set-style (create-element "div")
-                                       whiteSpace "pre")))
-               (setf newline (new-line (slice line.text col) newline))
-               (setf line.text (slice line.text 0 col))
-               (append-child screen newline.div line.div.nextSibling)
-               (incf row)
-               (insert lines row newline)
-               (setf col 0)
-               (let ((indent (length (first ((regexp "^ *").exec line.text)))))
-                 (when (> indent 0)
-                   (setf newline.text
-                         (+ (slice line.text 0 indent)
-                            newline.text))
-                   (incf col indent)))
-               (touch line)
-               (touch newline)))
-          (otherwise
-             (setf block false)))
-        (when block
-          (event.preventDefault)
-          (event.stopPropagation)
-          (unless event.shiftKey
-            (setf s-row row)
-            (setf s-col col))
-          (fix))))
-    (set-handler screen onmousedown
-      (labels ((pos (x y)
-                    (let (((x0 y0) (element-pos screen)))
-                      (decf x x0)
-                      (decf y y0)
-                      (if (and (< 0 x screen.clientWidth)
-                               (< 0 y screen.clientHeight))
-                          (progn
-                            (incf y screen.scrollTop)
-                            (do ((a 0)
-                                 (b (length lines)))
-                                ((>= a (1- b))
-                                   (setf a (max 0 (min a (1- (length lines)))))
-                                   (list a (max 0 (min (floor (/ x cw)) (length (aref lines a).text)))))
-                              (let ((t (ash (+ a b) -1)))
-                                (if (< y (aref lines t).div.offsetTop)
-                                    (setf b t)
-                                    (setf a t)))))
-                          (list null null)))))
-        (let (((r c) (apply #'pos (event-pos event))))
-          (unless (null? r)
-            (event.preventDefault)
-            (event.stopPropagation)
-            (setf row r)
-            (setf col c)
-            (setf s-row r)
-            (setf s-col c)
-            (fix)
-            (tracking (lambda (x y)
-                        (let (((r c) (pos x y)))
-                          (unless (null? r)
-                            (setf row r)
-                            (setf col c)
-                            (fix)))))))))
-    (set-handler document.body onkeypress
-      (event.preventDefault)
-      (event.stopPropagation)
-      (let ((line (aref lines row)))
-        (setf line.text
-              (+ (slice line.text 0 col)
-                 (char event.which)
-                 (slice line.text col)))
-        (incf col)
-        (setf s-row row)
-        (setf s-col col)
-        (touch line)
-        (fix)))
+                            (char event.which)
+                            (slice line.text col)))
+                   (incf col)
+                   (setf s-row row)
+                   (setf s-col col)
+                   (touch line)
+                   (fix)))
     (set-timeout #'fix 10)
     screen))
 
@@ -464,6 +445,6 @@
     (append-child document.body editor)))
 
 (defun main ()
-  (test-editor-fs))
+  (test-editor))
 
 (main)
