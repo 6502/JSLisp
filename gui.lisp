@@ -89,15 +89,23 @@
                           opacity 0.001
                           backgroundColor "#000000")))
     (set-handler cover oncontextmenu
-                 (event.preventDefault)
-                 (event.stopPropagation))
+                 (when cover.parentNode
+                   (event.preventDefault)
+                   (event.stopPropagation)))
     (set-handler cover onmousemove
-                 (event.preventDefault)
-                 (apply f (event-pos event)))
+                 (when cover.parentNode
+                   (event.preventDefault)
+                   (apply f (event-pos event))))
     (set-handler cover onmouseup
-                 (hide cover)
-                 (when end
-                   (apply end (event-pos event))))
+                 (when cover.parentNode
+                   (hide cover)
+                   (when end
+                     (apply end (event-pos event)))))
+    (set-handler cover onmouseout
+                 (when cover.parentNode
+                   (hide cover)
+                   (when end
+                     (apply end (event-pos event)))))
     (show cover)))
 
 (defun dragging (div x0 y0)
