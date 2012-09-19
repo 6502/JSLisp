@@ -308,7 +308,6 @@
         (setf line.textContent (+ L " "))
         (push (new-line L line) lines)))
     (setf screen."data-resize" #'update)
-    (set-handler screen onscroll (update))
     (set-handler document.body onmousewheel
                  (let ((delta (floor (/ event.wheelDelta -60)))
                        (screen-lines (floor (/ screen.offsetHeight ch))))
@@ -474,16 +473,36 @@
     (show-window w center: true)))
 
 (defun test-editor-fs ()
-  (let ((editor (editor (replace (http-get "bbchess64k.c") "\r" ""))))
-    (set-style editor
+  (let ((editor (editor (replace (http-get "bbchess64k.c") "\r" "")))
+        (frame (create-element "div")))
+    (set-style frame
                position "absolute"
                px/left 8
                px/top 8
                px/bottom 8
                px/right 8)
-    (append-child document.body editor)))
+    (set-style editor
+               position "absolute"
+               px/left 0
+               px/top 0)
+    (append-child frame editor)
+    (append-child document.body frame)
+    (let ((fw 0) (fh 0))
+      (set-interval (lambda ()
+                      (let ((w frame.offsetWidth)
+                            (h frame.offsetHeight))
+                        (when (or (/= w fw) (/= h fh))
+                          (setf fw w)
+                          (setf fh h)
+                          (set-style editor
+                                     px/left 0
+                                     px/top 0
+                                     px/width fw
+                                     px/height fh)
+                          (editor."data-resize" 0 0 fw fh))))
+                    10))))
 
 (defun main ()
-  (test-editor))
+  (test-editor-fs))
 
 (main)
