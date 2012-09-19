@@ -110,9 +110,11 @@
              ((or (= i (length text))
                   (not ((regexp "[_a-zA-Z0-9]").exec (aref text i))))
               (when (find (slice text i0 i)
-                          '("if" "while" "for" "return" "break" "case"
+                          '("if" "else" "do" "switch" "goto"
+                            "while" "for" "return" "break" "case"
                             "struct" "union" "typedef"
-                            "int" "double" "char" "const" "float" "unsigned"))
+                            "int" "double" "char" "const"
+                            "float" "unsigned"))
                 (push (new-section i0 i #((bold true)
                                           (color "#0000CC")))
                       sections)))
