@@ -2,8 +2,8 @@
 (import * from layout)
 
 (setf *font* "\"Droid Sans Mono\",\"Courier New\",\"Courier\",monospace")
-(setf *fontsz* 14)
-(setf *line* 16)
+(setf *fontsz* 18)
+(setf *line* 20)
 
 (defun font (ctx opts)
   (let ((font ""))
@@ -13,14 +13,6 @@
       (incf font " italic"))
     (setf ctx.fillStyle (or opts.color "#000000"))
     (setf ctx.font ~"{(slice font 1)} {*fontsz*}px {*font*}")))
-
-(defun signature (d)
-  (+ "{"
-     (join (map (lambda (k)
-                  ~"{k}:{(json (aref d k))}")
-                (sort (keys d)))
-           ",")
-     "}"))
 
 (defobject line
     (text
@@ -33,14 +25,86 @@
 
 (defobject section (from to style))
 
+(defun signature (d)
+  (+ "{"
+     (join (map (lambda (k)
+                  ~"{k}:{(json (aref d k))}")
+                (sort (keys d)))
+           ",")
+     "}"))
+
+(defun parmatch (lines row col)
+  (let** ((r 0)
+          (c -1)
+          (last null)
+          (current null)
+          (#'next ()
+                  (setf last current)
+                  (when (> (incf c) (length (aref lines r).text))
+                    (setf c 0) (incf r))
+                  (setf current
+                        (if (or (> r row)
+                                (and (= r row) (>= c col)))
+                            undefined
+                            (or (aref lines r "text" c) "\n"))))
+          (close (aref lines row "text" (1- col)))
+          (open (aref "{[(" (index close "}])")))
+          (stack (list)))
+    (next)
+    (do ()
+        ((or (undefined? current)
+             (or (> r row)
+                 (and (= r row) (>= c (1- col)))))
+           (last stack))
+      (cond
+        ((= current "\"")
+         (next)
+         (do ()
+             ((or (undefined? current)
+                  (= current "\n")
+                  (= current "\""))
+                (when (undefined? current)
+                  (return-from parmatch null))
+                (next))
+           (when (= current "\\")
+             (next))
+           (next)))
+        ((and (= current "/") (= last "/"))
+         (do ()
+             ((or (undefined? current)
+                  (= current "\n")))
+           (next))
+         (when (undefined? current)
+           (return-from parmatch null)))
+        ((and (= current "*") (= last "/"))
+         (next)
+         (do ()
+             ((or (undefined? current)
+                  (and (= current "/") (= last "*")))
+                (next))
+           (next))
+         (when (undefined? current)
+           (return-from parmatch null)))
+        ((= current open)
+         (push (list r c) stack)
+         (next))
+        ((= current close)
+         (pop stack)
+         (next))
+        (true (next))))))
+
 (defun compute-end-context (line)
   (do ((ec (copy line.start-context))
-       (text line.text)
+       (text (rstrip line.text))
        (i 0)
        (sections (list)))
       ((>= i (length text))
          (unless (= (last text) "\\")
            (setf ec.preproc false))
+         (when (> (length line.text) (length text))
+           (push (new-section (length text) (length line.text)
+                              #((background-color "#C0FFC0")))
+                 sections))
          (setf line.sections sections)
          ec)
     (cond
@@ -113,8 +177,9 @@
                             '("if" "else" "do" "switch" "goto"
                               "while" "for" "return" "break" "case"
                               "struct" "union" "typedef"
-                              "int" "double" "char" "const"
-                              "float" "unsigned"))
+                              "void" "int" "double" "char" "const"
+                              "float" "unsigned"
+                              "extern" "static" "inline"))
                   (push (new-section i0 i #((bold true)
                                             (color "#0000CC")))
                         sections)))
@@ -220,7 +285,20 @@
                       (ctx.fillRect 0 0 screen.width screen.height)
                       (setf ctx.textBaseline "top")
                       (do () ((or (>= cr (length lines))
-                                  (>= (* (- cr top) ch) screen.offsetHeight)))
+                                  (>= (* (- cr top) ch) screen.offsetHeight))
+                                (when (and (> col 0)
+                                           (find (aref lines row "text" (1- col))
+                                                 "})]"))
+                                  (let ((m (parmatch lines row col)))
+                                    (when (and m
+                                               (>= (first m) top))
+                                      (let ((y0 (* (- (first m) top) *line*))
+                                            (x0 (* (- (second m) left) cw))
+                                            (y1 (* (- row top) *line*))
+                                            (x1 (* (- col left 1) cw)))
+                                        (setf ctx.fillStyle "rgba(255,0,0,0.25)")
+                                        (ctx.fillRect x0 y0 (+ cw 2) (+ *line* 2))
+                                        (ctx.fillRect x1 y1 (+ cw 2) (+ *line* 2)))))))
                         (let ((current-signature (if (= cr 0)
                                                      ""
                                                      (aref lines (1- cr)).end-signature))
@@ -250,13 +328,13 @@
                             (setf line.start-context
                                   (if (= cr 0)
                                       #()
-                                      (copy (aref lines (1- cr)).end-context)))
+                                      (aref lines (1- cr)).end-context))
                             (let ((ec (compute-end-context line))
                                   (text line.text))
                               (when (< x0 x1)
                                 (setf line.sections
                                       (fix-for-selection line.sections x0 x1)))
-                              (setf line.end-context (copy ec))
+                              (setf line.end-context ec)
                               (setf line.sel-x0 x0)
                               (setf line.sel-x1 x1)
                               (setf line.start-signature current-signature)
