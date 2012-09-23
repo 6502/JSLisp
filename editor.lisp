@@ -610,6 +610,9 @@
                (event.preventDefault)
                (fix))
              (setf block false))
+          (87
+             (unless event.ctrlKey
+               (setf block false)))
           (otherwise
              (setf block false)))
         (when block
