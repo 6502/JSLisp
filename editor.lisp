@@ -646,10 +646,10 @@
                                              (slice text col))))
                            (when (> row 0)
                              (let ((rr row)
-                                   (line (aref lines row))
-                                   (prev-line (aref lines (1- row))))
+                                   (sz (length (aref lines row).text)))
                                (mutate
-                                (progn
+                                (let ((line (aref lines rr))
+                                      (prev-line (aref lines (1- rr))))
                                   (setf col (length prev-line.text))
                                   (incf prev-line.text line.text)
                                   (splice lines rr 1)
@@ -657,9 +657,9 @@
                                   (setf row (1- rr))
                                   (setf s-col col)
                                   (setf s-row row))
-                                (progn
-                                  (setf prev-line.text
-                                        (slice prev-line.text 0 (- (length line.text))))
+                                (let* ((prev-line (aref lines (1- rr)))
+                                       (line (new-line (slice prev-line.text (- sz)))))
+                                  (setf prev-line.text (slice prev-line.text 0 (- sz)))
                                   (insert lines rr line)
                                   (setf row rr)
                                   (setf col 0)
@@ -676,11 +676,10 @@
                        (delete-selection))
                      (let* ((r row)
                             (c col)
-                            (line (aref lines r))
-                            (text line.text)
-                            (newline (new-line (slice text col))))
+                            (text (aref lines row).text))
                      (mutate
-                      (progn
+                      (let ((line (aref lines r))
+                            (newline (new-line (slice text c))))
                         (setf line.text (slice text 0 c))
                         (touch line)
                         (setf row (1+ r))
@@ -689,7 +688,7 @@
                         (touch newline)
                         (setf s-row row)
                         (setf s-col col))
-                      (progn
+                      (let ((line (aref lines r)))
                         (setf line.text text)
                         (splice lines (1+ r) 1)
                         (touch line)
