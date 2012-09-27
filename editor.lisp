@@ -674,19 +674,19 @@
       (set-timeout #'fix 10)
       screen)))
 
-(import editor-cmode)
+(import editor-lispmode)
 
 (defun test-editor ()
   (let** ((w (window 0 0 640 480 title: "Editor test"))
-          (editor (add-widget w (editor (replace (http-get "bbchess64k.c") "\r" "")
-                                        editor-cmode:mode))))
+          (editor (add-widget w (editor (replace (http-get "boot.lisp") "\r" "")
+                                        editor-lispmode:mode))))
     (set-layout w (V border: 8 spacing: 8
                      (dom editor)))
     (show-window w center: true)))
 
 (defun test-editor-fs ()
-  (let ((editor (editor (replace (http-get "bbchess64k.c") "\r" "")
-                        editor-cmode:mode))
+  (let ((editor (editor (replace (http-get "boot.lisp") "\r" "")
+                        editor-lispmode:mode))
         (frame (create-element "div")))
     (set-style frame
                position "absolute"
@@ -716,6 +716,6 @@
                     10))))
 
 (defun main ()
-  (test-editor))
+  (test-editor-fs))
 
 (main)
