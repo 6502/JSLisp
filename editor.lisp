@@ -716,6 +716,6 @@
                     10))))
 
 (defun main ()
-  (test-editor-fs))
+  (test-editor))
 
 (main)
