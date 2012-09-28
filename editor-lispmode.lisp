@@ -122,7 +122,17 @@
                                          (incf i)))
                                      (push (new-section i0 i #((color "#FF4444"))) sections)))
                                   ((= (aref text i) "(")
-                                   (push i (or ec.parens (setf ec.parens (list))))
+                                   (do ((j (1+ i) (1+ j)))
+                                       ((or (>= j (length text))
+                                            (= (aref text j) " ")
+                                            (= (aref text j) "("))
+                                          (push (cond
+                                                  ((>= j (length text))
+                                                   (+ i 2))
+                                                  ((= (aref text j) " ")
+                                                   (+ j 1))
+                                                  (true j))
+                                                (or ec.parens (setf ec.parens (list))))))
                                    (incf i))
                                   ((= (aref text i) ")")
                                    (pop (or ec.parens (setf ec.parens (list))))
@@ -154,7 +164,8 @@
                       (when (> row 0)
                         (let ((line (aref lines (1- row)))
                               (newline (aref lines row)))
-                          (let ((indent (+ 2 (last (or (mode.compute-end-context line).parens (list -2))))))
+                          (let ((indent (last (or (mode.compute-end-context line).parens
+                                                  (list 0)))))
                             (when (> indent 0)
                               (setf newline.text
                                     (+ (str-repeat " " indent)
