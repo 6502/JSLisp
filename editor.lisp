@@ -645,17 +645,15 @@
 
 (import (mode) from editor-lispmode)
 
-(defun test-editor ()
+(defun test-editor (content)
   (let** ((w (window 0 0 640 480 title: "Editor test"))
-          (editor (add-widget w (editor (replace (http-get "boot.lisp") "\r" "")
-                                        mode))))
+          (editor (add-widget w (editor content mode))))
     (set-layout w (V border: 8 spacing: 8
                      (dom editor)))
     (show-window w center: true)))
 
-(defun test-editor-fs ()
-  (let ((editor (editor (replace (http-get "boot.lisp") "\r" "")
-                        mode))
+(defun test-editor-fs (content)
+  (let ((editor (editor content mode))
         (frame (create-element "div")))
     (set-style frame
                position "absolute"
@@ -684,7 +682,31 @@
                           (editor."data-resize" 0 0 fw fh))))
                     10))))
 
+(import * from rpc-client)
+
+(rpc:defun remote (x))
+
+(defun get-file (name)
+  (remote `(get-file ,name)))
+
+(defun files (path)
+  (remote `((node:require "fs").readdirSync ,path)))
+
+(defun file-selector ()
+  (let** ((w (window 0 0 640 400 title: "File selector"))
+          (filelist (add-widget w (table (map (lambda (f)
+                                                (list f))
+                                              (sort
+                                               (filter (lambda (x)
+                                                         ((regexp "\\.lisp$").exec x))
+                                                       (files "."))))
+                                         rows: 25
+                                         row-click: (lambda (row row-cells)
+                                                      (test-editor (get-file (first row))))))))
+    (set-layout w (V (dom filelist)))
+    (show-window w center: true)))
+
 (defun main ()
-  (test-editor))
+  (file-selector))
 
 (main)
