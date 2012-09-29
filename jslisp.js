@@ -209,7 +209,7 @@ f$$intern.documentation = ("[[(intern name &optional module lookup-only)]]\n" +
                            "first looked up also in the global module. If [lookup-only] is true " +
                            "then no symbol creation is performed in any case and [null] is " +
                            "returned if no symbol can be found.");
-f$$intern.arglist = [f$$intern("name"), f$$intern("&optional"), f$$intern("module")];
+f$$intern.arglist = [f$$intern("name"), f$$intern("&optional"), f$$intern("module"), f$$intern("lookup-only")];
 f$$mangle.arglist = [f$$intern("x")];
 f$$intern.usedglobs = f$$intern.outcalls = f$$mangle.usedglobs = f$$mangle.outcalls = [];
 
