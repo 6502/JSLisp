@@ -69,12 +69,12 @@
                                     (i 0)
                                     (sections (list)))
                                    ((>= i (length text))
-                                    (when (> (length line.text) (length text))
-                                      (push (new-section (length text) (length line.text)
-                                                         #((background-color "#C0FFC0")))
-                                            sections))
-                                    (setf line.sections sections)
-                                    ec)
+                                      (when (> (length line.text) (length text))
+                                        (push (new-section (length text) (length line.text)
+                                                           #((background-color "#C0FFC0")))
+                                              sections))
+                                      (setf line.sections sections)
+                                      ec)
                                  (cond
                                   (ec.string
                                    (let ((i0 i))
@@ -128,6 +128,8 @@
                                             (= (aref text j) "("))
                                           (push (cond
                                                   ((>= j (length text))
+                                                   (+ i 2))
+                                                  ((= (slice text (1+ i) (+ i 3)) "#'")
                                                    (+ i 2))
                                                   ((= (aref text j) " ")
                                                    (let* ((name (slice text (1+ i) j))
