@@ -4,6 +4,54 @@
 ;; Serving static files is useful because of Same Origin Policy
 ;;
 
+;; User: needed for operations requiring authorization and for session management
+(defobject user
+    (name               ;; Username
+     secret             ;; Hashed secret
+     permissions))      ;; List of permission tokens owned: a published function
+                        ;; may enumerate a list of required tokens needed to allow
+                        ;; the execution.
+
+(defobject session
+    (user               ;; A user object (not just the name).
+     last-activity))    ;; (clock) at last successfull operation (used for timeouts)
+
+(defvar *open-sessions* #())
+(defvar *users* #())
+
+(import (hash) from crypto)
+
+(defun session-cleanup ()
+  "Closes existing sessions after 5 minutes of inactivity"
+  (let ((limit (- (clock) (* 5 60 1000))))
+    (dolist (session-id (keys *open-sessions*))
+      (let ((session (aref *open-sessions* session-id)))
+        (when (< session.last-activity limit)
+          (remove-key *open-sessions* session-id))))))
+
+(defun open-session (user-name)
+  "Creates a new session for the specified [user-name]"
+  (let ((user (aref *users* user-name))
+        (session-id (join (map (lambda (x)
+                                 (aref "abcdefghijklmnopqrstuvwxyz\
+                                        ABCDEFGHIJKLMNOPQRSTUVWXYZ\
+                                        0123456789"
+                                       (random-int (+ 26 26 10))))
+                               (range 20)) "")))
+    (when user
+      (setf (aref *open-sessions* session-id) (new-session user (clock)))
+      session-id)))
+
+(defun check-authorization (user-name session-id authcode request)
+  "Returns the list of authorization tokens of the user \
+   or null if the authorization failed."
+  (let ((session (aref *open-sessions* session-id))
+        (user (aref *users* user-name)))
+    (if (and session user (= session.user user)
+             (= authcode (hash (+ session-id user.secret request))))
+        user.permissions
+        null)))
+
 (defvar *typemap* #((".html" "text/html")
                     (".css"  "text/css")
                     (".js"   "text/javascript")
@@ -134,6 +182,7 @@
 (defun start-server (address port)
   (let* ((http (node:require "http"))
          (server (http.createServer #'rpc-handler)))
+    (set-interval #'session-cleanup 1000)
     (server.listen port address)))
 
 (setf (symbol-macro 'rpc:defun)
@@ -147,8 +196,10 @@
              (defun ,name ,args ,@body)
              (defobject ,#"{name}-req" ,fields)
              (defmethod process-request (req) (,#"{name}-req?" req)
-                        (,name ,@(map (lambda (f)
-                                        `(. req ,f))
-                                      fields)))))))
+               (,name ,@(map (lambda (f)
+                               `(. req ,f))
+                             fields)))))))
 
-(export start-server)
+(export start-server
+        open-session
+        check-authorization)
