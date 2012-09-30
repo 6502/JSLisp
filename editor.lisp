@@ -734,14 +734,24 @@
                     10))))
 
 (import * from rpc-client)
+(import (hash) from crypto)
 
-(rpc:defun remote (x))
+(rpc:defun remote (user-name session-id x authcode))
+(rpc:defun login (user-name))
+
+(defvar *user*)
+(defvar *secret*)
+(defvar *session-id*)
+
+(defun call-remote (x)
+  (remote *user* *session-id* x
+          (hash (+ *session-id* *secret* (json* x)))))
 
 (defun get-file (name)
-  (remote `(get-file ,name)))
+  (call-remote `(get-file ,name)))
 
 (defun files (path)
-  (remote `((node:require "fs").readdirSync ,path)))
+  (call-remote `((node:require "fs").readdirSync ,path)))
 
 (defun file-selector ()
   (let** ((w (window 0 0 640 400 title: "File selector"))
@@ -760,6 +770,11 @@
     (show-window w center: true)))
 
 (defun main ()
-  (file-selector))
+  (gui:login (lambda (user pass)
+               (when user
+                 (setf *user* user)
+                 (setf *secret* (hash pass))
+                 (setf *session-id* (login *user*))
+                 (file-selector)))))
 
 (main)
