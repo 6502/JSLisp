@@ -139,7 +139,7 @@ reverse engineering point of view.
        (when (= ix -1)
          (setf ix (length *repo*))
          (push x *repo*)
-         (incf *repcode* ~"r{ix}=s({(json (symbol-full-name x))});"))
+         (incf *repcode* ~"r{ix}=s({(json x.name)});"))
        ~"r{ix}"))
     ((list? x)
      (let ((ix (index x *repo*)))
