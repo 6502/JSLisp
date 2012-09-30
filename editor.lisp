@@ -65,14 +65,23 @@
           (return-from ifind (list r (+ i col)))))
       (setf col 0))))
 
-(defun editor (content mode)
+(defun editor (name content mode)
   (macrolet ((mutate (redo undo)
                `(progn
                   (push (list (lambda () ,undo) (lambda () ,redo)) undo)
                   (setf redo (list))
                   (setf lastins undefined)
                   (funcall (second (last undo))))))
-    (let** ((screen (create-element "canvas"))
+    (let** ((frame (create-element "div"))
+            (status (set-style (create-element "div")
+                               whiteSpace "pre"
+                               backgroundColor "#888888"
+                               fontFamily "\"Droid Sans mono\",\
+                                           \"Courier New\",\
+                                           \"Courier\",\
+                                           \"monospace\""
+                               color "#FFFFFF"))
+            (screen (create-element "canvas"))
             (lines (list))
             (cw null)
             (ch *line*)
@@ -122,7 +131,9 @@
                       (setf screen.width screen.offsetWidth)
                       (setf screen.height screen.offsetHeight)
                       (let ((cr top)
-                            (ctx (screen.getContext "2d")))
+                            (ctx (screen.getContext "2d"))
+                            (info "")
+                            (changed (if (length undo) "*" "")))
                         (when (null? cw)
                           (font ctx #())
                           (setf cw (/ (ctx.measureText "XXXXXXXXXX").width 10)))
@@ -133,19 +144,44 @@
                         (setf ctx.textBaseline "top")
                         (do () ((or (>= cr (length lines))
                                     (>= (* (- cr top) ch) screen.offsetHeight))
-                                  (when (and (> col 0)
-                                             (find (aref lines row "text" (1- col))
-                                                   "})]"))
-                                    (let ((m (mode.parmatch lines row col)))
-                                      (when (and m
-                                                 (>= (first m) top))
-                                        (let ((y0 (* (- (first m) top) *line*))
-                                              (x0 (* (- (second m) left) cw))
-                                              (y1 (* (- row top) *line*))
-                                              (x1 (* (- col left 1) cw)))
-                                          (setf ctx.fillStyle "rgba(255,0,0,0.25)")
-                                          (ctx.fillRect x0 y0 (+ cw 2) (+ *line* 2))
-                                          (ctx.fillRect x1 y1 (+ cw 2) (+ *line* 2)))))))
+                                  (if ifind-mode
+                                      (setf info ~"Incremental search: \"{ifind-text}\"")
+                                      (when (and (> col 0)
+                                                 (find (aref lines row "text" (1- col))
+                                                       "})]"))
+                                        (let ((m (mode.parmatch lines row col)))
+                                          (when m
+                                            (let ((y0 (* (- (first m) top) *line*))
+                                                  (x0 (* (- (second m) left) cw))
+                                                  (y1 (* (- row top) *line*))
+                                                  (x1 (* (- col left 1) cw)))
+                                              (setf ctx.fillStyle "rgba(255,0,0,0.25)")
+                                              (ctx.fillRect x0 y0 (+ cw 2) (+ *line* 2))
+                                              (ctx.fillRect x1 y1 (+ cw 2) (+ *line* 2))
+                                              (setf info (+ "Match: \""
+                                                            (slice (aref lines (first m)).text
+                                                                   (second m)
+                                                                   (+ (second m) 20))
+                                                            "\"")))))))
+                                  (let ((coords (cond
+                                                  ((and (= row s-row) (= col s-col))
+                                                   (+ (1+ row) ":" col))
+                                                  ((= row s-row)
+                                                   (+ (1+ row) ":"
+                                                      (min col s-col) "-"
+                                                      (max col s-col)))
+                                                  (true
+                                                   (+ (1+ (min row s-row))
+                                                      ":"
+                                                      (if (< row s-row) col s-col)
+                                                      "-"
+                                                      (1+ (max row s-row))
+                                                      ":"
+                                                      (if (< row s-row) s-col col))))))
+                                    (setf status.textContent
+                                          ~" {name}{changed} \
+                                            ({coords}) \
+                                            {info}")))
                           (ensure cr)
                           (let ((line (aref lines cr))
                                 (s0 (min row s-row))
@@ -374,17 +410,30 @@
                  border "none"
                  px/padding 0
                  px/margin 0)
-      (append-child document.body hinput)
-      (set-timeout (lambda () (hinput.focus)) 10)
+      (append-child frame screen)
+      (append-child frame status)
+      (append-child frame hinput)
       (dolist (L (split content "\n"))
         (push (new-line L) lines))
-      (setf screen."data-resize" #'update)
-      (set-handler document.body onmousewheel
+      (setf frame."data-resize"
+            (lambda (x0 y0 x1 y1)
+              (set-style screen
+                         px/left x0
+                         px/top y0
+                         px/width (- x1 x0)
+                         px/height (- y1 y0 ch))
+              (set-style status
+                         px/left x0
+                         px/top (- y1 y0 ch)
+                         px/width (- x1 x0)
+                         px/height ch)
+              (update)))
+      (set-handler frame onmousewheel
         (let ((delta (floor (/ event.wheelDelta -60)))
               (screen-lines (floor (/ screen.offsetHeight ch))))
           (setf top (max 0 (min (+ top delta) (- (length lines) screen-lines)))))
         (update))
-      (set-handler document.body onkeydown
+      (set-handler hinput onkeydown
         (let ((block true))
           (case event.which
             (9
@@ -578,7 +627,7 @@
               (setf s-row row)
               (setf s-col col))
             (fix))))
-      (set-handler document.body onkeypress
+      (set-handler hinput onkeypress
         (event.preventDefault)
         (event.stopPropagation)
         (if ifind-mode
@@ -601,6 +650,7 @@
                                 (slice text col)))
                 (fix)))))
       (set-handler screen onmousedown
+        (hinput.focus)
         (labels ((pos (x y)
                    (let (((x0 y0) (element-pos screen)))
                      (decf x x0)
@@ -641,19 +691,20 @@
                                     (fix)))))
                           (lambda () (clear-interval scroller))))))))
       (set-timeout #'fix 10)
-      screen)))
+      (set-timeout (lambda () (hinput.focus)) 10)
+      frame)))
 
-(import (mode) from editor-lispmode)
+(import (mode) from editor-cmode)
 
-(defun test-editor (content)
-  (let** ((w (window 0 0 640 480 title: "Editor test"))
-          (editor (add-widget w (editor content mode))))
+(defun test-editor (name content)
+  (let** ((w (window 0 0 640 480 title: name))
+          (editor (add-widget w (editor name content mode))))
     (set-layout w (V border: 8 spacing: 8
                      (dom editor)))
     (show-window w center: true)))
 
-(defun test-editor-fs (content)
-  (let ((editor (editor content mode))
+(defun test-editor-fs (name content)
+  (let ((editor (editor name content mode))
         (frame (create-element "div")))
     (set-style frame
                position "absolute"
@@ -702,7 +753,9 @@
                                                        (files "."))))
                                          rows: 25
                                          row-click: (lambda (row row-cells)
-                                                      (test-editor (get-file (first row))))))))
+                                                      (test-editor
+                                                       (first row)
+                                                       (get-file (first row))))))))
     (set-layout w (V (dom filelist)))
     (show-window w center: true)))
 
