@@ -1,5 +1,7 @@
 (defvar mode #())
 
+(import (new-section) from editor)
+
 (defvar *keywords*
         (list "if" "else" "do" "switch" "goto"
               "while" "for" "return" "break" "case"

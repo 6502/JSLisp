@@ -65,7 +65,15 @@
           (return-from ifind (list r (+ i col)))))
       (setf col 0))))
 
-(defun editor (name content mode)
+(defvar nullmode
+  #((parmatch (lambda (lines row col)
+                null))
+    (compute-end-context (lambda (line)
+                           #()))
+    (autoindent (lambda (lines row)
+                  0))))
+
+(defun editor (name content &optional (mode nullmode))
   (macrolet ((mutate (redo undo)
                `(progn
                   (push (list (lambda () ,undo) (lambda () ,redo)) undo)
@@ -694,16 +702,7 @@
       (set-timeout (lambda () (hinput.focus)) 10)
       frame)))
 
-(import (mode) from editor-cmode)
-
-(defun test-editor (name content)
-  (let** ((w (window 0 0 640 480 title: name))
-          (editor (add-widget w (editor name content mode))))
-    (set-layout w (V border: 8 spacing: 8
-                     (dom editor)))
-    (show-window w center: true)))
-
-(defun test-editor-fs (name content)
+(defun fullscreen-editor (name content &optional (mode nullmode))
   (let ((editor (editor name content mode))
         (frame (create-element "div")))
     (set-style frame
@@ -731,50 +730,7 @@
                                      px/width fw
                                      px/height fh)
                           (editor."data-resize" 0 0 fw fh))))
-                    10))))
+                    10))
+    editor))
 
-(import * from rpc-client)
-(import (hash) from crypto)
-
-(rpc:defun remote (user-name session-id x authcode))
-(rpc:defun login (user-name))
-
-(defvar *user*)
-(defvar *secret*)
-(defvar *session-id*)
-
-(defun call-remote (x)
-  (remote *user* *session-id* x
-          (hash (+ *session-id* *secret* (json* x)))))
-
-(defun get-file (name)
-  (call-remote `(get-file ,name)))
-
-(defun files (path)
-  (call-remote `((node:require "fs").readdirSync ,path)))
-
-(defun file-selector ()
-  (let** ((w (window 0 0 640 400 title: "File selector"))
-          (filelist (add-widget w (table (map (lambda (f)
-                                                (list f))
-                                              (sort
-                                               (filter (lambda (x)
-                                                         ((regexp "\\.lisp$").exec x))
-                                                       (files "."))))
-                                         rows: 25
-                                         row-click: (lambda (row row-cells)
-                                                      (test-editor
-                                                       (first row)
-                                                       (get-file (first row))))))))
-    (set-layout w (V (dom filelist)))
-    (show-window w center: true)))
-
-(defun main ()
-  (gui:login (lambda (user pass)
-               (when user
-                 (setf *user* user)
-                 (setf *secret* (hash pass))
-                 (setf *session-id* (login *user*))
-                 (file-selector)))))
-
-(main)
+(export editor fullscreen-editor nullmode new-section)

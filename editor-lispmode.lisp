@@ -1,5 +1,7 @@
 (defvar mode)
 
+(import (new-section) from editor)
+
 (setf mode
       #((parmatch (lambda (lines row col)
                     (block parmatch
