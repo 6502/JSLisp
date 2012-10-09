@@ -674,7 +674,7 @@ defun("logcount",
           }
           return n;
       },
-      [s$$x]);
+      [s$$x],[],[]);
 
 defun("list",
       "[[(list &rest args)]]\n" +
@@ -683,7 +683,7 @@ defun("list",
       {
           return Array.prototype.slice.call(arguments);
       },
-      [f$$intern("&rest"), f$$intern("args")]);
+      [f$$intern("&rest"), f$$intern("args")],[],[]);
 
 defun("funcall",
       "[[(funcall f &rest args)]]\n" +
@@ -692,7 +692,7 @@ defun("funcall",
       {
           return arguments[0].apply(glob, Array.prototype.slice.call(arguments, 1));
       },
-      [f$$intern("f"), f$$intern("&rest"), f$$intern("args")]);
+      [f$$intern("f"), f$$intern("&rest"), f$$intern("args")],[],[]);
 
 defmacro("labels",
          "[[(labels ((func1 (x1 x2 ... xn) f1 f2 .. fn)...) &rest body)]]\n" +
@@ -840,7 +840,7 @@ defun("nappend",
           x.push.apply(x, y);
           return x;
       },
-      [f$$intern("x"), f$$intern("y")]);
+      [f$$intern("x"), f$$intern("y")],[],[]);
 
 defun("apply",
       "[[(apply f args)]]\n" +
@@ -849,7 +849,7 @@ defun("apply",
       {
           return f.apply(null, args);
       },
-      [f$$intern("f"), f$$intern("args")]);
+      [f$$intern("f"), f$$intern("args")],[],[]);
 
 defun("lexical-macro",
       "[[(lexical-macro x)]]\n" +
@@ -1369,7 +1369,7 @@ defun("skip-spaces",
               }
           }
       },
-      [f$$intern("src")]);
+      [f$$intern("src")],["$$$42_space$42_"],[]);
 
 defun("parse-stopping",
       "[[(parse-stopping x)]]\n" +
@@ -1381,7 +1381,7 @@ defun("parse-stopping",
                   d$$$42_spaces$42_.indexOf(c) != -1 ||
                   d$$$42_stopchars$42_.indexOf(c) !=-1);
       },
-      [f$$intern("src")]);
+      [f$$intern("src")],["$$$42_space$42_","$$$42_stopchars$42_"],[]);
 
 defun("parse-number-or-symbol",
       "[[(parse-number-or-symbol src)]]\n" +
@@ -1414,7 +1414,7 @@ defun("parse-number-or-symbol",
               res += src.s[src.i++];
           return f$$intern(res);
       },
-      [f$$intern("src")]);
+      [f$$intern("src")],[],["$$parse_stopping"]);
 
 defun("parse-delimited-list",
       "[[(parse-delimited-list src stop)]]\n" +
@@ -1437,7 +1437,9 @@ defun("parse-delimited-list",
           src.i++;
           return res;
       },
-      [f$$intern("src"), f$$intern("stop")]);
+      [f$$intern("src"), f$$intern("stop")],
+      ["$$$42_stopchars$42_"],
+      ["$$skip_spaces", "$$parse_value"]);
 
 defun("make-source",
       "[[(make-source x)]]\n" +
@@ -1463,7 +1465,7 @@ defun("parse-symbol",
               throw new String("Value expected");
           return f$$intern(res);
       },
-      [f$$intern("src"), f$$intern("start")]);
+      [f$$intern("src"), f$$intern("start")],[],["$$intern", "$$parse_stopping"]);
 
 d$$$42_hash_readers$42_ = { "'": function(src)
                             {
@@ -1668,7 +1670,9 @@ defun("parse-value",
               throw new String("Value expected");
           return (d$$$42_readers$42_[src.s[src.i]] || d$$$42_readers$42_["default"])(src);
       },
-      [f$$intern("src")]);
+      [f$$intern("src")],
+      ["$$$42_readers$42_","$$$42_hash_readers$42_"],
+      ["$$make_source","$$skip_spaces"]);
 
 defun("str-value",
       "[[(str-value x &optional (circle-print true))]]\n" +
