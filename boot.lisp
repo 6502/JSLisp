@@ -523,6 +523,17 @@
     ;; macro will be available AFTER this defmacro form is evaluated
     (list 'js-code (+ res "]"))))
 
+(defun symbol-macro-expand (x)
+  "Returns recursive expansion of [x] until it's not a symbol or there's no
+   associated [define-symbol-macro] or [symbol-macrolet]."
+  (do ()
+      ((or (not (symbol? x))
+           (and (not (lexical-symbol-macro x))
+                (not (js-code "d$$x.symbol_macro"))))
+       x)
+    (setq x (or (lexical-symbol-macro x)
+                (js-code "d$$x.symbol_macro")))))
+
 (defun push (value list)
   "Adds the specified [value] to the END of [list].
    JsLisp [list] objects are implemented using native Javascript \
@@ -540,6 +551,20 @@
    ;; ==> (0 1 4 9 16 25 36 49 64 81)
    ]]"
   (js-code "d$$list.push(d$$value)"))
+
+(defmacro push (x L)
+  (when (symbol? x)
+    (setq x (symbol-macro-expand x)))
+  (when (symbol? L)
+    (setq L (symbol-macro-expand L)))
+  (if (or (symbol? L)
+          (not (list? x)))
+      (list 'js-code (+ "(("
+                        (js-compile L)
+                        ").push("
+                        (js-compile x)
+                        "))"))
+      (list 'funcall '#'push x L)))
 
 (defmacro rest (x)
   (list 'js-code (+ "(" (js-compile x) ".slice(1))")))
@@ -1539,17 +1564,6 @@
      `(let (,(aref bindings 0))
         (let* ,(rest bindings) ,@body))
      `(let ,bindings ,@body)))
-
-(defun symbol-macro-expand (x)
-  "Returns recursive expansion of [x] until it's not a symbol or there's no
-   associated [define-symbol-macro] or [symbol-macrolet]."
-  (do ()
-      ((or (not (symbol? x))
-           (and (not (lexical-symbol-macro x))
-                (not (js-code "d$$x.symbol_macro"))))
-       x)
-    (setq x (or (lexical-symbol-macro x)
-                (js-code "d$$x.symbol_macro")))))
 
 (defmacro setf (place value)
   "Sets the content of a place to be the specified value. A place is either a symbol
