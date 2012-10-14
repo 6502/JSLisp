@@ -2401,8 +2401,8 @@ If only one parameter is passed it's assumed to be [stop]."
 
 (defun random-shuffle (L)
   "Randomly shuffles an array [L] inplace and returns null"
-  (dotimes (i (length L))
-    (let ((j (random-int (length L))))
+  (dotimes (i (1- (length L)))
+    (let ((j (+ i (random-int (- (length L) i)))))
       (swap (aref L i) (aref L j)))))
 
 (defun random-shuffled (L)
@@ -2410,6 +2410,18 @@ If only one parameter is passed it's assumed to be [stop]."
   (let ((x (slice L)))
     (random-shuffle x)
     x))
+
+(defun random-choice (L)
+  "Picks a random element from list [L]"
+  (aref L (random-int (length L))))
+
+(defun random-choices (L n)
+  "Picks [n] random elements from list [L]"
+  (let ((L (slice L)))
+    (dotimes (i n)
+      (let ((j (+ i (random-int (- (length L) i)))))
+        (swap (aref L i) (aref L j))))
+    (slice L 0 n)))
 
 ;; Filler string
 
