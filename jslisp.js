@@ -1485,6 +1485,15 @@ d$$$42_hash_readers$42_ = { "'": function(src)
                                 return f$$toplevel_eval(f$$parse_value(src));
                             },
 
+                            "x": function(src)
+                            {
+                                src.i++;
+                                var i0 = src.i;
+                                while ("0123456789abcdefABCDEF".indexOf(src.s[src.i]) != -1)
+                                    src.i++;
+                                return parseInt(src.s.slice(i0, src.i), 16);
+                            },
+
                             "|": function(src)
                             {
                                 src.i++;
