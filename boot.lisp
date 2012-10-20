@@ -2903,6 +2903,14 @@ A name is either an unevaluated atom or an evaluated list."
   "Returns an integer from the start of the specified string (NaN if fails)"
   `(js-code ,(+ "parseInt(" (js-compile s) ",10)")))
 
+;; Repeat macro
+(defmacro repeat (count &rest body)
+  "Evaluates [body] forms [count] times and returns [null]."
+  (let ((repeat-count '#.(gensym)))
+    `(dotimes (,repeat-count ,count)
+       (declare (ignorable ,repeat-count))
+       ,@body)))
+
 ;; Serialization (when str-value/load/eval is not appropriate, e.g. for rpc)
 
 (defobject serialization-out (buf seen add backref))
@@ -3726,14 +3734,6 @@ A name is either an unevaluated atom or an evaluated list."
   `(when (. #',name org-func)
      (setf #',name (. #',name org-func))
      ',name))
-
-;; Repeat macro
-(defmacro repeat (count &rest body)
-  "Evaluates [body] forms [count] times and returns [null]."
-  (let ((repeat-count '#.(gensym)))
-    `(dotimes (,repeat-count ,count)
-       (declare (ignorable ,repeat-count))
-       ,@body)))
 
 ;; Inline (experimental)
 (defmacro defun/inline (name args &rest body)
