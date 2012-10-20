@@ -33,6 +33,7 @@
   "Creates a new session for the specified [user-name]"
   (let ((user (aref *users* user-name))
         (session-id (join (map (lambda (x)
+                                 (declare (ignorable x))
                                  (aref "abcdefghijklmnopqrstuvwxyz\
                                         ABCDEFGHIJKLMNOPQRSTUVWXYZ\
                                         0123456789"
@@ -94,7 +95,6 @@
          (tlen (length buf))
          (cp0 null)
          (cp 0)
-         (limit (- tlen (length bd)))
          (result #()))
     (labels ((match (b)
                (dotimes (i (length b))
@@ -135,6 +135,7 @@
                       (let ((dstfile (+ ((node:require "os").tmpDir)
                                         "/"
                                         (join (map (lambda (x)
+                                                     (declare (ignorable x))
                                                      (char (+ 65 (random-int 26))))
                                                    (range 8))
                                               "")

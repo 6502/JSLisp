@@ -179,7 +179,7 @@
                                       (incf i)))
                                    (true
                                     (incf i)
-                                    (do ((i0 (1- i)))
+                                    (do ()
                                         ((or (>= i (length text))
                                              (= (aref text i) " ")
                                              (find (aref text i) *stopchars*)))

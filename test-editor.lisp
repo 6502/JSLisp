@@ -45,6 +45,7 @@
           (filelist (add-widget w (table files
                                          rows: 25
                                          row-click: (lambda (row row-cells)
+                                                      (declare (ignorable row-cells))
                                                       (test-editor
                                                        (first row)
                                                        (get-file (first row))))))))

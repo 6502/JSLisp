@@ -34,6 +34,7 @@
 
 (defun draw-line (text sections h w
                   ctx x y tx)
+  (declare (ignorable h))
   (let ((xx 0))
     (dolist (s sections)
       (when (> s.from xx)
@@ -67,10 +68,13 @@
 
 (defvar nullmode
   #((parmatch (lambda (lines row col)
+                (declare (ignorable lines row col))
                 null))
     (compute-end-context (lambda (line)
+                           (declare (ignorable line))
                            #()))
     (autoindent (lambda (lines row)
+                  (declare (ignorable lines row))
                   0))))
 
 (defun editor (name content &optional (mode nullmode))
@@ -93,8 +97,6 @@
             (lines (list))
             (cw null)
             (ch *line*)
-            (last-width null)
-            (last-height null)
             (top 0)
             (left 0)
             (row 0)
@@ -103,7 +105,6 @@
             (s-col 0)
             (ifind-mode false)
             (ifind-text "")
-            (ifind-last-text "")
             (ifind-row 0)
             (ifind-col 0)
             (ifind-left 0)
@@ -688,6 +689,7 @@
                               (if (null? r)
                                   (let (((sx sy) (element-pos screen))
                                         (sh screen.offsetHeight))
+                                    (declare (ignorable sx))
                                     (when (< y sy)
                                       (setf scroller-delta (floor (/ (- y sy) ch))))
                                     (when (> y (+ sy sh))

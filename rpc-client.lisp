@@ -6,6 +6,7 @@
 
 (setf (symbol-macro 'rpc:defun)
       (lambda (name args &rest body)
+        (declare (ignorable body))
         (let ((fields (filter (lambda (x) (/= x '&optional))
                               (map (lambda (f)
                                      (if (list? f) (first f) f))
