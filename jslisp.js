@@ -94,7 +94,9 @@ function Namespace()
 
     this.get = function(name)
     {
-        return this.vars["!" + name];
+        var res = this.vars["!" + name];
+        if (res) this.props["!" + name].used = true;
+        return res;
     }
 
     this.add = function(name, value)
@@ -110,12 +112,16 @@ function Namespace()
         this.stack.push(false);
     };
 
-    this.end = function()
+    this.end = function(warn_unused)
     {
         if (this.stack.length === 0)
             throw new String("Internal error: Stack underflow in Namespace.end()");
         for (var x=this.stack.pop(); x; x=this.stack.pop())
         {
+            if (warn_unused && !this.props[x[0]].used && !this.props[x[0]].ignorable)
+                f$$warning("Local name " +
+                           f$$demangle(x[0].substr(1)) +
+                           " defined but not used");
             this.vars[x[0]] = x[1];
             this.props[x[0]] = x[2];
             if (this.stack.length === 0)
@@ -522,7 +528,7 @@ defmacro("let",
              }
 
              lexsmacro.end();
-             lexvar.end();
+             lexvar.end(true);
              for (var i=0; i<osmacro.length; i++)
                  osmacro[i][0].symbol_macro = osmacro[i][1];
 
@@ -627,7 +633,7 @@ defmacro("lambda",
                  }
                  res += "return res;})";
              }
-             lexvar.end();
+             lexvar.end(true);
              lexsmacro.end();
              for (var i=0; i<osmacro.length; i++)
                  osmacro[i][0].symbol_macro = osmacro[i][1];
@@ -1011,7 +1017,7 @@ defmacro("do",
              }
              res += "}})(";
              lexsmacro.end();
-             lexvar.end();
+             lexvar.end(true);
              for (var i=0; i<vars.length; i++)
              {
                  if (i > 0) res += ",";
@@ -1211,6 +1217,18 @@ defun("js-compile",
           else if (f$$list$63_(x) && f$$symbol$63_(x[0]) && x[0].name === "$$declare")
           {
               d$$$42_declarations$42_.push(x);
+              for (var j=1; j<x.length; j++)
+              {
+                  var decl = x[j];
+                  if (f$$list$63_(decl) && f$$symbol$63_(decl[0]) && decl[0].name === "$$ignorable")
+                  {
+                      for (var i=1; i<decl.length; i++)
+                      {
+                          var p = lexvar.props["!" + decl[i].name];
+                          if (p) p.ignorable = true;
+                      }
+                  }
+              }
           }
           else if (f$$list$63_(x))
           {
@@ -1483,15 +1501,6 @@ d$$$42_hash_readers$42_ = { "'": function(src)
                             {
                                 src.i++;
                                 return f$$toplevel_eval(f$$parse_value(src));
-                            },
-
-                            "x": function(src)
-                            {
-                                src.i++;
-                                var i0 = src.i;
-                                while ("0123456789abcdefABCDEF".indexOf(src.s[src.i]) != -1)
-                                    src.i++;
-                                return parseInt(src.s.slice(i0, src.i), 16);
                             },
 
                             "|": function(src)

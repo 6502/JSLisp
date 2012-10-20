@@ -54,14 +54,14 @@
             ,form
             (display (+ "Test #" test-total " ** FAILED **"))
             (display ,(str-value form))
-            (display (+ "Should throw: " (str-value error)))
+            (display (+ "Should throw: " ,(str-value error)))
             (display ""))
           (if (= (str-value error) (str-value *exception*))
               (incf test-passed)
               (progn
                 (display (+ "Test #" test-total " ** FAILED **"))
                 (display ,(str-value form))
-                (display (+ "Should throw: " (str-value error)
+                (display (+ "Should throw: " ,(str-value error)
                             "instead of: " (str-value *exception*)))
                 (display ""))))))
 
@@ -224,13 +224,13 @@
 (test (funcall (lambda (*foo*) (bar)) 9)
       "9")
 
-(test (funcall (lambda (xxx) (xar)) 9)
+(test (funcall (lambda (xxx) (declare (ignorable xxx)) (xar)) 9)
       "42")
 
-(test (let((x 20))(let((x 42)(y x))y))
+(test (let((x 20))(let((x 42)(y x))(declare (ignorable x))y))
       "20")
 
-(test (let((x 20))(let*((x 42)(y x))y))
+(test (let((x 20))(declare (ignorable x))(let*((x 42)(y x))y))
       "42")
 
 (test (let ((a (lambda (x)
@@ -336,6 +336,7 @@
       "99")
 
 (test (let ((global-x 42))
+        (declare (ignorable global-x))
         (eval 'global-x))
       "99")
 
@@ -437,8 +438,7 @@
                    (list 'null? 'null)
                    (list 'string? '"")
                    (list 'bool? 'false)
-                   (list 'object? '#())))
-      (errors 0))
+                   (list 'object? '#()))))
   (dotimes (i (length pairs))
     (dotimes (j (length pairs))
       (let ((tester (first (aref pairs i)))
@@ -657,6 +657,7 @@
 
 (test (let ((y 2)
             (z 3))
+        (declare (ignorable y))
         (symbol-macrolet ((x y))
           (symbol-macrolet ((y z))
             x))) "3")

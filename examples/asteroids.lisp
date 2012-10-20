@@ -106,6 +106,7 @@
                        (setf exploded true)
                        (when (> a.area (* 40 40))
                          (dotimes (i 2)
+                           (declare (ignorable i))
                            (push (asteroid a.x a.y (/ a.area 3))
                                  new-asteroids))))
                      (push a new-asteroids)))
@@ -122,6 +123,7 @@
       (when (setf *dead* (any (a *asteroids*)
                               (hits *ship*.x *ship*.y a)))
         (dotimes (i 100)
+          (declare (ignorable i))
           (let ((a (* (random) pi 2))
                 (s (* (random) 5)))
             (push (make-missile x: *ship*.x
@@ -151,6 +153,7 @@
   (append-child *screen* *canvas*)
 
   (dotimes (i 10)
+    (declare (ignorable i))
     (push (asteroid (* (random) *canvas*.offsetWidth)
                     (* (random) *canvas*.offsetHeight)
                     (* 200 200))

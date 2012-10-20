@@ -1,5 +1,6 @@
 
 (defun set-coords (node x0 y0 x1 y1)
+  (declare (ignorable node x0 y0 x1 y1))
   (error ~"Unable to set coords"))
 
 ;; Setting the coordinates of a null, string or number node is a NOP
@@ -96,6 +97,7 @@
                             (let (((xa ya xb yb) (set-coords c.element
                                                              x (+ y0 border)
                                                              (+ x w) (- y1 border))))
+                              (declare (ignorable xa ya))
                               (setf mx (max mx xb))
                               (setf my (max my yb)))
                             (incf x (+ w spacing)))
@@ -107,6 +109,7 @@
                             (let (((xa ya xb yb) (set-coords c.element
                                                              (+ x0 border) y
                                                              (- x1 border) (+ y h))))
+                              (declare (ignorable xa ya))
                               (setf mx (max mx xb))
                               (setf my (max my yb)))
                             (incf y (+ h spacing)))
@@ -329,6 +332,7 @@
                                            element: (new-callback
                                                      null
                                                      (lambda (x0 y0 x1 y1)
+                                                       (declare (ignorable y0 y1))
                                                        (push (list x0 x1) col-pos)))
                                            min: c.min
                                            max: c.max
@@ -344,6 +348,7 @@
                                            element: (new-callback
                                                      null
                                                      (lambda (x0 y0 x1 y1)
+                                                       (declare (ignorable x0 x1))
                                                        (push (list y0 y1) row-pos)))
                                            min: c.min
                                            max: c.max
@@ -368,8 +373,7 @@
 (defun tablayout (&rest args)
   (let ((i 0)
         (columns undefined)
-        (rows undefined)
-        (elements (list)))
+        (rows undefined))
     (labels ((current () (aref args i))
              (next () (incf i) (aref args (1- i))))
       (do () ((not (find (current) '(columns: rows:))))

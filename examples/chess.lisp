@@ -85,9 +85,7 @@
           (sq ~"{x}{y}"))))
 
 (defconstant +UFLAGS+
-  (let ((x (list)))
-    (dotimes (i 120)
-      (push -1 x))
+  (let ((x (make-array 120 -1)))
     (setf (aref x (sq "a8")) (- +CFLAGS+ +BQF+))
     (setf (aref x (sq "h8")) (- +CFLAGS+ +BKF+))
     (setf (aref x (sq "e8")) (- +CFLAGS+ +BQF+ +BKF+))

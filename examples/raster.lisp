@@ -2,7 +2,6 @@
 (defun hline (data x0 x1 y r g b a)
   "Draws an horizontal line on canvas image [data] from [x0] to [x1] at height [y] with color [r g b a]"
   (let ((width (. data width))
-        (height (. data height))
         (pixels (. data data)))
     (do ((p (* (+ (* y width) x0) 4) (+ p 4))
          (count (- x1 x0) (1- count)))
@@ -35,16 +34,14 @@
 
 (defun frame (data x0 y0 x1 y1 pw ph color)
   "Draws a rectangular frame with specified pen size [pw ph] and [color]"
-  (let ((width (. data width))
-        (height (. data height)))
-    (if (or (>= (+ x0 pw) (- x1 pw))
-            (>= (+ y0 ph) (- y1 ph)))
-        (box data x0 y0 x1 y1 color)
-        (progn
-          (box data x0 y0 x1 (+ y0 ph) color)
-          (box data x0 (+ y0 ph) (+ x0 pw) (- y1 ph) color)
-          (box data (- x1 pw) (+ y0 ph) x1 (- y1 ph) color)
-          (box data x0 (- y1 ph) x1 y1 color)))))
+  (if (or (>= (+ x0 pw) (- x1 pw))
+          (>= (+ y0 ph) (- y1 ph)))
+      (box data x0 y0 x1 y1 color)
+      (progn
+        (box data x0 y0 x1 (+ y0 ph) color)
+        (box data x0 (+ y0 ph) (+ x0 pw) (- y1 ph) color)
+        (box data (- x1 pw) (+ y0 ph) x1 (- y1 ph) color)
+        (box data x0 (- y1 ph) x1 y1 color))))
 
 (defun line (data x0 y0 x1 y1 pw ph color)
   "Draws a line from [x0 y0] to [x1 y1] with specified pen size [pw ph] and [color]"
@@ -91,6 +88,7 @@
                (dst (. data data))
                (p (* (+ (* y0 width) x0) 4)))
           (dotimes (i (1+ m))
+            (declare (ignorable i))
             (when (and (<= 0 x0 (1- width))
                        (<= 0 y0 (1- height)))
               (setf (aref dst p) r)
@@ -208,7 +206,6 @@
                        (y (- cy (+ 0.5 y0)))
                        (ratio (/ (- y1 y0) (- x1 x0)))
                        (k (* ratio ratio))
-                       (r2 (* y y))
                        (err (* x x))
                        (dest (. data data)))
                   (labels ((pix (x y)
@@ -250,6 +247,7 @@
 
 (defun byte-array (n)
   "Creates an byte array of size [n]"
+  (declare (ignorable n))
   (js-code "(new Uint8Array(d$$n))"))
 
 (defun fill (data x y color)

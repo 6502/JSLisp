@@ -74,7 +74,10 @@
      (set-handler mywidget onmousedown
                   (display ~\"Mouse pressed at {(event-pos event)}\"))
 ]]"
-  `(setf (. ,element ,event) (lambda (,#"event") ,@body)))
+  `(setf (. ,element ,event)
+         (lambda (,#"event")
+           (declare (ignorable ,#"event"))
+           ,@body)))
 
 (defun tracking (f &optional end cursor)
   "Starts tracking mouse movements with calls to [f] until mouseup and then call [end]"
@@ -328,7 +331,10 @@
     (setf button.value text)
     (set-style button
                position "absolute")
-    (setf button.onclick (lambda (&rest args) (funcall action)))
+    (setf button.onclick
+          (lambda (&rest args)
+            (declare (ignorable args))
+            (funcall action)))
     button))
 
 (defmacro lbutton (text &rest body)
@@ -844,6 +850,7 @@
 
                (fixcursor ()
                  (let (((width height r cx cy bx) (geometry)))
+                   (declare (ignorable width height))
                    (set-style cursor
                               px/left (+ canvas.offsetLeft -10 cx (* r colx))
                               px/top (+ canvas.offsetTop -10 cy (* r coly))
@@ -928,10 +935,12 @@
                      (event.stopPropagation)
                      (event.preventDefault)
                      (let (((width height r cx cy bx) (geometry)))
+                       (declare (ignorable width height bx))
                        (let* (((x y) (event-pos event))
                               ((x0 y0) (element-pos canvas))
                               (handler (if (>= (- x x0) (+ cx r))
                                            (lambda (mx my)
+                                             (declare (ignorable mx my))
                                              (let ((nv (/ (- (+ cy r) (- my y0)) (* 2 r))))
                                                (setf colv (max (min nv 1) 0)))
                                              (set-style dark
@@ -1070,6 +1079,7 @@
                                   (hide-window w)))
                               (d.setDate (1+ (d.getDate)))))
                           (setf x 0))))))
+    (declare (ignorable current-month))
     (set-style w.client
                backgroundColor "#DDDDDD")
     (set-style w.frame

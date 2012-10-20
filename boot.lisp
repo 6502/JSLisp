@@ -126,7 +126,8 @@
           (list 'unless (list 'symbol-function (list 'quote name))
                 (list 'set-symbol-function
                       (list 'quote name)
-                      (list 'lambda args))
+                      (list 'lambda args
+                            (list 'declare (append (list 'ignorable) args))))
                 ;; Sets the arglist for this function so static check
                 ;; can be performed also on recursive functions
                 (list 'set-arglist
@@ -156,13 +157,14 @@
      (list (length x) (length y) z))
    ;; ==> (3 6 (100 99))
    ]]"
+  (declare (ignorable x))
   (js-code "d$$x.length"))
 
 ;; Simple versions of a few operators needed for bootstrap, they will be redefined
-(defun = (a b) (js-code "(d$$a===d$$b)"))
-(defun < (a b) (js-code "(d$$a<d$$b)"))
-(defun > (a b) (js-code "(d$$a>d$$b)"))
-(defun - (a b) (js-code "(d$$a-d$$b)"))
+(defun = (a b) (declare (ignorable a b)) (js-code "(d$$a===d$$b)"))
+(defun < (a b) (declare (ignorable a b)) (js-code "(d$$a<d$$b)"))
+(defun > (a b) (declare (ignorable a b)) (js-code "(d$$a>d$$b)"))
+(defun - (a b) (declare (ignorable a b)) (js-code "(d$$a-d$$b)"))
 (defun + (&rest args)
   (cond
     ((= (length args) 2) (js-code "(d$$args[0]+d$$args[1])"))
@@ -181,6 +183,7 @@
    ;; ==> (true true true true true
            false false false)
    ]]"
+  (declare (ignorable x))
   (js-code "!d$$x"))
 
 (defmacro not (x)
@@ -201,6 +204,7 @@
    (unless (list? x)
      (error ~\"Invalid argument {x}\"))
    ]]"
+  (declare (ignorable x))
   (js-code "((function(x){throw new String(x);})(d$$x))"))
 
 ;; Function accessor
@@ -216,11 +220,12 @@
    (labels ((square (x) (* x 2))
             (cube (x) (* x x x)))
      (setf (function cube)
-           (lambda (x) 42))
+           (lambda (x) (declare (ignorable x)) 42))
      (list (funcall (function square) 3)
            (funcall #'cube 12)))
    ;; ==> (6 42)
    ]]"
+  (declare (ignorable x))
   (js-code "(lexfunc.vars['!'+d$$x.name]?null:(d$$$42_outgoing_calls$42_[d$$x.name]=true))")
   (list 'js-code (+ "f" (js-code "d$$x.name"))))
 
@@ -241,6 +246,7 @@
    ;; ==> (+ 2 1 99)
 
    (let ((dummy 42)) ;; To avoid toplevel evaluation
+     (declare (ignorable dummy))
      (macrolet ((onemore (x) `(* ,x 2)))
        (list (ninenine 2)
              (macroexpand-1 '(ninenine 2)))))
@@ -253,10 +259,12 @@
 ;; Javascript crazyness
 (defun callable? (x)
   "True if [x] can be called"
+  (declare (ignorable x))
   (js-code "((typeof d$$x)==='function')"))
 
 (defun bool? (x)
   "True if and only if [x] is a boolean"
+  (declare (ignorable x))
   (js-code "((typeof d$$x)==='boolean')"))
 
 (defun undefined? (x)
@@ -287,6 +295,7 @@
    (json undefined)
    ;; ==> \"null\"
    ]]"
+  (declare (ignorable x))
   (js-code "((typeof d$$x)==='undefined')"))
 
 (defun null? (x)
@@ -301,6 +310,7 @@
    **ERROR**: TypeError: Cannot read property '3' of null
    ;; Ready
    ]]"
+  (declare (ignorable x))
   (js-code "(d$$x===null)"))
 
 (defun infinity? (x)
@@ -320,6 +330,7 @@
    infinity.x
    ;; ==> undefined
    ]]"
+  (declare (ignorable x))
   (js-code "(d$$x===Infinity)"))
 
 (defun -infinity? (x)
@@ -339,6 +350,7 @@
    (aref -infinity 2)
    ;; ==> undefined
    ]]"
+  (declare (ignorable x))
   (js-code "(d$$x===-Infinity)"))
 
 (defun NaN? (x)
@@ -359,6 +371,7 @@
    NaN.x
    ;; ==> undefined
    ]]"
+  (declare (ignorable x))
   (js-code "((typeof d$$x)==='number'&&!d$$x&&!(d$$x===0))"))
 
 (defun object? (x)
@@ -386,6 +399,7 @@
    (json #((x 10)(y 20)))
    ;; ==> \"{\\\"x\\\":10,\\\"y\\\":20}\"
    ]]"
+  (declare (ignorable x))
   (js-code "((d$$x&&d$$x.constructor&&d$$x.constructor===Object)===true)"))
 
 (defun zero? (x)
@@ -408,6 +422,7 @@
       (1+ 9007199254740992))
    ;; ==> true
    ]]"
+  (declare (ignorable x))
   (js-code "(!!(d$$x&1))"))
 
 (defun even? (x)
@@ -426,6 +441,7 @@
       (1+ 9007199254740992))
    ;; ==> true
    ]]"
+  (declare (ignorable x))
   (js-code "(!(d$$x&1))"))
 
 ;; Dolist macro
@@ -448,6 +464,7 @@
    (4 9)
    ;; ==> undefined
    ]]"
+  (declare (ignorable var+list))
   (list 'js-code (+ "((function(list){var f="
                     (js-compile (append (list 'lambda
                                               (list (js-code "d$$var$43_list[0]")))
@@ -467,6 +484,7 @@
      (map #'funcall res))
    ;; ==> (0 1 2 3 4 5 6 7 8 9)
    ]]"
+  (declare (ignorable var+count))
   (list 'js-code (+ "((function(n){var f="
                     (js-compile (append (list 'lambda
                                               (list (js-code "d$$var$43_count[0]")))
@@ -491,6 +509,7 @@
      (map #'funcall res))
    ;; ==> ((0 \"a\" \"d\") (1 \"b\" \"e\") (2 \"c\" \"f\"))
    ]]"
+  (declare (ignorable index+var+list))
   (list 'js-code (+ "((function(L){var f="
                     (js-compile (append (list 'lambda
                                               (list (js-code "d$$index$43_var$43_list[0]")
@@ -550,6 +569,7 @@
      res)
    ;; ==> (0 1 4 9 16 25 36 49 64 81)
    ]]"
+  (declare (ignorable value list))
   (js-code "d$$list.push(d$$value)"))
 
 (defmacro push (x L)
@@ -587,6 +607,7 @@
         (rest x)))
    ;; ==> false
    ]]"
+  (declare (ignorable x))
   (js-code "(d$$x.slice(1))"))
 
 (defmacro splice (x &optional start size)
@@ -636,6 +657,7 @@
      (list x (splice x -2)))
    ;; ==> ((0 1 2 3 4 5 6 7) (8 9))
    ]]"
+  (declare (ignorable x start))
   (if (undefined? size)
       (js-code "(d$$x.splice(d$$start))")
       (js-code "(d$$x.splice(d$$start,d$$size))")))
@@ -663,6 +685,7 @@
      (list x (insert x 999 \"*NEW*\")))
    ;; ==> ((0 1 2 3 4 5 6 7 8 9 \"*NEW*\") \"*NEW*\")
    ]]"
+  (declare (ignorable x i y))
   (js-code "(d$$x.splice(d$$i,0,d$$y),d$$y)"))
 
 ;; Indexing
@@ -1369,6 +1392,7 @@
 ;; Make symbol / gensym
 (defun make-symbol (name)
   "Creates a new uninterned symbol"
+  (declare (ignorable name))
   (js-code "(new Symbol(f$$mangle(d$$name)))"))
 
 (defvar *gensym-count* 0)
@@ -1718,6 +1742,7 @@
                (+ code "))"))))
 (defun min (&rest seq)
   "Returns the minimum value of all arguments under comparison with [<]"
+  (declare (ignorable seq))
   (js-code "(Math.min.apply(Math,d$$seq))"))
 
 (defmacro max (&rest seq)
@@ -1730,6 +1755,7 @@
                (+ code "))"))))
 (defun max (&rest seq)
   "Returns the maximum value of all arguments under comparison with [>]"
+  (declare (ignorable seq))
   (js-code "(Math.max.apply(Math,d$$seq))"))
 
 (defun map (f seq)
@@ -1786,6 +1812,7 @@ The resulting list length is equal to the shortest input sequence."
    (index NaN (list 1 2 NaN 3 4))
    ;; ==> -1
    ]]"
+  (declare (ignorable x L))
   (if start
       (js-code "d$$L.indexOf(d$$x,d$$start)")
       (js-code "d$$L.indexOf(d$$x)")))
@@ -1807,6 +1834,7 @@ The resulting list length is equal to the shortest input sequence."
    (last-index NaN (list 1 2 NaN 3 4))
    ;; ==> -1
    ]]"
+  (declare (ignorable x L))
   (js-code "d$$L.lastIndexOf(d$$x)"))
 
 (defun find (x L)
@@ -1847,6 +1875,7 @@ The resulting list length is equal to the shortest input sequence."
      (list x (remove 2 x)))
    ;; ==> ((0 1 2 3 4) (0 1 3 4))
    ]]"
+  (declare (ignorable x L))
   (js-code "d$$L.filter(function(x){return x!==d$$x})"))
 
 (defun nremove (x L)
@@ -2304,10 +2333,12 @@ If only one parameter is passed it's assumed to be [stop]."
 
 (defun next-char (src)
   "Advances to next character or character source [src]"
+  (declare (ignorable src))
   (js-code "(d$$src.i++)"))
 
 (defun current-char (src)
   "Returns current character from character source [src]"
+  (declare (ignorable src))
   (js-code "(d$$src.s[d$$src.i])"))
 
 ;; String interpolation reader
@@ -2401,10 +2432,9 @@ If only one parameter is passed it's assumed to be [stop]."
 
 (defun random-shuffle (L)
   "Randomly shuffles an array [L] inplace and returns null"
-  (let ((n (length L)))
-    (dotimes (i (1- n))
-      (let ((j (+ i (random-int (- n i)))))
-        (swap (aref L i) (aref L j))))))
+  (dotimes (i (1- (length L)))
+    (let ((j (+ i (random-int (- (length L) i)))))
+      (swap (aref L i) (aref L j)))))
 
 (defun random-shuffled (L)
   "Returns a randomly shuffled version of an array [L]"
@@ -2416,14 +2446,13 @@ If only one parameter is passed it's assumed to be [stop]."
   "Picks a random element from list [L]"
   (aref L (random-int (length L))))
 
-(defun random-choices (L k)
-  "Picks [k] random elements from list [L]"
-  (let ((n (length L))
-        (L (slice L)))
-    (dotimes (i k)
-      (let ((j (+ i (random-int (- n i)))))
+(defun random-choices (L n)
+  "Picks [n] random elements from list [L]"
+  (let ((L (slice L)))
+    (dotimes (i n)
+      (let ((j (+ i (random-int (- (length L) i)))))
         (swap (aref L i) (aref L j))))
-    (slice L 0 k)))
+    (slice L 0 n)))
 
 ;; Filler string
 
@@ -2492,10 +2521,12 @@ If only one parameter is passed it's assumed to be [stop]."
 ;; Regular expression
 (defun regexp (x &optional options)
   "Returns a new Javascript regular expression object"
+  (declare (ignorable x options))
   (js-code "(new RegExp(d$$x,d$$options||\"\"))"))
 
 (defun replace (x a b)
   "Replaces regular expression [a] with [b] in [x]. When using a string as regexp assumes global replacement."
+  (declare (ignorable x a b))
   (if (string? a)
       (js-code "d$$x.replace(new RegExp(d$$a,'g'), d$$b)")
       (js-code "d$$x.replace(d$$a, d$$b)")))
@@ -2505,6 +2536,7 @@ If only one parameter is passed it's assumed to be [stop]."
   (replace (replace x "([$^\\][()+*?\\\\])" "\\$1")
            "[\\x00-\\x1F]"
            (lambda (x)
+             (declare (ignorable x))
              (js-code "'\\\\x'+('0'+d$$x.charCodeAt(0).toString(16).slice(-2))"))))
 
 ;; Whitespace stripping and padding
@@ -2546,6 +2578,7 @@ If only one parameter is passed it's assumed to be [stop]."
 ;; Anonymous JS object access/creation
 (defun valid-js-name (x)
   "True if and only if string [x] is a valid identifier for Javascript"
+  (declare (ignorable x))
   (not (not (js-code "d$$x.match(/^[a-zA-Z_$][a-zA-Z_$0-9]*$/)"))))
 
 (defmacro . (obj &rest fields)
@@ -2618,10 +2651,12 @@ A name is either an unevaluated atom or an evaluated list."
 
 (defun keys (obj)
   "Returns a list of all keys defined in the specified javascript object [obj]."
+  (declare (ignorable obj))
   (js-code "((function(){var res=[];for(var $i in d$$obj)res.push($i);return res})())"))
 
 (defun remove-key (object key)
   "Removes [key] entry from [object]"
+  (declare (ignorable object key))
   (js-code "((function(){delete d$$object[d$$key]})())"))
 
 ;; dot reader
@@ -2699,6 +2734,7 @@ A name is either an unevaluated atom or an evaluated list."
                         (map #'symbol-name fieldnames))))
     `(progn
        (defun ,(intern ~"{name}-constructor") ,fieldnames
+         (declare (ignorable ,@fieldnames))
          ,@(map (lambda (f)
                   (if (valid-js-name (symbol-name f))
                       `(js-code ,~"this.{(symbol-name f)}=d{(. f name)}")
@@ -2707,6 +2743,7 @@ A name is either an unevaluated atom or an evaluated list."
          (js-code "this"))
        (defun ,(intern ~"new-{name}") (&optional ,@fields)
          ,~"Creates a new instance of {name}"
+         (declare (ignorable ,@fields))
          ;; Next line is a NOP but needed for deploy machinery
          (deploy-ref (function ,#"{name}-constructor")
                      ',class)
@@ -2784,8 +2821,10 @@ A name is either an unevaluated atom or an evaluated list."
         (sf (gensym))
         (proto (gensym)))
     `(let ((,gf (lambda () (let ((this (js-code "this")))
+                             (declare (ignorable this))
                              ,getter)))
            (,sf (lambda (value) (let ((this (js-code "this")))
+                                  (declare (ignorable this value))
                                   ,setter)))
            (,proto (function ,#"{class}-constructor")."prototype"))
        (push (list ,(symbol-name name) ,gf ,sf)
@@ -2812,19 +2851,23 @@ A name is either an unevaluated atom or an evaluated list."
 ;; Case conversion
 (defun uppercase (x)
   "Returns the string [x] converted to uppercase"
+  (declare (ignorable x))
   (js-code "d$$x.toUpperCase()"))
 
 (defun lowercase (x)
   "Returns the string [x] converted to lowercase"
+  (declare (ignorable x))
   (js-code "d$$x.toLowerCase()"))
 
 ;; Char <-> numeric code conversion
 (defun char (x)
   "Character associated to code [x]"
+  (declare (ignorable x))
   (js-code "String.fromCharCode(d$$x)"))
 
 (defun char-code (x)
   "Numeric code of character [x]"
+  (declare (ignorable x))
   (js-code "d$$x.charCodeAt(0)"))
 
 ;; Case
@@ -2926,6 +2969,7 @@ A name is either an unevaluated atom or an evaluated list."
 
 (defun deserialize-tag (si tag)
   "Deserializes custom object associated to [tag]"
+  (declare (ignorable si))
   (error ~"Unable to deserialize {tag}"))
 
 (defun deserialize (si)
@@ -2942,6 +2986,7 @@ A name is either an unevaluated atom or an evaluated list."
       ("l" (let ((res (list)))
              (push res si.seen)
              (dotimes (i (atoi (get (size))))
+               (declare (ignorable i))
                (push (deserialize si) res))
              res))
       ("s" (get (atoi (get (size)))))
@@ -2954,6 +2999,7 @@ A name is either an unevaluated atom or an evaluated list."
       ("O" (let ((res #()))
              (push res si.seen)
              (dotimes (i (atoi (get (size))))
+               (declare (ignorable i))
                (let ((k (deserialize si))
                      (v (deserialize si)))
                  (setf (aref res k) v)))
@@ -3005,10 +3051,12 @@ A name is either an unevaluated atom or an evaluated list."
 
 (defun json (x)
   "Standard JSON serialization of [x]"
+  (declare (ignorable x))
   (or (js-code "(JSON.stringify(d$$x))") "null"))
 
 (defun json-parse (x)
   "Standard JSON parsing of string [x]"
+  (declare (ignorable x))
   (js-code "(JSON.parse(d$$x))"))
 
 ;; Class-aware JSON serialization
@@ -3107,7 +3155,7 @@ A name is either an unevaluated atom or an evaluated list."
 (define-symbol-macro window (js-code "window"))
 (defmacro get-element-by-id (id)
   "Returns the DOM element with the specified id value"
-  `(document.getElementById id))
+  `(document.getElementById ,id))
 (defmacro create-element (type)
   "Creates a new DOM element with the specified type passed as a string"
   `(document.createElement ,type))
@@ -3123,18 +3171,22 @@ A name is either an unevaluated atom or an evaluated list."
 ;; Timer events
 (defun set-timeout (f delay)
   "Invokes the specified function f after a delay (in ms). Returns an id usable in clear-timeout."
+  (declare (ignorable f delay))
   (js-code "setTimeout(function(){d$$f()}, d$$delay)"))
 
 (defun clear-timeout (id)
   "Disables a specified delayed call if it has not been already executed."
+  (declare (ignorable id))
   (js-code "clearTimeout(d$$id)"))
 
 (defun set-interval (f interval)
   "Invokes the specified function f every `interval` ms. Returns an id usable in clear-interval"
+  (declare (ignorable f interval))
   (js-code "setInterval(function(){d$$f()}, d$$interval)"))
 
 (defun clear-interval (id)
   "Stops a scheduled interval call."
+  (declare (ignorable id))
   (js-code "clearInterval(d$$id)"))
 
 ;; Line split utility
@@ -3156,15 +3208,18 @@ A name is either an unevaluated atom or an evaluated list."
 ;; Round formatting
 (defun to-fixed (x n)
   "Formats a number using the specified number of decimals"
+  (declare (ignorable x n))
   (js-code "(d$$x.toFixed(d$$n))"))
 
 ;; Javascript blocking interaction
 (defun prompt (x)
   "Asks the user for a string providing x as a prompt message"
+  (declare (ignorable x))
   (js-code "prompt(d$$x)"))
 
 (defun alert (x)
   "Displays an alert message x to the user"
+  (declare (ignorable x))
   (if node-js
       (js-code "console.log('***ALERT***: '+d$$x)")
       (js-code "alert(d$$x)")))
@@ -3377,6 +3432,7 @@ A name is either an unevaluated atom or an evaluated list."
        ,@(if (symbol-function name)
              (list)
              `((defun ,name ,args
+                 (declare (ignorable ,@args))
                  (error ,~"No matching method [{name}]"))))
        (setf #',of #',name)
        (setf #',name
@@ -3449,6 +3505,7 @@ A name is either an unevaluated atom or an evaluated list."
 
 (defmacro undefine-symbol-macro (x)
   "Removes global symbol macro definition for symbol [x]"
+  (declare (ignorable x))
   `(js-code ,(+ "((function(){delete s"
                 (js-code "d$$x.name")
                 ".symbol_macro;})())")))
@@ -3548,14 +3605,17 @@ A name is either an unevaluated atom or an evaluated list."
 ;; Uri encoding/decoding support
 (defun uri-decode (x)
   "Decode an uri-encoded string [x]"
+  (declare (ignorable x))
   (js-code "(decodeURIComponent(d$$x))"))
 
 (defun uri-encode (x)
   "Returns uri-encoding of string [x]"
+  (declare (ignorable x))
   (js-code "(encodeURIComponent(d$$x))"))
 
 ;; Lexical symbol properties support
 (defun lexical-property (x name)
+  (declare (ignorable x name))
   (js-code "(lexvar.props[d$$x.name][d$$name])"))
 
 ;; Conditions

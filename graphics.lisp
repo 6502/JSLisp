@@ -3,6 +3,7 @@
 
 (defmethod css-color (x) (rgb? x)
   (labels ((hexs (x)
+             (declare (ignorable x))
              (slice (+ "00" (uppercase (js-code "(d$$x.toString(16))"))) -2)))
     ~"#{(hexs x.r)}{(hexs x.g)}{(hexs x.b)}"))
 

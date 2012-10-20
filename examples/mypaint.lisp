@@ -25,6 +25,7 @@
   (+ (first color) (* 2 (second color)) (* 0.9 (third color))))
 
 (defun palette (parent rows w h callback)
+  (declare (ignorable rows))
   (let ((colors (list))
         (layout (H border: 4 (flow spacing: 4))))
     (dotimes (r 2)
@@ -255,6 +256,7 @@
 (deftool Select
     (let ((p0 null))
       (lambda (msg p btn)
+        (declare (ignorable btn))
         (cond
           ((= msg 'down)
            (setf p0 p))
@@ -352,6 +354,7 @@
                   (rp (* i pic-width 4))
                   (next (* (- view-width zoom) 4)))
               (dotimes (j maxx)
+                (declare (ignorable j))
                 (let ((r (aref src rp))
                       (g (aref src (+ rp 1)))
                       (b (aref src (+ rp 2)))
@@ -362,7 +365,9 @@
                             (/= b (aref dst (+ wp 2)))
                             (/= a (aref dst (+ wp 3))))
                     (dotimes (ii zoom)
+                      (declare (ignorable ii))
                       (dotimes (jj zoom)
+                        (declare (ignorable jj))
                         (setf (aref dst wp) r)
                         (setf (aref dst (+ wp 1)) g)
                         (setf (aref dst (+ wp 2)) b)
@@ -400,6 +405,7 @@
                          selection-div: (create-element "div")))
          (palette (palette frame.client 2 30 30
                            (lambda (color button div)
+                             (declare (ignorable button div))
                              (if (= button 2)
                                  (setf pw.bg color)
                                  (setf pw.fg color)))))

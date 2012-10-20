@@ -59,7 +59,6 @@
 (defun camera-normalize (camera)
   (let* ((n camera.n)
          (u camera.u)
-         (v camera.v)
          (dist (vlen u)))
     (setf camera.n (vdir n))
     (setf u (v- u (v* n (vdot u n))))
