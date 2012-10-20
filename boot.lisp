@@ -3729,8 +3729,15 @@ A name is either an unevaluated atom or an evaluated list."
      (setf #',name (. #',name org-func))
      ',name))
 
-;; Inline (experimental)
+;; Repeat macro
+(defmacro repeat (count &rest body)
+  "Evaluates [body] forms [count] times and returns [null]."
+  (let ((repeat-count '#.(gensym)))
+    `(dotimes (,repeat-count ,count)
+       (declare (ignorable ,repeat-count))
+       ,@body)))
 
+;; Inline (experimental)
 (defmacro defun/inline (name args &rest body)
   "Like [defun] but also defining if possible a macro for inline expansion"
   (if (or (find '&rest args)

@@ -69,10 +69,10 @@ reverse engineering point of view.
       (setf s (replace s "lisp_literals\\[[0-9]+\\]*" #'newname))
       (setf s (replace s "lisp_literals=\\[\\];" ""))
       ;; Extra parenthesis removal
-      (dotimes (i 5)
+      (repeat 5
         (setf s (replace s "([-+*/<>=!~&|\\(])\\((-?[0-9]+\\.?[0-9]*|[a-zA-Z_\\$][a-zA-Z_0-9\\$]*)\\)" "$1$2")))
       (setf s (replace s "\\[\\(([^\\]()]+)\\)\\]" "[$1]"))
-      (dotimes (i 5)
+      (repeat 5
         (setf s (replace s "(\\(|,)\\(([^(),]+)\\)(\\)|,)" "$1$2$3")))
       (setf s (replace s "([^-])(--)+([^-])" "$1+$3"))
       (setf s (replace s "([^-])-(--)+([^-])" "$1-$3"))
@@ -115,7 +115,9 @@ reverse engineering point of view.
 
 (if node-js
     (setf #'warning
-          (lambda (x) (js-code "process.stderr.write(\"WARNING: \"+d$$x+\"\\n\")"))))
+          (lambda (x)
+            (declare (ignorable x))
+            (js-code "process.stderr.write(\"WARNING: \"+d$$x+\"\\n\")"))))
 
 (defvar *fpath* "")
 
