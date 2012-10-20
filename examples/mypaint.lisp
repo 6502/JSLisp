@@ -353,8 +353,7 @@
             (let ((wp (* i view-width zoom 4))
                   (rp (* i pic-width 4))
                   (next (* (- view-width zoom) 4)))
-              (dotimes (j maxx)
-                (declare (ignorable j))
+              (repeat maxx
                 (let ((r (aref src rp))
                       (g (aref src (+ rp 1)))
                       (b (aref src (+ rp 2)))
@@ -364,10 +363,8 @@
                             (/= g (aref dst (+ wp 1)))
                             (/= b (aref dst (+ wp 2)))
                             (/= a (aref dst (+ wp 3))))
-                    (dotimes (ii zoom)
-                      (declare (ignorable ii))
-                      (dotimes (jj zoom)
-                        (declare (ignorable jj))
+                    (repeat zoom
+                      (repeat zoom
                         (setf (aref dst wp) r)
                         (setf (aref dst (+ wp 1)) g)
                         (setf (aref dst (+ wp 2)) b)
