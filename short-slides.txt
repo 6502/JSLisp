@@ -1,0 +1,55 @@
+*1 JsLisp
+= JsLisp
+A Lisp compiler targeting Javascript
+
+*2 A Lisp compiler targeting Javascript
+{JsLisp is}
+
+- A Lisp
+- Compiler
+- Targeting Javascript
+
+*3 A Lisp
+{A Lisp}
+
+Lisp is a family of dialects, the two most
+known being Common Lisp and Scheme
+
+JsLisp is [close] to Common Lisp
+but JsLisp is [NOT] Common Lisp
+
+*3.1 Common Lisp similarities
+{JsLisp and Common Lisp similarities}
+
+- A Lisp-2 (3)
+- Macros and reader macros, hygiene with [gensym]
+- [do], [dotimes], [dolist]
+- [tagbody/go], [throw/catch], [unwind-protect]
+- Namespace partitioning
+
+*3.2 Common Lisp differences
+{JsLisp and Common Lisp differences}
+
+- No [car]/[cdr]/[cons]
+- Lists are Javascript arrays!
+- No numeric tower (only [double-float]s)
+- No [T]/[NIL]
+- [true], [false], [null], [undefined], [NaN]
+
+*4 Compiler
+{Compiler}
+
+JsLisp is a compiler-only implementation, there
+is no Lisp interpreter
+
+- Semantic checks at compile time
+- JsLisp functions are Javascript functions
+- JIT speed
+- Treeshaker/minifier
+
+*5 Targeting Javascript
+{Targeting Javascript}
+
+- Runs in recent desktop browsers
+- Runs in HTML5 smartphones/tablets
+- Runs in node.js
