@@ -61,6 +61,7 @@ at compile time:
 - References to undefined functions
 - Bad parameter count in static function calls
 - Bad keyword paramters in static function calls
+- Unused local variables
 
 *4.2 JsLisp functions are Javascript functions
 {compiles to Javascript functions}
