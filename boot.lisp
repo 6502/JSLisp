@@ -1559,7 +1559,11 @@
 (defmacro /= (&rest args)
   "True if and only if the passed values are all distinct. Evaluation is short-circuiting."
   (cond
-    ((< (length args) 2)
+    ((= (length args) 0)
+     (warning "operator /= invoked without arguments")
+     true)
+    ((= (length args) 1)
+     (warning "operator /= invoked with one argument (it will not be evaluated)")
      true)
     ((= (length args) 2)
      `(js-code ,(+ "(" (js-compile (first args)) "!=" (js-compile (second args)) ")")))
