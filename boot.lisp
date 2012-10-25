@@ -1413,8 +1413,10 @@
      ,comment
      (cond
       ((= (length args) 0)
+       (warning ,(+ "operator " name " invoked without arguments"))
        true)
       ((= (length args) 1)
+       (warning ,(+ "operator " name " invoked with one argument (it will not be evaluated)"))
        true)
       ((= (length args) 2)
        `(js-code ,(+ "(" (js-compile (aref args 0)) ,jsname (js-compile (aref args 1)) ")")))
@@ -3555,12 +3557,12 @@ A name is either an unevaluated atom or an evaluated list."
         (alias null))
     (cond
       ((= (first args) '*)
-       (unless (= (second args 'from))
+       (unless (= (second args) 'from)
          (error "Syntax is (import * from <module>)"))
        (setf names '*)
        (setf args (slice args 2)))
       ((list? (first args))
-       (unless (= (second args 'from))
+       (unless (= (second args) 'from)
          (error "Syntax is (import (..names..) from <module>)"))
        (setf names (first args))
        (setf args (slice args 2))))

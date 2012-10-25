@@ -1,6 +1,6 @@
 (import * from gui)
 (import * from graphics)
-(import * form layout)
+(import * from layout)
 
 (defconstant PIXEL-SCALE 16)
 (defconstant WORLD-SIZE 32)
