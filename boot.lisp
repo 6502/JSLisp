@@ -1771,6 +1771,20 @@
       (push (funcall f x) res))
     res))
 
+;; map macro (50%+ speedup when the function is a lambda literal)
+(defmacro map (f list)
+  (if (and (list? f)
+           (= (first f) 'lambda)
+           (list? (second f))
+           (= (length (second f)) 1)
+           (symbol? (first (second f))))
+      (let ((res '#.(gensym-noprefix)))
+        `(let ((,res (list)))
+           (dolist (,(first (second f)) ,list)
+             (push (progn ,@(slice f 2)) ,res))
+           ,res))
+      `(funcall #'map ,f ,list)))
+
 (defun zip (&rest sequences)
   "Returns a list of lists built from corresponding elements in all sequences.
 The resulting list length is equal to the shortest input sequence."
@@ -3770,3 +3784,4 @@ A name is either an unevaluated atom or an evaluated list."
                                               res)))
                                     res)
                   ,',@body)))))))
+
