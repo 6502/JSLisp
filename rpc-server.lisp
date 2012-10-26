@@ -109,9 +109,9 @@
           ((> cp (- tlen (length bd))))
         (if (and (match bd)
                  (or (and (= (aref buf (+ cp (length bd))) 13)
-                          (= (aref buf (+ cp (length bd) 1))) 10)
+                          (= (aref buf (+ cp (length bd) 1)) 10))
                      (and (= (aref buf (+ cp (length bd))) 45)
-                          (= (aref buf (+ cp (length bd) 1))) 45)))
+                          (= (aref buf (+ cp (length bd) 1)) 45))))
             (progn
               (unless (null? cp0)
                 (let ((filename null)
