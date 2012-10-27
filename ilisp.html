@@ -1,0 +1,86 @@
+<!DOCTYPE HTML>
+<html>
+  <!--
+/****************************************************************************\
+******************************************************************************
+**                                                                          **
+**  Copyright (c) 2011 by Andrea Griffini                                   **
+**                                                                          **
+**  Permission is hereby granted, free of charge, to any person obtaining   **
+**  a copy of this software and associated documentation files (the         **
+**  "Software"), to deal in the Software without restriction, including     **
+**  without limitation the rights to use, copy, modify, merge, publish,     **
+**  distribute, sublicense, and/or sell copies of the Software, and to      **
+**  permit persons to whom the Software is furnished to do so, subject to   **
+**  the following conditions:                                               **
+**                                                                          **
+**  The above copyright notice and this permission notice shall be          **
+**  included in all copies or substantial portions of the Software.         **
+**                                                                          **
+**  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,         **
+**  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF      **
+**  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND                   **
+**  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE  **
+**  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION  **
+**  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION   **
+**  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.         **
+**                                                                          **
+******************************************************************************
+\****************************************************************************/
+    -->
+  <head>
+    <title>Ilisp</title>
+  </head>
+  <body>
+    <script src="jslisp.js">
+    </script>
+    <script>
+
+var url = document.location.href;
+var id = 0;
+
+if (url.indexOf("?") != -1)
+{
+    id = parseInt(url.slice(url.indexOf("?")+1));
+}
+
+function up(x)
+{
+    if (window.parent != window)
+    {
+        window.parent.postMessage({id: id, reply: f$$json$42_(x)}, "*");
+    }
+}
+
+f$$display = alert;
+f$$warning = alert;
+f$$error = alert;
+
+window.onerror = function(m)
+{
+    f$$display("** RUNTIME ERROR **: " + m);
+    f$$stack_trace((m && m.location) || global_unwinding_trace);
+    global_unwinding_trace = [];
+};
+
+window.onmessage = function(event)
+{
+    var src = f$$make_source(event.data);
+    var result = [];
+    f$$skip_spaces(src);
+    while (src.s[src.i] != undefined)
+    {
+        var parsed = f$$parse_value(src);
+        result.push(f$$toplevel_eval(parsed));
+        f$$skip_spaces(src);
+    }
+    up(result);
+};
+
+f$$load(f$$http_get("boot.lisp"));
+
+up("ready");
+
+    </script>
+  </body>
+</html>
