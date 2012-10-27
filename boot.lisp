@@ -1705,6 +1705,24 @@
   "Returns [(- x 1)]"
   `(- ,x 1))
 
+;; Repeat macros
+(defmacro repeat (count &rest body)
+  "Evaluates [body] forms [count] times and returns [null]."
+  (let ((repeat-count '#.(gensym-noprefix)))
+    `(dotimes (,repeat-count ,count)
+       (declare (ignorable ,repeat-count))
+       ,@body)))
+
+(defmacro repeat-collect (count &rest body)
+  "Evaluates [body] forms [count] times collecting the values of last [body] form."
+  (let ((result '#.(gensym-noprefix))
+        (repeat-count '#.(gensym-noprefix)))
+    `(let ((,result (list)))
+       (dotimes (,repeat-count ,count)
+         (declare (ignorable ,repeat-count))
+         (push (progn ,@body) ,result))
+       ,result)))
+
 ;; Sequence utilities
 (defmacro/f pop (x)
   "Removes and returns last element from list [x]"
@@ -1763,51 +1781,6 @@
   "Returns the maximum value of all arguments under comparison with [>]"
   (declare (ignorable seq))
   (js-code "(Math.max.apply(Math,d$$seq))"))
-
-(defun map (f seq)
-  "Returns the list obtained by applying function [f] to each element in [seq]"
-  (let ((res (list)))
-    (dolist (x seq)
-      (push (funcall f x) res))
-    res))
-
-;; map macro (50%+ speedup when the function is a lambda literal)
-(defmacro map (f list)
-  (if (and (list? f)
-           (= (first f) 'lambda)
-           (list? (second f))
-           (= (length (second f)) 1)
-           (symbol? (first (second f))))
-      (let ((res '#.(gensym-noprefix)))
-        `(let ((,res (list)))
-           (dolist (,(first (second f)) ,list)
-             (push (progn ,@(slice f 2)) ,res))
-           ,res))
-      `(funcall #'map ,f ,list)))
-
-(defun zip (&rest sequences)
-  "Returns a list of lists built from corresponding elements in all sequences.
-The resulting list length is equal to the shortest input sequence."
-  (let ((n (apply #'min (map #'length sequences))))
-    (let ((res (list)))
-      (dotimes (i n)
-        (push (map (lambda (seq) (aref seq i)) sequences) res))
-      res)))
-
-(defun mapn (f &rest sequences)
-  "Returns the sequence of calling function [f] passing as parameters
-   corresponding elements from the sequences. The resulting list length
-   is equal to the length of the shortest sequence."
-  (map (lambda (args) (apply f args))
-       (apply #'zip sequences)))
-
-(defun filter (f seq)
-  "Returns the subset of elements from [seq] for which the function [f] returned a logical true value"
-  (let ((res (list)))
-    (dolist (x seq)
-      (when (funcall f x)
-        (push x res)))
-    res))
 
 (defun index (x L &optional start)
   "Returns the index position in which [x] appears in \
@@ -1873,6 +1846,101 @@ The resulting list length is equal to the shortest input sequence."
    ;; ==> false
    ]]"
   (/= -1 (index x L)))
+
+(defun map (f &rest lists)
+  "Returns the list obtained by applying function [f] to corresponding elements in [lists]"
+  (let ((res (list)))
+    (enumerate (i x (first lists))
+      (let ((args (list x)))
+        (dolist (y (rest lists))
+          (push (aref y i) args))
+        (push (apply f args) res)))
+    res))
+
+;; map macro (50%+ speedup when the function is a lambda literal)
+(defmacro map (f &rest lists)
+  (if (and (list? f)
+           (= (first f) 'lambda)
+           (list? (second f))
+           (not (find '&optional (second f)))
+           (not (find '&rest (second f)))
+           (not (find '&key (second f))))
+      (let ((args (second f))
+            (body (slice f 2))
+            (res '#.(gensym-noprefix)))
+        (cond
+         ((/= (length args)
+              (length lists))
+          (warning "function argument count doesn't match number of passed lists")
+          `(funcall #'map ,f ,@lists))
+         ((= (length args) 0)
+          `(let ((,res (list)))
+             (repeat (length ,(first lists))
+                (push (progn ,@body) ,res))
+             ,res))
+         ((= (length args) 1)
+          `(let ((,res (list)))
+             (dolist (,(first args) ,(first lists))
+               (push (progn ,@body) ,res))
+             ,res))
+         (true
+          (let ((init (list))
+                (vars (list))
+                (i '#.(gensym-noprefix)))
+            (dolist (L lists)
+              (setf L (symbol-macro-expand L))
+              (if (symbol? L)
+                  (push L vars)
+                  (let ((v (gensym-noprefix)))
+                    (push v vars)
+                    (push `(,v ,L) init))))
+            `(let ((,res (list))
+                   ,@init)
+               (enumerate (,i ,(first args) ,(first vars))
+                          (let ,(let ((res (list)))
+                                  (enumerate (j v (rest vars))
+                                             (push `(,(aref args (1+ j)) (aref ,v ,i))
+                                                   res))
+                                  res)
+                            (push (progn ,@body) ,res)))
+               ,res)))))
+      (progn
+        (when (and (list? f)
+                   (= (length f) 2)
+                   (= (first f) 'function)
+                   (symbol? (second f)))
+          (let ((ff (symbol-function (second f))))
+            (let ((arglist (and ff (arglist ff))))
+            (when (and arglist
+                       (not (find '&optional arglist))
+                       (not (find '&rest arglist))
+                       (not (find '&key arglist))
+                       (/= (length arglist) (length lists)))
+              (warning (+ "#'" (symbol-name (second f)) " argument count doesn't match number of passed lists"))))))
+        `(funcall #'map ,f ,@lists))))
+
+(defun zip (&rest sequences)
+  "Returns a list of lists built from corresponding elements in all sequences.
+The resulting list length is equal to the first input sequence."
+  (let ((n (length (first sequences))))
+    (let ((res (list)))
+      (dotimes (i n)
+        (push (map (lambda (seq) (aref seq i)) sequences) res))
+      res)))
+
+(defmacro zip (&rest lists)
+  (let ((vars (list)))
+    (repeat (length lists)
+      (push (gensym-noprefix) vars))
+    `(map (lambda ,vars (list ,@vars)) ,@lists)))
+
+(defun filter (f seq)
+  "Returns the subset of elements from [seq] for which the function [f] returned a logical true value"
+  (let ((res (list)))
+    (dolist (x seq)
+      (when (funcall f x)
+        (push x res)))
+    res))
 
 (defun remove (x L)
   "Returns a copy of list [L] after all instances of [x] have \
@@ -2922,14 +2990,6 @@ A name is either an unevaluated atom or an evaluated list."
 (defmacro/f atoi (s)
   "Returns an integer from the start of the specified string (NaN if fails)"
   `(js-code ,(+ "parseInt(" (js-compile s) ",10)")))
-
-;; Repeat macro
-(defmacro repeat (count &rest body)
-  "Evaluates [body] forms [count] times and returns [null]."
-  (let ((repeat-count '#.(gensym)))
-    `(dotimes (,repeat-count ,count)
-       (declare (ignorable ,repeat-count))
-       ,@body)))
 
 ;; Serialization (when str-value/load/eval is not appropriate, e.g. for rpc)
 

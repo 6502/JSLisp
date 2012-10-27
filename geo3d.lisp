@@ -5,10 +5,10 @@
 (defun z (p) (third p))
 
 (defun v+ (&rest pts)
-  (reduce (lambda (a b) (mapn #'+ a b)) pts))
+  (reduce (lambda (a b) (map #'+ a b)) pts))
 
 (defun v- (&rest pts)
-  (reduce (lambda (a b) (mapn #'- a b)) pts))
+  (reduce (lambda (a b) (map #'- a b)) pts))
 
 (defun v* (v k)
   (map (lambda (x) (* x k)) v))
@@ -17,7 +17,7 @@
   (map (lambda (x) (/ x k)) v))
 
 (defun vdot (a b)
-  (reduce #'+ (mapn #'* a b)))
+  (reduce #'+ (map #'* a b)))
 
 (defun vlen (x)
   (sqrt (vdot x x)))
