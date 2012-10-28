@@ -18,7 +18,7 @@
               (when x
                 (let ((cback (or (aref x.reqs event.data.req) x.default-cback)))
                   (remove-key x.reqs event.data.req)
-                  (funcall cback (json-parse* event.data.reply))))))))
+                  (funcall cback event.data.reply)))))))
   (let ((ilisp (make-ilisp id: (incf *id*)
                            iframe: (create-element "iframe")
                            reqs: #()

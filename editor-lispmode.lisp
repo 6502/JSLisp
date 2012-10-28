@@ -79,7 +79,7 @@
                        res)"
                     (lambda (result)
                       (setf (aref mode.body-macros) #())
-                      (dolist (x (first result))
+                      (dolist (x (first (json-parse result)))
                         (setf (aref mode.body-macros x) 1))))))
 
 (setf mode.compute-end-context

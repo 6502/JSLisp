@@ -38,15 +38,12 @@
           (clear (add-widget w (button "Clear" #'clear)))
           (ilisp (ilisp:new #'reply))
           (#'reply (msg)
-                   (when (= msg "ready")
+                   (when (= msg "\"ready\"")
                      (mode.inspect-ilisp ilisp))
-                   (unless (list? msg)
-                     (setf msg (list msg)))
-                   (dolist (x msg)
-                     (ilisp.send "javascript"
-                                 (+ "repl.value+=f$$str_value(f$$json_parse$42_("
-                                    (json (json* x))
-                                    "))+\"\\n\""))))
+                   (ilisp.send "javascript"
+                               (+ "repl.value+=f$$str_value(f$$json_parse$42_("
+                                  (json msg)
+                                  "))+\"\\n\"")))
           (#'reset ()
                    (ilisp.reset))
           (#'clear ()
