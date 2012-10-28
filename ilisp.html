@@ -32,26 +32,29 @@
     <title>Ilisp</title>
   </head>
   <body style="padding:0px; margin:0px; border:none">
-    <textarea spellcheck=false wrap=off id="repl" style="resize:none; position:absolute; left:0px; top:0px; white-space:pre"
-      onkeydown="javascript:keydown(event)"></textarea>
+    <div id="full" style="overflow:hidden; position:absolute; left:0px; top:0px; right:0px; bottom:0px">
+      <textarea spellcheck=false wrap=off id="repl" style="font-size: 16px; resize:none; white-space:pre; position:absolute left:0px; top:0px; border:none; outline:none;"
+        onkeydown="javascript:keydown(event)"></textarea>
+    </div>
     <script src="jslisp.js">
     </script>
     <script>
 
 var url = document.location.href;
 var id = 0;
+var full = document.getElementById("full");
 var repl = document.getElementById("repl");
 var lastw = -1;
 var lasth = -1;
 
 setInterval(function(){
-    var w = window.innerWidth;
-    var h = window.innerHeight;
+    var w = full.offsetWidth;
+    var h = full.offsetHeight;
     if (w != lastw || h != lasth)
     {
         lastw = w; lasth = h;
-        repl.style.width = (w-4)+"px";
-        repl.style.height = (h-4)+"px";
+        repl.style.width = w+"px";
+        repl.style.height = h+"px";
     }
 }, 100);
 
@@ -91,19 +94,52 @@ function up(x)
 {
     if (window.parent != window)
     {
-        window.parent.postMessage({id: id, reply: f$$json$42_(x)}, "*");
+        window.parent.postMessage(x, "*");
     }
+}
+
+function decrypt(msg)
+{
+    var m = msg.replace(/f[A-Za-z0-9_]*\$\$([A-Za-z0-9_]|\$[0-9]+_)+/, function(x) {
+        var mod = f$$demangle("$$"+x.slice(1, x.indexOf("$$"))) + ":";
+        var name = f$$demangle(x.slice(x.indexOf("$$")));
+        if (mod == ":") mod = "";
+        return "lisp function " + mod + name;
+    });
+    m = m.replace(/d[A-Za-z0-9_]*\$\$([A-Za-z0-9_]|\$[0-9]+_)+/, function(x) {
+        var mod = f$$demangle("$$"+x.slice(1, x.indexOf("$$"))) + ":";
+        var name = f$$demangle(x.slice(x.indexOf("$$")));
+        if (mod == ":") mod = "";
+        return "lisp variable " + mod + name;
+    });
+    m = m.replace(/m[A-Za-z0-9_]*\$\$([A-Za-z0-9_]|\$[0-9]+_)+/, function(x) {
+        var mod = f$$demangle("$$"+x.slice(1, x.indexOf("$$"))) + ":";
+        var name = f$$demangle(x.slice(x.indexOf("$$")));
+        if (mod == ":") mod = "";
+        return "lisp macro " + mod + name;
+    });
+    m = m.replace(/[A-Za-z0-9_]*\$\$([A-Za-z0-9_]|\$[0-9]+_)+/, function(x) {
+        var mod = f$$demangle("$$"+x.slice(0, x.indexOf("$$"))) + ":";
+        var name = f$$demangle(x.slice(x.indexOf("$$")));
+        if (mod == ":") mod = "";
+        return mod + name;
+    });
+    return m;
 }
 
 f$$display = function(msg) {
     repl.value += msg + "\n";
+    repl.scrollTop = repl.scrollHeight
 };
 
-f$$warning = alert;
-f$$error = alert;
+f$$warning = function(msg) {
+    repl.value += "* WARNING *: " + decrypt(msg) + "\n";
+    repl.scrollTop = repl.scrollHeight
+};
 
-window.onerror = function(m)
+window.onerror = function(msg)
 {
+    var m = decrypt(msg);
     f$$display("** RUNTIME ERROR **: " + m);
     f$$stack_trace((m && m.location) || global_unwinding_trace);
     global_unwinding_trace = [];
@@ -111,9 +147,9 @@ window.onerror = function(m)
 
 window.onmessage = function(event)
 {
-    if (event.data.slice(0, 5) === "lisp:")
+    if (event.data.type === "lisp")
     {
-        var src = f$$make_source(event.data.slice(5));
+        var src = f$$make_source(event.data.text);
         var result = [];
         f$$skip_spaces(src);
         while (src.s[src.i] != undefined)
@@ -122,17 +158,19 @@ window.onmessage = function(event)
             result.push(f$$toplevel_eval(parsed));
             f$$skip_spaces(src);
         }
-        up(result);
+        up({id: id,
+            req: event.data.req,
+            reply: f$$json$42_(result)});
     }
-    else if (event.data.slice(0,11)  === "javascript:")
+    else if (event.data.type  === "javascript")
     {
-        eval(event.data.slice(11));
+        eval(event.data.text);
     }
 };
 
 f$$load(f$$http_get("boot.lisp"));
 
-up("ready");
+up({id: id, req: null, reply: "\"ready\""});
 
     </script>
   </body>

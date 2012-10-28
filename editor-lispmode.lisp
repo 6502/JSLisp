@@ -63,6 +63,25 @@
                  (next))
                 (true (next))))))))
 
+(setf mode.body-macros #())
+
+(setf mode.inspect-ilisp
+      (lambda (ilisp)
+        (ilisp.send "lisp"
+                    "(let ((res (list)))
+                       (dolist (name (keys (js-code \"window\")))
+                         (when ((regexp \"^m[a-zA-Z0-9_]*\\\\$\\\\$.*\").exec name)
+                           (let ((f (aref (js-code \"window\") name)))
+                             (when (and f
+                                        (list? f.arglist)
+                                        (= (last f.arglist) 'body))
+                               (push (demangle name) res)))))
+                       res)"
+                    (lambda (result)
+                      (setf (aref mode.body-macros) #())
+                      (dolist (x (first result))
+                        (setf (aref mode.body-macros x) 1))))))
+
 (setf mode.compute-end-context
       (lambda (line)
         (do ((ec (let ((ec (copy line.start-context)))
@@ -143,12 +162,8 @@
                             ((= (slice text (1+ i) (+ i 3)) "#'")
                              (+ i 2))
                             ((= (aref text j) " ")
-                             (let* ((name (slice text (1+ i) j))
-                                    (s1 (intern name "" true))
-                                    (s2 (intern name *current-module* true))
-                                    (m (or (and s1 (symbol-macro s1))
-                                           (and s2 (symbol-macro s2)))))
-                               (if (and m m.arglist (= (last m.arglist) 'body))
+                             (let ((name (slice text (1+ i) j)))
+                               (if (aref mode.body-macros name)
                                    (+ i 2)
                                    (+ j 1))))
                             (true j))

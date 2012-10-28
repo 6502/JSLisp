@@ -26,7 +26,7 @@
                         (dolist (r (range (1+ row0) row))
                           (incf txt (+ (aref lines r).text "\n")))
                         (incf txt (slice (aref lines row).text 0 col))))
-                  (ilisp.send ~"lisp:{txt}"))))))
+                  (ilisp.send "lisp" txt))))))
     (show-window w)))
 
 (defun inferior-lisp ()
@@ -38,11 +38,20 @@
           (clear (add-widget w (button "Clear" #'clear)))
           (ilisp (ilisp:new #'reply))
           (#'reply (msg)
-                   (ilisp.send ~"javascript:repl.value+={(json (str-value msg))}+\"\\\\n\""))
+                   (when (= msg "ready")
+                     (mode.inspect-ilisp ilisp))
+                   (unless (list? msg)
+                     (setf msg (list msg)))
+                   (dolist (x msg)
+                     (ilisp.send "javascript"
+                                 (+ "repl.value+=f$$str_value(f$$json_parse$42_("
+                                    (json (json* x))
+                                    "))+\"\\n\""))))
           (#'reset ()
                    (ilisp.reset))
           (#'clear ()
-                   (ilisp.send ~"javascript:repl.value=\"\"")))
+                   (ilisp.send "javascript"
+                               "repl.value=\"\"")))
     (add-widget w ilisp.iframe)
     (set-style ilisp.iframe opacity 1)
     (setf (layout w) (V border: 16 spacing: 16
@@ -55,6 +64,8 @@
 
 (defun main ()
   (let ((ilisp (inferior-lisp)))
-    (src-window "test.lisp" "" ilisp)))
+    (src-window "test.lisp"
+                ""
+                ilisp)))
 
 (main)
