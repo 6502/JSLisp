@@ -28,6 +28,14 @@
               (range 0 (length properties) 2))
        ,el)))
 
+(defun screen-width ()
+  "Returns current width of browser window"
+  (js-code "window").innerWidth)
+
+(defun screen-height ()
+  "Returns current height of browser window"
+  (js-code "window").innerHeight)
+
 (defun element-pos (x)
   "Returns [(left top)] position of specified DOM element."
   (let ((left 0) (top 0))
@@ -1160,6 +1168,7 @@
     (user.lastChild.focus)))
 
 (export set-style
+        screen-width screen-height
         element-pos event-pos relative-pos
         show hide
         set-handler

@@ -179,12 +179,15 @@
                          (/= (aref text i) " ")))
                (incf i)))
             (true
-             (incf i)
-             (do ()
-                 ((or (>= i (length text))
-                      (= (aref text i) " ")
-                      (find (aref text i) *stopchars*)))
-               (incf i)))))))
+             (let ((i0 i))
+               (incf i)
+               (do ()
+                   ((or (>= i (length text))
+                        (= (aref text i) " ")
+                        (find (aref text i) *stopchars*)))
+                 (incf i))
+               (when (= (aref text (1- i)) ":")
+                 (push (new-section i0 i #((color "#800080"))) sections))))))))
 
 (setf mode.autoindent
       (lambda (lines row)

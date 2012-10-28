@@ -31,13 +31,56 @@
   <head>
     <title>Ilisp</title>
   </head>
-  <body>
+  <body style="padding:0px; margin:0px; border:none">
+    <textarea spellcheck=false wrap=off id="repl" style="resize:none; position:absolute; left:0px; top:0px; white-space:pre"
+      onkeydown="javascript:keydown(event)"></textarea>
     <script src="jslisp.js">
     </script>
     <script>
 
 var url = document.location.href;
 var id = 0;
+var repl = document.getElementById("repl");
+var lastw = -1;
+var lasth = -1;
+
+setInterval(function(){
+    var w = window.innerWidth;
+    var h = window.innerHeight;
+    if (w != lastw || h != lasth)
+    {
+        lastw = w; lasth = h;
+        repl.style.width = (w-4)+"px";
+        repl.style.height = (h-4)+"px";
+    }
+}, 100);
+
+function keydown(event)
+{
+    if ((event.which == 13 || event.which == 10) && event.ctrlKey)
+    {
+        var ss = repl.selectionStart;
+        var se = repl.selectionEnd;
+        if (ss < se)
+        {
+            var src = f$$make_source(repl.value.slice(ss, se));
+            f$$skip_spaces(src);
+            while (src.s[src.i] != undefined)
+            {
+                var parsed = f$$parse_value(src);
+                var reply = f$$str_value(f$$toplevel_eval(parsed));
+                repl.value = (repl.value.slice(0, se) +
+                              "\n" + reply + "\n" +
+                              repl.value.slice(se));
+                se += reply.length + 2;
+                f$$skip_spaces(src);
+            }
+            repl.setSelectionRange(se, se);
+            event.stopPropagation();
+            event.preventDefault();
+        }
+    }
+}
 
 if (url.indexOf("?") != -1)
 {
@@ -52,7 +95,10 @@ function up(x)
     }
 }
 
-f$$display = alert;
+f$$display = function(msg) {
+    repl.value += msg + "\n";
+};
+
 f$$warning = alert;
 f$$error = alert;
 
@@ -65,16 +111,23 @@ window.onerror = function(m)
 
 window.onmessage = function(event)
 {
-    var src = f$$make_source(event.data);
-    var result = [];
-    f$$skip_spaces(src);
-    while (src.s[src.i] != undefined)
+    if (event.data.slice(0, 5) === "lisp:")
     {
-        var parsed = f$$parse_value(src);
-        result.push(f$$toplevel_eval(parsed));
+        var src = f$$make_source(event.data.slice(5));
+        var result = [];
         f$$skip_spaces(src);
+        while (src.s[src.i] != undefined)
+        {
+            var parsed = f$$parse_value(src);
+            result.push(f$$toplevel_eval(parsed));
+            f$$skip_spaces(src);
+        }
+        up(result);
     }
-    up(result);
+    else if (event.data.slice(0,11)  === "javascript:")
+    {
+        eval(event.data.slice(11));
+    }
 };
 
 f$$load(f$$http_get("boot.lisp"));

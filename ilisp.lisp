@@ -28,6 +28,9 @@
     (setf ilisp.send (lambda (message)
                        (ilisp.iframe.contentWindow.postMessage message "*")))
 
+    (setf ilisp.reset (lambda ()
+                        (setf ilisp.iframe.src ~"ilisp.html?{ilisp.id}")))
+
     ilisp))
 
 (setf (js-code "window").onmessage
