@@ -326,6 +326,26 @@ defun("set-arglist",
       },
       [s$$x, f$$intern("arglist")]);
 
+defmacro("arglist",
+         "[[(arglist x)]]\n" +
+         "Returns the argument list for function [x].",
+         function(x)
+         {
+             return [s$$js_code, "(" + f$$js_compile(x) + ".arglist)"];
+         },
+         [s$$x]);
+
+defmacro("set-arglist",
+         "[[(set-arglist x arglist)]]\n" +
+         "Sets the argument list for function [x] to [arglist].",
+         function(x, arglist)
+         {
+             return [s$$js_code, "(" + f$$js_compile(x) +
+                                       ".arglist=" +
+                                       f$$js_compile(arglist) + ")"];
+         },
+         [s$$x, f$$intern("arglist")]);
+
 defun("number?", "[[(number? x)]]\nReturns true if and only if [x] is a number (including [NaN])",
       function(x) { return (typeof x) === "number"; }, [s$$x], [], []);
 
