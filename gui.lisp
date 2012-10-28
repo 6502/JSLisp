@@ -616,6 +616,88 @@
     (hide element)
     new-element))
 
+;; Splitters
+
+(defun h-splitter (a b &key (min 10) (max 90))
+  (let ((container (create-element "div"))
+        (splitter (create-element "div")))
+    (append-child container a)
+    (append-child container b)
+    (append-child container splitter)
+    (set-style splitter
+               position "absolute"
+               cursor "move"
+               backgroundColor "#DDDDDD")
+    (let ((layout (H spacing: 2
+                     (dom a)
+                     size: 8
+                     (dom splitter)
+                     size: undefined
+                     (dom b))))
+      (setf splitter.onmousedown
+            (lambda (event)
+              (event.preventDefault)
+              (event.stopPropagation)
+              (tracking (lambda (x y)
+                          (declare (ignorable y))
+                          (let ((w container.offsetWidth))
+                            (decf x (first (element-pos container)))
+                            (when (<= (* w min 0.01) x (* w max 0.01))
+                              (setf (first layout.elements).weight
+                                    (* 100 (/ x w)))
+                              (setf (last layout.elements).weight
+                                    (- 100 (first layout.elements).weight))
+                              (set-coords layout 0 0
+                                          container.offsetWidth
+                                          container.offsetHeight))))
+                        (lambda ())
+                        "move")))
+      (setf container."data-resize"
+            (lambda (x0 y0 x1 y1)
+              (set-coords layout 0 0 (- x1 x0) (- y1 y0)))))
+    container))
+
+(defun v-splitter (a b &key (min 10) (max 90))
+  (let ((container (create-element "div"))
+        (splitter (create-element "div")))
+    (append-child container a)
+    (append-child container b)
+    (append-child container splitter)
+    (set-style container
+               position "absolute")
+    (set-style splitter
+               position "absolute"
+               cursor "move"
+               backgroundColor "#DDDDDD")
+    (let ((layout (V spacing: 2
+                     (dom a)
+                     size: 8
+                     (dom splitter)
+                     size: undefined
+                     (dom b))))
+      (setf splitter.onmousedown
+            (lambda (event)
+              (event.preventDefault)
+              (event.stopPropagation)
+              (tracking (lambda (x y)
+                          (declare (ignorable x))
+                          (let ((h container.offsetHeight))
+                            (decf y (second (element-pos container)))
+                            (when (<= (* h min 0.01) y (* h max 0.01))
+                              (setf (first layout.elements).weight
+                                    (* 100 (/ y h)))
+                              (setf (last layout.elements).weight
+                                    (- 100 (first layout.elements).weight))
+                              (set-coords layout 0 0
+                                          container.offsetWidth
+                                          container.offsetHeight))))
+                        (lambda ())
+                        "move")))
+      (setf container."data-resize"
+            (lambda (x0 y0 x1 y1)
+              (set-coords layout 0 0 (- x1 x0) (- y1 y0)))))
+    container))
+
 ;; Table widget
 
 (defun table (data &key cols rows row-click cell-click)
@@ -1187,6 +1269,7 @@
         group
         static-text
         select selection set-selection
+        h-splitter v-splitter
         table
         select-tab tab-pages tab-labels tabbed
         screen-width screen-height
