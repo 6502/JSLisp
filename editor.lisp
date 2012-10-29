@@ -87,13 +87,15 @@
     (let** ((frame (create-element "div"))
             (status (set-style (create-element "div")
                                whiteSpace "pre"
+                               position "absolute"
                                backgroundColor "#888888"
                                fontFamily "\"Droid Sans mono\",\
                                            \"Courier New\",\
                                            \"Courier\",\
                                            \"monospace\""
                                color "#FFFFFF"))
-            (screen (create-element "canvas"))
+            (screen (set-style (create-element "canvas")
+                               position "absolute"))
             (lines (list))
             (cw null)
             (ch *line*)
@@ -419,6 +421,8 @@
                  border "none"
                  px/padding 0
                  px/margin 0)
+      (set-style frame
+                 position "absolute")
       (append-child frame screen)
       (append-child frame status)
       (append-child frame hinput)
@@ -427,12 +431,12 @@
       (setf frame."data-resize"
             (lambda (x0 y0 x1 y1)
               (set-style screen
-                         px/left x0
-                         px/top y0
+                         px/left 0
+                         px/top 0
                          px/width (- x1 x0)
                          px/height (- y1 y0 ch))
               (set-style status
-                         px/left x0
+                         px/left 0
                          px/top (- y1 y0 ch)
                          px/width (- x1 x0)
                          px/height ch)
