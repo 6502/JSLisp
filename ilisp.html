@@ -53,10 +53,16 @@ setInterval(function(){
     if (w != lastw || h != lasth)
     {
         lastw = w; lasth = h;
-        repl.style.width = w+"px";
-        repl.style.height = h+"px";
+        repl.style.width = (w-4)+"px";
+        repl.style.height = (h-4)+"px";
     }
 }, 100);
+
+function output(x)
+{
+    repl.value += x;
+    repl.scrollTop = repl.scrollHeight;
+}
 
 function keydown(event)
 {
@@ -128,13 +134,11 @@ function decrypt(msg)
 }
 
 f$$display = function(msg) {
-    repl.value += msg + "\n";
-    repl.scrollTop = repl.scrollHeight
+    output(msg + "\n");
 };
 
 f$$warning = function(msg) {
-    repl.value += "* WARNING *: " + decrypt(msg) + "\n";
-    repl.scrollTop = repl.scrollHeight
+    output("* WARNING *: " + decrypt(msg) + "\n");
 };
 
 window.onerror = function(msg)

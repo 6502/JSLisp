@@ -34,28 +34,39 @@
                      (- (floor (* (screen-width) 0.40)) 8)
                      (- (screen-height) 4)
                      title: "Inferior Lisp"))
+          (inspect (add-widget w (button "Inspect" #'inspect)))
           (reset (add-widget w (button "Reset" #'reset)))
           (clear (add-widget w (button "Clear" #'clear)))
           (ilisp (ilisp:new #'reply))
+          (#'inspect ()
+                     (mode.inspect-ilisp ilisp))
           (#'reply (msg)
                    (when (= msg "\"ready\"")
-                     (mode.inspect-ilisp ilisp))
+                     (inspect))
                    (ilisp.send "javascript"
-                               (+ "repl.value+=f$$str_value(f$$json_parse$42_("
+                               (+ "output(f$$str_value(f$$json_parse$42_("
                                   (json msg)
-                                  "))+\"\\n\"")))
+                                  "))+\"\\n\")")))
           (#'reset ()
                    (ilisp.reset))
           (#'clear ()
                    (ilisp.send "javascript"
                                "repl.value=\"\"")))
     (add-widget w ilisp.iframe)
-    (set-style ilisp.iframe opacity 1)
+    (set-style ilisp.iframe
+               border "solid 1px #CCCCCC"
+               px/padding 0
+               px/margin -1
+               opacity 1)
     (setf (layout w) (V border: 16 spacing: 16
                         (dom ilisp.iframe)
                         size: 30
-                        (H :filler: size: 80 (dom reset) (dom clear) :filler:)))
-
+                        (H :filler:
+                           size: 80
+                           (dom reset)
+                           (dom clear)
+                           (dom inspect)
+                           :filler:)))
     (show-window w)
     ilisp))
 
