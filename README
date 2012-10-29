@@ -5,7 +5,7 @@ A tiny lisp compiler in javascript (not an interpreter, code compiles to javascr
 - native types are javascript ones, with list = array
 - no car/cdr (first is (aref x 0) and rest is (slice x 1))
 - push works like javascript push (adding at the end!)
-- case sensitive, name mangling (p2d? -> $$p2d$63$)
+- case sensitive, name mangling (#'geo2d:p? -> fgeo2d$$p$63_)
 - true / false / null / undefined / NaN
 - global / lexical / special (defined by defvar)
 - setf / incf / decf with user-defined specializations
@@ -17,4 +17,5 @@ A tiny lisp compiler in javascript (not an interpreter, code compiles to javascr
 - simple defstruct, defmethod (function specialization on generic condition)
 - module support (similar to CL packages)
 - treeshaker/minifier
+- compile-only implementation, semantic checks at compile time
 ... and a lot more ...
