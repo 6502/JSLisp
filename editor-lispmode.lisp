@@ -63,24 +63,44 @@
                  (next))
                 (true (next))))))))
 
+(setf mode.macros #())
 (setf mode.body-macros #())
+(setf mode.functions #())
+(setf mode.vars #())
 
 (setf mode.inspect-ilisp
       (lambda (ilisp)
         (ilisp.send "lisp"
                     "(let ((res (list)))
                        (dolist (name (keys (js-code \"window\")))
-                         (when ((regexp \"^m[a-zA-Z0-9_]*\\\\$\\\\$.*\").exec name)
-                           (let ((f (aref (js-code \"window\") name)))
-                             (when (and f
-                                        (list? f.arglist)
-                                        (= (last f.arglist) 'body))
-                               (push (demangle name) res)))))
+                         (when ((regexp \"^[dmf][a-zA-Z0-9_]*\\\\$\\\\$.*\").exec name)
+                           (let ((x (aref (js-code \"window\") name)))
+                             (case (first name)
+                               (\"m\" (push (list \"m\"
+                                                  (demangle name)
+                                                  (and x (str-value x.arglist))
+                                                  (and x x.documentation)) res))
+                               (\"f\" (push (list \"f\"
+                                                  (demangle name)
+                                                  (and x (str-value x.arglist))
+                                                  (and x x.documentation)) res))
+                               (\"d\" (push (list \"d\" (demangle name)) res))))))
                        res)"
                     (lambda (result)
-                      (setf (aref mode.body-macros) #())
+                      (setf mode.body-macros #())
+                      (setf mode.macros #())
+                      (setf mode.functions #())
+                      (setf mode.vars #())
                       (dolist (x (first (json-parse result)))
-                        (setf (aref mode.body-macros x) 1))))))
+                        (case (first x)
+                          ("m"
+                           (setf (aref mode.macros (second x)) (slice x 2))
+                           (when (= (slice (or (aref x 2) "") -6) " body)")
+                             (setf (aref mode.body-macros (second x)) 1)))
+                          ("f"
+                           (setf (aref mode.functions (second x)) (slice x 2)))
+                          ("d"
+                           (setf (aref mode.vars (second x)) 1))))))))
 
 (setf mode.compute-end-context
       (lambda (line)
@@ -167,7 +187,16 @@
                                    (+ i 2)
                                    (+ j 1))))
                             (true j))
-                          (or ec.parens (setf ec.parens (list))))))
+                          (or ec.parens (setf ec.parens (list))))
+                    (cond
+                     ((aref mode.functions (slice text (1+ i) j))
+                      (push (new-section (1+ i) j #((color "#008080")))
+                            sections)
+                      (setf i (1- j)))
+                     ((aref mode.macros (slice text (1+ i) j))
+                      (push (new-section (1+ i) j #((color "#000080")))
+                            sections)
+                      (setf i (1- j))))))
              (incf i))
             ((= (aref text i) ")")
              (pop (or ec.parens (setf ec.parens (list))))
