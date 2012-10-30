@@ -49,6 +49,9 @@
           (let ((pw (ctx.measureText part).width))
             (setf ctx.fillStyle (or s.style.color "#000000"))
             (ctx.fillText part (+ tx x) y)
+            (when s.style.underline
+              (setf ctx.fillStyle s.style.underline)
+              (ctx.fillRect (+ tx x) (+ y (1- h)) pw 1))
             (incf x pw)
             (setf xx s.to)))))
     (when (< (+ tx x) w)
