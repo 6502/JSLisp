@@ -258,6 +258,7 @@
                                      (hinput.setSelectionRange 0 (length txt))))
             (#'paste ()
                      (let ((pasted-lines (split (replace hinput.value "\r" "") "\n")))
+                       (setf hinput.value "") ;; page rendering becomes slow otherwise (?!?)
                        (when (or (/= col s-col) (/= row s-row))
                          (delete-selection))
                        (let ((r0 row)
@@ -456,13 +457,18 @@
                (indent-selection))
             (67
                (when event.ctrlKey
-                 (selection-to-hinput))
+                 (selection-to-hinput)
+                 ;; Clears input because page rendering (strangely)
+                 ;; becomes a LOT slower otherwise
+                 (set-timeout (lambda () (setf hinput.value "")) 50))
                (setf block false))
             (88
                (when event.ctrlKey
                  (selection-to-hinput)
                  (delete-selection)
-                 (fix))
+                 (fix)
+                 ;; Same trick as above
+                 (set-timeout (lambda () (setf hinput.value "")) 50))
                (setf block false))
             (86
                (when event.ctrlKey
