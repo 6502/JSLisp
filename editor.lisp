@@ -417,7 +417,7 @@
       (set-style hinput
                  position "absolute"
                  px/left 0
-                 px/top 0
+                 px/top -100
                  px/width 1
                  px/height 1
                  outline "none"
