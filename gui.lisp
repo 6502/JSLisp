@@ -871,189 +871,192 @@
 (defun ask-color (x y prompt color cback)
   "Asks modally for a color (initially [color]) and calls [cback] \
    passing the user selection or [null]"
-  (with-window (w (x y 300 320 title: prompt close: false)
-                  ((canvas (set-style (create-element "canvas")
-                                      position "absolute"
-                                      cursor "default"))
-                   (dark (set-style (create-element "canvas")
-                                    position "absolute"
-                                    cursor "pointer"
-                                    pointerEvents "none"))
-                   (cursor (set-style (create-element "canvas")
-                                      position "absolute"
-                                      cursor "pointer"
-                                      pointerEvents "none"))
-                   (vcursor (set-style (create-element "canvas")
-                                       position "absolute"
-                                       cursor "pointer"
-                                       pointerEvents "none"))
-                   (ok (button "OK" (lambda ()
-                                      (funcall cback color)
-                                      (hide-window w))))
-                   (cancel (button "Cancel" (lambda ()
-                                              (funcall cback null)
-                                              (hide-window w)))))
-                  (V spacing: 8 border: 8
-                     (dom canvas)
-                     size: 30
-                     (H null
-                        size: 80 (dom ok) (dom cancel)
-                        size: undefined
-                        null)))
-    (dolist (cv (list cursor vcursor))
-      (setf cv.width 20)
-      (setf cv.height 20)
-      (with-canvas cv
-        (begin-path)
-        (arc 10 10 9 0 (* 2 pi) false)
-        (arc 10 10 4 0 (* 2 pi) true)
-        (fill-style "#000000")
-        (fill)
-        (begin-path)
-        (arc 10 10 8 0 (* 2 pi) false)
-        (arc 10 10 5 0 (* 2 pi) true)
-        (fill-style "#FFFFFF")
-        (fill)))
-    (let ((colv (/ (max color.r color.g color.b)
-                   255))
-          (colx null)
-          (coly null)
-          (colerr null)
-          (wheel (list)))
+  (let ((was-css? false))
+    (when (string? color)
+      (setf color (parse-color color))
+      (setf was-css? true))
+    (let** ((w (window x y 300 320 title: prompt close: false))
+            (canvas (add-widget w (set-style (create-element "canvas")
+                                             position "absolute"
+                                             cursor "default")))
+            (dark (add-widget w (set-style (create-element "canvas")
+                                           position "absolute"
+                                           cursor "pointer"
+                                           pointerEvents "none")))
+            (cursor (add-widget w (set-style (create-element "canvas")
+                                             position "absolute"
+                                             cursor "pointer"
+                                             pointerEvents "none")))
+            (vcursor (add-widget w (set-style (create-element "canvas")
+                                              position "absolute"
+                                              cursor "pointer"
+                                              pointerEvents "none")))
+            (ok (add-widget w (lbutton "OK"
+                                (funcall cback (if was-css? (css-color color) color))
+                                (hide-window w))))
+            (cancel (add-widget w (lbutton "Cancel"
+                                    (funcall cback null)
+                                    (hide-window w))))
+            (layout (V spacing: 8 border: 8
+                       (dom canvas)
+                       size: 30
+                       (H null
+                          size: 80 (dom ok) (dom cancel)
+                          size: undefined
+                          null))))
+      (dolist (cv (list cursor vcursor))
+        (setf cv.width 20)
+        (setf cv.height 20)
+        (with-canvas cv
+          (begin-path)
+          (arc 10 10 9 0 (* 2 pi) false)
+          (arc 10 10 4 0 (* 2 pi) true)
+          (fill-style "#000000")
+          (fill)
+          (begin-path)
+          (arc 10 10 8 0 (* 2 pi) false)
+          (arc 10 10 5 0 (* 2 pi) true)
+          (fill-style "#FFFFFF")
+          (fill)))
+      (let ((colv (/ (max color.r color.g color.b)
+                     255))
+            (colx null)
+            (coly null)
+            (colerr null)
+            (wheel (list)))
 
-      ;; Computing saturated color wheel (1536 elements)
-      (dotimes (i 256) (push (list 255 i 0) wheel))          ; R1 G+ B0
-      (dotimes (i 256) (push (list (- 255 i) 255 0) wheel))  ; R- G1 B0
-      (dotimes (i 256) (push (list 0 255 i) wheel))          ; R0 G1 B+
-      (dotimes (i 256) (push (list 0 (- 255 i) 255) wheel))  ; R0 G- B1
-      (dotimes (i 256) (push (list i 0 255) wheel))          ; R+ G0 B1
-      (dotimes (i 256) (push (list 255 0 (- 255 i)) wheel))  ; R1 G0 B-
+        ;; Computing saturated color wheel (1536 elements)
+        (dotimes (i 256) (push (list 255 i 0) wheel))          ; R1 G+ B0
+        (dotimes (i 256) (push (list (- 255 i) 255 0) wheel))  ; R- G1 B0
+        (dotimes (i 256) (push (list 0 255 i) wheel))          ; R0 G1 B+
+        (dotimes (i 256) (push (list 0 (- 255 i) 255) wheel))  ; R0 G- B1
+        (dotimes (i 256) (push (list i 0 255) wheel))          ; R+ G0 B1
+        (dotimes (i 256) (push (list 255 0 (- 255 i)) wheel))  ; R1 G0 B-
 
-      (labels ((geometry ()
-                 (let* ((width canvas.offsetWidth)
-                        (height canvas.offsetHeight)
-                        (r (/ (min width height) 2.25))
-                        (cx (- (/ width 2) (/ r 8)))
-                        (cy (/ height 2))
-                        (bx (+ cx r (/ r 8))))
-                   (list width height r cx cy bx)))
+        (labels ((geometry ()
+                   (let* ((width canvas.offsetWidth)
+                          (height canvas.offsetHeight)
+                          (r (/ (min width height) 2.25))
+                          (cx (- (/ width 2) (/ r 8)))
+                          (cy (/ height 2))
+                          (bx (+ cx r (/ r 8))))
+                     (list width height r cx cy bx)))
 
-               (fixcursor ()
-                 (let (((width height r cx cy bx) (geometry)))
-                   (declare (ignorable width height))
-                   (set-style cursor
-                              px/left (+ canvas.offsetLeft -10 cx (* r colx))
-                              px/top (+ canvas.offsetTop -10 cy (* r coly))
-                              px/width 20
-                              px/height 20)
-                   (set-style vcursor
-                              px/left (+ canvas.offsetLeft -10 bx)
-                              px/top (+ canvas.offsetTop -10 cy r (- (* 2 r colv)))
-                              px/width 20
-                              px/height 20)
-                   (let (((r g b) (findrgb colx coly)))
-                     (setf color (rgb (floor (* r colv))
-                                      (floor (* g colv))
-                                      (floor (* b colv)))))))
+                 (fixcursor ()
+                   (let (((width height r cx cy bx) (geometry)))
+                     (declare (ignorable width height))
+                     (set-style cursor
+                                px/left (+ canvas.offsetLeft -10 cx (* r colx))
+                                px/top (+ canvas.offsetTop -10 cy (* r coly))
+                                px/width 20
+                                px/height 20)
+                     (set-style vcursor
+                                px/left (+ canvas.offsetLeft -10 bx)
+                                px/top (+ canvas.offsetTop -10 cy r (- (* 2 r colv)))
+                                px/width 20
+                                px/height 20)
+                     (let (((r g b) (findrgb colx coly)))
+                       (setf color (rgb (floor (* r colv))
+                                        (floor (* g colv))
+                                        (floor (* b colv)))))))
 
-               (findrgb (dx dy)
-                 (let* ((d2 (min 1 (+ (* dx dx) (* dy dy))))
-                        (ia (floor (* 1536 (/ (atan2 dy dx) pi 2))))
-                        ((r g b) (aref wheel (% (+ 1536 ia) 1536)))
-                        (k2 (* 255 (- 1 d2)))
-                        (ir (floor (+ (* r d2) k2)))
-                        (ig (floor (+ (* g d2) k2)))
-                        (ib (floor (+ (* b d2) k2))))
-                   (list ir ig ib)))
+                 (findrgb (dx dy)
+                   (let* ((d2 (min 1 (+ (* dx dx) (* dy dy))))
+                          (ia (floor (* 1536 (/ (atan2 dy dx) pi 2))))
+                          ((r g b) (aref wheel (% (+ 1536 ia) 1536)))
+                          (k2 (* 255 (- 1 d2)))
+                          (ir (floor (+ (* r d2) k2)))
+                          (ig (floor (+ (* g d2) k2)))
+                          (ib (floor (+ (* b d2) k2))))
+                     (list ir ig ib)))
 
-               (redraw ()
-                 (let (((width height r cx cy bx) (geometry)))
-                   (setf canvas.width width)
-                   (setf canvas.height height)
-                   (setf dark.width width)
-                   (setf dark.height height)
-                   (set-style dark
-                              px/left canvas.offsetLeft
-                              px/top canvas.offsetTop
-                              px/width width
-                              px/height height
-                              opacity (- 1 colv))
-                   (with-canvas canvas
-                     (rect (- bx 2) (- cy r) 4 (* 2 r))
-                     (fill-style "#A0A0A0")
-                     (fill))
-                   (let* ((ctx (canvas.getContext "2d"))
-                          (idata (ctx.getImageData 0 0 width height))
-                          (data idata.data)
-                          (dark-ctx (dark.getContext "2d"))
-                          (dark-idata (dark-ctx.getImageData 0 0 width height))
-                          (dark-data dark-idata.data)
-                          (wp 0)
-                          (bestx null)
-                          (besty null))
-                     (dotimes (y height)
-                       (let ((dy (/ (- y cy) r)))
-                         (dotimes (x width)
-                           (let* ((dx (/ (- x cx) r))
-                                  ((ir ig ib) (findrgb dx dy)))
-                             (when (<= (+ (* dx dx) (* dy dy)) 1)
-                               (when (null? colx)
-                                 (let* ((dr (- (* colv ir) color.r))
-                                        (dg (- (* colv ig) color.g))
-                                        (db (- (* colv ib) color.b))
-                                        (e2 (+ (* dr dr) (* dg dg) (* db db))))
-                                   (when (or (null? colerr) (< e2 colerr))
-                                     (setf colerr e2)
-                                     (setf bestx dx)
-                                     (setf besty dy))))
-                               (setf (aref data wp) ir)
-                               (setf (aref data (+ wp 1)) ig)
-                               (setf (aref data (+ wp 2)) ib)
-                               (setf (aref data (+ wp 3)) 255)
-                               (setf (aref dark-data wp) 0)
-                               (setf (aref dark-data (+ wp 1)) 0)
-                               (setf (aref dark-data (+ wp 2)) 0)
-                               (setf (aref dark-data (+ wp 3)) 255)))
-                           (incf wp 4))))
-                     (when (null? colx)
-                       (setf colx bestx)
-                       (setf coly besty))
-                     (dark-ctx.putImageData dark-idata 0 0)
-                     (ctx.putImageData idata 0 0)))))
+                 (redraw ()
+                   (let (((width height r cx cy bx) (geometry)))
+                     (setf canvas.width width)
+                     (setf canvas.height height)
+                     (setf dark.width width)
+                     (setf dark.height height)
+                     (set-style dark
+                                px/left canvas.offsetLeft
+                                px/top canvas.offsetTop
+                                px/width width
+                                px/height height
+                                opacity (- 1 colv))
+                     (with-canvas canvas
+                       (rect (- bx 2) (- cy r) 4 (* 2 r))
+                       (fill-style "#A0A0A0")
+                       (fill))
+                     (let* ((ctx (canvas.getContext "2d"))
+                            (idata (ctx.getImageData 0 0 width height))
+                            (data idata.data)
+                            (dark-ctx (dark.getContext "2d"))
+                            (dark-idata (dark-ctx.getImageData 0 0 width height))
+                            (dark-data dark-idata.data)
+                            (wp 0)
+                            (bestx null)
+                            (besty null))
+                       (dotimes (y height)
+                         (let ((dy (/ (- y cy) r)))
+                           (dotimes (x width)
+                             (let* ((dx (/ (- x cx) r))
+                                    ((ir ig ib) (findrgb dx dy)))
+                               (when (<= (+ (* dx dx) (* dy dy)) 1)
+                                 (when (null? colx)
+                                   (let* ((dr (- (* colv ir) color.r))
+                                          (dg (- (* colv ig) color.g))
+                                          (db (- (* colv ib) color.b))
+                                          (e2 (+ (* dr dr) (* dg dg) (* db db))))
+                                     (when (or (null? colerr) (< e2 colerr))
+                                       (setf colerr e2)
+                                       (setf bestx dx)
+                                       (setf besty dy))))
+                                 (setf (aref data wp) ir)
+                                 (setf (aref data (+ wp 1)) ig)
+                                 (setf (aref data (+ wp 2)) ib)
+                                 (setf (aref data (+ wp 3)) 255)
+                                 (setf (aref dark-data wp) 0)
+                                 (setf (aref dark-data (+ wp 1)) 0)
+                                 (setf (aref dark-data (+ wp 2)) 0)
+                                 (setf (aref dark-data (+ wp 3)) 255)))
+                             (incf wp 4))))
+                       (when (null? colx)
+                         (setf colx bestx)
+                         (setf coly besty))
+                       (dark-ctx.putImageData dark-idata 0 0)
+                       (ctx.putImageData idata 0 0)))))
 
-        (set-handler canvas onmousedown
-                     (event.stopPropagation)
-                     (event.preventDefault)
-                     (let (((width height r cx cy bx) (geometry)))
-                       (declare (ignorable width height bx))
-                       (let* (((x y) (event-pos event))
-                              ((x0 y0) (element-pos canvas))
-                              (handler (if (>= (- x x0) (+ cx r))
-                                           (lambda (mx my)
-                                             (declare (ignorable mx my))
-                                             (let ((nv (/ (- (+ cy r) (- my y0)) (* 2 r))))
-                                               (setf colv (max (min nv 1) 0)))
-                                             (set-style dark
-                                                        opacity (- 1 colv))
-                                             (fixcursor))
-                                           (lambda (mx my)
-                                             (setf colx (/ (- mx x0 cx) r))
-                                             (setf coly (/ (- my y0 cy) r))
-                                             (let* ((d2 (+ (* colx colx) (* coly coly)))
-                                                    (d (sqrt d2)))
-                                               (when (> d 1)
-                                                 (setf colx (/ colx d))
-                                                 (setf coly (/ coly d))))
-                                             (fixcursor)))))
-                         (funcall handler x y)
-                         (tracking handler))))
+          (set-handler canvas onmousedown
+            (event.stopPropagation)
+            (event.preventDefault)
+            (let (((width height r cx cy bx) (geometry)))
+              (declare (ignorable width height bx))
+              (let* (((x y) (event-pos event))
+                     ((x0 y0) (element-pos canvas))
+                     (handler (if (>= (- x x0) (+ cx r))
+                                  (lambda (mx my)
+                                    (declare (ignorable mx my))
+                                    (let ((nv (/ (- (+ cy r) (- my y0)) (* 2 r))))
+                                      (setf colv (max (min nv 1) 0)))
+                                    (set-style dark
+                                               opacity (- 1 colv))
+                                    (fixcursor))
+                                  (lambda (mx my)
+                                    (setf colx (/ (- mx x0 cx) r))
+                                    (setf coly (/ (- my y0 cy) r))
+                                    (let* ((d2 (+ (* colx colx) (* coly coly)))
+                                           (d (sqrt d2)))
+                                      (when (> d 1)
+                                        (setf colx (/ colx d))
+                                        (setf coly (/ coly d))))
+                                    (fixcursor)))))
+                (funcall handler x y)
+                (tracking handler))))
 
-        (setf w.resize-cback
-              (lambda (x0 y0 x1 y1)
-                (set-coords layout 0 0 (- x1 x0) (- y1 y0))
-                (redraw)
-                (fixcursor))))
-
+          (setf w.resize-cback
+                (lambda (x0 y0 x1 y1)
+                  (set-coords layout 0 0 (- x1 x0) (- y1 y0))
+                  (redraw)
+                  (fixcursor)))))
       (show-window w modal: true))))
 
 ;; Simple message or question box
