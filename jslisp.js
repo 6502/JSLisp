@@ -2002,7 +2002,7 @@ defun("get-file",
       "Reads and returns the content of the specified file",
       function(name, encoding)
       {
-          if ((typeof encoding) === "undefined")
+          if (arguments.length == 1)
               encoding = "utf-8";
           var fs = require("fs");
           return fs.readFileSync(name, encoding);

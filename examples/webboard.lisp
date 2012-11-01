@@ -1,7 +1,13 @@
 (import * from gui)
 (import * from layout)
+(import * from graphics)
 
-(defconstant +IMAGES+ "examples/img")
+(defvar *image-data* (let ((res #()))
+                       (dolist (x '("wp" "wr" "wn" "wb" "wq" "wk"
+                                    "bp" "br" "bn" "bb" "bq" "bk"))
+                         (setf (aref res x)
+                               (image-data-url ~"examples/img/{x}.png")))
+                       res))
 
 (defun chessboard ()
   (let** ((w (window 0 0 620 520 title: "Chessboard"))
@@ -26,7 +32,7 @@
                                       (when (= (incf load-count) 12)
                                         (redraw)
                                         (redraw-pselect))))
-                              (setf img.src ~"{+IMAGES+}/{x}.png")
+                              (setf img.src (aref *image-data* x))
                               img)))
                     pieces))
           (lightsq "#BBCCDD")

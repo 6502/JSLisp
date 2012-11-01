@@ -138,7 +138,7 @@
                        `(funcall (. ,',ctx drawImage) ,src ,sx ,sy ,sw ,sh ,x ,y ,w ,h)))))
          ,@body))))
 
-(defmacro image-data-url (filename)
+(defun image-data-url (filename)
   (+ "data:image/png;base64,"
      (base64-encode (if node-js
                         (get-file filename undefined)
