@@ -1937,13 +1937,13 @@ defun("load",
       [f$$intern("src"), f$$intern("&optional"), f$$intern("name")]);
 
 defun("http",
-      "[[(http verb url data &optional success-function failure-function)]]\n" +
+      "[[(http verb url data &optional success-function failure-function binary)]]\n" +
       "Executes the specified http request (\"GET\" or \"POST\") for the specified [url] " +
       "either asynchronously (if [success-function] is specified) or synchronously if no " +
       "callback is specified. The success function if specified will be passed " +
       "the content, the url and the request object. The failure function if specified " +
       "will be passed the url and the request status code in case of an error.",
-      function(verb, url, data, onSuccess, onFail)
+      function(verb, url, data, onSuccess, onFail, binary)
       {
           var req = new XMLHttpRequest();
           if (onSuccess)
@@ -1968,25 +1968,34 @@ defun("http",
               }
           }
           req.open(verb, url, !!onSuccess);
+          if (binary)
+          {
+              var encoding = "text/plain; charset=x-user-defined";
+              req.setRequestHeader("Content-type", encoding);
+              if (req.overrideMimeType)
+                  req.overrideMimeType(encoding);
+          }
           req.send(data);
           return onSuccess ? req : req.responseText;
       },
       [f$$intern("verb"), f$$intern("url"), f$$intern("data"), f$$intern("&optional"),
-       f$$intern("success-function"), f$$intern("failure-function")], [], []);
+       f$$intern("success-function"), f$$intern("failure-function"),
+       f$$intern("binary")], [], []);
 
 defun("http-get",
-      "[[(http-get url &optional success-function failure-function)]]\n" +
+      "[[(http-get url &optional success-function failure-function binary)]]\n" +
       "Acquires the specified resource. Executes " +
       "either asynchronously (if [success-function] is specified) or synchronously if no " +
       "callback is specified. The success function if specified will be passed " +
       "the content, the url and the request object. The failure function if specified " +
       "will be passed the url and the request status code in case of an error.",
-      function(url, onSuccess, onFailure)
+      function(url, onSuccess, onFailure, binary)
       {
-          return f$$http("GET", url, null, onSuccess, onFailure);
+          return f$$http("GET", url, null, onSuccess, onFailure, binary);
       },
       [f$$intern("url"), f$$intern("&optional"),
-       f$$intern("success-function"), f$$intern("failure-function")], [], ["$$http"]);
+       f$$intern("success-function"), f$$intern("failure-function"),
+       f$$intern("encoding")], [], ["$$http"]);
 
 defun("get-file",
       "[[(get-file filename &optional (encoding \"utf-8\"))]]\n" +

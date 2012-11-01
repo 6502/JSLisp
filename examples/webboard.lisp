@@ -199,4 +199,7 @@
     (start)
     (show-window w center: true)))
 
-(chessboard)
+(defun main ()
+  (chessboard))
+
+(main)

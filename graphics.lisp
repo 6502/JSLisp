@@ -1,3 +1,5 @@
+(import * from base64)
+
 (deftuple rgb (r g b))
 (deftuple rgba (r g b a))
 
@@ -136,5 +138,12 @@
                        `(funcall (. ,',ctx drawImage) ,src ,sx ,sy ,sw ,sh ,x ,y ,w ,h)))))
          ,@body))))
 
+(defmacro image-data-url (filename)
+  (+ "data:image/png;base64,"
+     (base64-encode (if node-js
+                        (get-file filename undefined)
+                        (http-get filename null null true)))))
+
 (export rgb rgba css-color parse-color random-color
-        with-canvas)
+        with-canvas
+        image-data-url)
