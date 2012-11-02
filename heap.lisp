@@ -29,13 +29,15 @@
 
 (defun heap-pop (heap &optional (index 0))
   "Removes and returns the specified element from the [heap], moving other \
-   elements if this is required to maintain the heap invariant."
+   elements if this is required to maintain the heap invariant.
+   If the heap has a [tracking] function (see {{make-heap}}) then it will \
+   called on the extracted element passing [null] as index position."
   (let ((x (aref heap index)))
     (when heap.tracking (heap.tracking x null))
     (let ((y (pop heap)))
       (when (> (length heap) 0)
         (setf (aref heap index) y)
-        (heap.tracking (heap.tracking y index))
+        (when heap.tracking (heap.tracking y index))
         (heap-fix heap index)))
     x))
 
@@ -43,7 +45,7 @@
   "Adds the specified element to the heap, moving eventually other elements \
    if this is required to maintain the heap invariant."
   (push x heap)
-  (heap.tracking (heap.tracking x (1- (length heap))))
+  (when heap.tracking (heap.tracking x (1- (length heap))))
   (heap-fix heap (1- (length heap))))
 
 (defun make-heap (data &optional lte tracking)
@@ -125,4 +127,4 @@
               (make-heap data)
               (heap-check data #'check-tracking))))))))
 
-(export make-heap heap-check heap-push heap-pop heap-fix test-module)
+(export make-heap heap-check heap-push heap-pop heap-fix)
