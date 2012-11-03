@@ -1,9 +1,9 @@
 (import * from graphics)
 (import * from gui)
+(import * from layout)
 
 ;; A bidimensional point
-(defobject p2d (x y))
-(defun p2d (x y) (new-p2d x y))
+(deftuple p2d (x y))
 
 (defun dist (a b)
   (let ((dx (- b.x a.x))
@@ -60,6 +60,7 @@
            (lerp p01 p12 s)))))))
 
 (defun draw (canvas obj)
+  (declare (ignorable canvas obj))
   "Draw [obj] on the provided [canvas]")
 
 (defmethod draw (canvas obj) (line? obj)
@@ -80,14 +81,17 @@
 ;; Interactor methods
 (defun hit (shape obj p btn)
   "The [hit] method should return either a callable handling drag/up or a false value"
+  (declare (ignorable shape obj p btn))
   false)
 
 (defun prompt (obj)
   "The top-most 'true' prompt message gets displayed in the status"
+  (declare (ignorable obj))
   false)
 
 ;; Utility mouse callback... just waits mouseup
-(defun wait-up (phase p))
+(defun wait-up (phase p)
+  (declare (ignorable phase p)))
 
 ;; Line-edit interactor
 (defobject line-editor (shape entity))
@@ -98,8 +102,7 @@
 (defmethod draw (canvas obj) (line-editor? obj)
   (with-canvas canvas
     (begin-path)
-    (let ((first true)
-          (n (length obj.entity.pts)))
+    (let ((first true))
       (dolist (p obj.entity.pts)
         (if first
             (move-to p.x p.y)
@@ -143,6 +146,7 @@
                   (nremove-first best obj.entity.pts))
               #'wait-up)
             (lambda (phase p)
+              (declare (ignorable phase))
               (setf best.x p.x)
               (setf best.y p.y)))
         ;; Miss: check for point addition
@@ -158,6 +162,7 @@
                 ;; Add point
                 (insert obj.entity.pts (second best) (first best))
                 (lambda (phase p)
+                  (declare (ignorable phase))
                   (setf (first best).x p.x)
                   (setf (first best).y p.y)))
               (progn
@@ -197,6 +202,7 @@
         (when (= (length obj.pts) 2)
           (push (new-line obj.pts 3.0 "#000000") shape.objs))
         (lambda (phase pp)
+          (declare (ignorable phase))
           (setf p.x pp.x)
           (setf p.y pp.y)))))
 
@@ -250,13 +256,14 @@
              (draw-line (button "+line"
                                 (lambda ()
                                   (set-interactor (new-line-drawing shape)))))
-             (layout (H: spacing: 4 border: 4
-                         (V: spacing: 4 size: 60
-                             (V: (Vdiv: draw-line size: 30)
-                                 (Vdiv: clear size: 30)
-                                 (V:)))
-                         (V: spacing: 4 (Hdiv: canvas)
-                             (Hdiv: prompt size: 20)))))
+             (layout (H spacing: 4 border: 4
+                        size: 60 (V size: 30
+                                    (dom draw-line)
+                                    (dom clear)
+                                    :filler:)
+                        size: undefined (V (dom canvas)
+                                           size: 20
+                                           (dom prompt)))))
 
         (set-style w.client
                    overflow "hidden")
@@ -267,7 +274,7 @@
 
         (setf w.resize-cback
               (lambda (x0 y0 x1 y1)
-                (set-coords layout 0 1 (- x1 0) (- y1 y0 -1))
+                (set-coords layout 0 1 (- x1 x0) (- y1 y0 -1))
                 (repaint)))
 
         (set-handler canvas oncontextmenu
