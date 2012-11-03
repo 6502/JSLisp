@@ -2774,6 +2774,14 @@ A name is either an unevaluated atom or an evaluated list."
   (let ((obj '#.(gensym)))
     `(lambda (,obj) (. ,obj ,x))))
 
+(defmacro set (. x)
+  "[(set .x)] is an hygienic shorthand for [(lambda (obj value) (setf obj.x value))]"
+  (unless (= . '.)
+    (error "Syntax is (set .<field>)"))
+  (let ((obj '#.(gensym))
+        (value '#.(gensym)))
+    `(lambda (,obj ,value) (setf (. ,obj ,x) ,value))))
+
 ;; shallow-copy
 
 (defun copy (x)
