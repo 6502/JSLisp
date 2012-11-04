@@ -1,324 +1,408 @@
-(import * from graphics)
-(import * from gui)
 (import * from layout)
+(import * from gui)
+(import * from xy)
 
-;; A bidimensional point
-(deftuple p2d (x y))
+(setf #'warning #'error)
 
-(defun dist (a b)
-  (let ((dx (- b.x a.x))
-        (dy (- b.y a.y)))
-    (sqrt (+ (* dx dx) (* dy dy)))))
+;; a graphic world
 
-;; A line built with quadratic curves
-(defobject line (pts
-                 width
-                 color))
+(defobject view ((editors (list))
+                 (canvas null)
+                 (ctx null)
+                 (zero (xy 0 0))
+                 (scale 1.0)))
 
-;; Part of a line
-(defobject boundary (L t0 t1))
+(defobject editor ((objects (list))
+                   (mousedown-listeners (list))
+                   (mousemove-listeners (list))
+                   (mouseup-listeners (list))
+                   (mousewheel-listeners (list))))
 
-;; A closed area
-(defobject area (boundaries
-                 color))
+(defvar *view* null)
+(defvar *editor* null)
 
-;; A vector shape
-(defobject shape (objs))
+(defun xform (p)
+  (xy+ *view*.zero (xy* p *view*.scale)))
 
-(defun lerp (a b t)
-  "Interpolated point between [a] and [b]"
-  (p2d (+ a.x (* t (- b.x a.x)))
-       (+ a.y (* t (- b.y a.y)))))
+(defun rev-xform (p)
+  (xy/ (xy- p *view*.zero) *view*.scale))
 
-(defun avg (a b)
-  "Middle point between [a] and [b]"
-  (lerp a b 0.5))
+;; drawing primitives
 
-(defun pt (pts t)
-  "Returns a point on a curve"
-  ;;
-  ;;       |  arc-1  |  arc-2  |  arc-3  |         |  last   |
-  ;;  x----|----x----|----x----|----x----|- - - - -|----x----|----x
-  ;;  0    .5   1    .5   2    .5   3    .5            n-2   .5  n-1
-  ;;
-  (let ((n (length pts)))
-    (macrolet ((p (ix) `(aref pts ,ix)))
-      (cond
-        ((< t 0.5)
-         (lerp (p 0) (avg (p 0) (p 1)) (* t 2)))
-        ((> t (- n 1.5))
-         (lerp (avg (p (- n 2)) (p (1- n))) (p (1- n))
-               (* 2 (- t (- n 1.5)))))
-        (true
-         (let* ((i (floor (+ t 0.5)))
-                (s (+ 0.5 (- t i)))
-                (p0 (avg (p (1- i)) (p i)))
-                (p1 (p i))
-                (p2 (avg (p i) (p (1+ i))))
-                (p01 (lerp p0 p1 s))
-                (p12 (lerp p1 p2 s)))
-           (lerp p01 p12 s)))))))
+(defun move-to (p)
+  (setf p (xform p))
+  (*view*.ctx.moveTo p.x p.y))
 
-(defun draw (canvas obj)
-  (declare (ignorable canvas obj))
-  "Draw [obj] on the provided [canvas]")
+(defun line-to (p)
+  (setf p (xform p))
+  (*view*.ctx.lineTo p.x p.y))
 
-(defmethod draw (canvas obj) (line? obj)
-  (with-canvas canvas
-    (begin-path)
-    (let ((first true)
-          (n (length obj.pts)))
-      (dolist (t (fp-range 0 (1- n) (* 10 n)))
-        (let ((p (pt obj.pts t)))
-          (if first
-              (move-to p.x p.y)
-              (line-to p.x p.y))
-          (setf first false))))
-    (stroke-style obj.color)
-    (line-width obj.width)
-    (stroke)))
+(defun bez2-to (c p)
+  (setf c (xform c))
+  (setf p (xform p))
+  (*view*.ctx.quadraticCurveTo c.x c.y p.x p.y))
 
-;; Interactor methods
-(defun hit (shape obj p btn)
-  "The [hit] method should return either a callable handling drag/up or a false value"
-  (declare (ignorable shape obj p btn))
-  false)
+(defun bez3-to (c1 c2 p)
+  (setf c1 (xform c1))
+  (setf c2 (xform c2))
+  (setf p (xform p))
+  (*view*.ctx.bezierCurveTo c1.x c1.y c2.x c2.y p.x p.y))
 
-(defun prompt (obj)
-  "The top-most 'true' prompt message gets displayed in the status"
-  (declare (ignorable obj))
-  false)
+(defun polyline (pts)
+  (when (and (= (length pts) 1)
+             (list? (first pts)))
+    (setf pts (first pts)))
+  (when (> (length pts) 0)
+    (move-to (first pts))
+    (dotimes (i (1- (length pts)))
+      (line-to (aref pts (1+ i))))))
 
-;; Utility mouse callback... just waits mouseup
-(defun wait-up (phase p)
-  (declare (ignorable phase p)))
+(defun dot (center pxradius)
+  (setf center (xform center))
+  (*view*.ctx.arc center.x center.y pxradius 0 (* 2 pi) false))
 
-;; Line-edit interactor
-(defobject line-editor (shape entity))
+(defun stroke (color width)
+  (setf *view*.ctx.strokeStyle color)
+  (setf *view*.ctx.lineWidth
+        (if (< width 0)
+            (- width)
+            (* width *view*.scale)))
+  (*view*.ctx.stroke))
 
-(defmethod prompt (obj) (line-editor? obj)
-  "[1]=edit position or add point, [2]=delete point")
+(defun fill (color)
+  (setf *view*.ctx.fillStyle color)
+  (*view*.ctx.fill))
 
-(defmethod draw (canvas obj) (line-editor? obj)
-  (with-canvas canvas
-    (begin-path)
-    (let ((first true))
-      (dolist (p obj.entity.pts)
-        (if first
-            (move-to p.x p.y)
-            (line-to p.x p.y))
-        (setf first false))
-      (line-width 1)
-      (stroke-style "#C0C0C0")
-      (stroke))
-    (let ((last null))
-      (stroke-style "#FF0000")
-      (line-width 2)
-      (dolist (p obj.entity.pts)
-        (begin-path)
-        (arc p.x p.y 4 0 (* 2 pi) true)
-        (close-path)
-        (stroke)
-        (when last
-          (let ((mp (lerp p last 0.5)))
-            (begin-path)
-            (arc mp.x mp.y 2 0 (* 2 pi) true)
-            (close-path)
-            (stroke)))
-        (setf last p)))))
+;;
 
-(defmethod hit (shape obj p btn) (line-editor? obj)
-  (let ((best null)
-        (best-dist 16))
-    (dolist (pp obj.entity.pts)
-      (let ((dist (dist p pp)))
-        (when (< dist best-dist)
-          (setf best-dist dist)
-          (setf best pp))))
-    (if best
-        ;; Hit: edit or delete
-        (if (= btn 2)
-            (progn
-              (if (= (length obj.entity.pts) 2)
-                  (progn
-                    (nremove-first obj.entity shape.objs)
-                    (nremove-first obj shape.objs))
-                  (nremove-first best obj.entity.pts))
-              #'wait-up)
-            (lambda (phase p)
-              (declare (ignorable phase))
-              (setf best.x p.x)
-              (setf best.y p.y)))
-        ;; Miss: check for point addition
-        (progn
-          (dotimes (i (1- (length obj.entity.pts)))
-            (let* ((pp (lerp (aref obj.entity.pts i) (aref obj.entity.pts (1+ i)) 0.5))
-                   (dist (dist p pp)))
-              (when (< dist best-dist)
-                (setf best-dist dist)
-                (setf best (list pp (1+ i))))))
-          (if best
-              (progn
-                ;; Add point
-                (insert obj.entity.pts (second best) (first best))
-                (lambda (phase p)
-                  (declare (ignorable phase))
-                  (setf (first best).x p.x)
-                  (setf (first best).y p.y)))
-              (progn
-                ;; Miss: remove interactor
-                (nremove-first obj shape.objs)
-                #'wait-up))))))
+(defun draw (obj)
+  (declare (ignorable obj)))
 
-; Click on line activates an editor
-(defmethod hit (shape obj p btn) (line? obj)
-  (let ((n (length obj.pts)))
-    (dolist (t (fp-range 0 (1- n) (* 10 n)))
-      (let ((pp (pt obj.pts t)))
-        (when (< (dist p pp) 16)
-          (push (new-line-editor shape obj) shape.objs)
-          (return-from hit #'wait-up))))))
+(defun hit (obj p)
+  (declare (ignorable obj p)))
 
-; Line creation interactor
-(defobject line-drawing (shape (pts (list))))
+(defun view (editors)
+  (let** ((w (window 0 0 640 480 title: "Vector editor"))
+          (canvas (add-widget w (create-element "canvas")))
+          (ctx (canvas.getContext "2d"))
+          (view (make-view editors: editors
+                           canvas: canvas
+                           ctx: ctx))
+          (dirty false)
 
-(defmethod prompt (obj) (line-drawing? obj)
-  (if (length obj.pts)
-      "[1]=add another point, [2]=restart"
-      "[1]=add first point, [2]=quit"))
+          (#'update ()
+            (unless dirty
+              (setf dirty true)
+              (set-timeout #'redraw 0)))
 
-(defmethod hit (shape obj p btn) (line-drawing? obj)
-  (if (= btn 2)
-      (progn
-        (if (length obj.pts)
-            (progn
-              (setf obj.pts (list))
-              (nremove-first obj shape.objs)
-              (push obj shape.objs))
-            (nremove-first obj shape.objs))
-        #'wait-up)
-      (progn
-        (push p obj.pts)
-        (when (= (length obj.pts) 2)
-          (push (new-line obj.pts 3.0 "#000000") shape.objs))
-        (lambda (phase pp)
-          (declare (ignorable phase))
-          (setf p.x pp.x)
-          (setf p.y pp.y)))))
+          (#'redraw ()
+            (let ((*view* view))
+              (setf dirty false)
+              (setf canvas.width canvas.offsetWidth)
+              (setf canvas.height canvas.offsetHeight)
+              (dolist (*editor* editors)
+                (setf ctx.fillStyle "rgba(0,0,0,0.15)")
+                (ctx.fillRect 0 0 canvas.width canvas.height)
+                (dolist (o *editor*.objects)
+                  (ctx.beginPath)
+                  (draw o)))))
 
-(defmethod draw (canvas obj) (line-drawing? obj)
-  (when (= (length obj.pts) 1)
-    (with-canvas canvas
-      (let ((p (first obj.pts)))
-        (begin-path)
-        (move-to (- p.x 3) (- p.y 3))
-        (line-to (+ p.x 3) (+ p.y 3))
-        (move-to (- p.x 3) (+ p.y 3))
-        (line-to (+ p.x 3) (- p.y 3))
-        (stroke-style "#000000")
-        (line-width 1)
-        (stroke)))))
+          (#'mousedown (event)
+            (let ((*view* view))
+              (event.preventDefault)
+              (event.stopPropagation)
+              (when (> (length editors) 0)
+                (let ((p (rev-xform (apply #'xy (relative-pos event canvas))))
+                      (*editor* (last editors)))
+                  (dolist (ml (reverse *editor*.mousedown-listeners))
+                    (when (funcall ml p)
+                      (update)
+                      (return-from mousedown)))
+                  (dolist (o (reverse *editor*.objects))
+                    (when (hit o p)
+                      (update)
+                      (return-from mousedown)))))))
 
-(defun editor (shape)
-  (let* ((w (window 100 100 600 400
-                    title: "vector editor"))
-         (canvas (create-element "canvas"))
-         (prompt (create-element "div"))
-         (interactor null))
-    (set-style prompt
-               position "absolute"
-               px/fontSize 16
-               fontWeight "bold"
-               backgroundColor "#CCCCCC")
-    (set-style canvas
-               position "absolute")
-    (labels ((repaint ()
-               (setf (. canvas width) (. canvas offsetWidth))
-               (setf (. canvas height) (. canvas offsetHeight))
-               (with-canvas canvas
-                 (fill-style "#EEEEEE")
-                 (rect 0 0 (. canvas width) (. canvas height))
-                 (fill))
-               (let ((msg "Select a command..."))
-                 (dolist (x shape.objs)
-                   (draw canvas x)
-                   (setf msg (or (prompt x) msg)))
-                 (setf (. prompt textContent) msg)))
-             (set-interactor (i)
-               (setf shape.objs
-                     (filter (lambda (x) (not (prompt x))) shape.objs))
-               (when i (push i shape.objs))
-               (repaint)))
-      (let* ((clear (button "Clear"
-                            (lambda ()
-                              (setf shape.objs (list))
-                              (repaint))))
-             (draw-line (button "+line"
-                                (lambda ()
-                                  (set-interactor (new-line-drawing shape)))))
-             (layout (H spacing: 4 border: 4
-                        size: 60 (V size: 30
-                                    (dom draw-line)
-                                    (dom clear)
-                                    :filler:)
-                        size: undefined (V (dom canvas)
-                                           size: 20
-                                           (dom prompt)))))
+          (#'mousemove (event)
+            (let ((*view* view))
+              (event.preventDefault)
+              (event.stopPropagation)
+              (when (> (length editors) 0)
+                (let ((p (rev-xform (apply #'xy (relative-pos event canvas))))
+                      (*editor* (last editors)))
+                  (dolist (ml (reverse *editor*.mousemove-listeners))
+                    (when (funcall ml p)
+                      (update)
+                      (return-from mousemove)))))))
 
-        (set-style w.client
-                   overflow "hidden")
+          (#'mouseup (event)
+            (let ((*view* view))
+              (event.preventDefault)
+              (event.stopPropagation)
+              (when (> (length editors) 0)
+                (let ((p (rev-xform (apply #'xy (relative-pos event canvas))))
+                      (*editor* (last editors)))
+                  (dolist (ml (reverse *editor*.mouseup-listeners))
+                    (when (funcall ml p)
+                      (update)
+                      (return-from mouseup))))))))
 
-        (dolist (x (list canvas prompt
-                         clear draw-line))
-          (append-child w.client x))
+    (setf canvas.onmousedown #'mousedown)
+    (setf canvas.onmousemove #'mousemove)
+    (setf canvas.onmouseup #'mouseup)
 
-        (setf w.resize-cback
-              (lambda (x0 y0 x1 y1)
-                (set-coords layout 0 1 (- x1 x0) (- y1 y0 -1))
-                (repaint)))
+    (setf canvas."data-resize" #'redraw)
+    (set-layout w (V border: 8 (dom canvas)))
+    (show-window w center: true)))
 
-        (set-handler canvas oncontextmenu
-                     (funcall (. event preventDefault))
-                     (funcall (. event stopPropagation)))
+;;
 
-        (set-handler canvas onmousemove
-                     (funcall (. event preventDefault))
-                     (funcall (. event stopPropagation))
-                     (when interactor
-                       (let ((p (event-pos event))
-                             (p0 (element-pos canvas)))
-                         (funcall interactor 1 (p2d (- (first p) (first p0))
-                                                    (- (second p) (second p0))))
-                         (repaint))))
+(defmacro track (var &rest body)
+  `(let** ((#'move (,@var)
+             ,@body)
+           (#'up (,@var)
+             (declare (ignorable ,@var))
+             (nremove #'move *editor*.mousemove-listeners)
+             (nremove #'up *editor*.mouseup-listeners)))
+     (push #'move *editor*.mousemove-listeners)
+     (push #'up *editor*.mouseup-listeners)))
 
-        (set-handler canvas onmouseup
-                     (funcall (. event preventDefault))
-                     (funcall (. event stopPropagation))
-                     (when interactor
-                       (let ((p (event-pos event))
-                             (p0 (element-pos canvas)))
-                         (funcall interactor 2 (p2d (- (first p) (first p0))
-                                                    (- (second p) (second p0)))))
-                       (setf interactor null))
-                     (repaint))
+(defobject keypoint (pt cback))
 
-        (set-handler canvas onmousedown
-                     (funcall (. event preventDefault))
-                     (funcall (. event stopPropagation))
-                     (let ((p (event-pos event))
-                           (p0 (element-pos canvas)))
-                       (let ((pp (p2d (- (first p) (first p0))
-                                      (- (second p) (second p0))))
-                             (btn (if (= (. event button) 2) 2 1)))
-                         (dolist (x (reverse shape.objs))
-                           (unless interactor
-                             (setf interactor (hit shape x pp btn))))
-                         (when interactor
-                           (funcall interactor 0 pp))))
-                     (repaint))))
-    (show-window w)))
+(defmethod draw (obj) (keypoint? obj)
+  (dot obj.pt 4)
+  (fill "#FF0000"))
+
+(defmethod hit (obj p) (keypoint? obj)
+  (when (< (xy-dist obj.pt p) 8)
+    (track (p)
+      (setf obj.pt p)
+      (funcall obj.cback p))
+    true))
+
+(defobject rel-keypoint (base delta cback))
+
+(defmethod draw (obj) (rel-keypoint? obj)
+  (dot (xy+ obj.base.pt obj.delta) 3)
+  (fill "#FF00FF"))
+
+(defmethod hit (obj p) (rel-keypoint? obj)
+  (when (< (xy-dist (xy+ obj.base.pt obj.delta) p) 8)
+    (track (p)
+      (setf obj.delta (xy- p obj.base.pt))
+      (funcall obj.cback obj.delta))
+    true))
+
+(defobject construction (f))
+
+(defmethod draw (obj) (construction? obj)
+  (funcall obj.f))
+
+(defobject editor-closer ())
+
+(defmethod hit (obj p) (editor-closer? obj)
+  (declare (ignorable p))
+  (pop *view*.editors))
+
+(defun sub-editor (objects)
+  (push (new-editor (append (new-editor-closer) objects))
+        *view*.editors))
+
+(defun edit-rect (x0 y0 x1 y1 f)
+  (let** ((xm (/ (+ x0 x1) 2))
+          (ym (/ (+ y0 y1) 2))
+          (kp1 (make-keypoint pt: (xy x0 y0)
+                              cback: (lambda (p)
+                                       (setf x0 (min p.x (- x1 (/ 10 *view*.scale))))
+                                       (setf y0 (min p.y (- y1 (/ 10 *view*.scale))))
+                                       (fix))))
+          (kp2 (make-keypoint pt: (xy xm y0)
+                              cback: (lambda (p)
+                                       (setf y0 (min p.y (- y1 (/ 10 *view*.scale))))
+                                       (fix))))
+          (kp3 (make-keypoint pt: (xy x1 y0)
+                              cback: (lambda (p)
+                                       (setf x1 (max p.x (+ x0 (/ 10 *view*.scale))))
+                                       (setf y0 (min p.y (- y1 (/ 10 *view*.scale))))
+                                       (fix))))
+          (kp4 (make-keypoint pt: (xy x0 ym)
+                              cback: (lambda (p)
+                                       (setf x0 (min p.x (- x1 (/ 10 *view*.scale))))
+                                       (fix))))
+          (kp5 (make-keypoint pt: (xy x1 ym)
+                              cback: (lambda (p)
+                                       (setf x1 (max p.x (+ x0 (/ 10 *view*.scale))))
+                                       (fix))))
+          (kp6 (make-keypoint pt: (xy x0 y1)
+                              cback: (lambda (p)
+                                       (setf x0 (min p.x (- x1 (/ 10 *view*.scale))))
+                                       (setf y1 (max p.y (+ y0 (/ 10 *view*.scale))))
+                                       (fix))))
+          (kp7 (make-keypoint pt: (xy xm y1)
+                              cback: (lambda (p)
+                                       (setf y1 (max p.y (+ y0 (/ 10 *view*.scale))))
+                                       (fix))))
+          (kp8 (make-keypoint pt: (xy x1 y1)
+                              cback: (lambda (p)
+                                       (setf x1 (max p.x (+ x0 (/ 10 *view*.scale))))
+                                       (setf y1 (max p.y (+ y0 (/ 10 *view*.scale))))
+                                       (fix))))
+          (kp9 (make-keypoint pt: (xy xm ym)
+                              cback: (lambda (p)
+                                       (let ((dx (- p.x xm))
+                                             (dy (- p.y ym)))
+                                         (incf x0 dx) (incf x1 dx)
+                                         (incf y0 dy) (incf y1 dy)
+                                         (fix)))))
+          (cc (new-construction (lambda ()
+                                  (move-to (xy x0 y0))
+                                  (line-to (xy x1 y0))
+                                  (line-to (xy x1 y1))
+                                  (line-to (xy x0 y1))
+                                  (line-to (xy x0 y0))
+                                  (stroke "#FFFFFF" -1))))
+          (#'fix ()
+                 (funcall f x0 y0 x1 y1)
+                 (setf xm (/ (+ x0 x1) 2))
+                 (setf ym (/ (+ y0 y1) 2))
+                 (setf kp1.pt (xy x0 y0))
+                 (setf kp2.pt (xy xm y0))
+                 (setf kp3.pt (xy x1 y0))
+                 (setf kp4.pt (xy x0 ym))
+                 (setf kp5.pt (xy x1 ym))
+                 (setf kp6.pt (xy x0 y1))
+                 (setf kp7.pt (xy xm y1))
+                 (setf kp8.pt (xy x1 y1))
+                 (setf kp9.pt (xy xm ym))))
+    (sub-editor (list cc kp1 kp2 kp3 kp4 kp5 kp6 kp7 kp8 kp9))))
+
+(defobject circle (center radius fill-color stroke-color stroke-width))
+
+(defmethod draw (obj) (circle? obj)
+  (let ((c (xform obj.center))
+        (r (* obj.radius *view*.scale)))
+    (*view*.ctx.arc c.x c.y r 0 (* 2 pi) true)
+    (when obj.fill-color (fill obj.fill-color))
+    (when obj.stroke-color (stroke obj.stroke-color obj.stroke-width))))
+
+(defmethod hit (obj p) (circle? obj)
+  (when (< (xy-dist p obj.center) obj.radius)
+    (let** ((kp1 (make-keypoint pt: obj.center
+                                cback: (lambda (p)
+                                         (setf obj.center p))))
+            (kp2 (make-rel-keypoint base: kp1
+                                    delta: (xy obj.radius 0)
+                                    cback: (lambda (delta)
+                                             (setf obj.radius (xy-abs delta)))))
+            (cc (new-construction (lambda ()
+                                    (move-to kp1.pt) (line-to (xy+ kp1.pt kp2.delta))
+                                    (stroke "#FFFFFF" -1)))))
+      (sub-editor (list cc kp1 kp2)))))
+
+(defobject bez3 (p1 p2 p3 p4 stroke-color stroke-width))
+
+(defmethod draw (obj) (bez3? obj)
+  (move-to obj.p1)
+  (bez3-to obj.p2 obj.p3 obj.p4)
+  (stroke obj.stroke-color obj.stroke-width))
+
+(defmethod hit (obj p) (bez3? obj)
+  (when (or (< (xy-dist p obj.p1) (/ 8 *view*.scale))
+            (< (xy-dist p obj.p4) (/ 8 *view*.scale)))
+    (let** ((kp1 (make-keypoint pt: obj.p1
+                                cback: (lambda (p)
+                                         (setf obj.p1 p)
+                                         (setf obj.p2 (xy+ p kp2.delta)))))
+            (kp4 (make-keypoint pt: obj.p4
+                                cback: (lambda (p)
+                                         (setf obj.p4 p)
+                                         (setf obj.p3 (xy+ p kp3.delta)))))
+            (kp2 (make-rel-keypoint base: kp1
+                                    delta: (xy- obj.p2 obj.p1)
+                                    cback: (lambda (delta)
+                                             (setf obj.p2 (xy+ obj.p1 delta)))))
+            (kp3 (make-rel-keypoint base: kp4
+                                    delta: (xy- obj.p3 obj.p4)
+                                    cback: (lambda (delta)
+                                             (setf obj.p3 (xy+ obj.p4 delta)))))
+            (cc (new-construction (lambda ()
+                                    (move-to kp1.pt) (line-to (xy+ kp1.pt kp2.delta))
+                                    (move-to kp4.pt) (line-to (xy+ kp4.pt kp3.delta))
+                                    (stroke "#FFFFFF" -1)))))
+      (sub-editor (list cc kp1 kp2 kp3 kp4)))))
+
+(defobject image (img p1 p2))
+
+(defmethod draw (obj) (image? obj)
+  (let (((x0 y0) (xform obj.p1))
+        ((x1 y1) (xform obj.p2)))
+    (*view*.ctx.drawImage obj.img x0 y0 (- x1 x0) (- y1 y0))))
+
+(defmethod hit (obj p) (image? obj)
+  (when (and (<= obj.p1.x p.x obj.p2.x)
+             (<= obj.p1.y p.y obj.p2.y))
+    (edit-rect obj.p1.x obj.p1.y obj.p2.x obj.p2.y
+               (lambda (x0 y0 x1 y1)
+                 (setf obj.p1 (xy x0 y0))
+                 (setf obj.p2 (xy x1 y1))))))
+
+(defobject rect (p1 p2 fill-color stroke-color stroke-width))
+
+(defmethod draw (obj) (rect? obj)
+  (move-to obj.p1)
+  (line-to (xy obj.p2.x obj.p1.y))
+  (line-to obj.p2)
+  (line-to (xy obj.p1.x obj.p2.y))
+  (line-to obj.p1)
+  (when obj.fill-color (fill obj.fill-color))
+  (when obj.stroke-color (stroke obj.stroke-color obj.stroke-width)))
+
+(defmethod hit (obj p) (rect? obj)
+  (when (and (<= obj.p1.x p.x obj.p2.x)
+             (<= obj.p1.y p.y obj.p2.y))
+    (edit-rect obj.p1.x obj.p1.y obj.p2.x obj.p2.y
+               (lambda (x0 y0 x1 y1)
+                 (setf obj.p1 (xy x0 y0))
+                 (setf obj.p2 (xy x1 y1))))))
 
 (defun main ()
-  (editor (new-shape (list))))
+  (let ((e (new-editor)))
+    (push (make-circle center: (xy 50 50)
+                       radius: 30
+                       fill-color: "#FFFF00"
+                       stroke-color: "#008000"
+                       stroke-width: -4)
+          e.objects)
+
+    (push (make-circle center: (xy 150 50)
+                       radius: 40
+                       fill-color: "#FF0000"
+                       stroke-color: "#000000"
+                       stroke-width: -2)
+          e.objects)
+
+    (push (make-bez3 p1: (xy 200 100)
+                     p2: (xy 300 100)
+                     p3: (xy 300 200)
+                     p4: (xy 200 200)
+                     stroke-color: "#000080"
+                     stroke-width: -5)
+          e.objects)
+
+    (let ((img (create-element "img")))
+      (setf img.src "examples/img/wq.png")
+      (push (make-image img: img
+                        p1: (xy 100 200)
+                        p2: (xy 150 250))
+            e.objects))
+
+    (push (make-rect p1: (xy 200 200)
+                     p2: (xy 250 280)
+                     fill-color: "#CCCCFF"
+                     stroke-color: "#0000C0"
+                     stroke-width: -4)
+          e.objects)
+
+    (view (list e))))
 
 (main)

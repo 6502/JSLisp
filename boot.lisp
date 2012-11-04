@@ -2940,7 +2940,7 @@ A name is either an unevaluated atom or an evaluated list."
                  (setf (. this ,(aref fields i)) value)))
             (range (length fields)))
      (defproperty ,name length ,(length fields) null)
-     (defmacro ,name (&optional ,@fields)
+     (defmacro/f ,name (&optional ,@fields)
        ,~"Creates an instance of tuple [{name}]"
        (list ',#"new-{name}" ,@fields))))
 
