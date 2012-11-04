@@ -72,8 +72,24 @@
   (xy (* rho (cos theta))
       (* rho (sin theta))))
 
+(defun xy-inside (p pts)
+  (let ((wc 0)
+        (n (length pts))
+        ((x y) p))
+    (do ((j (1- n) i)
+         (i 0 (1+ i)))
+        ((= i n))
+      (let (((x0 y0) (aref pts i))
+            ((x1 y1) (aref pts j)))
+        (when (and (<= (min y0 y1) y)
+                   (> (max y0 y1) y)
+                   (< x (+ x0 (/ (* (- y y0) (- x1 x0)) (- y1 y0)))))
+          (incf wc (if (< y0 y1) 1 -1)))))
+    (/= wc 0)))
+
 (export xy xy+ xy- xy* xy/
         xy-cross xy-dot
         xy-abs2 xy-abs xy-dist2 xy-dist
         xy-arg xy-from-polar
-        xy-avg xy-ortho xy-norm)
+        xy-avg xy-ortho xy-norm
+        xy-inside)

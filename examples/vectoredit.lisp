@@ -145,11 +145,30 @@
                   (dolist (ml (reverse *editor*.mouseup-listeners))
                     (when (funcall ml p)
                       (update)
-                      (return-from mouseup))))))))
+                      (return-from mouseup)))))))
+
+          (#'mousewheel (event)
+            (let* ((*view* view)
+                   (p (rev-xform (apply #'xy (relative-pos event canvas)))))
+              (event.preventDefault)
+              (event.stopPropagation)
+              (when (> (length editors) 0)
+                (let ((*editor* (last editors)))
+                  (dolist (ml (reverse *editor*.mousewheel-listeners))
+                    (when (funcall ml p event.wheelDeltaY)
+                      (update)
+                      (return-from mousewheel)))))
+              (let ((k (/ event.wheelDeltaY 120))
+                    (oldscale view.scale))
+                (setf view.scale (* view.scale (exp (* (log 1.1) k))))
+                (setf view.scale (max (min view.scale 1000) 0.001))
+                (setf view.zero (xy+ view.zero (xy* p (- oldscale view.scale))))
+                (update)))))
 
     (setf canvas.onmousedown #'mousedown)
     (setf canvas.onmousemove #'mousemove)
     (setf canvas.onmouseup #'mouseup)
+    (setf canvas.onmousewheel #'mousewheel)
 
     (setf canvas."data-resize" #'redraw)
     (set-layout w (V border: 8 (dom canvas)))
@@ -307,29 +326,42 @@
   (stroke obj.stroke-color obj.stroke-width))
 
 (defmethod hit (obj p) (bez3? obj)
-  (when (or (< (xy-dist p obj.p1) (/ 8 *view*.scale))
-            (< (xy-dist p obj.p4) (/ 8 *view*.scale)))
-    (let** ((kp1 (make-keypoint pt: obj.p1
-                                cback: (lambda (p)
-                                         (setf obj.p1 p)
-                                         (setf obj.p2 (xy+ p kp2.delta)))))
-            (kp4 (make-keypoint pt: obj.p4
-                                cback: (lambda (p)
-                                         (setf obj.p4 p)
-                                         (setf obj.p3 (xy+ p kp3.delta)))))
-            (kp2 (make-rel-keypoint base: kp1
-                                    delta: (xy- obj.p2 obj.p1)
-                                    cback: (lambda (delta)
-                                             (setf obj.p2 (xy+ obj.p1 delta)))))
-            (kp3 (make-rel-keypoint base: kp4
-                                    delta: (xy- obj.p3 obj.p4)
-                                    cback: (lambda (delta)
-                                             (setf obj.p3 (xy+ obj.p4 delta)))))
-            (cc (new-construction (lambda ()
-                                    (move-to kp1.pt) (line-to (xy+ kp1.pt kp2.delta))
-                                    (move-to kp4.pt) (line-to (xy+ kp4.pt kp3.delta))
-                                    (stroke "#FFFFFF" -1)))))
-      (sub-editor (list cc kp1 kp2 kp3 kp4)))))
+  (labels ((bez3geo (p1 p2 p3 p4)
+             (let ((L (+ (xy-dist p1 p2) (xy-dist p2 p3) (xy-dist p3 p4))))
+               (if (< L (/ 8 *view*.scale))
+                   (list p1 p4)
+                   (let* ((p12 (xy-avg p1 p2))
+                          (p23 (xy-avg p2 p3))
+                          (p34 (xy-avg p3 p4))
+                          (p123 (xy-avg p12 p23))
+                          (p234 (xy-avg p23 p34))
+                          (p1234 (xy-avg p123 p234)))
+                     (append (bez3geo p1 p12 p123 p1234)
+                             (slice (bez3geo p1234 p234 p34 p4) 1)))))))
+    (when (< (apply #'min (map (lambda (px) (xy-dist p px))
+                               (bez3geo obj.p1 obj.p2 obj.p3 obj.p4)))
+             (/ 8 *view*.scale))
+      (let** ((kp1 (make-keypoint pt: obj.p1
+                                  cback: (lambda (p)
+                                           (setf obj.p1 p)
+                                           (setf obj.p2 (xy+ p kp2.delta)))))
+              (kp4 (make-keypoint pt: obj.p4
+                                  cback: (lambda (p)
+                                           (setf obj.p4 p)
+                                           (setf obj.p3 (xy+ p kp3.delta)))))
+              (kp2 (make-rel-keypoint base: kp1
+                                      delta: (xy- obj.p2 obj.p1)
+                                      cback: (lambda (delta)
+                                               (setf obj.p2 (xy+ obj.p1 delta)))))
+              (kp3 (make-rel-keypoint base: kp4
+                                      delta: (xy- obj.p3 obj.p4)
+                                      cback: (lambda (delta)
+                                               (setf obj.p3 (xy+ obj.p4 delta)))))
+              (cc (new-construction (lambda ()
+                                      (move-to kp1.pt) (line-to (xy+ kp1.pt kp2.delta))
+                                      (move-to kp4.pt) (line-to (xy+ kp4.pt kp3.delta))
+                                      (stroke "#FFFFFF" -1)))))
+        (sub-editor (list cc kp1 kp2 kp3 kp4))))))
 
 (defobject image (img p1 p2))
 
@@ -364,6 +396,40 @@
                (lambda (x0 y0 x1 y1)
                  (setf obj.p1 (xy x0 y0))
                  (setf obj.p2 (xy x1 y1))))))
+
+(defobject polygon (pts fill-color stroke-color stroke-width))
+
+(defmethod draw (obj) (polygon? obj)
+  (move-to (first obj.pts))
+  (dotimes (i (1- (length obj.pts)))
+    (line-to (aref obj.pts (1+ i))))
+  (*view*.ctx.closePath)
+  (when obj.fill-color (fill obj.fill-color))
+  (when obj.stroke-color (stroke obj.stroke-color obj.stroke-width)))
+
+(defmethod hit (obj p) (polygon? obj)
+  (when (or (and obj.fill-color
+                 (xy-inside p obj.pts))
+            (< (apply #'min (map (lambda (x) (xy-dist p x)) obj.pts))
+               (/ 8 *view*.scale)))
+    (let** ((kpts (map (lambda (i)
+                         (make-keypoint pt: (aref obj.pts i)
+                                        cback: (lambda (p)
+                                                 (setf (aref obj.pts i) p)
+                                                 (setf (aref kpts (length obj.pts)).pt
+                                                       (apply #'xy-avg obj.pts)))))
+                       (range (length obj.pts)))))
+      (push (make-keypoint pt: (apply #'xy-avg obj.pts)
+                           cback: (lambda (p)
+                                    (let ((delta (xy- p (apply #'xy-avg obj.pts))))
+                                      (enumerate (i x obj.pts)
+                                        (setf (aref obj.pts i)
+                                              (xy+ x delta))
+                                        (setf (aref kpts i).pt
+                                              (aref obj.pts i)))
+                                      true)))
+            kpts)
+      (sub-editor kpts))))
 
 (defun main ()
   (let ((e (new-editor)))
@@ -401,6 +467,15 @@
                      fill-color: "#CCCCFF"
                      stroke-color: "#0000C0"
                      stroke-width: -4)
+          e.objects)
+
+    (push (make-polygon pts: (map (lambda (i)
+                                    (xy+ (xy 300 200)
+                                         (xy-from-polar 50 (* i 2 pi (/ 8)))))
+                                  (range 8))
+                        fill-color: "#FF0080"
+                        stroke-color: "#FFFFFF"
+                        stroke-width: 3)
           e.objects)
 
     (view (list e))))
