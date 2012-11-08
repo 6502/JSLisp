@@ -437,12 +437,12 @@
               (set-style screen
                          px/left 0
                          px/top 0
-                         px/width (- x1 x0)
-                         px/height (- y1 y0 ch))
+                         px/width (round (- x1 x0))
+                         px/height (round (- y1 y0 ch)))
               (set-style status
                          px/left 0
-                         px/top (- y1 y0 ch)
-                         px/width (- x1 x0)
+                         px/top (round (- y1 y0 ch))
+                         px/width (round (- x1 x0))
                          px/height ch)
               (update)))
       (set-handler frame onmousewheel

@@ -587,10 +587,10 @@
 
 (defmethod set-coords (node x0 y0 x1 y1) (dom? node)
   (set-style node.element
-             px/left x0
-             px/top y0
-             px/width (- x1 x0)
-             px/height (- y1 y0))
+             px/left (round x0)
+             px/top (round y0)
+             px/width (round (- x1 x0))
+             px/height (round (- y1 y0)))
   (setf node.x0 x0)
   (setf node.y0 y0)
   (setf node.x1 x1)
