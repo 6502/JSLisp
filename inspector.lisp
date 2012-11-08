@@ -18,19 +18,19 @@
     table))
 
 (defun add-child (inspector label content)
-  (let ((label-cell (if label (create-element "td") null))
+  (let ((label-cell (if (undefined? label) null (create-element "td")))
         (content-cell (create-element "td"))
         (row (create-element "tr")))
-    (when label
-      (setf label-cell.vAlign "top")
-      (set-style label-cell
-                 px/padding 4
-                 border "solid 1px #CCCCCC")
-      (setf label-cell.textContent label)
-      (append-child row label-cell))
+    (if (undefined? label)
+        (setf content-cell.colSpan 2)
+        (progn
+          (setf label-cell.vAlign "top")
+          (set-style label-cell
+                     px/padding 4
+                     border "solid 1px #CCCCCC")
+          (setf label-cell.textContent label)
+          (append-child row label-cell)))
     (setf content-cell.vAlign "top")
-    (unless label
-      (setf content-cell.colSpan 2))
     (set-style content-cell
                px/padding 4
                border "solid 1px #CCCCCC")
@@ -142,7 +142,7 @@
     n))
 
 (defun inspect (x)
-  (let** ((w (window 0 0 100 100 title: "Inspector"))
+  (let** ((w (window 0 0 200 100 title: "Inspector"))
           (div (add-widget w (create-element "div"))))
     (set-style div
                px/font 16
