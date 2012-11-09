@@ -618,7 +618,7 @@
 
 ;; Splitters
 
-(defun h-splitter (a b &key (min 10) (max 90))
+(defun h-splitter (a b &key (split 50) (min 10) (max 90))
   (let ((container (create-element "div"))
         (splitter (create-element "div")))
     (append-child container a)
@@ -629,10 +629,11 @@
                cursor "move"
                backgroundColor "#DDDDDD")
     (let ((layout (H spacing: 2
+                     weight: split
                      (dom a)
                      size: 8
                      (dom splitter)
-                     size: undefined
+                     weight: (- 100 split)
                      (dom b))))
       (setf splitter.onmousedown
             (lambda (event)
@@ -657,7 +658,7 @@
               (set-coords layout 0 0 (- x1 x0) (- y1 y0)))))
     container))
 
-(defun v-splitter (a b &key (min 10) (max 90))
+(defun v-splitter (a b &key (split 50) (min 10) (max 90))
   (let ((container (create-element "div"))
         (splitter (create-element "div")))
     (append-child container a)
@@ -670,10 +671,11 @@
                cursor "move"
                backgroundColor "#DDDDDD")
     (let ((layout (V spacing: 2
+                     weight: split
                      (dom a)
                      size: 8
                      (dom splitter)
-                     size: undefined
+                     weight: (- 100 split)
                      (dom b))))
       (setf splitter.onmousedown
             (lambda (event)

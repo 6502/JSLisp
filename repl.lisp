@@ -28,7 +28,8 @@
     editor))
 
 (defun inferior-lisp ()
-  (let** ((container (create-element "div"))
+  (let** ((container (set-style (create-element "div")
+                                position "absolute"))
           (inspect (append-child container (button "Inspect" #'inspect)))
           (reset (append-child container (button "Reset" #'reset)))
           (clear (append-child container (button "Clear" #'clear)))
@@ -72,8 +73,10 @@
 (defun main ()
   (let** ((w (window 0 0 (- (screen-width) 4) (- (screen-height) 4)
                      title: "JsLisp IDE"))
-          (sources (add-widget w (tabbed (list "test.lisp"))))
-          (ilisp (add-widget w (inferior-lisp))))
+          (sources (tabbed (list "test.lisp")))
+          (ilisp (inferior-lisp))
+          (vs (add-widget w (v-splitter sources ilisp split: 70))))
+
     (setf *ilisp* ilisp.ilisp)
 
     (let** ((pg (aref (tab-pages sources) 0))
@@ -99,9 +102,7 @@
              (event.preventDefault))))
        true))
     (set-layout w (V border: 8 spacing: 8
-                     (dom sources)
-                     weight: 25
-                     (dom ilisp)))
+                     (dom vs)))
     (show-window w center: true)))
 
 (main)
