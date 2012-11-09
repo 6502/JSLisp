@@ -182,7 +182,8 @@
                (do ((j (1+ i) (1+ j)))
                    ((or (>= j (length text))
                         (= (aref text j) " ")
-                        (= (aref text j) "("))
+                        (= (aref text j) "(")
+                        (= (aref text j) ")"))
                       (push (cond
                               ((>= j (length text))
                                (+ i 2))
