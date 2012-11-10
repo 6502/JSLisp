@@ -161,6 +161,10 @@
 
 (defun window (x0 y0 w h &key title client (close true) (resize true))
   "Creates an initially invisible window object"
+  (when (< x0 1) (setf x0 (* x0 (screen-width))))
+  (when (< y0 1) (setf y0 (* y0 (screen-height))))
+  (when (< w 1) (setf w (* w (screen-width))))
+  (when (< h 1) (setf h (* h (screen-height))))
   (let ((frame (create-element "div"))
         (titlebar (create-element "div"))
         (resizer (create-element "canvas"))

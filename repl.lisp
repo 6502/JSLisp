@@ -73,8 +73,7 @@
     container))
 
 (defun main ()
-  (let** ((w (window 0 0 (* (screen-width) 0.75) (* (screen-height) 0.75)
-                     title: "JsLisp IDE"))
+  (let** ((w (window 0 0 0.95 0.95 title: "JsLisp IDE"))
           (sources (tabbed))
           (ilisp (inferior-lisp))
           (doc (set-style (create-element "div")
