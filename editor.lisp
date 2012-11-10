@@ -120,6 +120,7 @@
             (redo (list))
             (lastvalid -1)
             (lastins undefined)
+            (focused false)
             (#'ensure (r)
                       (do ()
                           ((>= lastvalid r))
@@ -226,7 +227,7 @@
                             (draw-line line.text line.sections
                                        ch screen.offsetWidth
                                        ctx 0 (* (- cr top) ch) (- (* cw left)))
-                            (when (= cr row)
+                            (when (and focused (= cr row))
                               (setf ctx.fillStyle "#FF0000")
                               (ctx.fillRect (* cw (- col left)) (* ch (- cr top))
                                             2 *line*))
@@ -433,6 +434,7 @@
                             (setf s-row sr)
                             (setf s-col sc)
                             (fix)))
+      (setf frame.focus (lambda () (hinput.focus)))
 
       (set-style hinput
                  position "absolute"
@@ -666,6 +668,12 @@
               (setf s-row row)
               (setf s-col col))
             (fix))))
+      (set-handler hinput onfocus
+        (setf focused true)
+        (update))
+      (set-handler hinput onblur
+        (setf focused false)
+        (update))
       (set-handler hinput onkeypress
         (event.preventDefault)
         (event.stopPropagation)

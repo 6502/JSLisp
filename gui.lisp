@@ -827,6 +827,13 @@
     (setf tabbed.add #'add)
     (setf tabbed.select #'select)
     (setf tabbed.current #'current)
+    (setf tabbed.next (lambda ()
+                        (when (> (length pages) 1)
+                          (select (% (1+ current) (length pages))))))
+    (setf tabbed.prev (lambda ()
+                        (when (> (length pages) 1)
+                          (select (% (+ current (1- (length pages))) (length pages))))))
+    (setf tabbed.current-index (lambda () current))
     (setf tabbed."data-resize" #'fix)
     tabbed))
 

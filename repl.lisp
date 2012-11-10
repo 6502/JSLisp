@@ -73,7 +73,7 @@
     container))
 
 (defun main ()
-  (let** ((w (window 0 0 (- (screen-width) 4) (- (screen-height) 4)
+  (let** ((w (window 0 0 (* (screen-width) 0.75) (* (screen-height) 0.75)
                      title: "JsLisp IDE"))
           (sources (tabbed))
           (ilisp (inferior-lisp))
@@ -90,6 +90,12 @@
      (lambda (event)
        (let ((stop true))
          (cond
+           ((and event.ctrlKey (= event.which 39))
+            (sources.next)
+            ((sources.current).focus))
+           ((and event.ctrlKey (= event.which 37))
+            (sources.prev)
+            ((sources.current).focus))
            ((and event.ctrlKey (= event.which 13))
             ((sources.current).ilisp-exec))
            ((and event.ctrlKey (= event.which 73))
