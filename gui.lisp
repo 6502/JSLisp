@@ -659,7 +659,13 @@
                         "move")))
       (setf container."data-resize"
             (lambda (x0 y0 x1 y1)
-              (set-coords layout 0 0 (- x1 x0) (- y1 y0)))))
+              (set-coords layout 0 0 (- x1 x0) (- y1 y0))))
+      (setf container.partition (lambda (w)
+                                  (setf (first layout.elements).weight w)
+                                  (setf (third layout.elements).weight (- 100 w))
+                                  (set-coords layout 0 0
+                                              container.offsetWidth
+                                              container.offsetHeight))))
     container))
 
 (defun v-splitter (a b &key (split 50) (min 10) (max 90))
@@ -701,7 +707,13 @@
                         "move")))
       (setf container."data-resize"
             (lambda (x0 y0 x1 y1)
-              (set-coords layout 0 0 (- x1 x0) (- y1 y0)))))
+              (set-coords layout 0 0 (- x1 x0) (- y1 y0))))
+      (setf container.partition (lambda (w)
+                                  (setf (first layout.elements).weight w)
+                                  (setf (third layout.elements).weight (- 100 w))
+                                  (set-coords layout 0 0
+                                              container.offsetWidth
+                                              container.offsetHeight))))
     container))
 
 ;; Table widget
