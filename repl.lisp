@@ -109,7 +109,7 @@
           (#'doc-lookup (name)
             (*ilisp*.send
              "lisp"
-             ~"(let ((f (intern ~{(json name)} undefined true)))
+             ~"(let ((f (intern {(json name)} undefined true)))
                  (if (and f (or (symbol-function f) (symbol-macro f)))
                    (documentation (or (symbol-function f) (symbol-macro f)))))"
              #'show-doc)))
