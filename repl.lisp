@@ -80,13 +80,18 @@
           (doc (set-style (create-element "div")
                           position "absolute"
                           overflow "auto"))
-          (hs (set-style (h-splitter ilisp doc split: 70)
+          (hs (set-style (h-splitter ilisp doc)
                          position "absolute"))
           (vs (add-widget w (v-splitter sources hs split: 70)))
           (#'show-doc (x)
             (setf x (json-parse x))
             (when (and x (string? (first x)))
               (setf x (first x))
+              (setf x (replace x "&" "&amp;"))
+              (setf x (replace x "<" "&lt;"))
+              (setf x (replace x ">" "&gt;"))
+              (setf x (replace x "\"" "&quot;"))
+              (setf x (replace x "\\n" "<br/>"))
               (setf x (replace x "\\[\\[((.|[\\n])*?)\\]\\]"
                                "<pre style=\"color:#008;\
                                  font-weight:bold;\
