@@ -87,7 +87,8 @@
                   (setf redo (list))
                   (setf lastins undefined)
                   (funcall (second (last undo))))))
-    (let** ((frame (create-element "div"))
+    (let** ((frame (set-style (create-element "div")
+                              position "absolute"))
             (status (set-style (create-element "div")
                                whiteSpace "pre"
                                position "absolute"
@@ -233,6 +234,10 @@
             (#'fix ()
                    (let ((screen-lines (floor (/ screen.offsetHeight ch)))
                          (screen-cols (floor (/ screen.offsetWidth cw))))
+                     (when (or (NaN? screen-lines) (< screen-lines 1))
+                       (setf screen-lines 1))
+                     (when (or (NaN? screen-cols) (< screen-cols 1))
+                       (setf screen-cols 1))
                      (setf row (max 0 (min (1- (length lines)) row)))
                      (setf col (max 0 (min (length (aref lines row).text) col)))
                      (setf s-row (max 0 (min (1- (length lines)) s-row)))
@@ -439,8 +444,6 @@
                  border "none"
                  px/padding 0
                  px/margin 0)
-      (set-style frame
-                 position "absolute")
       (append-child frame screen)
       (append-child frame status)
       (append-child frame hinput)

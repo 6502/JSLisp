@@ -2,7 +2,7 @@
 (import * from layout)
 
 (let** ((w (window 0 0 600 400 title: "Tab test"))
-        (t (add-widget w (tabbed '("Info" "Contacts" "Notes" "Cart"))))
+        (t (add-widget w (tabbed)))
         (ok (add-widget w (lbutton "OK" (hide-window w))))
         (cancel (add-widget w (lbutton "Cancel" (hide-window w)))))
   (setf w.client.style.backgroundColor "#EEEEEE")
@@ -12,7 +12,7 @@
                    size: 30
                    (H spacing: 16 :filler: size: 80 (dom ok) (dom cancel) :filler:)))
 
-  (let** ((pg (aref (tab-pages t) 0))
+  (let** ((pg (set-style (create-element "div") position "absolute"))
           (first-name (append-child pg (input "First name")))
           (last-name (append-child pg (input "Last name")))
           (birth-date (append-child pg (date-input "Birth date")))
@@ -23,9 +23,10 @@
                      (H spacing: 16 (dom last-name) size: 130 (dom birth-date))
                      (dom address))))
     (setf pg."data-resize" (lambda (x0 y0 x1 y1)
-                             (set-coords layout 0 0 (- x1 x0) (- y1 y0)))))
+                             (set-coords layout 0 0 (- x1 x0) (- y1 y0))))
+    (t.add "Infos" pg))
 
-  (let** ((pg (aref (tab-pages t) 1))
+  (let** ((pg (set-style (create-element "div") position "absolute"))
           (home-phone (append-child pg (input "Home phone")))
           (office-phone (append-child pg (input "Office phone")))
           (mobile-phone (append-child pg (input "Mobile phone")))
@@ -38,15 +39,17 @@
                      (H spacing: 16 (dom personal-email) (dom work-email))
                      (H spacing: 16 (dom website)))))
     (setf pg."data-resize" (lambda (x0 y0 x1 y1)
-                             (set-coords layout 0 0 (- x1 x0) (- y1 y0)))))
+                             (set-coords layout 0 0 (- x1 x0) (- y1 y0))))
+    (t.add "Address" pg))
 
-  (let** ((pg (aref (tab-pages t) 2))
+  (let** ((pg (set-style (create-element "div") position "absolute"))
           (notes (append-child pg (text-area "Notes")))
           (layout (V border: 8 (dom notes))))
     (setf pg."data-resize" (lambda (x0 y0 x1 y1)
-                             (set-coords layout 0 0 (- x1 x0) (- y1 y0)))))
+                             (set-coords layout 0 0 (- x1 x0) (- y1 y0))))
+    (t.add "Notes" pg))
 
-  (let** ((pg (aref (tab-pages t) 3))
+  (let** ((pg (set-style (create-element "div") position "absolute"))
           (data (list (list "X001" 10)
                       (list "X002"  5)
                       (list "X003"  7)
@@ -94,6 +97,7 @@
                      (H spacing: 16
                         :filler: size: 120 (dom clear) :filler:))))
     (setf pg."data-resize" (lambda (x0 y0 x1 y1)
-                             (set-coords layout 0 0 (- x1 x0) (- y1 y0)))))
+                             (set-coords layout 0 0 (- x1 x0) (- y1 y0))))
+    (t.add "Cart" pg))
 
   (show-window w center: true))

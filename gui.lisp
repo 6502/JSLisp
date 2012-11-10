@@ -757,65 +757,77 @@
 
 ;; Tab control
 
-(defun select-tab (tabbed index)
-  (let ((c tabbed."data-content"))
-    (unless (= index c.current-index)
-      (set-style (aref c.tabs c.current-index)
-                 backgroundColor "#DDDDDD")
-      (dom-replace (aref c.pages c.current-index)
-                   (aref c.pages index))
-      (setf c.current-index index)
-      (set-style (aref c.tabs c.current-index)
-                 backgroundColor "#FFFFFF")
-      (append-child tabbed (aref c.tabs c.current-index)))))
-
-(defun tab-pages (tabbed)
-  tabbed."data-content".pages)
-
-(defun tab-labels (tabbed)
-  tabbed."data-content".tabs)
-
-(defun tabbed (labels)
-  (let* ((tabbed (set-style (create-element "div")
-                            position "absolute"
-                            fontFamily "Arial"
-                            fontWeight "bold"))
-         (ribbon (H spacing: 6))
-         (layout (V spacing: 0 size: 22 ribbon))
-         (tabs (list))
-         (pages (list)))
-    (dolist (x labels)
-      (let ((label (set-style (create-element "div")
-                              position "absolute"
-                              borderLeft "solid 1px #000000"
-                              borderRight "solid 1px #000000"
-                              borderTop "solid 1px #000000"
-                              px/borderTopLeftRadius 6
-                              px/borderTopRightRadius 6
-                              textAlign "center"
-                              cursor "pointer"
-                              backgroundColor (if (= x (first labels)) "#FFFFFF" "#DDDDDD")))
-            (page (set-style (create-element "div")
+(defun tabbed ()
+  (let** ((tabbed (set-style (create-element "div")
                              position "absolute"
-                             border "solid 1px #000000"
-                             backgroundColor "#FFFFFF")))
-        (setf label.textContent x)
-        (append-child tabbed label)
-        (push label tabs)
-        (push page pages)
-        (set-handler label onclick
-                     (select-tab tabbed (index label tabs)))
-        (add-element ribbon max: 80 (dom label))))
-    (append-child tabbed (first pages))
-    (append-child tabbed (first tabs))
-    (add-element layout (dom (first pages)))
-    (setf tabbed."data-resize"
-          (lambda (x0 y0 x1 y1)
-            (set-coords layout 0 0 (- x1 x0) (- y1 y0))))
-    (setf tabbed."data-content" #((layout layout)
-                                  (tabs tabs)
-                                  (pages pages)
-                                  (current-index 0)))
+                             fontFamily "Arial"
+                             fontWeight "bold"))
+          (ribbon (H spacing: 6))
+          (area (append-child tabbed (set-style (create-element "div")
+                                                position "absolute"
+                                                border "solid 1px #000000"
+                                                backgroundColor "#FFFFFF")))
+          (layout (V spacing: 0
+                     size: 22 ribbon
+                     size: undefined (dom area)))
+          (tabs (list))
+          (pages (list))
+          (current -1)
+          (#'current ()
+            (aref pages current))
+          (#'add (label page)
+            (let ((tab (set-style (create-element "div")
+                                  position "absolute"
+                                  borderLeft "solid 1px #000000"
+                                  borderRight "solid 1px #000000"
+                                  borderTop "solid 1px #000000"
+                                  px/borderTopLeftRadius 6
+                                  px/borderTopRightRadius 6
+                                  backgroundColor "#DDDDDD"
+                                  textAlign "center"
+                                  cursor "pointer")))
+              (setf tab.textContent label)
+              (append-child tabbed tab)
+              (push tab tabs)
+              (push page pages)
+              (set-handler tab onclick
+                (select (index tab tabs)))
+              (add-element ribbon max: 80 (dom tab))
+              (if (= (length pages) 1)
+                  (select 0)
+                  (progn
+                    (append-child tabbed area)
+                    (append-child tabbed (aref tabs current))))))
+          (#'select (index)
+            (unless (= index current)
+              (when (/= current -1)
+                (set-style (aref tabs current)
+                           backgroundColor "#DDDDDD")
+                (remove-child area (aref pages current)))
+              (setf current index)
+              (set-style (aref tabs current)
+                         backgroundColor "#FFFFFF")
+              (append-child area (aref pages current))
+              (append-child tabbed area)
+              (append-child tabbed (aref tabs current))
+              (fix)))
+          (#'fix ()
+              (set-coords layout 0 0 tabbed.offsetWidth tabbed.offsetHeight)
+              (when area.firstChild
+                (set-style area.firstChild
+                           px/left 8
+                           px/top 8
+                           px/width (- area.offsetWidth 16)
+                           px/height (- area.offsetHeight 16))
+                (when area.firstChild."data-resize"
+                      (area.firstChild."data-resize"
+                                       0 0
+                                       area.firstChild.offsetWidth
+                                       area.firstChild.offsetHeight)))))
+    (setf tabbed.add #'add)
+    (setf tabbed.select #'select)
+    (setf tabbed.current #'current)
+    (setf tabbed."data-resize" #'fix)
     tabbed))
 
 (defun add-widget (window widget)
@@ -1276,6 +1288,6 @@
         select selection set-selection
         h-splitter v-splitter
         table
-        select-tab tab-pages tab-labels tabbed
+        tabbed
         screen-width screen-height
         message-box)

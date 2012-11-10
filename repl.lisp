@@ -8,6 +8,8 @@
 
 (defun src-tab (name content)
   (let ((editor (editor name content mode)))
+    (set-style editor
+               position "absolute")
     (setf editor.ilisp-exec
           (lambda ()
             (let ((lines (editor.lines))
@@ -48,7 +50,7 @@
           (#'clear ()
                    (ilisp.send "javascript"
                                "repl.value=\"\""))
-          (layout (V border: 16 spacing: 16
+          (layout (V border: 8 spacing: 8
                      (dom ilisp.iframe)
                      size: 30
                      (H :filler:
@@ -73,34 +75,30 @@
 (defun main ()
   (let** ((w (window 0 0 (- (screen-width) 4) (- (screen-height) 4)
                      title: "JsLisp IDE"))
-          (sources (tabbed (list "test.lisp")))
+          (sources (tabbed))
           (ilisp (inferior-lisp))
           (vs (add-widget w (v-splitter sources ilisp split: 70))))
 
     (setf *ilisp* ilisp.ilisp)
 
-    (let** ((pg (aref (tab-pages sources) 0))
-            (editor (append-child pg (set-style (src-tab "test.lisp" "")
-                                                position "absolute")))
-            (layout (V border: 8 spacing: 8 (dom editor))))
-      (setf (aref (tab-pages sources) 0)."data-resize"
-            (lambda (x0 y0 x1 y1)
-              (set-coords layout 0 0 (- x1 x0) (- y1 y0))))
+    (sources.add "test.lisp" (src-tab "test.lisp" ""))
+    (sources.add "test2.lisp" (src-tab "test2.lisp" ""))
+    (sources.add "test3.lisp" (src-tab "test3.lisp" ""))
 
-      (document.body.addEventListener
-       "keydown"
-       (lambda (event)
-         (let ((stop true))
-           (cond
-             ((and event.ctrlKey (= event.which 73))
-              (mode.inspect-ilisp *ilisp*))
-             ((and event.ctrlKey (= event.which 13))
-              (editor.ilisp-exec))
-             (true (setf stop false)))
-           (when stop
-             (event.stopPropagation)
-             (event.preventDefault))))
-       true))
+    (document.body.addEventListener
+     "keydown"
+     (lambda (event)
+       (let ((stop true))
+         (cond
+           ((and event.ctrlKey (= event.which 13))
+            ((sources.current).ilisp-exec))
+           ((and event.ctrlKey (= event.which 73))
+            (mode.inspect-ilisp *ilisp*))
+           (true (setf stop false)))
+         (when stop
+           (event.stopPropagation)
+           (event.preventDefault))))
+     true)
     (set-layout w (V border: 8 spacing: 8
                      (dom vs)))
     (show-window w center: true)))
