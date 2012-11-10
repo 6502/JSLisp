@@ -77,8 +77,40 @@
                      title: "JsLisp IDE"))
           (sources (tabbed))
           (ilisp (inferior-lisp))
-          (vs (add-widget w (v-splitter sources ilisp split: 70))))
+          (doc (set-style (create-element "div")
+                          position "absolute"
+                          overflow "auto"))
+          (hs (set-style (h-splitter ilisp doc split: 70)
+                         position "absolute"))
+          (vs (add-widget w (v-splitter sources hs split: 70)))
+          (#'show-doc (x)
+            (setf x (json-parse x))
+            (when (and x (string? (first x)))
+              (setf x (first x))
+              (setf x (replace x "\\[\\[((.|[\\n])*?)\\]\\]"
+                               "<pre style=\"color:#008;\
+                                 font-weight:bold;\
+                                 font-size:110%\">$1</pre>"))
+              (setf x (replace x "\\[(.*?)\\]"
+                               "<span style=\"font-weight:bold;\
+                                 font-family:monospace;\
+                                 color:#008\">$1</span>"))
+              (setf x (replace x "{{(.*?)}}"
+                               "<a href=\"javascript:showdoc('$1')\">\
+                                 <span style=\"font-weight:bold;\
+                                 text-decoration:underline;\
+                                 font-family:monospace;\
+                                 color:#00F\">$1</span></a>"))
+              (setf doc.innerHTML x)))
+          (#'doc-lookup (name)
+            (*ilisp*.send
+             "lisp"
+             ~"(let ((f (intern ~{(json name)} undefined true)))
+                 (if (and f (or (symbol-function f) (symbol-macro f)))
+                   (documentation (or (symbol-function f) (symbol-macro f)))))"
+             #'show-doc)))
 
+    (setf (js-code "window").showdoc #'doc-lookup)
     (setf *ilisp* ilisp.ilisp)
 
     (sources.add "test.lisp" (src-tab "test.lisp" ""))
@@ -105,6 +137,23 @@
            (event.stopPropagation)
            (event.preventDefault))))
      true)
+
+    (set-interval
+     (let ((last-lookup ""))
+       (lambda ()
+         (when (sources.current)
+           (let* (((row col) ((sources.current).pos))
+                  (lines ((sources.current).lines))
+                  (text (aref lines row).text))
+             (do ((c col (1- c)))
+                 ((or (= c 0)
+                      (= (aref text (1- c)) "("))
+                    (let ((name (slice text c col)))
+                      (when (/= name last-lookup)
+                        (setf last-lookup name)
+                        (doc-lookup name)))))))))
+     100)
+
     (set-layout w (V border: 8 spacing: 8
                      (dom vs)))
     (show-window w center: true)))
