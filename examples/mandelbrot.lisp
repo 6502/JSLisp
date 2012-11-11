@@ -39,7 +39,7 @@
 
 (defun mandelbrot-explorer (xa ya xb yb ww hh)
   "Shows a window that allows exploring the Mandelbrot fractal"
-  (let ((w (window 20 20 ww hh title: "Mandelbrot fractal" resize: false))
+  (let ((w (window 0 0 ww hh title: "Mandelbrot fractal" resize: false))
         (zoomrect (create-element "div"))
         (lastw -1)
         (lasth -1)
@@ -57,23 +57,70 @@
     (set-style w.client
                overflow "hidden")
     (labels ((pix-to-xy (p)
-               (let* ((x (first p))
-                      (y (second p)))
-                 (list (+ xa (/ (* x (- xb xa)) w.client.offsetWidth))
-                       (+ ya (/ (* y (- yb ya)) w.client.offsetHeight)))))
+                        (let* ((x (first p))
+                               (y (second p)))
+                          (list (+ xa (/ (* x (- xb xa)) w.client.offsetWidth))
+                                (+ ya (/ (* y (- yb ya)) w.client.offsetHeight)))))
              (recalc (ww hh)
-               (when pic
-                 (remove-child w.client pic))
-               (setf pic (mandelbrot-pic xa ya xb yb ww hh palette))
-               (set-style pic
-                          position "absolute"
-                          px/left 0
-                          px/top 0
-                          px/width ww
-                          px/height hh)
-               (append-child w.client pic)
-               (append-child w.client zoomrect)))
-
+                     (let ((new-pic (mandelbrot-pic xa ya xb yb ww hh palette)))
+                       (if pic
+                           (let ((zx zoomrect.offsetLeft)
+                                 (zy zoomrect.offsetTop)
+                                 (zw zoomrect.offsetWidth)
+                                 (zh zoomrect.offsetHeight)
+                                 (start (clock))
+                                 (animation null))
+                             (set-style zoomrect display "none")
+                             (set-style new-pic
+                                        position "absolute"
+                                        px/left zx
+                                        px/top zy
+                                        px/width zw
+                                        px/height zh)
+                             (append-child w.client new-pic)
+                             (append-child w.client zoomrect)
+                             (setf animation
+                                   (set-interval (lambda ()
+                                                   (let ((s (/ (- (clock) start) 500)))
+                                                     (if (< s 1)
+                                                         (let* ((ax (+ zx (* s (- 0 zx))))
+                                                                (ay (+ zy (* s (- 0 zy))))
+                                                                (aw (+ zw (* s (- ww zw))))
+                                                                (ah (+ zh (* s (- hh zh))))
+                                                                (kw (/ aw zw))
+                                                                (kh (/ ah zh))
+                                                                (x0 (- ax (* kw zx)))
+                                                                (y0 (- ay (* kh zy))))
+                                                           (set-style pic
+                                                                      px/left x0
+                                                                      px/top y0
+                                                                      px/width (* ww kw)
+                                                                      px/height (* hh kh))
+                                                           (set-style new-pic
+                                                                      px/left ax
+                                                                      px/top ay
+                                                                      px/width aw
+                                                                      px/height ah))
+                                                         (progn
+                                                           (set-style new-pic
+                                                                      px/left 0
+                                                                      px/top 0
+                                                                      px/width ww
+                                                                      px/height hh)
+                                                           (remove-child w.client pic)
+                                                           (setf pic new-pic)
+                                                           (clear-interval animation)))))
+                                                 10)))
+                           (progn
+                             (set-style new-pic
+                                        position "absolute"
+                                        px/left 0
+                                        px/top 0
+                                        px/width ww
+                                        px/height hh)
+                             (append-child w.client new-pic)
+                             (append-child w.client zoomrect)
+                             (setf pic new-pic))))))
       (setf w.resize-cback
             (lambda (x0 y0 x1 y1)
               (let ((ww (- x1 x0))
@@ -111,10 +158,8 @@
                                    (setf ya (second pa))
                                    (setf xb (+ xa pw))
                                    (setf yb (+ ya ph))
-                                   (set-style zoomrect
-                                              display "none")
                                    (recalc lastw lasth)))))))
-    (show-window w)))
+    (show-window w center: true)))
 
 (defun main ()
   (mandelbrot-explorer -3 -2 1 2
