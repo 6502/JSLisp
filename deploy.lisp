@@ -87,14 +87,6 @@ reverse engineering point of view.
       ;; Remove unneeded quotes in object field ids
       (setf s (replace s "{\"([a-zA-Z_$][a-zA-Z_$0-9]*)\":" "{$1:"))
       (setf s (replace s ",\"([a-zA-Z_$][a-zA-Z_$0-9]*)\":" ",$1:"))
-      ;; "function(" packing
-      (when (find "'" s)
-        (error "Internal error: Unexpected single quote"))
-      (setf s (+ "eval(\""
-                 (replace (replace (replace s "function\\(" "'")
-                                   "\\\\" "\\\\")
-                          "\"" "\\\"")
-                 "\".replace(/'/g,\"function(\"))"))
       ;; Add used literals definitions
       (let ((ldef ""))
         (dolist (key (keys rlits))
