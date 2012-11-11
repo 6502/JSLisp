@@ -90,6 +90,12 @@
    (call-remote `(get-file ,name))
    ""))
 
+(defun put-file (name content)
+  (try
+   (call-remote `((node:require "fs").writeFileSync ,name ,content))
+   (message-box ~"Error saving file {name}"
+                modal: true)))
+
 (defun files (path)
   (call-remote `((node:require "fs").readdirSync ,path)))
 
@@ -162,7 +168,15 @@
     w))
 
 (defun main ()
-  (let** ((w (window 0 0 0.95 0.95 title: "JsLisp IDE"))
+  (let** ((w (set-style (append-child document.body
+                                      (create-element "div"))
+                        position "absolute"
+                        px/left 4
+                        px/right 4
+                        px/top 4
+                        px/bottom 4))
+          (last-width 0)
+          (last-height 0)
           (sources (tabbed))
           (ilisp (inferior-lisp))
           (doc (set-style (create-element "div")
@@ -170,7 +184,7 @@
                           overflow "auto"))
           (hs (set-style (h-splitter ilisp doc)
                          position "absolute"))
-          (vs (add-widget w (v-splitter sources hs split: 80)))
+          (vs (append-child w (v-splitter sources hs split: 80)))
           (zoom false)
           (#'show-doc (x)
             (setf x (json-parse x))
@@ -196,6 +210,12 @@
                                  font-family:monospace;\
                                  color:#00F\">$1</span></a>"))
               (setf doc.innerHTML x)))
+          (#'resize ()
+            (when (or (/= last-width (screen-width))
+                      (/= last-height (screen-height)))
+              (setf last-width (screen-width))
+              (setf last-height (screen-height))
+              (set-coords (dom vs) 8 8 (- last-width 8) (- last-height 8))))
           (#'doc-lookup (name)
             (*ilisp*.send
              "lisp"
@@ -204,6 +224,9 @@
                    (documentation (or (symbol-function f) (symbol-macro f)))))"
              #'show-doc)))
 
+    (set-interval #'resize 100)
+    (resize)
+
     (setf (js-code "window").showdoc #'doc-lookup)
     (setf *ilisp* ilisp.ilisp)
 
@@ -211,6 +234,8 @@
                                      (sources.add f (src-tab f (or (get-file f) "")) true)
                                      (sources.select 0)
                                      (sources.prev))))
+    (sources.add "*scratch*" (src-tab "*scratch*" "") true)
+    (sources.select 1)
 
     (set-timeout (lambda () ((sources.current).focus)) 10)
 
@@ -219,6 +244,11 @@
      (lambda (event)
        (let ((stop true))
          (cond
+           ((and event.ctrlKey (= event.which 87))
+            (when (> (sources.current-index) 0)
+              (try (put-file ((sources.current).name)
+                             ((sources.current).buffer))
+                   (message-box "Error saving current buffer"))))
            ((and event.ctrlKey (= event.which 81))
             (when (> (sources.current-index) 0)
               (sources.remove (sources.current-index))))
@@ -256,10 +286,6 @@
                       (when (/= name last-lookup)
                         (setf last-lookup name)
                         (doc-lookup name)))))))))
-     100)
-
-    (set-layout w (V border: 8 spacing: 8
-                     (dom vs)))
-    (show-window w center: true)))
+     100)))
 
 (main)

@@ -434,6 +434,13 @@
                             (setf s-row sr)
                             (setf s-col sc)
                             (fix)))
+      (setf frame.name (lambda () name))
+      (setf frame.rename (lambda (x)
+                           (setf name x)
+                           (update)))
+      (setf frame.buffer (lambda ()
+                           (join (map (get .text) lines) "\n")))
+      (setf frame.modified (lambda () (> (length undo) 0)))
       (setf frame.focus (lambda () (hinput.focus)))
 
       (set-style hinput
