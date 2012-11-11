@@ -50,7 +50,9 @@
         (user (aref *users* user-name)))
     (if (and session user (= session.user user)
              (= authcode (hash (+ session-id user.secret request))))
-        user.permissions
+        (progn
+          (setf session.last-activity (clock))
+          user.permissions)
         null)))
 
 (defvar *typemap* #((".html" "text/html")
