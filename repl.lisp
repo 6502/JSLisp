@@ -86,7 +86,9 @@
           (hash (+ *session-id* *secret* (json* x)))))
 
 (defun get-file (name)
-  (call-remote `(get-file ,name)))
+  (try
+   (call-remote `(get-file ,name))
+   ""))
 
 (defun files (path)
   (call-remote `((node:require "fs").readdirSync ,path)))
@@ -168,7 +170,7 @@
                           overflow "auto"))
           (hs (set-style (h-splitter ilisp doc)
                          position "absolute"))
-          (vs (add-widget w (v-splitter sources hs split: 70)))
+          (vs (add-widget w (v-splitter sources hs split: 80)))
           (zoom false)
           (#'show-doc (x)
             (setf x (json-parse x))
@@ -205,27 +207,31 @@
     (setf (js-code "window").showdoc #'doc-lookup)
     (setf *ilisp* ilisp.ilisp)
 
-    (sources.add "<unnamed-1>.lisp" (src-tab "<unnamed-1>.lisp" ""))
     (sources.add "+" (file-browser (lambda (f)
-                                     (sources.add f (src-tab f (or (get-file f) ""))))))
+                                     (sources.add f (src-tab f (or (get-file f) "")) true)
+                                     (sources.select 0)
+                                     (sources.prev))))
+
+    (set-timeout (lambda () ((sources.current).focus)) 10)
 
     (document.body.addEventListener
      "keydown"
      (lambda (event)
        (let ((stop true))
          (cond
+           ((and event.ctrlKey (= event.which 81))
+            (when (> (sources.current-index) 0)
+              (sources.remove (sources.current-index))))
            ((and event.ctrlKey (= event.which 75))
             (setf zoom (not zoom))
             (setf sources.style.opacity (if zoom 0 1))
             (setf doc.style.opacity (if zoom 0 1))
-            (vs.partition (if zoom 1 70))
+            (vs.partition (if zoom 1 80))
             (hs.partition (if zoom 99 50)))
            ((and event.ctrlKey (= event.which 39))
-            (sources.next)
-            ((sources.current).focus))
+            (sources.next))
            ((and event.ctrlKey (= event.which 37))
-            (sources.prev)
-            ((sources.current).focus))
+            (sources.prev))
            ((and event.ctrlKey (= event.which 13))
             ((sources.current).ilisp-exec))
            ((and event.ctrlKey (= event.which 73))

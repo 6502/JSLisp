@@ -779,7 +779,8 @@
                              fontFamily "Arial"
                              fontWeight "bold"))
           (ribbon (append-child tabbed (set-style (create-element "div")
-                                                  position "absolute")))
+                                                  position "absolute"
+                                                  whiteSpace "pre")))
           (area (append-child tabbed (set-style (create-element "div")
                                                 position "absolute"
                                                 border "solid 1px #000000"
@@ -792,7 +793,7 @@
           (current -1)
           (#'current ()
             (aref pages current))
-          (#'add (label page)
+          (#'add (label page &optional (close false))
             (let ((tab (set-style (create-element "span")
                                   display "inline-block"
                                   position "relative"
@@ -810,7 +811,22 @@
                                   px/paddingLeft 8
                                   px/paddingRight 8
                                   cursor "pointer")))
-              (setf tab.textContent label)
+              (when (string? label)
+                (let ((lab (create-element "span")))
+                  (setf lab.textContent label)
+                  (setf label lab)))
+              (append-child tab label)
+              (when close
+                (let ((closer (set-style (create-element "span")
+                                         color "#FF0000"
+                                         fontWeight "normal"
+                                         cursor "pointer")))
+                  (setf closer.innerHTML "&nbsp;×")
+                  (setf closer.onmousedown (lambda (event)
+                                             (event.stopPropagation)
+                                             (event.preventDefault)
+                                             (remove (index tab tabs))))
+                  (append-child tab closer)))
               (append-child tabbed tab)
               (push tab tabs)
               (push page pages)
@@ -819,6 +835,23 @@
               (append-child ribbon tab)
               (when (= (length pages) 1)
                 (select 0))))
+          (#'remove (index)
+            (when (or (not (aref pages index).remove)
+                      (funcall (aref pages index).remove))
+              (if (= (length pages) 1)
+                  (progn
+                    (setf pages (list))
+                    (setf tabs (list))
+                    (remove-child area area.firstChild)
+                    (remove-child ribbon ribbon.firstChild))
+                  (progn
+                    (when (= index current)
+                      (select (% (1+ current) (length pages))))
+                    (when (< index current)
+                      (decf current))
+                    (remove-child ribbon (aref tabs index))
+                    (splice pages index 1)
+                    (splice tabs index 1)))))
           (#'select (index)
             (unless (= index current)
               (when (/= current -1)
@@ -831,6 +864,8 @@
                          borderBottom "solid 1px #FFFFFF"
                          backgroundColor "#FFFFFF")
               (append-child area (aref pages current))
+              (when (aref pages current).focus
+                ((aref pages current).focus))
               (fix)))
           (#'fix ()
               (set-coords layout 0 0 tabbed.offsetWidth tabbed.offsetHeight)
@@ -846,6 +881,7 @@
                                        area.firstChild.offsetWidth
                                        area.firstChild.offsetHeight)))))
     (setf tabbed.add #'add)
+    (setf tabbed.remove #'remove)
     (setf tabbed.select #'select)
     (setf tabbed.current #'current)
     (setf tabbed.next (lambda ()
