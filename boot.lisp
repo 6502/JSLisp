@@ -2999,6 +2999,10 @@ A name is either an unevaluated atom or an evaluated list."
   "Returns an integer from the start of the specified string (NaN if fails)"
   `(js-code ,(+ "parseInt(" (js-compile s) ",10)")))
 
+(defmacro/f hextoi (s)
+  "Returns an hexdecimal value parsed from the start of the specified string (NaN if fails)"
+  `(js-code ,(+ "parseInt(" (js-compile s) ",16)")))
+
 ;; Serialization (when str-value/load/eval is not appropriate, e.g. for rpc)
 
 (defobject serialization-out (buf seen add backref))
@@ -3822,6 +3826,21 @@ A name is either an unevaluated atom or an evaluated list."
   `(when (. #',name org-func)
      (setf #',name (. #',name org-func))
      ',name))
+
+;; Hex literals
+
+(setf (hash-reader "x")
+      (lambda (src)
+        (next-char src)
+        (do ((lit "")
+             (c null))
+          ((not (find (setf c (current-char src)) "0123456789ABCDEFabcdef"))
+           (if (or (undefined? c)
+                   (find c (+ *spaces* *stopchars*)))
+               (hextoi lit)
+               (error "Invalid character in hex literal")))
+          (incf lit c)
+          (next-char src))))
 
 ;; Inline (experimental)
 (defmacro defun/inline (name args &rest body)
