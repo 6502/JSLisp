@@ -118,9 +118,9 @@
     (setf (js-code "window").showdoc #'doc-lookup)
     (setf *ilisp* ilisp.ilisp)
 
-    (sources.add "test.lisp" (src-tab "test.lisp" ""))
-    (sources.add "test2.lisp" (src-tab "test2.lisp" ""))
-    (sources.add "test3.lisp" (src-tab "test3.lisp" ""))
+    (sources.add "<unnamed-1>.lisp" (src-tab "<unnamed-1>.lisp" ""))
+    (sources.add "<unnamed-2>.lisp" (src-tab "<unnamed-2>.lisp" ""))
+    (sources.add "<unnamed-3>.lisp" (src-tab "<unnamed-3>.lisp" ""))
 
     (document.body.addEventListener
      "keydown"

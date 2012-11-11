@@ -778,13 +778,14 @@
                              position "absolute"
                              fontFamily "Arial"
                              fontWeight "bold"))
-          (ribbon (H spacing: 6))
+          (ribbon (append-child tabbed (set-style (create-element "div")
+                                                  position "absolute")))
           (area (append-child tabbed (set-style (create-element "div")
                                                 position "absolute"
                                                 border "solid 1px #000000"
                                                 backgroundColor "#FFFFFF")))
           (layout (V spacing: 0
-                     size: 22 ribbon
+                     size: 22 (dom ribbon)
                      size: undefined (dom area)))
           (tabs (list))
           (pages (list))
@@ -792,15 +793,22 @@
           (#'current ()
             (aref pages current))
           (#'add (label page)
-            (let ((tab (set-style (create-element "div")
-                                  position "absolute"
+            (let ((tab (set-style (create-element "span")
+                                  display "inline-block"
+                                  position "relative"
+                                  px/top "1"
                                   borderLeft "solid 1px #000000"
                                   borderRight "solid 1px #000000"
                                   borderTop "solid 1px #000000"
+                                  borderBottom "solid 1px #000000"
+                                  backgroundColor "#DDDDDD"
+                                  zIndex "1"
                                   px/borderTopLeftRadius 6
                                   px/borderTopRightRadius 6
-                                  backgroundColor "#DDDDDD"
                                   textAlign "center"
+                                  px/marginRight 8
+                                  px/paddingLeft 8
+                                  px/paddingRight 8
                                   cursor "pointer")))
               (setf tab.textContent label)
               (append-child tabbed tab)
@@ -808,24 +816,21 @@
               (push page pages)
               (set-handler tab onclick
                 (select (index tab tabs)))
-              (add-element ribbon max: 80 (dom tab))
-              (if (= (length pages) 1)
-                  (select 0)
-                  (progn
-                    (append-child tabbed area)
-                    (append-child tabbed (aref tabs current))))))
+              (append-child ribbon tab)
+              (when (= (length pages) 1)
+                (select 0))))
           (#'select (index)
             (unless (= index current)
               (when (/= current -1)
                 (set-style (aref tabs current)
+                           borderBottom "solid 1px #000000"
                            backgroundColor "#DDDDDD")
                 (remove-child area (aref pages current)))
               (setf current index)
               (set-style (aref tabs current)
+                         borderBottom "solid 1px #FFFFFF"
                          backgroundColor "#FFFFFF")
               (append-child area (aref pages current))
-              (append-child tabbed area)
-              (append-child tabbed (aref tabs current))
               (fix)))
           (#'fix ()
               (set-coords layout 0 0 tabbed.offsetWidth tabbed.offsetHeight)
@@ -1313,4 +1318,5 @@
         table
         tabbed
         screen-width screen-height
-        message-box)
+        message-box
+        login)
