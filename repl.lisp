@@ -288,4 +288,7 @@
                         (doc-lookup name)))))))))
      100)))
 
+(defvar *deploy-prefix* "")
+(setf *deploy-prefix* (replace *deploy-prefix* "</head>" "<title>JsLisp IDE</title></head>"))
+
 (main)
