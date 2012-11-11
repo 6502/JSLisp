@@ -1330,6 +1330,41 @@
                                                      "password"))))
     (user.lastChild.focus)))
 
+(defun baloon (html &optional (duration 2000))
+  "Shows a message in a baloon that will disappear by itself"
+  (let ((baloon (set-style (create-element "div")
+                           position "absolute"
+                           px/padding 16
+                           px/borderRadius 8
+                           px/right 16
+                           px/top 16
+                           backgroundColor "rgba(0,0,0,0.75)"
+                           color "#FFFFFF"
+                           opacity 0
+                           fontFamily "monospace"
+                           px/fontSize 18
+                           px/fontWeight "bold"))
+        (animation null)
+        (direction 1)
+        (start (clock)))
+    (setf baloon.innerHTML html)
+    (append-child document.body baloon)
+    (setf animation
+          (set-interval (lambda ()
+                          (let ((s (/ (- (clock) start) 500)))
+                            (cond
+                              ((<= 0 s 1)
+                               (set-style baloon opacity (if (= direction 1) s (- 1 s))))
+                              ((and (= direction 1) (>= s 1))
+                               (set-style baloon opacity 1)
+                               (setf direction -1)
+                               (setf start (+ (clock) duration)))
+                              ((>= s 1)
+                               (clear-interval animation)
+                               (remove-child document.body baloon)))))
+                        20))
+    baloon))
+
 (export set-style
         screen-width screen-height
         element-pos event-pos relative-pos
@@ -1355,4 +1390,5 @@
         tabbed
         screen-width screen-height
         message-box
-        ask-login)
+        ask-login
+        baloon)
