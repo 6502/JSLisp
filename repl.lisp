@@ -92,9 +92,11 @@
 
 (defun put-file (name content)
   (try
-   (call-remote `((node:require "fs").writeFileSync ,name ,content))
-   (message-box ~"Error saving file {name}"
-                modal: true)))
+    (progn
+      (call-remote `((node:require "fs").writeFileSync ,name ,content))
+      (baloon ~"{name} saved"))
+    (message-box ~"Error saving file {name}"
+                 modal: true)))
 
 (defun files (path)
   (call-remote `((node:require "fs").readdirSync ,path)))
@@ -115,25 +117,44 @@
           (filelist (list))
           (#'pathexp (s)
             (let* ((last-sep (last-index "/" s))
-                   (base (if (= last-sep -1) "./" (slice s 0 last-sep)))
+                   (base (if (= last-sep -1) "./" (slice s 0 (1+ last-sep))))
                    (name (slice s (1+ last-sep))))
               (list base name)))
           (#'filter ()
-            (when (/= last-search (text current-path))
-              (setf last-search (text current-path))
-              (let (((base name) (pathexp last-search)))
-                (setf files.textContent "")
-                (setf filelist (list))
-                (dolist (f (or (files base) ""))
-                  (when (and (/= (last f) "~")
-                             (= (slice f 0 (length name)) name))
-                    (push f filelist)
-                    (let ((d (append-child files (set-style (create-element "div")
-                                                            px/fontSize 18
-                                                            fontFamily "monospace"
-                                                            whiteSpace "pre"
-                                                            px/padding 2))))
-                      (setf d.textContent f)))))))
+            (let ((search (slice (text current-path)
+                                 0 current-path.lastChild.selectionStart)))
+              (when (/= last-search search)
+                (setf last-search search)
+                (let (((base name) (pathexp last-search)))
+                  (setf files.textContent "")
+                  (setf filelist (list))
+                  (dolist (f (or (files base) ""))
+                    (when (and (/= (last f) "~")
+                               (/= (first f) ".")
+                               (= (slice f 0 (length name)) name))
+                      (push f filelist)
+                      (let ((d (append-child files (set-style (create-element "div")
+                                                              px/fontSize 18
+                                                              fontFamily "monospace"
+                                                              whiteSpace "pre"
+                                                              px/padding 2))))
+                        (setf d.textContent f))))
+                  (when (and (> (length filelist) 0)
+                             (= (length (text current-path))
+                                current-path.lastChild.selectionStart
+                                current-path.lastChild.selectionEnd))
+                    (let ((i (length (first filelist))))
+                      (dolist (x filelist)
+                        (do () ((= (slice (first filelist) 0 i)
+                                   (slice x 0 i)))
+                          (decf i)))
+                      (when (> i (length name))
+                        (when (= base "./")
+                          (setf base ""))
+                        (setf (text current-path) (+ base (slice (first filelist) 0 i)))
+                        (current-path.lastChild.setSelectionRange
+                          (+ (length base) (length name))
+                          (+ (length base) i)))))))))
           (#'enter ()
             (funcall cback (text current-path)))
           (layout (V border: 8 spacing: 8
@@ -150,14 +171,18 @@
             (when (= event.which 13)
               (event.stopPropagation)
               (event.preventDefault)
-              (enter))))
+              (if (/= current-path.lastChild.selectionStart
+                      current-path.lastChild.selectionEnd)
+                  (current-path.lastChild.setSelectionRange
+                    (length (text current-path))
+                    (length (text current-path)))
+                  (enter)))))
     (setf password.lastChild.type "password")
     (setf password.lastChild.onblur (lambda ()
                                       (setf *user* (text user))
                                       (setf *secret* (hash (text password)))
                                       (setf *session-id* (login *user*))))
     (set-interval #'filter 250)
-    (set-interval (lambda () (call-remote 42)) 5000) ;; keep-alive
     (setf w."data-resize" (lambda (x0 y0 x1 y1)
                             (set-coords layout 0 0 (- x1 x0) (- y1 y0))))
     (setf w.focus (lambda ()
@@ -226,6 +251,10 @@
 
     (set-interval #'resize 100)
     (resize)
+
+    ;; session keep-alive
+    (set-interval (lambda () (when *secret* (call-remote 42)))
+                  5000)
 
     (setf (js-code "window").showdoc #'doc-lookup)
     (setf *ilisp* ilisp.ilisp)
