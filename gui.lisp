@@ -1251,13 +1251,13 @@
 
 ;; Login/password request
 
-(defun login (cback &key (title "Login")
-                         (user-value "")
-                         (password-value "")
-                         (user-caption "user")
-                         (show-password-checkbox false)
-                         (width 400)
-                         (height (if show-password-checkbox 230 210)))
+(defun ask-login (cback &key (title "Login")
+                             (user-value "")
+                             (password-value "")
+                             (user-caption "user")
+                             (show-password-checkbox false)
+                             (width 400)
+                             (height (if show-password-checkbox 230 210)))
   "Displays a user/password dialog calling [cback] with provided values on confirm
    or passing [null] values in case the user cancels"
   (with-window (w (0 0 width height title: title close: false)
@@ -1319,4 +1319,4 @@
         tabbed
         screen-width screen-height
         message-box
-        login)
+        ask-login)

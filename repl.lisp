@@ -3,6 +3,8 @@
 (import * from editor)
 (import (mode) from editor-lispmode)
 (import ilisp)
+(import * from rpc-client)
+(import (hash) from crypto)
 
 (defvar *ilisp*)
 
@@ -72,6 +74,91 @@
     (setf container.ilisp ilisp)
     container))
 
+(defvar *user*)
+(defvar *secret*)
+(defvar *session-id*)
+
+(rpc:defun remote (user-name session-id x authcode))
+(rpc:defun login (user-name))
+
+(defun call-remote (x)
+  (remote *user* *session-id* x
+          (hash (+ *session-id* *secret* (json* x)))))
+
+(defun get-file (name)
+  (call-remote `(get-file ,name)))
+
+(defun files (path)
+  (call-remote `((node:require "fs").readdirSync ,path)))
+
+(defun file-browser (cback)
+  (let** ((w (set-style (create-element "div")
+                        position "absolute"))
+          (user (append-child w (input "username")))
+          (password (append-child w (input "password")))
+          (current-path (append-child w (input "current path")))
+          (files (append-child w (set-style (create-element "div")
+                                            position "absolute"
+                                            border  "solid 1px #000000"
+                                            overflow "auto"
+                                            px/margin -2
+                                            px/padding 2)))
+          (last-search null)
+          (filelist (list))
+          (#'pathexp (s)
+            (let* ((last-sep (last-index "/" s))
+                   (base (if (= last-sep -1) "./" (slice s 0 last-sep)))
+                   (name (slice s (1+ last-sep))))
+              (list base name)))
+          (#'filter ()
+            (when (/= last-search (text current-path))
+              (setf last-search (text current-path))
+              (let (((base name) (pathexp last-search)))
+                (setf files.textContent "")
+                (setf filelist (list))
+                (dolist (f (or (files base) ""))
+                  (when (and (/= (last f) "~")
+                             (= (slice f 0 (length name)) name))
+                    (push f filelist)
+                    (let ((d (append-child files (set-style (create-element "div")
+                                                            px/fontSize 18
+                                                            fontFamily "monospace"
+                                                            whiteSpace "pre"
+                                                            px/padding 2))))
+                      (setf d.textContent f)))))))
+          (#'enter ()
+            (funcall cback (text current-path)))
+          (layout (V border: 8 spacing: 8
+                     size: 40
+                     (H size: 120
+                        (dom user)
+                        (dom password)
+                        size: undefined
+                        (dom current-path))
+                     size: undefined
+                     (dom files))))
+    (setf current-path.onkeydown
+          (lambda (event)
+            (when (= event.which 13)
+              (event.stopPropagation)
+              (event.preventDefault)
+              (enter))))
+    (setf password.lastChild.type "password")
+    (setf password.lastChild.onblur (lambda ()
+                                      (setf *user* (text user))
+                                      (setf *secret* (hash (text password)))
+                                      (setf *session-id* (login *user*))))
+    (set-interval #'filter 250)
+    (set-interval (lambda () (call-remote 42)) 5000) ;; keep-alive
+    (setf w."data-resize" (lambda (x0 y0 x1 y1)
+                            (set-coords layout 0 0 (- x1 x0) (- y1 y0))))
+    (setf w.focus (lambda ()
+                    ((cond
+                       ((= (text user) "") user)
+                       ((= (text password) "") password)
+                       (true current-path)).lastChild.focus)))
+    w))
+
 (defun main ()
   (let** ((w (window 0 0 0.95 0.95 title: "JsLisp IDE"))
           (sources (tabbed))
@@ -119,15 +206,15 @@
     (setf *ilisp* ilisp.ilisp)
 
     (sources.add "<unnamed-1>.lisp" (src-tab "<unnamed-1>.lisp" ""))
-    (sources.add "<unnamed-2>.lisp" (src-tab "<unnamed-2>.lisp" ""))
-    (sources.add "<unnamed-3>.lisp" (src-tab "<unnamed-3>.lisp" ""))
+    (sources.add "+" (file-browser (lambda (f)
+                                     (sources.add f (src-tab f (or (get-file f) ""))))))
 
     (document.body.addEventListener
      "keydown"
      (lambda (event)
        (let ((stop true))
          (cond
-           ((and event.ctrlKey (= event.which 74))
+           ((and event.ctrlKey (= event.which 75))
             (setf zoom (not zoom))
             (setf sources.style.opacity (if zoom 0 1))
             (setf doc.style.opacity (if zoom 0 1))
@@ -152,7 +239,7 @@
     (set-interval
      (let ((last-lookup ""))
        (lambda ()
-         (when (sources.current)
+         (when (and (sources.current) (sources.current).pos)
            (let* (((row col) ((sources.current).pos))
                   (lines ((sources.current).lines))
                   (text (aref lines row).text))
