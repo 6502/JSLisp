@@ -94,9 +94,12 @@
   (try
     (progn
       (call-remote `((node:require "fs").writeFileSync ,name ,content))
-      (baloon ~"{name} saved"))
-    (message-box ~"Error saving file {name}"
-                 modal: true)))
+      (baloon ~"{name} saved")
+      true)
+    (progn
+      (message-box ~"Error saving file {name}"
+                   modal: true)
+      false)))
 
 (defun files (path)
   (call-remote `((node:require "fs").readdirSync ,path)))
@@ -274,10 +277,10 @@
        (let ((stop true))
          (cond
            ((and event.ctrlKey (= event.which 87))
-            (when (> (sources.current-index) 0)
-              (try (put-file ((sources.current).name)
-                             ((sources.current).buffer))
-                   (message-box "Error saving current buffer"))))
+            (when (and (> (sources.current-index) 0)
+                       (put-file ((sources.current).name)
+                                 ((sources.current).buffer)))
+              ((sources.current).clear-modified)))
            ((and event.ctrlKey (= event.which 81))
             (when (> (sources.current-index) 0)
               (sources.remove (sources.current-index))))
