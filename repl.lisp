@@ -196,6 +196,8 @@
     w))
 
 (defun main ()
+  (set-style document.body
+             fontFamily "Droid Serif")
   (let** ((w (set-style (append-child document.body
                                       (create-element "div"))
                         position "absolute"
@@ -262,11 +264,38 @@
     (setf (js-code "window").showdoc #'doc-lookup)
     (setf *ilisp* ilisp.ilisp)
 
-    (sources.add "+" (file-browser (lambda (f)
-                                     (sources.add f (src-tab f (or (get-file f) "")) true)
-                                     (sources.select 0)
-                                     (sources.prev))))
-    (sources.add "*scratch*" (src-tab "*scratch*" "") true)
+    (sources.add
+      "+"
+      (file-browser
+        (lambda (f)
+          (let ((editor (src-tab f (or (get-file f) ""))))
+            (sources.add f editor true)
+            (setf editor.remove
+                  (lambda ()
+                    (if (editor.modified)
+                        (progn
+                          (message-box
+                            "<h2>File changes not saved. Quit anyway?</h2>
+                             There are changes to the current file that have
+                             not been saved yet back to server (key: ctrl-W).<br/><br/>
+                             If you close this tab these changes will be lost."
+                            title: "Abandon edit warning"
+                            buttons: (list "Yes" "No")
+                            default: "No"
+                            modal: true
+                            cback: (lambda (reply)
+                                     (when (= reply "Yes")
+                                       (editor.clear-modified)
+                                       (sources.remove (sources.page-index editor)))))
+                          false)
+                        true)))
+            (sources.select 0)
+            (sources.prev)))))
+
+    (sources.add
+      "*scratch*"
+      (src-tab "*scratch*" "")
+      true)
     (sources.select 1)
 
     (set-timeout (lambda () ((sources.current).focus)) 10)
