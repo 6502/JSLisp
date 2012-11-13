@@ -81,9 +81,10 @@
                              (append-child w.client zoomrect)
                              (setf animation
                                    (set-interval (lambda ()
-                                                   (let ((s (/ (- (clock) start) 500)))
+                                                   (let ((s (/ (- (clock) start) 1000)))
                                                      (if (< s 1)
-                                                         (let* ((ax (+ zx (* s (- 0 zx))))
+                                                         (let* ((s (- (* 3 s s) (* 2 s s s)))
+                                                                (ax (+ zx (* s (- 0 zx))))
                                                                 (ay (+ zy (* s (- 0 zy))))
                                                                 (aw (+ zw (* s (- ww zw))))
                                                                 (ah (+ zh (* s (- hh zh))))
