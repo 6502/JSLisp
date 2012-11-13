@@ -891,6 +891,7 @@
                         (when (> (length pages) 1)
                           (select (% (+ current (1- (length pages))) (length pages))))))
     (setf tabbed.current-index (lambda () current))
+    (setf tabbed.page-index (lambda (p) (index p pages)))
     (setf tabbed."data-resize" #'fix)
     tabbed))
 
@@ -1142,10 +1143,12 @@
 (defun message-box (htmltext &key (title "Message")
                                   cback
                                   (buttons (list "OK"))
+                                  default
                                   (modal false)
                                   (width (/ (screen-width) 2))
                                   (height (/ (screen-height) 3)))
-  (let ((btnrow (H spacing: 16 :filler:)))
+  (let ((btnlist (list))
+        (btnrow (H spacing: 16 :filler:)))
     (with-window (w (0 0 width height title: title)
                     ((message (create-element "div")))
                     (V spacing: 8 border: 8
@@ -1161,8 +1164,16 @@
                                     (when cback
                                       (funcall cback btn-text))))))
           (append-child w.client b)
+          (push b btnlist)
           (add-element btnrow size: 80 (dom b))))
       (add-element btnrow null)
+      (set-timeout (if (find default buttons)
+                       (lambda ()
+                         ((aref btnlist (index default buttons)).focus))
+                       (lambda ()
+                         (when document.activeElement
+                           (document.activeElement.blur))))
+                   10)
       (show-window w center: true modal: modal))))
 
 ;; Calendar
