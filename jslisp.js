@@ -51,6 +51,11 @@ if (typeof window === "undefined")
         console.log(x);
     };
 
+    glob["f$$warning"] = f$$warning = function(x)
+    {
+        console.error(x);
+    };
+
     f$$display.outcalls = [];
     f$$display.usedglobs = [];
 
@@ -1105,14 +1110,15 @@ defmacro("symbol-macrolet",
          },
          [f$$intern("bindings"), f$$intern("&rest"), f$$intern("body")]);
 
-defun("warning",
-      "[[(warning msg)]]\n" +
-      "Function called by the compiler to emit warnings about possible logical errors in the compiled code.",
-      function(msg)
-      {
-          f$$display("WARNING: " + msg.replace(/\$\$[a-zA-Z_0-9\$]*/g, f$$demangle));
-      },
-      [f$$intern("msg")],[],["$$demangle"]);
+if (typeof window !== "undefined")
+    defun("warning",
+          "[[(warning msg)]]\n" +
+          "Function called by the compiler to emit warnings about possible logical errors in the compiled code.",
+          function(msg)
+          {
+              f$$display("WARNING: " + msg.replace(/\$\$[a-zA-Z_0-9\$]*/g, f$$demangle));
+          },
+          [f$$intern("msg")],[],["$$demangle"]);
 
 d$$$42_error_location$42_ = null;
 
