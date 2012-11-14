@@ -255,7 +255,7 @@ show('About');
     (dolist (section *sections*)
       (incf result ~"<div style=\"display:none;\" id=\"{(id section.title)}\">")
       (incf result ~"<h1>{section.title}</h1><hr/>")
-      (dotimes (i (1- section.level))
+      (repeat (1- section.level)
         (incf index "<span style=\"display:inline-block; width:20px;\"></span>"))
       (incf index
             ~"<a onclick=\"show('{(id section.title)}')\">{(htmfix section.title)}</a><br/>")
