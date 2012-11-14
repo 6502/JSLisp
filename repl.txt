@@ -15,10 +15,10 @@ be used freely.
 *2 Expression evaluation
 
 When [ENTER] is pressed with the cursor
-at the very end of the textarea JsLisp
+at the very end of the textarea and if
+parenthesis are balanced then JsLisp
 evaluates and displays the result of
-what was present after the last prompt
-[">> "] (if parenthesis were balanced).
+what was present after the last result.
 
 *3 Goodies
 
@@ -146,7 +146,11 @@ Please note that the REPL is no substitute
 for a decent editor. For example:
 
 - Undo sucks (only one level)
+- Cannot save, you must use copy/paste
 - Closing the window is one keystroke away
   without any warning (e.g. ctrl-w)
 - Cannot do search/replace
-- Good for experimenting, not for coding.
+- Good for experimenting, not for coding
+
+*7 Demo
+= Demo time
