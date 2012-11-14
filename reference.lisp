@@ -16,7 +16,6 @@
           ("d" (setf (aref module.variables name) object))))))
   (display (keys modules)))
 
-
 (labels ((find-all (prefix)
            (map (lambda (x)
                         (list (let* ((ix (index "$$" x))
@@ -33,7 +32,6 @@
                               (keys window)))))
   (let ((functions (find-all "f"))
         (macros (find-all "m"))
-        (variables (find-all "d"))
         (result ""))
     (labels ((out (x)
                (incf result x))
@@ -98,10 +96,9 @@
           (out ~"<div class=\"doc\"><a name=\"{(slice (first group) 0 1)}_{(mangle (first f))}\">")
           (out ~"{(slice (first group) 0 (1- (length (first group))))}: ")
           (out ~"<span class=\"code\">{(htm (first f))}</span></a>")
-          (let* ((doc (or (second f) "No documentation available"))
-                 (pre ""))
+          (let* ((doc (or (second f) "No documentation available")))
             (out ~"<br/>{(htmfix doc)}</div>"))))
       (out "</body></html>"))
-    (set-timeout (lambda (&rest args)
+    (set-timeout (lambda ()
                    (funcall (. document write) result))
                  0)))
