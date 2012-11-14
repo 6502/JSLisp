@@ -40,7 +40,7 @@ Javascript inlining is possible and used heavily in the default
 runtime library. Name mangling is necessary when converting JsLisp
 symbol names to Javascript and vice versa [(mangle x)]/[(demangle x)].
 
-Compiler does a fiew static checks at compile time:
+Compiler does a few static checks at compile time:
 
 - Unknown variables
 - Unknown functions
@@ -336,7 +336,7 @@ Reader customization can be done mainly in two ways:
 ### 1) Defining a reader function for a character
 
 Consider a classical example of customizing the reader so
-that lambda forms can be specified more succintly:
+that lambda forms can be specified more succinctly:
 
 +--------------------+--------------------------+
 |        this        |  is interpreted as this  |
@@ -418,7 +418,7 @@ capabilities) and the features provided by JsLisp are simply not used.
 @@ Block scope
 
 In JsLisp you can define a variable that is visible only for a block
-of code, like in C/C++, without interferring with another variable
+of code, like in C/C++, without interfering with another variable
 with the same name in the containing block.
 
 [BLock scope
@@ -640,7 +640,7 @@ WARNING: Undefined variable k
 
 @ Reference
 
-A reference generated from docstrings documenting al functions and
+A reference generated from docstrings documenting all functions and
 macros defined can be obtained by clicking the following button:
 
 <<
@@ -860,7 +860,7 @@ Also the produced Javascript code is minimized and this provides a
 smaller download size, a faster startup and some protection of the
 source code.
 
-The easiest way to use the deploy function is to invoke jslisp from
+The easiest way to use the deploy function is to invoke JsLisp from
 [node] command line program:
 
 [node jslisp.js deploy.lisp myprogram.lisp > myprogram.js
@@ -887,7 +887,7 @@ As an example consider the chess playing program:
 | Startup time             |       |        |      0.034 |
 +--------------------------+-------+--------+------------+
 
-The compiled and minified version is a single line of javascript with
+The compiled and minified version is a single line of Javascript with
 a total length of 33584 that gizipped is a download of 7822 bytes.
 The deployed file has no dependencies (except in the specific the
 PNG images for the chess pieces), just loading it in a page will
