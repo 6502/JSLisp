@@ -1,6 +1,6 @@
 @ About
 
-JsLisp is a Lisp(1) Compiler(3) targeting Javascript(3)
+JsLisp is a Lisp(1) Compiler(2) targeting Javascript(3)
 
 In more detail...
 
@@ -33,15 +33,23 @@ compiler is hand-written Javascript, everything else is written in
 JsLisp itself (boot.lisp).
 
 Compiled functions are regular Javscript functions, callable from
-Javascript code (with the exception of keyword arguments) and that
+Javascript code (with the exception of keyword arguments) and they
 can call Javascript code.
 
 Javascript inlining is possible and used heavily in the default
 runtime library. Name mangling is necessary when converting JsLisp
 symbol names to Javascript and vice versa [(mangle x)]/[(demangle x)].
 
-Support for docstrings, parameter checking (done at compile time on
-static calls), [&key]/[&optional]/[&rest] parameters.
+Compiler does a fiew static checks at compile time:
+
+- Unknown variables
+- Unknown functions
+- Wrong number of arguments or wrong keyword arguments in a static call
+- Unused locals
+- Map over a lambda with the wrong number of arguments
+
+JsLisp also supports docstrings and doctests (i.e. tests embedded in
+the docstring, ensuring conformance).
 
 # (3) Targeting Javascript
 
@@ -50,9 +58,15 @@ generated code is not meant to be manually maintained.
 
 Works with recent browsers and node.js.
 
-Any Javascript functions or methods can be called from JsLisp code by
-using the generic binding facility [bind-js-functions] and
-[bind-js-methods].
+Using node.js allows writing the server side and the client side
+of a web application in a single language. There is also an
+RPC module that facilitates the approach by avoiding any
+explicit binding (you can just define the functions in a module
+using [rpc-defun] and they will be callable by the client and
+will run in the server).
+
+Any Javascript functions or methods can be called from JsLisp.
+JsLisp code can be called by Javascript or used as event handler.
 
 @ License
 
@@ -103,10 +117,10 @@ a recent HTML5 browser is required.
 !An interactive 3d Rubik cube:3d.lisp
 !A pie chart builder:piechart.lisp
 !A dialog window:guitest.lisp
-!A turtle graphic implementation:turtle.lisp
 !A chess playing program:chessboard.lisp
 !An hexagonal tiling pathfinder:hexa.lisp
 !A Mandelbrot fractal explorer:mandelbrot.lisp
+!A Conway's game of life implementation:life.lisp
 
 @ JsLisp <=> CL
 
@@ -123,10 +137,39 @@ Javascript machine below would like to start complaining about that.
 
 So basically the target of JsLisp was to become "as close as
 reasonably possible to CL, but not closer".
+Over the time this target has shifted a bit and the aim is to use
+CL as a model only when the added value is understood and not just
+for following CL minor warts that have been caused by the history
+of its evolution.
 
-Please also consider that current state of JsLisp is extremely flux
-and subject to change. A few parts are departures from CL that I'm not
-fully convinced about.
+Please also consider that current state of JsLisp is EXTREMELY flux
+and subject to change. Quite a few parts are departures from CL or
+tentative implementations that I'm not fully convinced about.
+
+<<
+<div style="border:solid 4px #880000; border-radius: 8px;
+            background-color:#FFCCCC; font-weight:bold;
+            padding:12px; font-size:120%">
+<div style="text-decoration:underline; text-align:center; font-size:150%">WARNING</div>
+<p>PLEASE NOTE THAT CURRENTLY I'M APPARENTLY THE ONLY USER OF THE
+LANGUAGE AND I JUST CHANGE THINGS AT MY WILL WITHOUT CARING ABOUT
+BACKWARD COMPATIBILITY.</p>
+<p>IF YOU DECIDE TO USE IT FOR ANYTHING PLEASE BE SURE TO UNDERSTAND
+THAT I'M NOT NECESSARILY GOING TO HELP YOU ON THIS INSTABILITY
+ISSUE.</p>
+</div>
+>>
+
+Note that of course I'm open about hearing any suggestion or
+critics...  but I'm not currently willing to take to extra load of
+thinking to someone else using JsLisp. I am using it for some pet
+projects but if you do then please be sure you're also ready to pay
+the price (i.e. porting everything or eventually maintaining your
+clone of JsLisp).
+
+In all honesty I don't refrain from making changes just because of my
+already existing codebase. At the moment however I won't stop because
+of your codebase either.
 
 @@ No CAR / CDR
 
@@ -140,7 +183,7 @@ from Lisp. Really.
 
 There is nothing "essential" into using cons cells except a conceptual
 and formal minimality that represents a model neither our human brain
-nor the today computer brain finds particularly simple.
+nor the today computer brain finds particularly simple(*).
 
 Don't get me wrong. I think this was a fantastic smart choice for the
 problem McCarthy was working on, but for both humans and most current
@@ -174,6 +217,21 @@ using two-elements arrays and can be a sensible choice if the
 tail-sharing possibilities are playing an important role for your
 problem.
 
+(*) Simplicity is used with the meaning of "obvious" and that doesn't
+need hard thinking or further explanations. For humans for example
+counting concept is simple, and Peano axiomatic constructions of
+finite ordinals it's not, even if the latter is in a formal sense
+"simpler" than counting.
+
+When a human thinks to a sequence of three objects, it's just that:
+three objects... the first, the second and the third. No one would
+think first to just a compound of two parts... one part with the
+interesting object and the other part a pointer to where to find
+another compound when the element isn't the last one.
+
+For both humans and present day computers arrays are "simpler" than
+linked lists.
+
 @@ Lisp-3
 
 In JsLisp there are three main values for a symbol: the value, the
@@ -198,52 +256,52 @@ there is no reader macro for this very infrequent need.
 
 Something that is used quite often in [boot.lisp] is the macro
 [defmacro/f] that allows defining at the same time a macro and a
-function. Note that [defmacro/f] can be used however only for functions
-with a fixed number of arguments.
+function. Note that [defmacro/f] can be used however only for
+functions with a fixed number of arguments.
 
 [defmacro/f
->> (defmacro/f square (x)
-     (let ((y (gensym)))
-       `(let ((,y ,x))
-          (* ,y ,y))))
-= square
+(defmacro/f square (x)
+  (let ((y (gensym)))
+    `(let ((,y ,x))
+       (* ,y ,y))))
+;; ==> square
 
->> (square 12)
-= 144
+(square 12)
+;; ==> 144
 
->> (macroexpand-1 '(square (+ x y)))
-= (let ((G:12 (+ x y))) (* G:12 G:12))
+(macroexpand-1 '(square (+ x y)))
+;; ==> (let ((G#27 (+ x y))) (* G#27 G#27))
 
->> (map #'square (range 10))
-= (0 1 4 9 16 25 36 49 64 81)
+(map #'square (range 10))
+;; ==> (0 1 4 9 16 25 36 49 64 81)
 ]
 
-There is also an experimental [defun/inline] macro that allows
-defining a function ad a macro at the same time provided the
-function implementation.
+There is also an experimental [defun/inline] macro dual of
+[defmacro/f] that allows defining a function and a macro at the same
+time provided the function implementation.
 
 [defun/inline
->> (defun/inline square (x)
-     (* x x))
-= square
+(defun/inline square (x)
+  (* x x))
+;; ==> square
 
->> (square 12)
-= 144
+(square 12)
+;; ==> 144
 
->> (js-compile '(square 12))
-= "((144))"
+(js-compile '(square 12))
+;; ==> "((144))"
 
->> (js-compile '(square x))
-WARNING: Undefined variable x
-WARNING: Undefined variable x
-= "((((d$$x)*(d$$x))))"
+(js-compile '(square z))
+WARNING: Undefined variable z
+WARNING: Undefined variable z
+;; ==> "((((d$$z)*(d$$z))))"
 
->> (defun cube (x)
-     (* x x x))
-= cube
+(defun cube (x)
+  (* x x x))
+;; ==> cube
 
->> (js-compile '(cube 33))
-= "f$$cube(33)"
+(js-compile '(cube 33))
+;; ==> "f$$cube(33)"
 ]
 
 @@ Numbers
@@ -292,22 +350,22 @@ If an application is using a lot of anonymous functions this
 transformation could lead to a subjectively more readable code.
 
 [Reader customization example 1
->> (setf (reader "{")
-         (lambda (src)
-           (next-char src)
-           (let ((form (parse-delimited-list src "}")))
-             (let ((i (index '-> form)))
-               (if (>= i 0)
-                   `(lambda ,(slice form 0 i)
-                      ,@(slice form (1+ i)))
-                   `(lambda (x) ,form))))))
-= #CODE
+(setf (reader "{")
+      (lambda (src)
+        (next-char src)
+        (let ((form (parse-delimited-list src "}")))
+          (let ((i (index '-> form)))
+            (if (>= i 0)
+                `(lambda ,(slice form 0 i)
+                   ,@(slice form (1+ i)))
+                `(lambda (x) ,form))))))
+;; ==> #CODE
 
->> (parse-value "{x y -> (* x y)}")
-= (lambda (x y) (* x y))
+(parse-value "{x y -> (* x y)}")
+;; ==> (lambda (x y) (* x y))
 
->> (map {* x x} (range 10))
-= (0 1 4 9 16 25 36 49 64 81)
+(map {* x x} (range 10))
+;; ==> (0 1 4 9 16 25 36 49 64 81)
 ]
 
 ### 2) Redefining (wrapping) the [parse-value] predefined function
@@ -323,38 +381,39 @@ presence of a [->] symbol at the form top level (of course the
 implicit [x] version will not be implemented).
 
 [Redefining parse-value
->> (setf #'parse-value
-         (let ((oldf #'parse-value))
-           (lambda (src)
-             (let* ((x (funcall oldf src))
-                    (ix (if (list? x)
-                            (index '-> x)
-                            -1)))
-               (if (>= ix 0)
-                   `(lambda ,(slice x 0 ix)
-                      ,@(slice x (1+ ix)))
-                   x)))))
-= #CODE
+(setf #'parse-value
+      (let ((oldf #'parse-value))
+        (lambda (src)
+          (let* ((x (funcall oldf src))
+                 (ix (if (list? x)
+                         (index '-> x)
+                         -1)))
+            (if (>= ix 0)
+                `(lambda ,(slice x 0 ix)
+                   ,@(slice x (1+ ix)))
+                x)))))
+;; ==> #CODE
 
->> (parse-value "(x y -> (+ x y))")
-= (lambda (x y) (+ x y))
+(parse-value "(x y -> (+ x y))")
+;; ==> (lambda (x y) (+ x y))
 
->> (map (x -> (* x x)) (range 10))
-= (0 1 4 9 16 25 36 49 64 81)
+(map (x -> (* x x)) (range 10))
+;; ==> (0 1 4 9 16 25 36 49 64 81)
 ]
 
 @ JsLisp <=> Javascript
 
-Compared to the Javascript language there are many differences.  Most
-of the differences are on the syntax level and there are workarounds
-(like for example using anonymous functions immediately called to
-create local scopes) and this is exactly how the JsLisp compiler
-solves the problems.
+Javascript syntax is of course very different from JsLisp default
+syntax.
 
-In other cases the workaround is way too annoying to be implemented
-manually in Javascript (due to the lack of macro capabilities) and the
-features provided by JsLisp are simply not used in manually written
-Javascript code.
+In hand-written Javascript there are some typical patterns used to
+emulate language features that are not present natively (for example
+immediate calling of an anonymous function to be able to have a local
+scope).
+
+In other cases however the workaround is way too annoying to be
+implemented manually in Javascript (due to the lack of macro
+capabilities) and the features provided by JsLisp are simply not used.
 
 @@ Block scope
 
@@ -375,7 +434,7 @@ function foo ()
     // Here x content has been destroyed; no
     // matter how many var declarations you
     // put only one x per function is allocated.
-    // The commonly used approach is to use
+    // The commonly used workaround is to use
     //
     //       (function(){var x = y*y; ... })();
     //
@@ -399,40 +458,48 @@ function foo ()
 
 @@ Arguments
 
-JsLisp supports [&optional], [&rest] and [&key] arguments for functions.
-For both [&optional] and [&key] arguments it's possible to provide
-a default expression to be used.
+JsLisp supports [&optional], [&rest] and [&key] arguments for
+functions.  For both [&optional] and [&key] arguments it's possible to
+provide a default expression to be used. Note that default expressions
+for [&optional] and [&key] arguments are evaluated at each call (not
+like in Python for example) but only if the parameter value is not
+passed.
+
+Differently from Common Lisp [&rest] and [&key] arguments cannot be combined
+(at the moment) and also neither [&allow-other-keys] nor [allow-other-keys:]
+are supported. Note also that the colon in keywords in JsLisp is at
+the END of the word, not at the beginning.
 
 [Optional/keyword/rest
->> (defun foo (x &optional y (z 42))
-     (list x y z))
-= foo
+(defun foo (x &optional y (z 42))
+  (list x y z))
+;; ==> foo
 
->> (foo 1)
-= (1 undefined 42)
+(foo 1)
+;; ==> (1 undefined 42)
 
->> (foo 1 2 3)
-= (1 2 3)
+(foo 1 2 3)
+;; ==> (1 2 3)
 
->> (defun bar (x &key y (z 42))
-     (list x y z))
-= bar
+(defun bar (x &key y (z 42))
+  (list x y z))
+;; ==> bar
 
->> (bar 1)
-= (1 undefined 42)
+(bar 1)
+;; ==> (1 undefined 42)
 
->> (bar 1 z: 99)
-= (1 undefined 99)
+(bar 1 z: 99)
+;; ==> (1 undefined 99)
 
->> (bar 1 z: 99 y: 33)
-= (1 33 99)
+(bar 1 z: 99 y: 33)
+;; ==> (1 33 99)
 
->> (defun baz (x y &rest z)
-     (list x y z))
-= baz
+(defun baz (x y &rest z)
+  (list x y z))
+;; ==> baz
 
->> (baz 1 2 3 4 5)
-= (1 2 (3 4 5))
+(baz 1 2 3 4 5)
+;; ==> (1 2 (3 4 5))
 ]
 
 @@ Static checks
@@ -509,6 +576,28 @@ WARNING: Invalid keyword parameter k: in (foo 1 k: 99)
 = baz
 ]
 
+[Unused local names
+>> (defun foo (x y) (* x 12))
+WARNING: Local name y defined but not used
+= foo
+
+>> (defun bar (x y)
+      (declare (ignorable y))
+      (* x 12))
+= bar
+]
+
+[Map/lambda parameters count and arity mismatch
+>> (defun dilbert ()
+     (map (lambda () (random-int 10)) (range 10)))
+WARNING: function argument count doesn't match
+         number of passed lists
+= dilbert
+
+>> (dilbert)
+= (9 9 9 9 9 9 9 9 9 9)
+]
+
 @Javascript integration
 
 JsLisp compiled functions are regular Javascript functions and can
@@ -534,19 +623,19 @@ often in macros (it's actually how the compiler is implemented).
 In "leaf" cases the output of a macro is a single [js-code] form.
 
 [Inline Javascript code
->> (display (+ "Hello "
-               (js-code "prompt('What is your name?')")
-               ",\nhow's going?"))
-Hello Andrea,
-how's going?
-= "Hello Andrea,\nhow's going?"
+(display (+ "Hello "
+            (js-code "prompt('What is your name?')")
+            ",\nhow's going?"))
+.Hello Andrea,
+.how's going?
+;; ==> "Hello Andrea,\nhow's going?"
 
->> (macroexpand-1 '(aref x i j k))
+(macroexpand-1 '(aref x i j k))
 WARNING: Undefined variable x
 WARNING: Undefined variable i
 WARNING: Undefined variable j
 WARNING: Undefined variable k
-= (js-code "(d$$x[d$$i][d$$j][d$$k])")
+;; ==> (js-code "(d$$x[d$$i][d$$j][d$$k])")
 ]
 
 @ Reference
@@ -573,43 +662,43 @@ and [load]s a lisp source file. Then possibly adds to the current
 symbol alias table some or all of the exported names.
 
 [Modules
->> ; This imports all exported names from the
-   ; examples/raster module into the current
-   ; *symbol-aliases* table.
-   (import * from examples/raster)
-= ("hline" "box" "clear" "frame" "line" ... )
+; This imports all exported names from the
+; examples/raster module into the current
+; *symbol-aliases* table.
+(import * from examples/raster)
+.("hline" "box" "clear" "frame" "line" ... )
 
->> 'hline
-= examples/raster:hline
+'hline
+.examples/raster:hline
 
->> ; This imports (loads) the module and assigns
-   ; a nickname, but defines no symbol aliases
-   (import graphics as g)
-= ("rgb" "rgba" "css-color" "random-color" "with-canvas")
+; This imports (loads) the module and assigns
+; a nickname, but defines no symbol aliases
+(import graphics as g)
+.("rgb" "rgba" "css-color" "random-color" "with-canvas")
 
->> (random-color)
+(random-color)
 WARNING: Undefined function random-color
 **ERROR**: ReferenceError: function random-color
 .           is not defined
 
->> (g:random-color)
-= {"r":182,"g":132,"b":188}
+(g:random-color)
+.{"r":182,"g":132,"b":188}
 
->> ; This imports only two specific names from
-   ; the gui module
-   (import (show set-style) from gui)
-= ("set-style" "element-pos" "event-pos" ...)
+; This imports only two specific names from
+; the gui module
+(import (show set-style) from gui)
+.("set-style" "element-pos" "event-pos" ...)
 
->> 'set-style
-= gui:set-style
+'set-style
+.gui:set-style
 
->> 'element-pos
-= element-pos
+'element-pos
+.element-pos
 
->> ; All currently active symbol aliases are kept
-   ; in the *symbol-aliases* map and are checked
-   ; first by the reader when interpreting a symbol
-   (map #'display (keys *symbol-aliases*))
+; All currently active symbol aliases are kept
+; in the *symbol-aliases* map and are checked
+; first by the reader when interpreting a symbol
+(map #'display (keys *symbol-aliases*))
 .!hline
 .!box
 .!clear
@@ -621,7 +710,7 @@ WARNING: Undefined function random-color
 .!fill
 .!show
 .!set-style
-= ("!hline" "!box" "!clear" "!frame" "!line" ...)
+.("!hline" "!box" "!clear" "!frame" "!line" ...)
 ]
 
 When defining a macro in a module that needs to intern symbols in
@@ -640,26 +729,26 @@ allow several implementations to be accessed using a single name
 performing the required multiplex at runtime on general conditions.
 
 [Generic functions
->> (defun fact (x)
-     (* x (fact (1- x))))
-= fact
+(defun fact (x)
+  (* x (fact (1- x))))
+;; ==> fact
 
->> (defmethod fact (x) (< x 2)
-     1)
-= (fact (< x 2))
+(defmethod fact (x) (< x 2)
+  1)
+;; ==> (fact (< x 2))
 
->> (map #'fact (range 10))
-= (1 1 2 6 24 120 720 5040 40320 362880)
+(map #'fact (range 10))
+;; ==> (1 1 2 6 24 120 720 5040 40320 362880)
 
->> (defmethod fact (x) (symbol? x)
-     #"{x}!")
-= (fact (symbol? x))
+(defmethod fact (x) (symbol? x)
+  #"{x}!")
+;; ==> (fact (symbol? x))
 
->> (fact 'x)
-= x!
+(fact 'x)
+;; ==> x!
 
->> (fact 10)
-= 3628800
+(fact 10)
+;; ==> 3628800
 ]
 
 The macro [(defmethod name args test &rest body)] is similar to
@@ -695,69 +784,69 @@ JsLisp [(defmethod ...)] and this allows both multimethods and
 EQL-specializations of CLOS.
 
 [Object Oriented Programming support
->> (defobject animal (name))
-= animal
+(defobject animal (name))
+;; ==> animal
 
->> (defobject dog (name))
-= dog
+(defobject dog (name))
+;; ==> dog
 
->> (defmethod animal? (x) (dog? x) true)
-= (animal? (dog? x))
+(defmethod animal? (x) (dog? x) true)
+;; ==> (animal? (dog? x))
 
->> (defobject cat (name))
-= cat
+(defobject cat (name))
+;; ==> cat
 
->> (defmethod animal? (x) (cat? x) true)
-= (animal? (cat? x))
+(defmethod animal? (x) (cat? x) true)
+;; ==> (animal? (cat? x))
 
->> (animal? (new-dog "fido"))
-= true
+(animal? (new-dog "fido"))
+;; ==> true
 
->> (defmethod run (x) (animal? x)
-     (display ~"{x.name} is running"))
-= (run (animal? x))
+(defmethod run (x) (animal? x)
+  (display ~"{x.name} is running"))
+;; ==> (run (animal? x))
 
->> (defmethod sing (x) (dog? x)
-     (display "woof!"))
-= (sing (dog? x))
+(defmethod sing (x) (dog? x)
+  (display "woof!"))
+;; ==> (sing (dog? x))
 
->> (defmethod sing (x) (cat? x)
-     (display "meow!"))
-= (sing (cat? x))
+(defmethod sing (x) (cat? x)
+  (display "meow!"))
+;; ==> (sing (cat? x))
 
->> (defvar *tobi* (new-cat "tobi"))
-= {"name":"tobi"}
+(defvar *tobi* (new-cat "tobi"))
+;; ==> {"name":"tobi"}
 
->> (defvar *fido* (new-dog "fido"))
-= {"name":"fido"}
+(defvar *fido* (new-dog "fido"))
+;; ==> {"name":"fido"}
 
->> (run *tobi*)
-tobi is running
-= "tobi is running"
+(run *tobi*)
+.tobi is running
+;; ==> "tobi is running"
 
->> (run *fido*)
-fido is running
-= "fido is running"
+(run *fido*)
+.fido is running
+;; ==> "fido is running"
 
->> (defmethod run (x) (= x *tobi*)
-     (display "no way ..."))
-= (run (= x *tobi*))
+(defmethod run (x) (= x *tobi*)
+  (display "no way ..."))
+;; ==> (run (= x *tobi*))
 
->> (run (new-cat "sissi"))
-sissi is running
-= "sissi is running"
+(run (new-cat "sissi"))
+.sissi is running
+;; ==> "sissi is running"
 
->> (run *tobi*)
-no way ...
-= "no way ..."
+(run *tobi*)
+.no way ...
+;; ==> "no way ..."
 
->> (sing *fido*)
-woof!
-= "woof!"
+(sing *fido*)
+.woof!
+;; ==> "woof!"
 
->> (sing *tobi*)
-meow!
-= "meow!"
+(sing *tobi*)
+.meow!
+;; ==> "meow!"
 ]
 
 @@ Treeshaker

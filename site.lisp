@@ -243,7 +243,7 @@ show('About');
 (defun htmcode (x)
   (replace
    (replace (htm x)
-            "(^|\\n)((= |WARNING:|\\*\\*ERROR\\*\\*:).*?)(?=\\n)"
+            "(^|\\n)((;; ==&gt; |WARNING:|\\*\\*ERROR\\*\\*:).*?)(?=\\n)"
             "<span class=\"output\">$1$2</span>")
    "(^|\\n)\\.(.*?)(?=\\n)"
    "<span class=\"output\">$1$2</span>"))
