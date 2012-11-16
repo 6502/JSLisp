@@ -3679,9 +3679,7 @@ A name is either an unevaluated atom or an evaluated list."
              (load ,(if node-js
                         `(get-file ,(+ (symbol-name module) ".lisp"))
                         `(http-get ,(+ (symbol-name module) ".lisp")))
-                   ,(if *debug-load*
-                        (+ (symbol-name module) ".lisp")
-                        undefined))
+                   ,(+ (symbol-name module) ".lisp"))
              (setf *current-module* cmod)
              (setf *symbol-aliases* salias)
              (setf *module-aliases* calias)))
@@ -3872,3 +3870,32 @@ A name is either an unevaluated atom or an evaluated list."
                                     res)
                   ,',@body)))))))
 
+(defun location (x)
+  (and (list? x)
+       (or x.location
+           (dolist (y x)
+             (let ((loc (location y)))
+               (when loc
+                 (return-from location loc)))))))
+
+(setf (symbol-macro 'defun)
+      (let ((oldm (symbol-macro 'defun)))
+        (lambda (name args &rest body)
+          (setq name (module-symbol name))
+          (let ((r (apply oldm (append (list name args) body))))
+            `(progn
+               ,r
+               (setf (symbol-function ',name).location
+                     ',(location body))
+               ',name)))))
+
+(setf (symbol-macro 'defmacro)
+      (let ((oldm (symbol-macro 'defmacro)))
+        (lambda (name args &rest body)
+          (setq name (module-symbol name))
+          (let ((r (apply oldm (append (list name args) body))))
+            `(progn
+               ,r
+               (setf (symbol-macro ',name).location
+                     ',(location body))
+               ',name)))))

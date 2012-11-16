@@ -32,6 +32,7 @@ d$$$42_module_aliases$42_ = {};
 d$$$42_symbol_aliases$42_ = {};
 d$$$42_outgoing_calls$42_ = {};
 d$$$42_used_globals$42_ = {};
+d$$$42_debug$42_ = false;
 
 d$$node_js = false;
 
@@ -1264,7 +1265,7 @@ defun("js-compile",
                   var wrapper = function(r) {
                       return r;
                   };
-                  if (x.location)
+                  if (x.location && d$$$42_debug$42_)
                   {
                       wrapper = function(r) {
                           return ("erl(" +
@@ -1874,14 +1875,13 @@ defun("toplevel-eval",
       },
       [s$$x]);
 
-d$$$42_debug_load$42_ = false;
-
 defun("stack-trace",
       "[[(stack-trace location)]]\n"+
       "Displays a stack trace of specified error location stack in an "+
       "exception if that information is available or does nothing otherwise. "+
-      "Stack trace information is enabled if at the time the module was "+
-      "loaded te variable [*debug-load*] was [true].",
+      "Stack trace information is enabled if at the time the code was "+
+      "compiled the variable [*debug*] was [true] and if source filename "+
+      "was provided. See {{load}}.",
       function(location)
       {
           if (location)

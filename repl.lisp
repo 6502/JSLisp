@@ -218,28 +218,49 @@
           (zoom false)
           (#'show-doc (x)
             (setf x (json-parse x))
-            (when (and x (string? (first x)))
-              (setf x (first x))
-              (setf x (replace x "&" "&amp;"))
-              (setf x (replace x "<" "&lt;"))
-              (setf x (replace x ">" "&gt;"))
-              (setf x (replace x "\"" "&quot;"))
-              (setf x (replace x "\\n" "<br/>"))
-              (setf x (replace x "\\[\\[((.|[\\n])*?)\\]\\]"
-                               "<pre style=\"color:#008;\
+            (when (and x (list? (first x)) (string? (first (first x))))
+              (let ((location (second (first x))))
+                (setf x (first (first x)))
+                (setf x (replace x "&" "&amp;"))
+                (setf x (replace x "<" "&lt;"))
+                (setf x (replace x ">" "&gt;"))
+                (setf x (replace x "\"" "&quot;"))
+                (setf x (replace x "\\n" "<br/>"))
+                (setf x (replace x "\\[\\[((.|[\\n])*?)\\]\\]"
+                                 "<pre style=\"color:#008;\
                                  font-weight:bold;\
                                  font-size:110%\">$1</pre>"))
-              (setf x (replace x "\\[(.*?)\\]"
-                               "<span style=\"font-weight:bold;\
+                (setf x (replace x "\\[(.*?)\\]"
+                                 "<span style=\"font-weight:bold;\
                                  font-family:monospace;\
                                  color:#008\">$1</span>"))
-              (setf x (replace x "{{(.*?)}}"
-                               "<a href=\"javascript:showdoc('$1')\">\
+                (setf x (replace x "{{(.*?)}}"
+                                 "<a href=\"javascript:showdoc('$1')\">\
                                  <span style=\"font-weight:bold;\
                                  text-decoration:underline;\
                                  font-family:monospace;\
                                  color:#00F\">$1</span></a>"))
-              (setf doc.innerHTML x)))
+                (setf doc.innerHTML (+ x "<br/>"))
+                (when location
+                  (let ((btn (create-element "input")))
+                    (setf btn.type "button")
+                    (setf btn.value "View source")
+                    (setf btn.onclick (lambda ()
+                                        (view-source location)))
+                    (append-child doc btn))))))
+          (#'view-source ((file c0 c1))
+            (declare (ignorable c1))
+            (let ((content (get-file file)))
+              (when content
+                (let ((editor (src-tab file content))
+                      (line (1- (length (split (slice content 0 c0) "\n")))))
+                  (editor.set-pos (max 0 (- line 10)) 0
+                                  (max 0 (- line 10)) 0)
+                  (set-timeout (lambda () (editor.set-pos line 0 line 0))
+                               100)
+                  (sources.add file editor true)
+                  (sources.select 0)
+                  (sources.prev)))))
           (#'resize ()
             (when (or (/= last-width (screen-width))
                       (/= last-height (screen-height)))
@@ -250,8 +271,9 @@
             (*ilisp*.send
              "lisp"
              ~"(let ((f (intern {(json name)} undefined true)))
-                 (if (and f (or (symbol-function f) (symbol-macro f)))
-                   (documentation (or (symbol-function f) (symbol-macro f)))))"
+                 (when f
+                   (let ((f (or (symbol-function f) (symbol-macro f))))
+                     (if f (list (documentation f) f.location)))))"
              #'show-doc)))
 
     (set-interval #'resize 100)
