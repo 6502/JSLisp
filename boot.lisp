@@ -3879,23 +3879,27 @@ A name is either an unevaluated atom or an evaluated list."
                  (return-from location loc)))))))
 
 (setf (symbol-macro 'defun)
-      (let ((oldm (symbol-macro 'defun)))
-        (lambda (name args &rest body)
-          (setq name (module-symbol name))
-          (let ((r (apply oldm (append (list name args) body))))
-            `(progn
-               ,r
-               (setf (symbol-function ',name).location
-                     ',(location body))
-               ',name)))))
+      (let* ((oldm (symbol-macro 'defun))
+             (newm (lambda (name args &rest body)
+                     (setq name (module-symbol name))
+                     (let ((r (apply oldm (append (list name args) body))))
+                       `(progn
+                          ,r
+                          (setf (symbol-function ',name).location
+                                ',(location body))
+                          ',name)))))
+        (setf newm.documentation oldm.documentation)
+        newm))
 
 (setf (symbol-macro 'defmacro)
-      (let ((oldm (symbol-macro 'defmacro)))
-        (lambda (name args &rest body)
-          (setq name (module-symbol name))
-          (let ((r (apply oldm (append (list name args) body))))
-            `(progn
-               ,r
-               (setf (symbol-macro ',name).location
-                     ',(location body))
-               ',name)))))
+      (let* ((oldm (symbol-macro 'defmacro))
+             (newm (lambda (name args &rest body)
+                     (setq name (module-symbol name))
+                     (let ((r (apply oldm (append (list name args) body))))
+                       `(progn
+                          ,r
+                          (setf (symbol-macro ',name).location
+                                ',(location body))
+                          ',name)))))
+        (setf newm.documentation oldm.documentation)
+        newm))

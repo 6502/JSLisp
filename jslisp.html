@@ -565,7 +565,7 @@ function keyPress(e)
 // Bootstrap
 try
 {
-    f$$load(f$$http_get("boot.lisp"));
+    f$$load(f$$http_get("boot.lisp"), "boot.lisp");
 
     var args = {};
     var aa = document.location.href;

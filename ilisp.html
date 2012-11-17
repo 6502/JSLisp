@@ -172,7 +172,7 @@ window.onmessage = function(event)
     }
 };
 
-f$$load(f$$http_get("boot.lisp"));
+f$$load(f$$http_get("boot.lisp"), "boot.lisp");
 
 up({id: id, req: null, reply: "\"ready\""});
 
