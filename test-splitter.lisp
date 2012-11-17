@@ -17,5 +17,17 @@
         (b (editor "fibo.lisp" (replace (http-get "examples/fibo.lisp") "\r" "")))
         (c (editor "Test doc 2" "doc 2"))
         (s (add-widget w (gui:h-splitter a (gui:v-splitter b c)))))
+  (document.body.addEventListener
+    "keydown"
+    (lambda (event)
+      (let ((stop true))
+        (cond
+          ((and event.ctrlKey (= event.which 65))
+           (display (b.words)))
+          (true (setf stop false)))
+        (when stop
+          (event.stopPropagation)
+          (event.preventDefault))))
+    true)
   (set-layout w (V border: 8 (dom s)))
   (show-window w center: true))
