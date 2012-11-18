@@ -80,6 +80,34 @@
                         (declare (ignorable lines row))
                         0))))
 
+(defun search-replace (callback)
+  (let** ((w (window 0 0 0.5 220 title: "Search/replace"))
+          (search (add-widget w (input "search")))
+          (replace (add-widget w (input "replace")))
+          (regex (add-widget w (checkbox "Regular expression")))
+          (ok (add-widget w (button "OK" #'ok)))
+          (cancel (add-widget w (button "Cancel" #'cancel)))
+          (#'ok ()
+            (hide-window w)
+            (funcall callback
+                     (text search)
+                     (text replace)
+                     (checked regex)))
+          (#'cancel () (hide-window w)))
+    (set-layout w (V border: 8 spacing: 8
+                     size: 40
+                     (dom search)
+                     (dom replace)
+                     (dom regex)
+                     size: 30
+                     (H :filler:
+                        size: 80
+                        (dom ok)
+                        (dom cancel)
+                        :filler:)))
+    (set-timeout (lambda () (search.lastChild.focus)) 10)
+    (show-window w center: true)))
+
 (defun editor (name content &optional (mode nullmode))
   (macrolet ((mutate (redo undo)
                      `(progn
