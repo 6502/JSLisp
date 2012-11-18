@@ -493,6 +493,7 @@
                 (when (> r 0)
                   (ensure (1- r)))
                 (mode.autoindent lines r)
+                (setf (aref lines r).text (rstrip (aref lines r).text))
                 (touch r))
               (setf row (max row s-row))
               (setf col (length (aref lines row).text))
@@ -821,7 +822,7 @@
                           (mutate
                             (let ((line (aref lines r))
                                   (newline (new-line (slice text c))))
-                              (setf line.text (slice text 0 c))
+                              (setf line.text (rstrip (slice text 0 c)))
                               (touch r)
                               (setf row (1+ r))
                               (insert lines row newline)
