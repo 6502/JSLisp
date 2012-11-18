@@ -87,13 +87,27 @@
           (regexp (add-widget w (checkbox "Regular expression")))
           (ok (add-widget w (button "OK" #'ok)))
           (cancel (add-widget w (button "Cancel" #'cancel)))
+          (oldcf document.activeElement)
           (#'ok ()
+            (when oldcf (set-timeout (lambda () (oldcf.focus)) 10))
             (hide-window w)
             (funcall callback
                      (text search)
                      (text replace)
                      (checked regexp)))
-          (#'cancel () (hide-window w)))
+          (#'cancel ()
+            (when oldcf (set-timeout (lambda () (oldcf.focus)) 10))
+            (hide-window w)))
+    (dolist (f (list search replace))
+      (set-handler f onkeydown
+        (let ((block true))
+          (cond
+            ((= event.which 13) (ok))
+            ((= event.which 27) (cancel))
+            (true (setf block false)))
+          (when block
+            (event.stopPropagation)
+            (event.preventDefault)))))
     (set-layout w (V border: 8 spacing: 8
                      size: 40
                      (dom search)
@@ -666,9 +680,9 @@
                     (set-timeout (lambda () (setf hinput.value "")) 50))
                   (setf block false))
                 (#.(char-code "V")
-                   (setf ireplace-mode null)
-                   (setf ifind-mode false)
                    (when event.ctrlKey
+                     (setf ireplace-mode null)
+                     (setf ifind-mode false)
                      (setf hinput.value "")
                      (hinput.focus)
                      (set-timeout #'paste 10))
@@ -676,12 +690,13 @@
                 #.(progn
                     (defun handle-goto (char)
                       `(,(char-code char)
-                         (setf ireplace-mode null)
-                         (setf ifind-mode false)
                          (if event.ctrlKey
                              (if (or event.altKey event.metaKey)
                                  (set-goto-target ,char)
-                                 (goto ,char))
+                                 (progn
+                                   (setf ireplace-mode null)
+                                   (setf ifind-mode false)
+                                   (goto ,char)))
                              (setf block false))))
                     (handle-goto "0"))
                 #.(handle-goto "1")
@@ -906,8 +921,8 @@
                 (setf s-col (+ col (length tx)))
                 (fix))))
           (ireplace-mode
-            (when (find event.which '#.(map #'char-code "ynYN!"))
-              (search-replace-next (uppercase (char event.which)))))
+            (when (find event.charCode '#.(map #'char-code "ynYN!"))
+              (search-replace-next (uppercase (char event.charCode)))))
           ((> event.which 31)
            (when (or (/= row s-row) (/= col s-col))
              (if from-autocomplete
