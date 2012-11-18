@@ -80,11 +80,11 @@
                         (declare (ignorable lines row))
                         0))))
 
-(defun search-replace (callback)
+(defun search-replace-dialog (callback last-search last-replace last-regexp)
   (let** ((w (window 0 0 0.5 220 title: "Search/replace"))
           (search (add-widget w (input "search")))
           (replace (add-widget w (input "replace")))
-          (regex (add-widget w (checkbox "Regular expression")))
+          (regexp (add-widget w (checkbox "Regular expression")))
           (ok (add-widget w (button "OK" #'ok)))
           (cancel (add-widget w (button "Cancel" #'cancel)))
           (#'ok ()
@@ -92,19 +92,22 @@
             (funcall callback
                      (text search)
                      (text replace)
-                     (checked regex)))
+                     (checked regexp)))
           (#'cancel () (hide-window w)))
     (set-layout w (V border: 8 spacing: 8
                      size: 40
                      (dom search)
                      (dom replace)
-                     (dom regex)
+                     (dom regexp)
                      size: 30
                      (H :filler:
                         size: 80
                         (dom ok)
                         (dom cancel)
                         :filler:)))
+    (setf (text search) last-search)
+    (setf (text replace) last-replace)
+    (setf (checked regexp) last-regexp)
     (set-timeout (lambda () (search.lastChild.focus)) 10)
     (show-window w center: true)))
 
@@ -145,6 +148,10 @@
             (ifind-col 0)
             (ifind-left 0)
             (ifind-top 0)
+            (ireplace-mode null)
+            (last-search "")
+            (last-replace "")
+            (last-regexp false)
             (hinput (create-element "textarea"))
             (undo (list))
             (redo (list))
@@ -154,6 +161,70 @@
             (modified-level 0)
             (wordlist (list))
             (from-autocomplete false)
+            (goto-targets #())
+            (#'set-goto-target (char)
+              (setf (aref goto-targets char)
+                    (list row col s-row s-col
+                          left top)))
+            (#'goto (char)
+              (let ((x (aref goto-targets char)))
+                (when x
+                  (setf row (first x))
+                  (setf col (second x))
+                  (setf s-row (third x))
+                  (setf s-col (fourth x))
+                  (setf left (fifth x))
+                  (setf top (sixth x))
+                  (fix))))
+            (#'search (regexp)
+              (do ((r row)
+                   (c col))
+                ((or (>= r (length lines))
+                     (regexp.exec (slice (aref lines r).text c)))
+                 (if (< r (length lines))
+                     (let ((m (regexp.exec (slice (aref lines r).text c))))
+                       (list r (+ c m.index) (+ c m.index (length (first m)))))))
+                (incf r)
+                (setf c 0)))
+            (#'search-replace (search replace regexp)
+              (setf last-search search)
+              (setf last-replace replace)
+              (setf last-regexp regexp)
+              (setf search (if regexp
+                               (regexp search)
+                               (regexp (regexp-escape search))))
+              (unless regexp
+                (setf replace (replace replace "\\$" "$$$$")))
+              (setf ireplace-mode #((search search)
+                                    (replace replace)))
+              (hinput.focus)
+              (search-replace-next "N"))
+            (#'search-replace-next (action)
+              (do () ((not ireplace-mode))
+                (when (/= action "N")
+                  (let* ((line (aref lines row).text)
+                         (res (replace (slice line s-col col)
+                                       ireplace-mode.search
+                                       ireplace-mode.replace)))
+                    (change-line row
+                                 (+ col
+                                    (- (length res) (- col s-col)))
+                                 (+ (slice line 0 s-col)
+                                    res
+                                    (slice line col)))))
+                (let ((x (search ireplace-mode.search)))
+                  (if (and x (/= (second x) (third x)))
+                      (progn
+                        (setf row (first x))
+                        (setf s-col (second x))
+                        (setf s-row row)
+                        (setf col (third x))
+                        (setf top (max 0 (- row 10)))
+                        (when (/= action "!")
+                          (fix)
+                          (return-from search-replace-next)))
+                      (setf ireplace-mode null))))
+              (fix))
             (#'ensure (r)
               (do ()
                 ((>= lastvalid r))
@@ -191,15 +262,20 @@
                 (when (null? cw)
                   (font ctx #())
                   (setf cw (/ (ctx.measureText "XXXXXXXXXX").width 10)))
-                (setf ctx.fillStyle (if ifind-mode
-                                        "#DDFFFF"
-                                        "#FFFFFF"))
+                (setf ctx.fillStyle (cond
+                                      (ifind-mode "#DDFFFF")
+                                      (ireplace-mode "#DDFFDD")
+                                      (true "#FFFFFF")))
                 (ctx.fillRect 0 0 screen.width screen.height)
                 (setf ctx.textBaseline "top")
                 (do () ((or (>= cr (length lines))
                             (>= (* (- cr top) ch) screen.offsetHeight))
-                        (if ifind-mode
-                            (setf info ~"Incremental search: \"{ifind-text}\"")
+                        (cond
+                          (ifind-mode
+                            (setf info ~"Incremental search: \"{ifind-text}\""))
+                          (ireplace-mode
+                            (setf info ~"Replace? (Y/N/!)"))
+                          (true
                             (when (and (> col 0)
                                        (find (aref lines row "text" (1- col))
                                              "})]"))
@@ -216,7 +292,7 @@
                                                   (slice (aref lines (first m)).text
                                                          (second m)
                                                          (+ (second m) 20))
-                                                  "\"")))))))
+                                                  "\""))))))))
                         (let ((coords (cond
                                         ((and (= row s-row) (= col s-col))
                                          (+ (1+ row) ":" col))
@@ -572,27 +648,62 @@
                                 (setf from-autocomplete true)
                                 (fix))))))
                       (setf block false)))
-                (67
+                (#.(char-code "C")
                   (when event.ctrlKey
                     (selection-to-hinput)
                     ;; Clears input because page rendering (strangely)
                     ;; becomes a LOT slower otherwise
                     (set-timeout (lambda () (setf hinput.value "")) 50))
                   (setf block false))
-                (88
+                (#.(char-code "X")
                   (when event.ctrlKey
+                    (setf ireplace-mode null)
+                    (setf ifind-mode false)
                     (selection-to-hinput)
                     (delete-selection)
                     (fix)
                     ;; Same trick as above
                     (set-timeout (lambda () (setf hinput.value "")) 50))
                   (setf block false))
-                (86
-                  (when event.ctrlKey
-                    (setf hinput.value "")
-                    (hinput.focus)
-                    (set-timeout #'paste 10))
-                  (setf block false))
+                (#.(char-code "V")
+                   (setf ireplace-mode null)
+                   (setf ifind-mode false)
+                   (when event.ctrlKey
+                     (setf hinput.value "")
+                     (hinput.focus)
+                     (set-timeout #'paste 10))
+                   (setf block false))
+                #.(progn
+                    (defun handle-goto (char)
+                      `(,(char-code char)
+                         (setf ireplace-mode null)
+                         (setf ifind-mode false)
+                         (if event.ctrlKey
+                             (if (or event.altKey event.metaKey)
+                                 (set-goto-target ,char)
+                                 (goto ,char))
+                             (setf block false))))
+                    (handle-goto "0"))
+                #.(handle-goto "1")
+                #.(handle-goto "2")
+                #.(handle-goto "3")
+                #.(handle-goto "4")
+                #.(handle-goto "5")
+                #.(handle-goto "6")
+                #.(handle-goto "7")
+                #.(handle-goto "8")
+                #.(handle-goto "9")
+                (#.(char-code "R")
+                   (if event.ctrlKey
+                       (progn
+                         (setf ifind-mode false)
+                         (setf ireplace-mode null)
+                         (search-replace-dialog
+                           #'search-replace
+                           last-search
+                           last-replace
+                           last-regexp))
+                       (setf block false)))
                 (33
                   (let ((delta (floor (/ screen.offsetHeight ch))))
                     (decf top delta)
@@ -719,8 +830,9 @@
                     (setf top ifind-top)
                     (setf left ifind-left)
                     (fix)))
-                (83
+                (#.(char-code "S")
                   (when event.ctrlKey
+                    (setf ireplace-mode null)
                     (if ifind-mode
                         (let ((f (ifind ifind-text lines row (+ col (length ifind-text)))))
                           (when f
@@ -739,27 +851,32 @@
                     (event.preventDefault)
                     (fix))
                   (setf block false))
-                (90
+                (#.(char-code "Z")
                   (when event.ctrlKey
+                    (setf ireplace-mode null)
+                    (setf ifind-mode false)
                     (undo)
                     (event.stopPropagation)
                     (event.preventDefault)
                     (fix))
                   (setf block false))
-                (89
+                (#.(char-code "Y")
                   (when event.ctrlKey
+                    (setf ireplace-mode null)
+                    (setf ifind-mode false)
                     (redo)
                     (event.stopPropagation)
                     (event.preventDefault)
                     (fix))
                   (setf block false))
-                (87
+                (#.(char-code "W")
                   (unless event.ctrlKey
                     (setf block false)))
                 (otherwise
                   (setf block false)))
           (when block
             (setf ifind-mode false)
+            (setf ireplace-mode null)
             (event.preventDefault)
             (event.stopPropagation)
             (if event.shiftKey
@@ -777,7 +894,8 @@
       (set-handler hinput onkeypress
         (event.preventDefault)
         (event.stopPropagation)
-        (if ifind-mode
+        (cond
+          (ifind-mode
             (let* ((tx (+ ifind-text (char event.which)))
                    (f (ifind tx lines row col)))
               (when f
@@ -786,21 +904,26 @@
                 (setf ifind-text tx)
                 (setf s-row row)
                 (setf s-col (+ col (length tx)))
-                (fix)))
-            (when (> event.which 31)
-              (when (or (/= row s-row) (/= col s-col))
-                (if from-autocomplete
-                    (progn
-                      (setf row s-row)
-                      (setf col s-col))
-                    (delete-selection)))
-              (let ((text (aref lines row).text))
-                (change-line row (1+ col)
-                             (+ (slice text 0 col)
-                                (char event.which)
-                                (slice text col)))
-                (fix)))))
+                (fix))))
+          (ireplace-mode
+            (when (find event.which '#.(map #'char-code "ynYN!"))
+              (search-replace-next (uppercase (char event.which)))))
+          ((> event.which 31)
+           (when (or (/= row s-row) (/= col s-col))
+             (if from-autocomplete
+                 (progn
+                   (setf row s-row)
+                   (setf col s-col))
+                 (delete-selection)))
+           (let ((text (aref lines row).text))
+             (change-line row (1+ col)
+                          (+ (slice text 0 col)
+                             (char event.which)
+                             (slice text col)))
+             (fix)))))
       (set-handler screen onmousedown
+        (setf ireplace-mode null)
+        (setf ifind-mode false)
         (hinput.focus)
         (labels ((pos (x y)
                       (let (((x0 y0) (element-pos screen)))
