@@ -10,10 +10,18 @@
                     (macro #((color "#0000FF")))
                     (keyword #((color "#880088")))))
 
+(setf mode.nonword "[^-a-zA-Z0-9_+*/!$%^&=<>]")
+
 (setf mode.macros #())
 (setf mode.body-macros #())
 (setf mode.functions #())
 (setf mode.vars #())
+
+(setf mode.words
+      (lambda ()
+        (append (keys mode.macros)
+                (keys mode.functions)
+                (keys mode.vars))))
 
 (setf mode.parmatch
       (lambda (lines row col)

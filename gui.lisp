@@ -846,7 +846,8 @@
                     (remove-child ribbon ribbon.firstChild))
                   (progn
                     (when (= index current)
-                      (select (% (1+ current) (length pages))))
+                      (select (% (+ current (1- (length pages)))
+                                 (length pages))))
                     (when (< index current)
                       (decf current))
                     (remove-child ribbon (aref tabs index))
