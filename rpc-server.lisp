@@ -178,7 +178,9 @@
                                 (let ((extra (multipart-form-data buf (second bdcheck))))
                                   (dolist (k (keys extra))
                                     (setf (aref parsed-req k) (aref extra k)))))
-                              (setf parsed-req (json-parse* (+ "" buf))))
+                              (setf parsed-req (try
+                                                 (json-parse* (+ "" buf))
+                                                 null)))
                           (process url parsed-req response)))))
         (process url parsed-req response))))
 
