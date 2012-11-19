@@ -332,8 +332,10 @@
          (cond
            ((and event.ctrlKey (= event.which #.(char-code "I")))
             (mode.inspect-ilisp *ilisp*)
-            (when (sources.current).refresh
-              ((sources.current).refresh)))
+            (set-timeout (lambda ()
+                           (when (sources.current).refresh
+                             ((sources.current).refresh)))
+                         100))
            ((and event.ctrlKey (= event.which #.(char-code "W")))
             (when (and (> (sources.current-index) 0)
                        (put-file ((sources.current).name)
@@ -344,10 +346,8 @@
               (sources.remove (sources.current-index))))
            ((and event.ctrlKey (= event.which #.(char-code "K")))
             (setf zoom (not zoom))
-            (setf sources.style.opacity (if zoom 0 1))
-            (setf doc.style.opacity (if zoom 0 1))
-            (vs.partition (if zoom 1 80))
-            (hs.partition (if zoom 99 50)))
+            (vs.partition (if zoom 0 80))
+            (hs.partition (if zoom 100 50)))
            ((and event.ctrlKey (= event.which 39))
             (sources.next))
            ((and event.ctrlKey (= event.which 37))

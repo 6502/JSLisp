@@ -622,6 +622,26 @@
 
 ;; Splitters
 
+(defun setsplit (w0 container layout min max)
+  (cond
+    ((< w0 (/ min 2))
+     (setf w0 0))
+    ((< w0 min)
+     (setf w0 min))
+    ((> w0 (/ (+ max 100) 2))
+     (setf w0 100))
+    ((>= w0 max)
+     (setf w0 max)))
+  (setf (first layout.elements).weight w0)
+  (set-style (first layout.elements).element.element
+             display (if (= w0 0) "none" null))
+  (setf (last layout.elements).weight (- 100 w0))
+  (set-style (last layout.elements).element.element
+             display (if (= w0 100) "none" null))
+  (set-coords layout 0 0
+              container.offsetWidth
+              container.offsetHeight))
+
 (defun h-splitter (a b &key (split 50) (min 10) (max 90))
   (let ((container (create-element "div"))
         (splitter (create-element "div")))
@@ -647,25 +667,14 @@
                           (declare (ignorable y))
                           (let ((w container.offsetWidth))
                             (decf x (first (element-pos container)))
-                            (when (<= (* w min 0.01) x (* w max 0.01))
-                              (setf (first layout.elements).weight
-                                    (* 100 (/ x w)))
-                              (setf (last layout.elements).weight
-                                    (- 100 (first layout.elements).weight))
-                              (set-coords layout 0 0
-                                          container.offsetWidth
-                                          container.offsetHeight))))
+                            (setsplit (/ x w 0.01) container layout min max)))
                         (lambda ())
                         "move")))
       (setf container."data-resize"
             (lambda (x0 y0 x1 y1)
               (set-coords layout 0 0 (- x1 x0) (- y1 y0))))
-      (setf container.partition (lambda (w)
-                                  (setf (first layout.elements).weight w)
-                                  (setf (third layout.elements).weight (- 100 w))
-                                  (set-coords layout 0 0
-                                              container.offsetWidth
-                                              container.offsetHeight))))
+      (setf container.partition
+            (lambda (w) (setsplit w container layout min max))))
     container))
 
 (defun v-splitter (a b &key (split 50) (min 10) (max 90))
@@ -695,25 +704,14 @@
                           (declare (ignorable x))
                           (let ((h container.offsetHeight))
                             (decf y (second (element-pos container)))
-                            (when (<= (* h min 0.01) y (* h max 0.01))
-                              (setf (first layout.elements).weight
-                                    (* 100 (/ y h)))
-                              (setf (last layout.elements).weight
-                                    (- 100 (first layout.elements).weight))
-                              (set-coords layout 0 0
-                                          container.offsetWidth
-                                          container.offsetHeight))))
+                            (setsplit (/ y h 0.01) container layout min max)))
                         (lambda ())
                         "move")))
       (setf container."data-resize"
             (lambda (x0 y0 x1 y1)
               (set-coords layout 0 0 (- x1 x0) (- y1 y0))))
-      (setf container.partition (lambda (w)
-                                  (setf (first layout.elements).weight w)
-                                  (setf (third layout.elements).weight (- 100 w))
-                                  (set-coords layout 0 0
-                                              container.offsetWidth
-                                              container.offsetHeight))))
+      (setf container.partition
+            (lambda (w) (setsplit w container layout min max))))
     container))
 
 ;; Table widget
