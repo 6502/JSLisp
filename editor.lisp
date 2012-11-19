@@ -77,8 +77,13 @@
                                  (declare (ignorable line))
                                  #()))
           (autoindent (lambda (lines row)
-                        (declare (ignorable lines row))
-                        0))))
+                        (do ((i 0 (1+ i)))
+                          ((or (= row 0)
+                               (/= (aref (aref lines (1- row)).text i) " "))
+                           (setf (aref lines row).text
+                                 (+ (str-repeat " " i)
+                                    (lstrip (aref lines row).text)))
+                           (length (aref lines row).text)))))))
 
 (defun search-replace-dialog (callback last-search last-replace last-regexp)
   (let** ((w (window 0 0 0.5 220 title: "Search/replace"))

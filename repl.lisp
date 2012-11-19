@@ -9,7 +9,12 @@
 (defvar *ilisp*)
 
 (defun src-tab (name content)
-  (let ((editor (editor name content mode)))
+  (let ((editor (editor name
+                        content
+                        (if (or (= (slice name -5) ".lisp")
+                                (= name "*scratch*"))
+                            mode
+                            undefined))))
     (set-style editor
                position "absolute")
     (setf editor.ilisp-exec
