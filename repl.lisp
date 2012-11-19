@@ -197,14 +197,17 @@
 
 (defun main ()
   (set-style document.body
-             fontFamily "Droid Serif")
+             fontFamily "Droid Serif"
+             px/border 0
+             px/margin 0)
   (let** ((w (set-style (append-child document.body
                                       (create-element "div"))
                         position "absolute"
-                        px/left 4
-                        px/right 4
-                        px/top 4
-                        px/bottom 4))
+                        overflow "hidden"
+                        px/left 0
+                        px/right 0
+                        px/top 0
+                        px/bottom 0))
           (last-width 0)
           (last-height 0)
           (sources (tabbed))
