@@ -261,6 +261,11 @@
               (when (<= r lastvalid)
                 (setf lastvalid (1- r)))
               (setf (aref lines r).start-signature null))
+            (#'refresh ()
+              (dolist (L lines)
+                (setf L.start-signature null))
+              (setf lastvalid -1)
+              (update))
             (#'modified ()
               (/= (length undo) modified-level))
             (#'clear-modified ()
@@ -493,7 +498,8 @@
                 (when (> r 0)
                   (ensure (1- r)))
                 (mode.autoindent lines r)
-                (setf (aref lines r).text (rstrip (aref lines r).text))
+                (unless (= r row)
+                  (setf (aref lines r).text (rstrip (aref lines r).text)))
                 (touch r))
               (setf row (max row s-row))
               (setf col (length (aref lines row).text))
@@ -593,6 +599,7 @@
       (setf frame.update #'update)
       (setf frame.focus (lambda () (hinput.focus)))
       (setf frame.words #'words)
+      (setf frame.refresh #'refresh)
       (set-style hinput
                  position "absolute"
                  px/left 0
