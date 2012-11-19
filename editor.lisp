@@ -601,7 +601,7 @@
       (setf frame.words #'words)
       (setf frame.refresh #'refresh)
       (set-style hinput
-                 position "absolute"
+                 position "fixed"
                  px/left 0
                  px/top -100
                  px/width 1
