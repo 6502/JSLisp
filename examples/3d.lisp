@@ -156,6 +156,7 @@
                       (h (. canvas height))
                       (zx (/ w 2))
                       (zy (/ h 2)))
+                 (camera-normalize cam (* 2.2 (min w h)))
                  (with-canvas canvas
                    (fill-style "#000000")
                    (rect 0 0 w h) (fill)
@@ -256,7 +257,6 @@
                                                (vlen cam.o)))
                                      (setf cam.n
                                            (vdir (v- (v 0 0 0) cam.o)))
-                                     (camera-normalize cam)
                                      (redraw)
                                      (setf x0 x)
                                      (setf y0 y))))))))
