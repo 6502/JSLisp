@@ -902,17 +902,20 @@
                     (setf block false)))
                 (otherwise
                   (setf block false)))
-          (when block
-            (setf ifind-mode false)
-            (setf ireplace-mode null)
-            (event.preventDefault)
-            (event.stopPropagation)
-            (if event.shiftKey
-                (setf from-autocomplete false)
-                (progn
-                  (setf s-row row)
-                  (setf s-col col)))
-            (fix))))
+          (if block
+              (progn
+                (setf ifind-mode false)
+                (setf ireplace-mode null)
+                (event.preventDefault)
+                (event.stopPropagation)
+                (if event.shiftKey
+                    (setf from-autocomplete false)
+                    (progn
+                      (setf s-row row)
+                      (setf s-col col)))
+                (fix)
+                false)
+              true)))
       (set-handler hinput onfocus
         (setf focused true)
         (update))
@@ -936,7 +939,10 @@
           (ireplace-mode
             (when (find event.charCode '#.(map #'char-code "ynYN!"))
               (search-replace-next (uppercase (char event.charCode)))))
-          ((> event.which 31)
+          ((and (> event.which 31)
+                (not event.ctrlKey)
+                (not event.metaKey)
+                (not event.altKey))
            (when (or (/= row s-row) (/= col s-col))
              (if from-autocomplete
                  (progn
