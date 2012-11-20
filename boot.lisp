@@ -998,15 +998,13 @@
                 "))")))
 
 (defmacro defmathop (name comment none single jsname)
-  "Defines a math operator macro.
+  "Defines a math operator.
    Parameters are the given [docstring], the value [none] to \
    use in case of no operands, the value [single] in case of a \
    single operand and the Javascript operator name [jsname] when \
    more operands are present.
    For numeric or string literals operands the computation is \
-   perfomed compile time (constant folding).
-   This macro defines only the macro version (not the function). \
-   See also {{defmathop-func}}[[
+   perfomed compile time (constant folding).[[
    (defmathop ^ \"x-or\" 0 (aref args 1) \"^\")
    ;; ==> ^
 
@@ -1019,67 +1017,46 @@
    (js-compile '(^ 1 2 4 x))
    ;; ==> \"((7)^(d$$x))\"
 
-   #'^
-   **ERROR**: ReferenceError: function ^ is not defined
-   ;; Ready
+   (funcall #'^ 1 2 4 8 16 32 64 128)
+   ;; ==> 255
+
+   (js-compile '(funcall #'^ 1 2))
+   ;; ==> \"f$$$94_(1,2)\"
    ]]"
-  `(defmacro ,name (&rest args)
-     ,comment
-     (let ((res (cond
-                  ((= (length args) 0)
-                   ,none)
-                  ((= (length args) 1)
-                   ,single)
-                  ((= (length args) 2)
-                   `(js-code ,(+ "(("
-                                 (js-compile (aref args 0))
-                                 ")" ,jsname "("
-                                 (js-compile (aref args 1))
-                                 "))")))
-                  (true
-                   `(js-code ,(+ "(("
-                                 (js-compile `(,',name ,@(slice args 0 (- (length args) 1))))
-                                 ")" ,jsname "("
-                                 (js-compile (aref args (- (length args) 1)))
-                                 "))"))))))
-       ;; Constant folding
-       (when (and (list? res)
-                  (= (first res) 'js-code)
-                  (js-code "d$$res[1].match(/^\\(\\((-?[0-9]+\\.?[0-9]*|\"([^\"]|\\\\.)*\")\\).\\((-?[0-9]+\\.?[0-9]*|\"([^\"]|\\\\.)*\")\\)\\)$/)"))
-         (let ((x (js-code "eval(d$$res[1])")))
-           (when (or (string? x)
-                     (and (number? x)
-                          (not (NaN? x))
-                          (not (infinity? x))
-                          (not (-infinity? x))))
-             (js-code "(d$$res[1]=JSON.stringify(d$$x))"))))
-       res)))
-
-(defmacro defmathop-func (name)
-  "Defines a math function based on a math operator \
-   macro defined with [defmathop].
-   The function will just call the macro for 0, 1 or 2 parameters \
-   and will loop accumulating result of calls with 2 parameters \
-   in case of more.[[
-   (defmathop shl \"arithmetic shift left\" 0 0 \"<<\")
-   ;; ==> shl
-
-   (shl 3 4)
-   ;; ==> 48
-
-   (funcall #'shl 3 4)
-   **ERROR**: ReferenceError: function shl is not defined
-   ;; Ready
-
-   (defmathop-func shl)
-   ;; ==> shl
-
-   (funcall #'shl 3 4)
-   ;; ==> 48
-   ]]
-   "
   `(progn
+     (defmacro ,name (&rest args)
+       ,comment
+       (let ((res (cond
+                    ((= (length args) 0)
+                     ,none)
+                    ((= (length args) 1)
+                     ,single)
+                    ((= (length args) 2)
+                     `(js-code ,(+ "(("
+                                   (js-compile (aref args 0))
+                                   ")" ,jsname "("
+                                   (js-compile (aref args 1))
+                                   "))")))
+                    (true
+                      `(js-code ,(+ "(("
+                                    (js-compile `(,',name ,@(slice args 0 (- (length args) 1))))
+                                    ")" ,jsname "("
+                                    (js-compile (aref args (- (length args) 1)))
+                                    "))"))))))
+         ;; Constant folding
+         (when (and (list? res)
+                    (= (first res) 'js-code)
+                    (js-code "d$$res[1].match(/^\\(\\((-?[0-9]+\\.?[0-9]*|\"([^\"]|\\\\.)*\")\\).\\((-?[0-9]+\\.?[0-9]*|\"([^\"]|\\\\.)*\")\\)\\)$/)"))
+           (let ((x (js-code "eval(d$$res[1])")))
+             (when (or (string? x)
+                       (and (number? x)
+                            (not (NaN? x))
+                            (not (infinity? x))
+                            (not (-infinity? x))))
+               (js-code "(d$$res[1]=JSON.stringify(d$$x))"))))
+         res))
      (defun ,name (&rest args)
+       ,comment
        (cond
          ((= (length args) 0) (,name))
          ((= (length args) 1) (,name (aref args 0)))
@@ -1089,10 +1066,7 @@
           (let ((res (,name (aref args 0) (aref args 1))))
             (dolist (x (slice args 2))
               (setq res (,name res x)))
-            res))))
-     (set-documentation (symbol-function ',name)
-                        (documentation (symbol-macro ',name)))
-     ',name))
+            res))))))
 
 ;; Math n-ary operators macros and functions
 
@@ -1317,14 +1291,6 @@
    ;; ==> 33
    ]]"
   0 (aref args 0) "^")
-
-(defmathop-func +)
-(defmathop-func -)
-(defmathop-func *)
-(defmathop-func /)
-(defmathop-func logior)
-(defmathop-func logand)
-(defmathop-func logxor)
 
 (defmacro/f % (a b)
   "Modulo operation
