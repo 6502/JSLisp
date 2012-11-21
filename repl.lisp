@@ -73,20 +73,22 @@
     (setf editor.ilisp-exec
           (lambda ()
             (let ((lines (editor.lines))
-                  ((row col s-row s-col) (editor.pos)))
+                  ((row col s-row s-col) (editor.pos))
+                  (txt (editor.selection)))
               (declare (ignorable s-row s-col))
-              (let ((m (mode.parmatch lines row col)))
-                (when m
-                  (let (((row0 col0) m)
-                        (txt ""))
-                    (if (= row row0)
-                        (incf txt (slice (aref lines row).text col0 (- col col0)))
-                        (progn
-                          (incf txt (+ (slice (aref lines row0).text col0) "\n"))
-                          (dolist (r (range (1+ row0) row))
-                            (incf txt (+ (aref lines r).text "\n")))
-                          (incf txt (slice (aref lines row).text 0 col))))
-                    (*ilisp*.send "lisp" txt)))))))
+              (when (= txt "")
+                (let ((m (mode.parmatch lines row col)))
+                  (when m
+                    (let (((row0 col0) m))
+                      (if (= row row0)
+                          (incf txt (slice (aref lines row).text col0 col))
+                          (progn
+                            (incf txt (+ (slice (aref lines row0).text col0) "\n"))
+                            (dolist (r (range (1+ row0) row))
+                              (incf txt (+ (aref lines r).text "\n")))
+                            (incf txt (slice (aref lines row).text 0 col))))))))
+              (when (/= txt "")
+                (*ilisp*.send "lisp" txt)))))
     editor))
 
 (defun inferior-lisp ()
@@ -335,10 +337,20 @@
                  (when f
                    (let ((f (or (symbol-function f) (symbol-macro f))))
                      (if f (list (documentation f) f.location)))))"
-             #'show-doc)))
+             #'show-doc))
+          (#'zoom ()
+            (setf zoom (not zoom))
+            (vs.partition (if zoom 0 80))
+            (hs.partition (if zoom 100 50))
+            (if zoom
+                (*ilisp*.focus)
+                (when (sources.current).focus
+                  ((sources.current).focus)))))
 
     (set-interval #'resize 100)
     (resize)
+
+    (setf (js-code "window").unzoom #'zoom)
 
     ;; session keep-alive
     (set-interval (lambda () (when *secret* (call-remote 42)))
@@ -403,9 +415,7 @@
             (when (> (sources.current-index) 0)
               (sources.remove (sources.current-index))))
            ((and event.ctrlKey (= event.which #.(char-code "K")))
-            (setf zoom (not zoom))
-            (vs.partition (if zoom 0 80))
-            (hs.partition (if zoom 100 50)))
+            (zoom))
            ((and event.ctrlKey (= event.which #.(char-code "O"))
                  mode.styles)
             (customize-styles mode.styles
@@ -418,6 +428,8 @@
            ((and event.ctrlKey (= event.which 37))
             (sources.prev))
            ((and event.ctrlKey (= event.which 13))
+            (when event.shiftKey
+              (zoom))
             ((sources.current).ilisp-exec))
            (true (setf stop false)))
          (when stop

@@ -50,4 +50,7 @@
     (setf ilisp.reset (lambda ()
                         (setf ilisp.iframe.src ~"ilisp.html?{ilisp.id}")))
 
+    (setf ilisp.focus (lambda ()
+                        (ilisp.iframe.focus)))
+
     ilisp))

@@ -31,10 +31,9 @@
   <head>
     <title>Ilisp</title>
   </head>
-  <body style="padding:0px; margin:0px; border:none">
+  <body style="padding:0px; margin:0px; border:none" onkeydown="javascript:keydown(event)">
     <div id="full" style="overflow:hidden; position:absolute; left:0px; top:0px; right:0px; bottom:0px">
-      <textarea spellcheck=false wrap=off id="repl" style="font-size: 16px; resize:none; white-space:pre; position:absolute left:0px; top:0px; border:none; outline:none;"
-        onkeydown="javascript:keydown(event)"></textarea>
+      <textarea spellcheck=false wrap=off id="repl" style="background-color:#EEEEEE; font-size: 16px; resize:none; white-space:pre; position:absolute left:0px; top:0px; border:none; outline:none;"></textarea>
     </div>
     <script src="jslisp.js">
     </script>
@@ -88,6 +87,11 @@ function keydown(event)
             event.stopPropagation();
             event.preventDefault();
         }
+    }
+    else if (event.which == "K".charCodeAt(0) && event.ctrlKey)
+    {
+        if (window.parent != window)
+            window.parent.unzoom();
     }
 }
 
