@@ -1,5 +1,6 @@
 (import * from gui)
 (import * from layout)
+(import * from graphics)
 (import * from editor)
 (import (mode) from editor-lispmode)
 (import ilisp)
@@ -7,6 +8,58 @@
 (import (hash) from crypto)
 
 (defvar *ilisp*)
+
+(defun customize-styles (styles &optional cback)
+  (let** ((w (window 0 0 600 (+ 100 (* 48 (length (keys styles))))
+                     title: "Syntax highlight"))
+          (styles-area (V spacing: 8))
+          (widgets #())
+          (ok (add-widget w (button "OK" #'ok)))
+          (cancel (add-widget w (button "Cancel" #'cancel)))
+          (layout (V border: 8 spacing: 8
+                     styles-area
+                     size: 30
+                     (H :filler:
+                        (dom ok)
+                        (dom cancel)
+                        :filler:)))
+          (#'ok ()
+            (dolist (k (keys styles))
+              (let (((color background underline) (map #'text (aref widgets k))))
+                (setf (aref styles k "color") (or color undefined))
+                (setf (aref styles k "background") (or background undefined))
+                (setf (aref styles k "underline") (or underline undefined))))
+            (hide-window w)
+            (when cback (funcall cback true)))
+          (#'cancel ()
+            (hide-window w)
+            (when cback (funcall cback false))))
+    (set-layout w layout)
+    (dolist (k (keys styles))
+      (let ((label (add-widget w (set-style (create-element "div")
+                                            whiteSpace "pre"
+                                            fontFamily "Arial"
+                                            textAlign "right"
+                                            fontWeight "bold")))
+            (color (add-widget w (css-color-input "color")))
+            (background (add-widget w (css-color-input "background")))
+            (underline (add-widget w (css-color-input "underline"))))
+        (setf label.textContent k)
+        (setf (text color) (or (aref styles k "color") ""))
+        (setf (text background) (or (aref styles k "background") ""))
+        (setf (text underline) (or (aref styles k "underline") ""))
+        (color.update-style)
+        (background.update-style)
+        (underline.update-style)
+        (add-element styles-area
+                     size: 40
+                     (H spacing: 8
+                        (V :filler: size: 20 (dom label))
+                        (dom color)
+                        (dom background)
+                        (dom underline)))
+        (setf (aref widgets k) (list color background underline))))
+    (show-window w center: true)))
 
 (defun src-tab (name content)
   (let ((editor (editor name
@@ -353,6 +406,13 @@
             (setf zoom (not zoom))
             (vs.partition (if zoom 0 80))
             (hs.partition (if zoom 100 50)))
+           ((and event.ctrlKey (= event.which #.(char-code "O"))
+                 mode.styles)
+            (customize-styles mode.styles
+                              (lambda (res)
+                                (when (and res
+                                           (sources.current).refresh)
+                                  ((sources.current).refresh)))))
            ((and event.ctrlKey (= event.which 39))
             (sources.next))
            ((and event.ctrlKey (= event.which 37))

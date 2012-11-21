@@ -47,6 +47,9 @@
         (let ((part (slice text s.from s.to)))
           (font ctx s.style)
           (let ((pw (ctx.measureText part).width))
+            (when s.style.background
+              (setf ctx.fillStyle s.style.background)
+              (ctx.fillRect (+ tx x) y pw h))
             (setf ctx.fillStyle (or s.style.color "#000000"))
             (ctx.fillText part (+ tx x) y)
             (when s.style.underline
