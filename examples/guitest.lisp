@@ -2,15 +2,6 @@
 (import * from layout)
 (import * from graphics)
 
-(defun color-helper (input)
-  (let (((x y) (element-pos input)))
-    (ask-color x (+ y input.offsetHeight)
-               "Preferred color"
-               (parse-color (text input))
-               (lambda (c)
-                 (when c
-                   (setf (text input) (css-color c)))))))
-
 (defun main ()
   (with-window (w (0 0 680 370 title: "Test window" close: false)
                   ((title (select "mr/ms" '("Mr." "Ms.")))
@@ -18,7 +9,7 @@
                    (last-name (input "last name"))
                    (birthdate (date-input "birthdate"))
                    (address (input "address"))
-                   (preferred-color (input-with-help "preferred color" #'color-helper))
+                   (preferred-color (css-color-input "preferred color"))
                    (email (input "e-mail"))
                    (phone (input "phone"))
                    (age (select "age" (append (range 1 100) "100+")))
@@ -80,19 +71,12 @@
     (setf (text birthdate) "1966-07-07")
     (setf (text address) "Via somewhere, somecivic")
     (setf (text preferred-color) "#80C0C0")
+    (preferred-color.update-style)
     (setf (text email) "agriffini@jslisp.org")
     (setf (text phone) "555 123 4567")
     (setf (selection age) "45")
     (setf (checked newsletter) true)
     (setf (checked spam) true)
-    (setf (checked yearly-charge) true)
-    (let ((x (set-interval (lambda ()
-                             (let* ((col (parse-color (text preferred-color)))
-                                    (luma (+ col.r (* 2 col.g) col.b)))
-                               (set-style preferred-color.lastChild
-                                          backgroundColor (css-color col)
-                                          color (if (< luma 512) "#FFFFFF" "#000000"))))
-                           100)))
-      (setf w.close-cback (lambda () (clear-interval x))))))
+    (setf (checked yearly-charge) true)))
 
 (main)

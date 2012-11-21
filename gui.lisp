@@ -1137,6 +1137,33 @@
                   (fixcursor)))))
       (show-window w modal: true))))
 
+;; Text input for a CSS color
+(defun color-helper (input)
+  (let (((x y) (element-pos input)))
+    (ask-color x (+ y input.offsetHeight)
+               "Preferred color"
+               (parse-color (text input))
+               (lambda (c)
+                 (when c
+                   (setf (text input) (css-color c)))
+                 (set-timeout (lambda () (input.lastChild.focus)) 100)))))
+
+(defun css-color-input (caption)
+  "An input field containing a CSS color, with a color picker helper button"
+  (let** ((x (input-with-help caption #'color-helper))
+          (#' update-style ()
+            (let* ((col (parse-color (text x)))
+                   (luma (+ col.r (* 2 col.g) col.b)))
+              (set-style x.lastChild
+                         backgroundColor (css-color col)
+                         color (if (< luma 512) "#FFFFFF" "#000000")))
+            true))
+    (setf x.lastChild.onkeyup #'update-style)
+    (setf x.lastChild.onfocus #'update-style)
+    (setf x.lastChild.onblur #'update-style)
+    (setf x.update-style #'update-style)
+    x))
+
 ;; Simple message or question box
 
 (defun message-box (htmltext &key (title "Message")
@@ -1383,9 +1410,10 @@
         tracking dragging
         dom dom-replace
         window
-        ask-color
+        ask-color css-color-input
         show-window hide-window with-window
         add-widget set-layout
+        label
         button lbutton
         radio checkbox checked set-checked
         input text set-text
