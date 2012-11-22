@@ -186,6 +186,7 @@
                           (not (find (aref text i) *stopchars*)))
                      (do ()
                          ((or (= i (length text))
+                              (= (aref text i) " ")
                               (find (aref text i) *stopchars*)))
                        (incf i))
                      (style i0 i number-literal))))
