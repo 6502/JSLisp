@@ -32,7 +32,7 @@
                         ((>= s 1) b)
                         (true
                           (let ((w (- (* 3 s s) (* 2 s s s))))
-                            (+ (* w a) (* (- 1 w) b))))))
+                            (+ (* w b) (* (- 1 w) a))))))
                     (eye-angle (ii eye-angle-a eye-angle-b))
                     (eye-dist (ii eye-dist-a eye-dist-b))
                     (eye-height (ii eye-height-a eye-height-b))
@@ -67,7 +67,7 @@
                     (#'xzcircle (x z r color1 color2)
                       (dolist (y (fp-range 0 20 2))
                         (ctx.beginPath)
-                        (enumerate (i a (fp-range 0 (* 2 pi) 32))
+                        (enumerate (i a (fp-range 0 (* 2 pi) 16))
                           ((if (= i 0) #'move-to #'line-to)
                            (v (+ x (* r (cos a))) y (+ z (* r (sin a))))))
                         (ctx.closePath)
