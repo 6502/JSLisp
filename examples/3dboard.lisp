@@ -8,13 +8,32 @@
           (s 0.0)
           (eye-angle-a 0)
           (eye-dist-a 800)
-          (eye-height-a 1200)
+          (eye-height-a 1100)
           (up-a (v 0 -1 0))
           (eye-angle-b 0)
           (eye-dist-b 800)
-          (eye-height-b 1200)
+          (eye-height-b 1100)
           (up-b (v 0 -1 0))
           (3d true)
+          (pos (list 08 09 10 11 12 10 09 08
+                     07 07 07 07 07 07 07 07
+                     00 00 00 00 00 00 00 00
+                     00 00 00 00 00 00 00 00
+                     00 00 00 00 00 00 00 00
+                     00 00 00 00 00 00 00 00
+                     01 01 01 01 01 01 01 01
+                     02 03 04 05 06 04 03 02))
+          (images (let ((count 0))
+                    (map (lambda (n)
+                           (let ((img (create-element "img")))
+                             (setf img.onload (lambda ()
+                                                (when (= (incf count) 12)
+                                                  (repaint))))
+                             (setf img.src ~"examples/img/p3d{n}.png")
+                             img))
+                         (range 1 13))))
+          (imz '((18 38) (19 47) (35 54) (20 50) (23 73) (22 71)
+                 (17 37) (20 47) (28 56) (19 51) (24 75) (23 71)))
           (#'animate()
             (setf s 0)
             (let** ((start (clock))
@@ -87,6 +106,7 @@
               (setf view.height height)
               (setf ctx.fillStyle "#EEEEEE")
               (ctx.fillRect 0 0 width height)
+
               (xzquad -410 -410 410 410 "446688")
               (dotimes (i 8)
                 (dotimes (j 8)
@@ -94,14 +114,29 @@
                           (* 100 (- i 3)) (* 100 (- j 3))
                           (if (even? (+ i j))
                               "#DDEEFF"
-                              "#AABBCC"))
-                  (cond
-                    ((and (< i 3) (odd? (+ i j)))
-                     (xzcircle (* 100 (- i 3.5)) (* 100 (- j 3.5)) 30
-                               "#888888" "#000000"))
-                    ((and (> i 4) (odd? (+ i j)))
-                     (xzcircle (* 100 (- i 3.5)) (* 100 (- j 3.5)) 30
-                               "#DDDDDD" "#FFFFFF"))))))))
+                              "#AABBCC"))))
+              (let ((sprites (list)))
+                (dotimes (i 8)
+                  (dotimes (j 8)
+                    (let* ((ix (1- (aref pos (+ (* i 8) j))))
+                           (img (aref images ix)))
+                      (when (and img (> img.width 0))
+                        (let* ((cc (v (* 100 (- i 3.5)) 0 (* 100 (- j 3.5))))
+                               (p0 (camera-map cam cc))
+                               ;(p1 (camera-map cam (v+ cc (v 0 100 0))))
+                               ((hx hy) (aref imz ix))
+                               (dist (vlen (v- eye cc)))
+                               (sf (/ (* 1.5 (vlen cam.u)) dist)))
+                          (push (list dist
+                                      img
+                                      (+ dx (x p0) (- (* sf hx)))
+                                      (+ dy (y p0) (- (* sf hy)))
+                                      (* sf img.width)
+                                      (* sf img.height))
+                                sprites))))))
+                (dolist ((zdist img x0 y0 w h) (sort sprites (lambda (x y) (> (first x) (first y)))))
+                  (declare (ignorable zdist))
+                  (ctx.drawImage img x0 y0 w h))))))
     (set-layout w (V border: 8 spacing: 8
                      (dom view)))
     (setf view."data-resize" #'repaint)
