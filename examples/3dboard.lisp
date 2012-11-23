@@ -118,8 +118,8 @@
                   (xzquad (* 100 (- i 4)) (* 100 (- j 4))
                           (* 100 (- i 3)) (* 100 (- j 3))
                           (if (even? (+ i j))
-                              "#DDEEFF"
-                              "#AABBCC"))))
+                              "#AABBCC"
+                              "#DDEEFF"))))
               (let ((sprites (list))
                     (3d (and 3d (= eye-dist-a eye-dist-b))))
                 (dotimes (i 8)
