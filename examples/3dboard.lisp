@@ -15,16 +15,15 @@
           (eye-height-b 1100)
           (up-b (v 0 -1 0))
           (3d true)
-          (arrows (list (list 1 2 1 2)
-                        (list 5 2 1 2)))
-          (pos (list 08 09 10 11 12 10 09 08
+          (arrows (list))
+          (pos (list 08 09 10 12 11 10 09 08
                      07 07 07 07 07 07 07 07
                      00 00 00 00 00 00 00 00
                      00 00 00 00 00 00 00 00
                      00 00 00 00 00 00 00 00
                      00 00 00 00 00 00 00 00
                      01 01 01 01 01 01 01 01
-                     02 03 04 05 06 04 03 02))
+                     02 03 04 06 05 04 03 02))
           (images (let ((count 0))
                     (map (lambda (n)
                            (let ((img (create-element "img")))
@@ -37,8 +36,8 @@
                                "bp" "br" "bn" "bb" "bq" "bk"
                                "wp3" "wr3" "wn3" "wb3" "wq3" "wk3"
                                "bp3" "br3" "bn3" "bb3" "bq3" "bk3"))))
-          (imz '((18 38) (19 47) (35 54) (20 50) (23 73) (22 71)
-                 (17 37) (20 47) (28 56) (19 51) (24 75) (23 71)))
+          (imz '((18 38) (19 47) (35 54) (20 50) (23 73) (24 74)
+                 (17 37) (20 47) (28 56) (19 51) (24 75) (23 76)))
           (#'animate()
             (setf s 0)
             (let** ((start (clock))
@@ -61,7 +60,7 @@
             (setf 3d (not 3d))
             (setf eye-dist-b (if 3d 800 1))
             (animate))
-          (#'repaint ()
+          (#'cam ()
             (let** ((#'ii (a b)
                       (cond
                         ((<= s 0) a)
@@ -79,12 +78,30 @@
                             eye-height
                             (* eye-dist (sin eye-angle))))
                     (width view.offsetWidth)
-                    (height view.offsetHeight)
+                    (height view.offsetHeight))
+              (camera eye (v 0 0 0) up
+                      (* 1.2 (min width height)))))
+          (#'revp (xs ys)
+            ;; eye.y + t*(p.y - eye.y) = 0
+            ;; t = (eye.y - p.y) / eye.y
+            (let* ((cam (cam))
+                   (p (camera-invmap cam
+                                      (- xs (/ view.offsetWidth 2))
+                                      (- ys (/ view.offsetHeight 2))))
+                   (t (/ (y cam.o) (- (y cam.o) (y p)))))
+              (v+ cam.o (v* (v- p cam.o) t))))
+          (#'ij (xs ys)
+            (let ((rp (revp xs ys)))
+              (list (+ 4 (floor (/ (x rp) 100)))
+                    (+ 4 (floor (/ (z rp) 100))))))
+          (#'repaint ()
+            (let** ((cam (cam))
                     (ctx (view.getContext "2d"))
+                    (width view.offsetWidth)
+                    (height view.offsetHeight)
+                    (eye cam.o)
                     (csx (/ width 2))
                     (csy (/ height 2))
-                    (cam (camera eye (v 0 0 0) up
-                                 (* 1.2 (min width height))))
                     (#'move-to (p)
                       (let (((xx yy) (camera-map cam p)))
                         (ctx.moveTo (+ csx xx) (+ csy yy))))
@@ -131,7 +148,7 @@
                            (z1 (* 100 (- j1 3.5)))
                            (dx (- x1 x0))
                            (dz (- z1 z0))
-                           (k (/ 20 (sqrt (+ (* dx dx) (* dz dz))))))
+                           (k (/ 10 (sqrt (+ (* dx dx) (* dz dz))))))
                       (ctx.beginPath)
                       (move-to (v (+ x0 (* k dz)) 0 (- z0 (* k dx))))
                       (line-to (v x1 0 z1))
@@ -196,10 +213,22 @@
                      (dom view)))
     (setf view."data-resize" #'repaint)
     (setf view.onmousedown (lambda (event)
-                             (unless (animation)
-                               (if (= event.button 1)
-                                   (3d<=>2d)
-                                   (flip)))))
+                             (let (((i j) (apply #'ij (relative-pos event view))))
+                               (cond
+                                 ((and (<= 0 i 7) (<= 0 j 7))
+                                  (push (list i j i j) arrows)
+                                  (repaint)
+                                  (tracking (lambda (xx yy)
+                                              (let* (((x0 y0) (element-pos view))
+                                                     ((i j) (ij (- xx x0) (- yy y0))))
+                                                (when (and (<= 0 i 7) (<= 0 j 7))
+                                                  (setf (aref (last arrows) 2) i)
+                                                  (setf (aref (last arrows) 3) j)
+                                                  (repaint))))))
+                                 ((not (animation))
+                                  (if (= event.button 1)
+                                      (3d<=>2d)
+                                      (flip)))))))
     (show-window w center: true)))
 
 (defun main () (view))
