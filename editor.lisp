@@ -830,7 +830,11 @@
                       (setf ifind-mode false)
                       (progn
                         (when (or (/= row s-row) (/= col s-col))
-                          (delete-selection))
+                          (if from-autocomplete
+                              (progn
+                                (setf row s-row)
+                                (setf col s-col))
+                              (delete-selection)))
                         (let* ((r row)
                                (c col)
                                (text (aref lines row).text))
