@@ -279,6 +279,7 @@
                          position "absolute"))
           (vs (append-child w (v-splitter sources hs split: 80)))
           (zoom false)
+          (zrun "")
           (#'show-doc (x)
             (setf x (json-parse x))
             (when (and x (list? (first x)) (string? (first (first x))))
@@ -415,7 +416,13 @@
             (when (> (sources.current-index) 0)
               (sources.remove (sources.current-index))))
            ((and event.ctrlKey (= event.which #.(char-code "K")))
-            (zoom))
+            (if event.shiftKey
+                (when (sources.current).selection
+                  (setf zrun ((sources.current).selection)))
+                (progn
+                  (zoom)
+                  (when zrun
+                    (*ilisp*.send "lisp" zrun)))))
            ((and event.ctrlKey (= event.which #.(char-code "O"))
                  mode.styles)
             (customize-styles mode.styles
