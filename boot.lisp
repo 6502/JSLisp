@@ -2141,14 +2141,38 @@ The resulting list length is equal to the first input sequence."
     (>= i 0)))
 
 (defun subset (L1 L2)
-  "True if every element in [L1] is also in [L2]"
+  "True if every element in [L1] is also in [L2].
+   The implementation is O(nm) and uses equality operator {{=}} \
+   for element comparison.[[
+   (subset (list 1 2 3) (list 0 1 2 3 4 5))
+   ;; ==> true
+
+   (subset (list) (list 1))
+   ;; ==> true
+
+   (subset (list 1 2 3) (list 3 2 1))
+   ;; ==> true
+
+   (subset (list 1 2 3) (list 1 2))
+   ;; ==> false
+   ]]"
   (do ((i 0 (1+ i)))
       ((or (>= i (length L1))
            (not (find (aref L1 i) L2)))
          (>= i (length L1)))))
 
 (defun set-union (L1 L2)
-  "List of elements appearing in [L1] or in [L2]"
+  "List of elements appearing in either [L1] or in [L2].
+   The implementation simply starts from a copy of [L1] \
+   adding all elements of [L2] that are not already present.
+   This computation is O(nm) and uses equality operator {{=}} \
+   for element comparison.[[
+   (set-union (list 1 2) (list 2 3))
+   ;; ==> (1 2 3)
+
+   (set-union (list) (list 1 2))
+   ;; ==> (1 2)
+   ]]"
   (let ((res (slice L1)))
     (dolist (x L2)
       (unless (find x res)
@@ -2156,7 +2180,18 @@ The resulting list length is equal to the first input sequence."
     res))
 
 (defun set-difference (L1 L2)
-  "List of elements appearing in [L1] but not in [L2]"
+  "List of elements appearing in [L1] but not in [L2].
+   The implementation is O(nm) and uses equality operator {{=}} \
+   for element comparison.[[
+   (set-difference (list 1 2 3) (list 2 3 4))
+   ;; ==> (1)
+
+   (set-difference (list 1 2 3) (list 4 5))
+   ;; ==> (1 2 3)
+
+   (set-difference (list 1 2) (list 1 2 3))
+   ;; ==> ()
+   ]]"
   (let ((res (list)))
     (dolist (x L1)
       (unless (find x L2)
@@ -2164,7 +2199,18 @@ The resulting list length is equal to the first input sequence."
     res))
 
 (defun set-intersection (L1 L2)
-  "List of elements appearing in both [L1] and [L2]"
+  "List of elements appearing in both [L1] and [L2].
+   Implementation is O(nm) and uses equality operator {{=}} \
+   for element comparison.[[
+   (set-intersection (list 1 2 3) (list 2 3 4))
+   ;; ==> (2 3)
+
+   (set-intersection (list 1 2) (list 3 4))
+   ;; ==> ()
+
+   (set-intersection (list 1 2) (list 1 2))
+   ;; ==> (1 2)
+   ]]"
   (let ((res (list)))
     (dolist (x L1)
       (when (find x L2)
@@ -2172,14 +2218,36 @@ The resulting list length is equal to the first input sequence."
     res))
 
 (defmacro/f nsort (x &optional condition)
-  "Modifies a sequence [x] inplace by sorting the elements according to the
-   specified [condition] or [#'<] if no condition is given."
+  "Modifies a sequence [x] inplace by sorting the elements according to the \
+   specified [condition] or [#'<] if no condition is given. Returns [x].
+   [condition] must be callable with two parameters and should return [true]
+   when passed two elements if the elements are already sorted. See also {{sort}}.[[
+   (let ((x (list 1 4 2 3)))
+     (list (nsort x) x))
+   ;; ==> ((1 2 3 4) #1)
+
+   (let ((x (list 1 4 2 3)))
+     (nsort x #'>)
+     x)
+   ;; ==> (4 3 2 1)
+   ]]"
   (if (undefined? condition)
       `(js-code ,(+ "(" (js-compile x) ").sort(function(a,b){return a<b?-1:1;})"))
       `(js-code ,(+ "(" (js-compile x) ").sort(function(a,b){return (" (js-compile condition) ")(a,b)?-1:1;})"))))
 
 (defmacro/f sort (x &optional condition)
-  "Returns a copy of a sequence [x] with elements sorted according to the specified [condition] or [#'<] if no condition is given."
+  "Returns a copy of a sequence [x] with elements sorted according to the \
+   specified [condition] or [#'<] if no condition is given. See also {{nsort}}.[[
+   (let ((x (list 1 4 2 3)))
+     (list (sort x) x))
+   ;; ==> ((1 2 3 4) (1 4 2 3))
+
+   (let ((x (list \"abc\"
+                  \"w\"
+                  \"xy\")))
+     (sort x (lambda (a b) (< (length a) (length b)))))
+   ;; ==> (\"w\" \"xy\" \"abc\")
+   ]]"
   `(nsort (slice ,x) ,condition))
 
 ;; let** (like letrec of scheme)
@@ -2216,7 +2284,7 @@ The resulting list length is equal to the first input sequence."
 ;; &optional
 
 (defmacro argument-count ()
-  "Number of arguments passed to current function"
+  "Number of arguments passed to current function. Every keyword arguments counts as two."
   `(js-code "arguments.length"))
 
 (setf (symbol-macro 'lambda)
