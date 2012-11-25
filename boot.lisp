@@ -926,6 +926,14 @@
 (defnth-accessor ninth   8)
 (defnth-accessor tenth   9)
 
+(defun list= (a b)
+  "True iff lists [a] and [b] have the same elements"
+  (if (= (length a) (length b))
+      (do ((n (length a))
+           (i 0 (+ i 1)))
+        ((or (= i n) (not (= (aref a i) (aref b i))))
+         (= i n)))))
+
 ;; String splitting and joining
 (defmacro/f split (x separator)
   "Splits a string [x] using the specified separator.
