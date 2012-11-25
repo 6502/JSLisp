@@ -1518,9 +1518,33 @@
                 (list (= (push 42 x)) x))
               ;; ==> (true ())
               ]]" "===")
-(defrelop ~= "Equivalence comparison." "==")
-(defrelop >= "Greater than or equal comparison." ">=")
-(defrelop >  "Strictly greather than comparison." ">")
+(defrelop ~=
+          "Javascript equivalence comparison.
+           The [~=] operator is compiled to Javascript `==` operator
+           with all its quirks and special rules. You probably don't
+           really want to use it. Ever.[[
+           (~= 1 2)
+           ;; ==> false
+
+           (~= 1 1)
+           ;; ==> true
+
+           (~= 1 (list 1))
+           ;; ==> true
+
+           (~= (list) false)
+           ;; ==> true
+
+           (if (list) 1 2)
+           ;; ==> 1
+
+           (~= (list (list 1 2)) \"1,2\")
+           ;; ==> true
+           ]]"
+          "==")
+
+(defrelop >= "Greater than or equal comparison. See {{<=}}." ">=")
+(defrelop >  "Strictly greather than comparison. See {{<}}." ">")
 (defrelop-func <  )
 (defrelop-func <= )
 (defrelop-func =  )
@@ -1552,7 +1576,25 @@
                   (+ res "return true;})()"))))))
 
 (defun /= (&rest args)
-  "True if and only if the passed values are all distinct."
+  "True if and only if the passed values are all distinct.
+   Note that the macro version of [/=] is short-circuiting, evaluating only
+   expressions until the result value can be decided. This also implies
+   that [(/= (f))] returns [true] WITHOUT CALLING [f].[[
+   (/= 1 2)
+   ;; ==> true
+
+   (/= 1 2 3)
+   ;; ==> true
+
+   (/= 1 2 3 1 4)
+   ;; ==> false
+
+   (/=)
+   ;; ==> true
+
+   (/= 1)
+   ;; ==> true
+   ]]"
   (if (< (length args) 2)
       true
       (do ((n (- (length args) 1))
@@ -1561,9 +1603,15 @@
              (= i n)))))
 
 (defmacro let* (bindings &rest body)
-  "Evaluates the body forms in sequence by first establishing lexical/dynamic bindings
-   'one at a time' so that during the evaluation of n-th binding all previous ones are
-   already visible"
+  "Evaluates the body forms in sequence by first establishing lexical/dynamic bindings \
+   'one at a time' so that during the evaluation of n-th binding all previous ones are \
+   already visible.[[
+   (let ((a 1))
+     (let* ((a 2)
+            (b (* a 2)))
+       b))
+   ;; ==> 4
+   ]]"
   (if (> (length bindings) 1)
      `(let (,(aref bindings 0))
         (let* ,(rest bindings) ,@body))
@@ -1573,7 +1621,23 @@
   "Sets the content of a place to be the specified value. A place is either a symbol
    or a form (e.g. [(aref x i)]) for which a corresponding setting form is defined
    (e.g. [(set-aref x i value)]) either as function or macro eventually after
-   macro expansion."
+   macro expansion.[[
+   (let ((a 1)
+         (b (list 1 2 3))
+         (c #((x 10))))
+      (setf a 42)
+      (setf (last b) 99)
+      (setf c.x 30)
+      (list a b c))
+   ;; ==> (42 (1 2 99) {\"x\":30})
+
+   (let ((x 20))
+      (macrolet ((set-half (x value)
+                   `(setf ,x (* ,value 2))))
+         (setf (half x) 30)
+         x)))
+   ;; ==> 60
+   ]]"
   (setq place (symbol-macro-expand place))
   (cond
     ((symbol? place)
@@ -1681,14 +1745,22 @@
 
 ;; Repeat macros
 (defmacro repeat (count &rest body)
-  "Evaluates [body] forms [count] times and returns [null]."
+  "Evaluates [body] forms [count] times and returns [undefined].[[
+   (let ((res (list)))
+      (list res (repeat 5 (push 42 res))))
+   ;; ==> ((42 42 42 42 42) undefined)
+   ]]"
   (let ((repeat-count '#.(gensym-noprefix)))
     `(dotimes (,repeat-count ,count)
        (declare (ignorable ,repeat-count))
        ,@body)))
 
 (defmacro repeat-collect (count &rest body)
-  "Evaluates [body] forms [count] times collecting the values of last [body] form."
+  "Evaluates [body] forms [count] times collecting the values of last [body] form.[[
+   (let ((x 0))
+     (repeat-collect 5 (incf x)))
+   ;; ==> (1 2 3 4 5)
+   ]]"
   (let ((result '#.(gensym-noprefix))
         (repeat-count '#.(gensym-noprefix)))
     `(let ((,result (list)))
@@ -1699,10 +1771,15 @@
 
 ;; Sequence utilities
 (defmacro/f pop (x)
-  "Removes and returns last element from list [x]"
+  "Removes and returns last element from list [x].
+   If the list is empty returns [undefined].[[
+   (let ((a (range 10)))
+      (list (pop a) (pop a) a))
+   ;; ==> (9 8 (0 1 2 3 4 5 6 7))
+   ]]"
   `(js-code ,(+ "(" (js-compile x) ".pop())")))
 
-(defmacro empty (x)
+(defmacro/f empty (x)
   "True if length of array or string [x] is zero"
   `(not (length ,x)))
 
