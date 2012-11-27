@@ -138,31 +138,27 @@
 (defvar *secret*)
 (defvar *session-id*)
 
-(rpc:defun remote (user-name session-id x authcode))
 (rpc:defun login (user-name))
-
-(defun call-remote (x)
-  (remote *user* *session-id* x
-          (hash (+ *session-id* *secret* (json* x)))))
+(rpc:defun rget-file (user-name session-id filename authcode))
+(rpc:defun rput-file (user-name session-id filename content authcode))
+(rpc:defun rlist-files (user-name session-id path authcode))
+(rpc:defun rping (user-name session-id authcode))
 
 (defun get-file (name)
-  (try
-   (call-remote `(get-file ,name))
-   ""))
+  (rget-file *user* *session-id* name
+             (hash (+ *session-id* *secret* (json* name)))))
 
 (defun put-file (name content)
-  (try
-    (progn
-      (call-remote `((node:require "fs").writeFileSync ,name ,content))
-      (baloon ~"{name} saved")
-      true)
-    (progn
-      (message-box ~"Error saving file {name}"
-                   modal: true)
-      false)))
+  (when (rput-file *user* *session-id* name content
+                   (hash (+ *session-id* *secret* (json* (list name content)))))
+    (baloon ~"{(htm name)} saved")))
 
-(defun files (path)
-  (call-remote `((node:require "fs").readdirSync ,path)))
+(defun list-files (path)
+  (rlist-files *user* *session-id* path
+               (hash (+ *session-id* *secret* (json* path)))))
+
+(defun ping ()
+  (rping *user* *session-id* (hash (+ *session-id* *secret* "null"))))
 
 (defun file-browser (cback)
   (let** ((w (set-style (create-element "div")
@@ -191,7 +187,7 @@
                 (let (((base name) (pathexp last-search)))
                   (setf files.textContent "")
                   (setf filelist (list))
-                  (dolist (f (or (files base) ""))
+                  (dolist (f (or (list-files base) ""))
                     (when (and (/= (last f) "~")
                                (/= (first f) ".")
                                (= (slice f 0 (length name)) name))
@@ -315,16 +311,15 @@
           (#'view-source ((file c0 c1))
             (declare (ignorable c1))
             (let ((content (get-file file)))
-              (when content
-                (let ((editor (src-tab file content))
-                      (line (1- (length (split (slice content 0 c0) "\n")))))
-                  (editor.set-pos (max 0 (- line 10)) 0
-                                  (max 0 (- line 10)) 0)
-                  (set-timeout (lambda () (editor.set-pos line 0 line 0))
-                               100)
-                  (sources.add file editor true)
-                  (sources.select 0)
-                  (sources.prev)))))
+              (let ((editor (src-tab file content))
+                    (line (1- (length (split (slice content 0 c0) "\n")))))
+                (editor.set-pos (max 0 (- line 10)) 0
+                                (max 0 (- line 10)) 0)
+                (set-timeout (lambda () (editor.set-pos line 0 line 0))
+                             100)
+                (sources.add file editor true)
+                (sources.select 0)
+                (sources.prev))))
           (#'resize ()
             (when (or (/= last-width (screen-width))
                       (/= last-height (screen-height)))
@@ -354,7 +349,7 @@
     (setf (js-code "window").unzoom #'zoom)
 
     ;; session keep-alive
-    (set-interval (lambda () (when *secret* (call-remote 42)))
+    (set-interval (lambda () (when *secret* (ping)))
                   5000)
 
     (setf (js-code "window").showdoc #'doc-lookup)
