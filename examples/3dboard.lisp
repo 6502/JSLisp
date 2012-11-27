@@ -131,7 +131,7 @@
               (setf ctx.fillStyle "#EEEEEE")
               (ctx.fillRect 0 0 width height)
 
-              (xzquad -410 -410 410 410 "446688")
+              (xzquad -410 -410 410 410 "#446688")
               (dotimes (i 8)
                 (dotimes (j 8)
                   (xzquad (* 100 (- i 4)) (* 100 (- j 4))
