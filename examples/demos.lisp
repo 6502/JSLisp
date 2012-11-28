@@ -35,7 +35,7 @@
              'deferred)))
   `(import ,module))
 
-(import-nomain examples/chessboard)
+(import-nomain examples/3dboard)
 (import-nomain examples/mandelbrot)
 (import-nomain examples/life)
 (import-nomain examples/piechart)

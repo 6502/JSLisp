@@ -1,29 +1,35 @@
 (import * from geo3d)
 (import * from gui)
 (import * from layout)
+(import examples/chess as chess)
 
-(defun view ()
-  (let** ((w (window 0 0 0.75 0.75 title: "3d view"))
-          (view (add-widget w (create-element "canvas")))
+(defun chessboard (&key (position "rnbqkbnr\
+                                   pppppppp\
+                                   ........\
+                                   ........\
+                                   ........\
+                                   ........\
+                                   PPPPPPPP\
+                                   RNBQKBNR")
+                        move-cback
+                        arrow-cback)
+  (let** ((view (create-element "canvas"))
           (s 0.0)
           (eye-angle-a 0)
-          (eye-dist-a 800)
+          (eye-dist-a 1)
           (eye-height-a 1100)
           (up-a (v 0 -1 0))
           (eye-angle-b 0)
-          (eye-dist-b 800)
+          (eye-dist-b 1)
           (eye-height-b 1100)
           (up-b (v 0 -1 0))
-          (3d true)
+          (3d false)
           (arrows (list))
-          (pos (list 08 09 10 12 11 10 09 08
-                     07 07 07 07 07 07 07 07
-                     00 00 00 00 00 00 00 00
-                     00 00 00 00 00 00 00 00
-                     00 00 00 00 00 00 00 00
-                     00 00 00 00 00 00 00 00
-                     01 01 01 01 01 01 01 01
-                     02 03 04 06 05 04 03 02))
+          (pos (make-array 64 0))
+          (#'set-position (p)
+            (enumerate (i c p)
+              (setf (aref pos i) (1+ (index c "PRNBQKprnbqk"))))
+            (repaint))
           (images (let ((count 0))
                     (map (lambda (n)
                            (let ((img (create-element "img")))
@@ -131,14 +137,14 @@
               (setf ctx.fillStyle "#EEEEEE")
               (ctx.fillRect 0 0 width height)
 
-              (xzquad -410 -410 410 410 "#446688")
+              (xzquad -410 -410 410 410 "#886644")
               (dotimes (i 8)
                 (dotimes (j 8)
                   (xzquad (* 100 (- i 4)) (* 100 (- j 4))
                           (* 100 (- i 3)) (* 100 (- j 3))
                           (if (even? (+ i j))
-                              "#AABBCC"
-                              "#DDEEFF"))))
+                              "#CCAA88"
+                              "#FFEEDD"))))
               (dolist ((i0 j0 i1 j1) arrows)
                 (if (and (= i0 i1) (= j0 j1))
                     (xzcircle (* 100 (- i0 3.5)) (* 100 (- j0 3.5))
@@ -162,7 +168,7 @@
                     (pzs (list)))
                 (dotimes (i 8)
                   (dotimes (j 8)
-                    (let ((ix (1- (aref pos (+ (* i 8) j)))))
+                    (let ((ix (1- (aref pos (+ (* i 8) (- 7 j))))))
                       (when (>= ix 0)
                         (push (list (v (* 100 (- i 3.5)) 0 (* 100 (- j 3.5))) ix)
                               pzs)))))
@@ -214,8 +220,6 @@
                   (ctx.drawImage img x0 y0 w h)
                   (when (/= 0 aa)
                     (ctx.restore)))))))
-    (set-layout w (V border: 8 spacing: 8
-                     (dom view)))
     (setf view."data-resize" #'repaint)
     (setf view.onmousedown (lambda (event)
                              (event.preventDefault)
@@ -225,7 +229,7 @@
                                (cond
                                  ((and (<= 0 i 7) (<= 0 j 7))
                                   (if event.shiftKey
-                                      (progn
+                                      (when arrow-cback
                                         (push (list i j i j) arrows)
                                         (repaint)
                                         (tracking (lambda (xx yy)
@@ -243,10 +247,11 @@
                                                        (when (>= i 0)
                                                          (pop arrows)
                                                          (splice arrows i 1))
+                                                       (funcall arrow-cback arrows)
                                                        (repaint))))))
-                                      (let ((ix (1- (aref pos (+ (* i 8) j)))))
-                                        (when (>= ix 0)
-                                          (setf (aref pos (+ (* i 8) j)) 0)
+                                      (let ((ix (1- (aref pos (+ (* i 8) (- 7 j))))))
+                                        (when (and move-cback (>= ix 0))
+                                          (setf (aref pos (+ (* i 8) (- 7 j))) 0)
                                           (setf dragged (list (apply #'revp rp) ix))
                                           (tracking (lambda (xx yy)
                                                       (let* (((x0 y0) (element-pos view))
@@ -257,16 +262,66 @@
                                                       (let* (((x0 y0) (element-pos view))
                                                              ((ii jj) (ij (- xx x0) (- yy y0))))
                                                         (setf dragged null)
-                                                        (setf arrows (list))
-                                                        (when (and (<= 0 ii 7) (<= 0 jj 7))
-                                                          (setf (aref pos (+ (* 8 ii) jj)) (1+ ix)))
+                                                        (splice arrows)
+                                                        (when arrow-cback
+                                                          (funcall arrow-cback arrows))
+                                                        (setf (aref pos (+ (* 8 i) (- 7 j))) (1+ ix))
+                                                        (funcall move-cback i j ii jj)
                                                         (repaint)))
                                                     "move")))))
                                  ((not (animation))
                                   (if (= event.button 1)
                                       (3d<=>2d)
                                       (flip)))))))
+    (setf view.pos pos)
+    (setf view.set-position #'set-position)
+    (setf view.arrows arrows)
+    (set-position position)
+    view))
+
+(defun main ()
+  (let** ((w (window 0 0 0.75 0.75 title: "Chessboard"))
+          (board (chess:chessboard))
+          (view (add-widget w (chessboard move-cback: #'move-cback
+                                          arrow-cback: #'arrow-cback)))
+          (pnames #((#.chess:+WP+    "P")
+                    (#.chess:+WR+    "R")
+                    (#.chess:+WN+    "N")
+                    (#.chess:+WB+    "B")
+                    (#.chess:+WQ+    "Q")
+                    (#.chess:+WK+    "K")
+                    (#.chess:+BP+    "p")
+                    (#.chess:+BR+    "r")
+                    (#.chess:+BN+    "n")
+                    (#.chess:+BB+    "b")
+                    (#.chess:+BQ+    "q")
+                    (#.chess:+BK+    "k")
+                    (#.chess:+EMPTY+ ".")))
+          (#'set-position ()
+            (view.set-position (join (map (lambda (x)
+                                            (or (aref pnames x) ""))
+                                          chess:*sq*)
+                                     "")))
+          (#'move-cback (i j ii jj)
+            (chess:with-board board
+                              (let ((mm (list))
+                                    (x0 (chess:tosq i (- 7 j)))
+                                    (x1 (chess:tosq ii (- 7 jj))))
+                                (chess:move-map (lambda (m)
+                                                  (when (and (= (chess:move-x0 m) x0)
+                                                             (= (chess:move-x1 m) x1))
+                                                    (push m mm))))
+                                (when (> (length mm) 0)
+                                  (chess:play (first mm))
+                                  (set-position)
+                                  (set-timeout (lambda ()
+                                                 (chess:with-board board
+                                                             (chess:computer 1)
+                                                             (set-position)))
+                                               0)))))
+          (#'arrow-cback (arrows)
+            (declare (ignorable arrows))))
+    (set-layout w (V (dom view)))
     (show-window w center: true)))
 
-(defun main () (view))
 (main)
