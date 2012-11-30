@@ -2283,10 +2283,6 @@ The resulting list length is equal to the first input sequence."
 
 ;; &optional
 
-(defmacro argument-count ()
-  "Number of arguments passed to current function. Every keyword arguments counts as two."
-  `(js-code "arguments.length"))
-
 (setf (symbol-macro 'lambda)
       (let* ((oldcf (symbol-macro 'lambda))
              (olddoc (documentation oldcf))
@@ -2300,7 +2296,7 @@ The resulting list length is equal to the first input sequence."
                         (apply oldcf `(,args
                                        ,@doc
                                        ,@(if (> r 0)
-                                             `((when (< (argument-count) ,r)
+                                             `((when (< (js-code "arguments.length") ,r)
                                                  (error "Invalid number of arguments")))
                                              (list))
                                        ,@body))
@@ -2309,17 +2305,17 @@ The resulting list length is equal to the first input sequence."
                               (nargs (append (slice args 0 i)
                                              (slice args (1+ i)))))
                           (unless (= i 0)
-                            (push `(when (< (argument-count) ,i)
+                            (push `(when (< (js-code "arguments.length") ,i)
                                      (error "Invalid number of arguments"))
                                   checks))
                           (when (= r -1)
-                            (push `(when (> (argument-count) ,(length nargs))
+                            (push `(when (> (js-code "arguments.length") ,(length nargs))
                                      (error "Invalid number of arguments"))
                                   checks))
                           (dotimes (i (length nargs))
                             (when (list? (aref nargs i))
                               (push `(when (or (undefined? ,(first (aref nargs i)))
-                                               (< (argument-count) ,(1+ i)))
+                                               (< (js-code "arguments.length") ,(1+ i)))
                                        (setf ,(first (aref nargs i))
                                              ,(second (aref nargs i))))
                                     defaults)
@@ -3989,13 +3985,14 @@ A name is either an unevaluated atom or an evaluated list."
                                     res)
                   ,',@body)))))))
 
-(defun location (x)
+(defun source-location (x)
   (and (list? x)
        (or x.location
-           (dolist (y x)
-             (let ((loc (location y)))
-               (when loc
-                 (return-from location loc)))))))
+           (do ((loc null)
+                (i 0 (1+ i)))
+               ((or loc (>= i (length x)))
+                loc)
+             (setf loc (source-location (aref x i)))))))
 
 (setf (symbol-macro 'defun)
       (let* ((oldm (symbol-macro 'defun))
@@ -4005,7 +4002,7 @@ A name is either an unevaluated atom or an evaluated list."
                        `(progn
                           ,r
                           (setf (symbol-function ',name).location
-                                ',(location body))
+                                ',(source-location body))
                           ',name)))))
         (setf newm.documentation oldm.documentation)
         newm))
@@ -4018,7 +4015,7 @@ A name is either an unevaluated atom or an evaluated list."
                        `(progn
                           ,r
                           (setf (symbol-macro ',name).location
-                                ',(location body))
+                                ',(source-location body))
                           ',name)))))
         (setf newm.documentation oldm.documentation)
         newm))

@@ -7,12 +7,11 @@
   (funcall (. response writeHead) 200 #((Content-type content-type)))
   (funcall (. response end) msg))
 
-(defstruct channel
-  name
-  (n0 0)
-  (max 100)
-  (messages (list))
-  (listeners (list)))
+(defobject channel (name
+                    (n0 0)
+                    (max 100)
+                    (messages (list))
+                    (listeners (list))))
 
 (defun add-message (channel message)
   (display ~"{channel}: + {(str-value message)}")

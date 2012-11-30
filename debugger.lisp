@@ -12,10 +12,11 @@
              width)))
 
 (defun source-window (name)
-  (let ((source (split (http-get name) "\n"))
-        (w (window 100 100 800 600 title: name))
-        (selection-markers (list))
-        (lines (list)))
+  (let* ((file (http-get name))
+         (source (split file "\n"))
+         (w (window 100 100 800 600 title: name))
+         (selection-markers (list))
+         (lines (list)))
     (dotimes (i (length source))
       (let ((line (create-element "div"))
             (num (create-element "span"))
@@ -49,23 +50,24 @@
         (append-child text select)
         (append-child line num)
         (append-child line text)
-        (append-child (window-client w) line)
+        (append-child w.client line)
         (push select selection-markers)
         (push line lines)))
-    (setf (window-data w) (list lines selection-markers))
+    (setf w.data (list lines selection-markers file))
     (show-window w)
     w))
 
-(defun set-selection (w location)
-  (let ((from-line (1- (second location)))
-        (from-col (1- (third location)))
-        (to-line (1- (fourth location)))
-        (to-col (1- (fifth location)))
-        (lines (first (window-data w)))
-        (markers (second (window-data w))))
-    (setf (window-client w).scrollTop
+(defun set-location (w from-char to-char)
+  (let* ((lines (first w.data))
+         (markers (second w.data))
+         (file (third w.data))
+         (from-line (1- (length (replace (slice file 0 from-char) "[^\\n]" ""))))
+         (to-line (1- (length (replace (slice file 0 to-char) "[^\\n]" ""))))
+         (from-col 0)
+         (to-col 100))
+    (setf w.client.scrollTop
           (max 0 (- (aref lines from-line).offsetTop
-                    (/ (window-client w).offsetHeight 2))))
+                    (/ w.client.offsetHeight 2))))
     (dotimes (i (length markers))
       (let ((m (aref markers i)))
         (cond
@@ -97,16 +99,16 @@
 
 (defvar *source-windows* #())
 
-(defun location (filename from-line from-col to-line to-col)
+(defun location (filename from-char to-char)
   (let ((w (aref *source-windows* filename)))
     (unless w
       (setf w (source-window filename))
-      (setf (window-close-cback w)
+      (setf w.close-cback
             (lambda ()
               (setf (aref *source-windows* filename) null)))
       (setf (aref *source-windows* filename) w))
     (show-window w)
-    (set-selection w (list filename from-line from-col to-line to-col))))
+    (set-location w from-char to-char)))
 
 (defun debug-cmd-error (x)
   (display ~"Debug-cmd-error: {x}"))
