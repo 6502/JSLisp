@@ -14,7 +14,8 @@ A tiny lisp compiler in javascript (not an interpreter, code compiles to javascr
 - optional and keyword arguments, destructuring lambda lists
 - tagbody/go, block/return/return-from, unwind-protect, throw/catch
 - js-code escaping
-- simple defstruct, defmethod (function specialization on generic condition)
+- defmethod for dispatching on generic conditions
+- defobject and defproperty macros for js-style classes
 - module support (similar to CL packages)
 - treeshaker/minifier
 - compile-only implementation, semantic checks at compile time
