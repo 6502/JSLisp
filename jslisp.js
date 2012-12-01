@@ -1139,6 +1139,7 @@ function f$$safe()
 }
 
 var skip_cmds = 0;
+var skip_cmds_i = 0;
 
 function f$$send_debugger(x)
 {
@@ -1158,22 +1159,96 @@ function f$$receive_debugger()
     return res;
 }
 
-var f$$local_js_eval;
+var d$$$42_breakpoints$42_ = [];
+var d$$$42_watches$42_ = [];
+
+function f$$add_breakpoint(loc)
+{
+    d$$$42_breakpoints$42_.push(loc);
+}
+
+function f$$remove_breakpoint(loc)
+{
+    var i = d$$$42_breakpoints$42_.length-1;
+    while (i>=0 && (d$$$42_breakpoints$42_[i][0] !== loc[0] ||
+                    d$$$42_breakpoints$42_[i][1] !== loc[1] ||
+                    d$$$42_breakpoints$42_[i][2] !== loc[2]))
+        --i;
+    if (i >= 0) d$$$42_breakpoints$42_.splice(i, 1);
+}
+
+function f$$add_watch(watch)
+{
+    d$$$42_watches$42_.push(watch);
+}
+
+function f$$remove_watch(watch)
+{
+    var i = d$$$42_watches$42_.length-1;
+    while (i>=0 && d$$$42_watches$42_[i] !== watch)
+        --i;
+    if (i >= 0) d$$$42_watches$42_.splice(i, 1);
+}
+
+function f$$attach_debugger()
+{
+    f$$http("POST", "http://127.0.0.1:1337/receive?debugged_i&"+skip_cmds_i, "",
+            function(text)
+            {
+                var res = text.split("\n");
+                for (var i=0; i<res.length; i++)
+                {
+                    var ix = res[i].indexOf(":");
+                    skip_cmds_i = 1 + parseInt(res[i].slice(0, ix));
+                    var cmd = res[i].slice(1+ix);
+                    try
+                    {
+                        f$$load(cmd);
+                    }
+                    catch (err)
+                    {
+                        f$$send_debugger([f$$intern("debug-cmd-error"), err+""]);
+                    }
+                }
+                setTimeout(f$$attach_debugger, 10);
+            });
+}
+
 var global_unwinding_trace = [];
 
 function erl(x, f, local_js_eval)
 {
-    f$$local_js_eval = local_js_eval;
     try
     {
+        if (!d$$$42_debugger$42_ && d$$$42_breakpoints$42_)
+            for (var i=0; i<d$$$42_breakpoints$42_.length; i++)
+                if (d$$$42_breakpoints$42_[i][0] == x[0] &&
+                    d$$$42_breakpoints$42_[i][1] == x[1] &&
+                    d$$$42_breakpoints$42_[i][2] == x[2])
+                    d$$$42_debugger$42_ = true;
         while(d$$$42_debugger$42_)
         {
-            f$$send_debugger([f$$intern("location")].concat(x));
+            var ww = [];
+            for (var i=0; i<d$$$42_watches$42_.length; i++)
+            {
+                try
+                {
+                    ww.push(f$$str_value(eval(d$$$42_watches$42_[i])));
+                }
+                catch (err)
+                {
+                    ww.push("*ERROR*: " + err);
+                }
+            }
+            f$$send_debugger([f$$intern("stopped"),
+                              [f$$intern("list")].concat(x),
+                              [f$$intern("list")].concat(ww)]);
             var dbg_commands = f$$receive_debugger();
+            f$$send_debugger([f$$intern("running")]);
             for (var i=0; i<dbg_commands.length; i++)
             {
                 var cmd = dbg_commands[i];
-                if (cmd === "cont") break;
+                if (cmd === "step") break;
                 try
                 {
                     f$$load(cmd);
@@ -1185,7 +1260,7 @@ function erl(x, f, local_js_eval)
             }
             if (i < dbg_commands.length) break;
         }
-        return f()
+        return f();
     }
     catch (err)
     {
