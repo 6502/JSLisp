@@ -1,4 +1,5 @@
 (import * from gui)
+(import * from layout)
 (import * from chatclient)
 
 (setf cw (let ((x (create-element "span")))
@@ -61,10 +62,12 @@
   (let* ((lines (first w.data))
          (markers (second w.data))
          (file (third w.data))
-         (from-line (1- (length (replace (slice file 0 from-char) "[^\\n]" ""))))
-         (to-line (1- (length (replace (slice file 0 to-char) "[^\\n]" ""))))
-         (from-col 0)
-         (to-col 100))
+         (before-lines (split (slice file 0 from-char) "\n"))
+         (from-line (1- (length before-lines)))
+         (from-col (length (or (last before-lines) "")))
+         (after-lines (split (slice file 0 to-char) "\n"))
+         (to-line (1- (length after-lines)))
+         (to-col (length (or (last after-lines) ""))))
     (setf w.client.scrollTop
           (max 0 (- (aref lines from-line).offsetTop
                     (/ w.client.offsetHeight 2))))
@@ -123,6 +126,13 @@
   (debugged '(setf *debugger* false)))
 
 (defmacro remote (x)
-  (debugged `(send-debugger (list 'display (local-eval ',x)))))
+  (debugged `(send-debugger (list 'display (list 'quote (local-js-eval ,x))))))
+
+(let** ((w (window 0 0 400 80 title: "Debugger"))
+        (step (add-widget w (button "step" #'step)))
+        (cont (add-widget w (button "cont" #'continue))))
+  (set-layout w (H border: 8 spacing: 8
+                   (dom step) (dom cont)))
+  (show-window w))
 
 (receive "http://127.0.0.1:1337" "debugger" #'eval)
