@@ -20,6 +20,7 @@
 ;; ---------------------
 ;; debug-cmd-error (x)
 ;; stopped (location watches)
+;; exception (err location watches)
 ;; running
 ;;
 
@@ -177,6 +178,10 @@
   (apply #'open-source loc)
   (*debugger-window*.stopped watches))
 
+(defun exception (err loc watches)
+  (apply #'open-source loc)
+  (*debugger-window*.exception err watches))
+
 (defun running ()
   (*debugger-window*.running))
 
@@ -233,6 +238,9 @@
     (setf w.stopped (lambda (ww)
                       (declare (ignorable ww))
                       (setf w.titlebar.textContent "Stopped!")))
+    (setf w.exception (lambda (err ww)
+                        (declare (ignorable ww))
+                        (setf w.titlebar.textContent ~"Exception: {err}")))
     (setf w.error (lambda (err)
                     (alert err)))
     (receive "http://127.0.0.1:1337" "debugger" #'eval)

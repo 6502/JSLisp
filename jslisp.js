@@ -1169,12 +1169,14 @@ function f$$add_breakpoint(loc)
 
 function f$$remove_breakpoint(loc)
 {
-    var i = d$$$42_breakpoints$42_.length-1;
-    while (i>=0 && (d$$$42_breakpoints$42_[i][0] !== loc[0] ||
-                    d$$$42_breakpoints$42_[i][1] !== loc[1] ||
-                    d$$$42_breakpoints$42_[i][2] !== loc[2]))
-        --i;
-    if (i >= 0) d$$$42_breakpoints$42_.splice(i, 1);
+    var i = 0;
+    while (i < d$$$42_breakpoints$42_.length &&
+           (d$$$42_breakpoints$42_[i][0] != loc[0] ||
+            d$$$42_breakpoints$42_[i][1] != loc[1] ||
+            d$$$42_breakpoints$42_[i][2] != loc[2]))
+        i++;
+    if (i < d$$$42_breakpoints$42_.length)
+        d$$$42_breakpoints$42_.splice(i, 1);
 }
 
 function f$$add_watch(watch)
@@ -1190,11 +1192,14 @@ function f$$remove_watch(watch)
     if (i >= 0) d$$$42_watches$42_.splice(i, 1);
 }
 
+var debugger_failcount = 0;
+
 function f$$attach_debugger()
 {
     f$$http("POST", "http://127.0.0.1:1337/receive?debugged_i&"+skip_cmds_i, "",
             function(text)
             {
+                debugger_failcount = 0;
                 var res = text.split("\n");
                 for (var i=0; i<res.length; i++)
                 {
@@ -1211,6 +1216,17 @@ function f$$attach_debugger()
                     }
                 }
                 setTimeout(f$$attach_debugger, 10);
+            },
+            function(err)
+            {
+                if (++debugger_failcount == 100)
+                {
+                    alert("Error connecting to debugger process");
+                }
+                else
+                {
+                    setTimeout(f$$attach_debugger, 10);
+                }
             });
 }
 
@@ -1220,12 +1236,11 @@ function erl(x, f, local_js_eval)
 {
     try
     {
-        if (!d$$$42_debugger$42_ && d$$$42_breakpoints$42_)
-            for (var i=0; i<d$$$42_breakpoints$42_.length; i++)
-                if (d$$$42_breakpoints$42_[i][0] == x[0] &&
-                    d$$$42_breakpoints$42_[i][1] == x[1] &&
-                    d$$$42_breakpoints$42_[i][2] == x[2])
-                    d$$$42_debugger$42_ = true;
+        for (var i=0; i<d$$$42_breakpoints$42_.length; i++)
+            if (d$$$42_breakpoints$42_[i][0] == x[0] &&
+                d$$$42_breakpoints$42_[i][1] == x[1] &&
+                d$$$42_breakpoints$42_[i][2] == x[2])
+                d$$$42_debugger$42_ = true;
         while(d$$$42_debugger$42_)
         {
             var ww = [];
@@ -1233,7 +1248,7 @@ function erl(x, f, local_js_eval)
             {
                 try
                 {
-                    ww.push(f$$str_value(eval(d$$$42_watches$42_[i])));
+                    ww.push(f$$str_value(local_js_eval(d$$$42_watches$42_[i])));
                 }
                 catch (err)
                 {
@@ -1268,6 +1283,45 @@ function erl(x, f, local_js_eval)
             err.location = [];
         err.location.push(x);
         global_unwinding_trace.push(x);
+        if (d$$$42_debug$42_)
+        {
+            d$$$42_debugger$42_ = true;
+            while(d$$$42_debugger$42_)
+            {
+                var ww = [];
+                for (var i=0; i<d$$$42_watches$42_.length; i++)
+                {
+                    try
+                    {
+                        ww.push(f$$str_value(local_js_eval(d$$$42_watches$42_[i])));
+                    }
+                    catch (err)
+                    {
+                        ww.push("*ERROR*: " + err);
+                    }
+                }
+                f$$send_debugger([f$$intern("exception"),
+                                  "" + err,
+                                  [f$$intern("list")].concat(x),
+                                  [f$$intern("list")].concat(ww)]);
+                var dbg_commands = f$$receive_debugger();
+                f$$send_debugger([f$$intern("running")]);
+                for (var i=0; i<dbg_commands.length; i++)
+                {
+                    var cmd = dbg_commands[i];
+                    if (cmd === "step") break;
+                    try
+                    {
+                        f$$load(cmd);
+                    }
+                    catch (err)
+                    {
+                        f$$send_debugger([f$$intern("debug-cmd-error"), err+""]);
+                    }
+                }
+                if (i < dbg_commands.length) break;
+            }
+        }
         throw err;
     }
 }
