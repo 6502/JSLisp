@@ -409,7 +409,7 @@
          (toolbar (toolbar frame.client 2
                            (lambda (f)
                              (let ((x (funcall f pw)))
-                               (when x
+                               (when (and x (callable? x))
                                  (setf current-tool x))
                                (update view pw)))))
          (layout (V spacing: 8 border: 8
@@ -492,7 +492,7 @@
                        px/width view-div.offsetWidth
                        px/height view-div.offsetHeight)
             (update view pw)))
-    (show-window frame)
+    (show-window frame center: true)
     pw))
 
 (defun main (w h)
@@ -503,6 +503,6 @@
            (data (funcall (. ctx getImageData) 0 0 w h)))
       (clear data (list 255 255 255 255))
       (funcall (. ctx putImageData) data 0 0))
-    (paint 100 100 640 480 "MyPaint" pic)))
+    (paint 0 0 0.75 0.75 "MyPaint" pic)))
 
 (main 320 200)
