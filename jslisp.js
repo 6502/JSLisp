@@ -1231,9 +1231,11 @@ function f$$attach_debugger()
 }
 
 var global_unwinding_trace = [];
+var d$$$42_stack_trace$42_ = [];
 
 function erl(x, f, local_js_eval)
 {
+    d$$$42_stack_trace$42_.push([x, local_js_eval]);
     try
     {
         for (var i=0; i<d$$$42_breakpoints$42_.length; i++)
@@ -1255,9 +1257,10 @@ function erl(x, f, local_js_eval)
                     ww.push("*ERROR*: " + err);
                 }
             }
-            f$$send_debugger([f$$intern("stopped"),
-                              [f$$intern("list")].concat(x),
-                              [f$$intern("list")].concat(ww)]);
+            var ss = [];
+            for (var i=0; i<d$$$42_stack_trace$42_.length; i++)
+                ss.push(d$$$42_stack_trace$42_[i][0]);
+            f$$send_debugger([f$$intern("stopped"), ss, ww]);
             var dbg_commands = f$$receive_debugger();
             f$$send_debugger([f$$intern("running")]);
             for (var i=0; i<dbg_commands.length; i++)
@@ -1275,7 +1278,9 @@ function erl(x, f, local_js_eval)
             }
             if (i < dbg_commands.length) break;
         }
-        return f();
+        var result = f();
+        d$$$42_stack_trace$42_.pop();
+        return result;
     }
     catch (err)
     {
@@ -1300,10 +1305,10 @@ function erl(x, f, local_js_eval)
                         ww.push("*ERROR*: " + err);
                     }
                 }
-                f$$send_debugger([f$$intern("exception"),
-                                  "" + err,
-                                  [f$$intern("list")].concat(x),
-                                  [f$$intern("list")].concat(ww)]);
+                var ss = [];
+                for (var i=0; i<d$$$42_stack_trace$42_.length; i++)
+                    ss.push(d$$$42_stack_trace$42_[i][0]);
+                f$$send_debugger([f$$intern("exception"), "" + err, ss, ww]);
                 var dbg_commands = f$$receive_debugger();
                 f$$send_debugger([f$$intern("running")]);
                 for (var i=0; i<dbg_commands.length; i++)
@@ -1322,6 +1327,7 @@ function erl(x, f, local_js_eval)
                 if (i < dbg_commands.length) break;
             }
         }
+        d$$$42_stack_trace$42_.pop();
         throw err;
     }
 }

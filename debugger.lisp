@@ -19,8 +19,8 @@
 ;; DEBUGGED ==> DEBUGGER
 ;; ---------------------
 ;; debug-cmd-error (x)
-;; stopped (location watches)
-;; exception (err location watches)
+;; stopped (stack watches)
+;; exception (err stack watches)
 ;; running
 ;;
 
@@ -160,7 +160,7 @@
     (show-window w)
     w))
 
-(defun open-source (filename from-char to-char)
+(defun show-source (filename from-char to-char)
   (let ((w (aref *source-windows* filename)))
     (unless w
       (setf w (source-window filename))
@@ -170,20 +170,6 @@
       (setf (aref *source-windows* filename) w))
     (show-window w)
     (set-location w from-char to-char)))
-
-(defun debug-cmd-error (x)
-  (*debugger-window*.error x))
-
-(defun stopped (loc watches)
-  (apply #'open-source loc)
-  (*debugger-window*.stopped watches))
-
-(defun exception (err loc watches)
-  (apply #'open-source loc)
-  (*debugger-window*.exception err watches))
-
-(defun running ()
-  (*debugger-window*.running))
 
 (defun main ()
   (let** ((w (window 0 0 400 400 title: "Debugger"))
@@ -203,6 +189,12 @@
                                             border "solid 1px #CCCCCC"
                                             whiteSpace "pre"
                                             overflow "auto")))
+          (s-label (add-widget w (label "call stack")))
+          (cstack (add-widget w (set-style (create-element "div")
+                                           fontFamily "monospace"
+                                           border "solid 1px #CCCCCC"
+                                           whiteSpace "pre"
+                                           overflow "auto")))
           (#'step ()
             (debugged 'step))
           (#'continue ()
@@ -210,7 +202,20 @@
           (#'load ()
             (let ((fname (prompt "Filename")))
               (when fname
-                (open-source fname 0 0))))
+                (show-source fname 0 0))))
+          (#'setcontext (stack ww)
+            (setf cstack.textContent "")
+            (setf watches.textContent "")
+            (dolist ((file from to) (reverse stack))
+              (let ((sdiv (create-element "div")))
+                (setf sdiv.textContent ~"{file}:{from}-{to}")
+                (append-child cstack sdiv)
+                (setf sdiv.onclick (lambda ()
+                                     (show-source file from to)))))
+            (dolist (w ww)
+              (let ((wdiv (create-element "div")))
+                (setf wdiv.textContent w)
+                (append-child watches wdiv))))
           (#'add-breakpoint (file from to)
             (debugged_i `(add-breakpoint ',(list file from to)))
             (let ((r (create-element "div")))
@@ -222,28 +227,40 @@
     (set-layout w (V border: 8 spacing: 8
                      size: 40
                      (H (dom step) (dom cont) (dom load))
+                     size: 80
+                     (V spacing: 0 size: 15
+                        (dom br-label)
+                        size: undefined
+                        (dom breakpoints))
                      size: undefined
-                     (H (V size: 20
-                           (dom br-label)
-                           size: undefined
-                           (dom breakpoints))
-                        (V size: 20
+                     (H (V spacing: 0 size: 15
                            (dom w-label)
                            size: undefined
-                           (dom watches)))))
+                           (dom watches))
+                        (V spacing: 0 size: 15
+                           (dom s-label)
+                           size: undefined
+                           (dom cstack)))))
     (setf *debugger-window* w)
     (setf w.add-breakpoint #'add-breakpoint)
-    (setf w.running (lambda ()
-                      (setf w.titlebar.textContent "... running ...")))
-    (setf w.stopped (lambda (ww)
-                      (declare (ignorable ww))
+    (receive "http://127.0.0.1:1337" "debugger"
+             (lambda (x)
+               (case (and x (first x))
+                 ('debug-cmd-error
+                    (alert (second x)))
+                 ('stopped
+                    (let (((stack watches) (rest x)))
+                      (setcontext stack watches)
+                      (apply #'show-source (last stack))
                       (setf w.titlebar.textContent "Stopped!")))
-    (setf w.exception (lambda (err ww)
-                        (declare (ignorable ww))
-                        (setf w.titlebar.textContent ~"Exception: {err}")))
-    (setf w.error (lambda (err)
-                    (alert err)))
-    (receive "http://127.0.0.1:1337" "debugger" #'eval)
+                 ('exception
+                    (let (((err stack watches) (rest x)))
+                      (setcontext stack watches)
+                      (apply #'show-source (last stack))
+                      (setf w.titlebar.textContent ~"Exception: {err}")))
+                 ('running
+                    (setf w.titlebar.textContent "... running ...")
+                    (setcontext (list) (list))))))
     (show-window w)))
 
 (main)
