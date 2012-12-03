@@ -73,20 +73,10 @@
     (setf editor.ilisp-exec
           (lambda ()
             (let ((lines (editor.lines))
-                  ((row col s-row s-col) (editor.pos))
+                  (row (first (editor.pos)))
                   (txt (editor.selection)))
-              (declare (ignorable s-row s-col))
-              (when (= txt "")
-                (let ((m (mode.parmatch lines row col)))
-                  (when m
-                    (let (((row0 col0) m))
-                      (if (= row row0)
-                          (incf txt (slice (aref lines row).text col0 col))
-                          (progn
-                            (incf txt (+ (slice (aref lines row0).text col0) "\n"))
-                            (dolist (r (range (1+ row0) row))
-                              (incf txt (+ (aref lines r).text "\n")))
-                            (incf txt (slice (aref lines row).text 0 col))))))))
+              (when (and (= txt "") mode.toplevel-sexpr)
+                (setf txt (mode.toplevel-sexpr lines row)))
               (when (/= txt "")
                 (*ilisp*.send "lisp" txt)))))
     editor))

@@ -264,4 +264,20 @@
                          (lstrip newline.text))))
               indent)))))
 
+(setf mode.toplevel-sexpr
+      (lambda (lines row)
+        (let ((r0 row)
+              (r1 (1+ row)))
+          (do () ((or (= r0 0)
+                      (= (length (or (aref lines r0).start-context.parens
+                                     (list)))
+                         0)))
+            (decf r0))
+          (do () ((or (= r1 (length lines))
+                      (= (length (or (aref lines r1).start-context.parens
+                                     (list)))
+                         0)))
+            (incf r1))
+          (join (map (get .text) (slice lines r0 r1)) "\n"))))
+
 (export mode)

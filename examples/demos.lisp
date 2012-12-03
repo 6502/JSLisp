@@ -45,6 +45,7 @@
 (import-nomain examples/mypaint)
 (import-nomain examples/flood-fill)
 (import-nomain examples/asteroids)
+(import-nomain examples/browser)
 
 (defun main ()
   (make-menu)
