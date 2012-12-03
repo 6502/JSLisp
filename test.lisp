@@ -574,7 +574,7 @@
 (test (let ((x (gensym)))
         (/= x (intern (symbol-name x)))) "true")
 
-(test (any (x (range 10)) (>= x 10)) "false")
+(test (any (x (range 10)) (>= x 10)) "null")
 (test (all (x (range 10)) (< x 10)) "true")
 
 (test (let ((x (list 1 2 3 4 5)))
