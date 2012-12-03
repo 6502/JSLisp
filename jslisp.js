@@ -744,8 +744,11 @@ defmacro("labels",
              {
                  var v = bindings[i][0].name;
                  lexmacro.add(v, undefined);
-                 hmacros.push([v, glob["m" + v]]);
-                 glob["m" + v] = undefined;
+                 if (glob["m" + v])
+                 {
+                     hmacros.push([v, glob["m" + v]]);
+                     glob["m" + v] = undefined;
+                 }
                  lexfunc.add(v, {arglist:bindings[i][1]});
              }
 
