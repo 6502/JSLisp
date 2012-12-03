@@ -2430,8 +2430,22 @@ The resulting list length is equal to the first input sequence."
 ;; Array construction
 
 (defun make-array (n &optional initial-value)
-  "Creates a list containing [n] elements all equal to the specified [initial-value].
-   Passing a list of dimensions as [n] creates a multidimensional matrix."
+  "Creates a list containing [n] elements all equal to \
+   the specified [initial-value].
+   Passing a list of dimensions as [n] creates a \
+   multidimensional matrix.[[
+   (make-array 5)
+   ;; ==> (undefined undefined undefined undefined undefined)
+
+   (make-array 5 42)
+   ;; ==> (42 42 42 42 42)
+
+   (make-array 0 99)
+   ;; ==> ()
+
+   (make-array (list 2 3) 99)
+   ;; ==> ((99 99 99) (99 99 99))
+   ]]"
   (unless (list? n)
     (setf n (list n)))
   (let ((sz (length n)))
@@ -2462,8 +2476,25 @@ The resulting list length is equal to the first input sequence."
 ;; Range
 
 (defun range (start &optional stop step)
-  "Returns a list containing all numbers from [start] (0 if not specified) up to [stop] counting by [step] (1 if not specified).
-If only one parameter is passed it's assumed to be [stop]."
+  "Returns a list containing all numbers from [start] \
+   (0 if not specified) up to [stop] counting by [step] \
+   (1 if not specified).
+   If only one parameter is passed it's assumed to be [stop].[[
+   (range 10)
+   ;; ==> (0 1 2 3 4 5 6 7 8 9)
+
+   (range 0)
+   ;; ==> ()
+
+   (range 4 8)
+   ;; ==> (4 5 6 7)
+
+   (range 0 10 4)
+   ;; ==> (0 4 8)
+
+   (range 10 0 -2)
+   ;; ==> (10 8 6 4 2)
+   ]]"
   (when (= step undefined)
     (setf step 1))
   (when (= stop undefined)
@@ -2476,12 +2507,27 @@ If only one parameter is passed it's assumed to be [stop]."
     res))
 
 (defun fp-range (from to n)
-  "A list of [n] equally spaced floating point values starting with [from] and ending with [to]."
+  "A list of [n] equally spaced floating point values \
+   starting with [from] and ending with [to]. If only one \
+   element is asked then [to] is used.[[
+   (fp-range 0 1 5)
+   ;; ==> (0 0.25 0.5 0.75 1)
+
+   (fp-range 0 1 2)
+   ;; ==> (0 1)
+
+   (fp-range 0 10 1)
+   ;; ==> (10)
+
+   (fp-range 0 10 0)
+   ;; ==> ()
+   ]]"
   (let ((result (list)))
-    (dotimes (i (1- n))
-      (push (+ from (/ (* i (- to from)) (1- n)))
-            result))
-    (push to result)
+    (when (> n 0)
+      (dotimes (i (1- n))
+        (push (+ from (/ (* i (- to from)) (1- n)))
+              result))
+      (push to result))
     result))
 
 ;; Generic gensym
@@ -2504,8 +2550,26 @@ If only one parameter is passed it's assumed to be [stop]."
 
 ;; Any/all
 (defmacro any ((var list) &rest body)
-  "Returns the first logical true evaluation of [body] forms after binding [var] to [list] elements or [null] if none
-   every evaluations returns a logical false value"
+  "Returns the first logical true evaluation of [body] forms \
+   after binding [var] to [list] elements or [null] if
+   every evaluations returns a logically false value. See also {{all}}.
+   [[
+   (any (x (range 10)) (> x 4))
+   ;; ==> true
+
+   (let ((x (list)))
+     (any (y (range 10))
+       (push y x)
+       (> y 4))
+     x)
+   ;; ==> (0 1 2 3 4 5)
+
+   (any (x (range 10)) x)
+   ;; ==> 1
+
+   (any (x (range 10)) (> x 100))
+   ;; ==> null
+   ]]"
   (let ((index (gensym))
         (L (gensym))
         (result (gensym)))
@@ -2515,32 +2579,86 @@ If only one parameter is passed it's assumed to be [stop]."
          ((or (>= ,index (length ,L))
               (let ((,var (aref ,L ,index)))
                 (setf ,result (progn ,@body))))
-          ,result))))
+          (or ,result null)))))
 
 (defmacro all ((var list) &rest body)
-  "True if after binding [var] to each of the values in [list] the [body] forms always evaluate to a true value"
+  "[true] if after binding [var] to each of the values in \
+   [list] the last [body] form always evaluate to a true
+   value and [false] otherwise. See also {{any}}.
+  [[
+  (all (x (range 10)) (< x 100))
+  ;; ==> true
+
+  (all (x (range 10)) (< x 5))
+  ;; ==> false
+
+  (let ((x (list)))
+    (all (y (range 10))
+      (push y x)
+      (< y 5))
+    x)
+  ;; ==> (0 1 2 3 4 5)
+  ]]"
   `(not (any (,var ,list) (not (progn ,@body)))))
 
 ;; Reader customization
 (defmacro reader (char)
-  "The reader function associated to [char]. A setf-able place."
+  "The reader function associated to [char]. A setf-able place.[[
+   (setf (reader \"&\")
+     (lambda (src)
+       (next-char src)
+       'ampersand)))
+   ;; ==> #CODE
+
+   (parse-value \"(&1)\")
+   ;; ==> (ampersand 1)
+
+   (setf (reader \"&\") undefined)
+   ;; ==> undefined
+
+   (parse-value \"(&1)\")
+   ;; ==> (&1)
+   ]]"
   (unless (and (string? char) (= (length char) 1))
     (error "(reader x) requires a one-char literal"))
   `(aref *readers* ,char))
 
 (defmacro hash-reader (char)
-  "The reader function associated to [char] when following [\"#\"]. A setf-able place."
+  "The reader function associated to [char] when following \
+   [\"#\"]. A setf-able place.[[
+     (setf (hash-reader \"&\")
+     (lambda (src)
+       (next-char src)
+       'ampersand)))
+   ;; ==> #CODE
+
+   (parse-value \"(#&1)\")
+   ;; ==> (ampersand 1)
+
+   (setf (hash-reader \"&\") undefined)
+   ;; ==> undefined
+
+   (parse-value \"(#&1)\")
+   **ERROR**: Unsupported hash combination
+   ]]"
   (unless (and (string? char) (= (length char) 1))
     (error "(hash-reader x) requires a one-char literal"))
   `(aref *hash-readers* ,char))
 
 (defun next-char (src)
-  "Advances to next character or character source [src]"
+  "Advances to next character or character source [src].
+   See also {{current-char}} and {{make-source}.[[
+   (let ((s (make-source \"andrea\")))
+     (repeat 3 (next-char s))
+     (current-char s))
+   ;; ==> \"r\"
+   ]]"
   (declare (ignorable src))
   (js-code "(d$$src.i++)"))
 
 (defun current-char (src)
-  "Returns current character from character source [src]"
+  "Returns current character from character source [src].
+   See also {{next-char}} and {{make-source}}."
   (declare (ignorable src))
   (js-code "(d$$src.s[d$$src.i])"))
 
@@ -2614,7 +2732,18 @@ If only one parameter is passed it's assumed to be [stop]."
 ;; Swap
 
 (defmacro swap (a b)
-  "Swaps the content of two places (evaluating each place twice: once for reading and once for writing)"
+  "Swaps the content of two places (evaluating each place twice: \
+   once for reading and once for writing)[[
+   (let ((a 1) (b 2))
+     (swap a b)
+     (list a b))
+   ;; ==> (2 1)
+
+   (let ((x (list 1 2)))
+     (swap (first x) (second x))
+     x)
+   ;; ==> (2 1)
+   ]]"
   (let ((xa (gensym))
         (xb (gensym)))
     `(let ((,xa ,a)
@@ -2657,22 +2786,26 @@ If only one parameter is passed it's assumed to be [stop]."
         (swap (aref L i) (aref L j))))
     (slice L 0 n)))
 
-;; Filler string
-
-(defun filler (n &optional (c " "))
-  "Returns a string composed by replicating a specified string (a space by default)"
-  (cond
-    ((<= n 0) "")
-    ((= n 1) c)
-    ((logand n 1) (+ c (filler (1- n) c)))
-    (true
-       (let ((h (filler (ash n -1) c)))
-         (+ h h)))))
-
 ;; JS exception support
 (defvar *exception* null)
 (defmacro try (expr on-error)
-  "Evaluates [expr] and in case of exception evaluates the [on-error] form setting [*exception*] to the current exception"
+  "Evaluates [expr] and in case of exception evaluates the [on-error] form \
+   setting [*exception*] to the current exception.[[
+   (try
+     (aref null 3)
+     42)
+   ;; ==> 42
+
+   (try
+     (+ 1 2)
+     42)
+   ;; ==> 3
+
+   (try
+     (aref null 3)
+     (list 42 (+ \"\" *exception*)))
+   ;; ==> (42 \"TypeError: Cannot read property '3' of null\")
+   ]]"
   `(js-code ,(+ "((function(){try{return("
                 (js-compile expr)
                 ");}catch(err){var olderr=d$$$42_exception$42_;d$$$42_exception$42_=err;var res=("
