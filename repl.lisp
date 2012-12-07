@@ -111,6 +111,7 @@
                         (dom clear)
                         (dom inspect)
                         :filler:))))
+    (setf ilisp.clear #'clear)
     (append-child container ilisp.iframe)
     (set-style ilisp.iframe
                position "absolute"
@@ -386,6 +387,10 @@
      (lambda (event)
        (let ((stop true))
          (cond
+           ((and (or event.altKey event.metaKey) (= event.which #.(char-code "Z")))
+            (*ilisp*.clear))
+           ((and (or event.altKey event.metaKey) (= event.which #.(char-code "R")))
+            (*ilisp*.reset))
            ((and event.ctrlKey (= event.which #.(char-code "I")))
             (mode.inspect-ilisp *ilisp*)
             (set-timeout (lambda ()
@@ -401,13 +406,11 @@
             (when (> (sources.current-index) 0)
               (sources.remove (sources.current-index))))
            ((and event.ctrlKey (= event.which #.(char-code "K")))
-            (if event.shiftKey
-                (when (sources.current).selection
-                  (setf zrun ((sources.current).selection)))
-                (progn
-                  (zoom)
-                  (when zrun
-                    (*ilisp*.send "lisp" zrun)))))
+            (when ((sources.current).selection)
+              (setf zrun ((sources.current).selection)))
+            (zoom)
+            (when zrun
+              (*ilisp*.send "lisp" zrun)))
            ((and event.ctrlKey (= event.which #.(char-code "O"))
                  mode.styles)
             (customize-styles mode.styles
