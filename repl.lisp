@@ -84,9 +84,12 @@
 (defun inferior-lisp ()
   (let** ((container (set-style (create-element "div")
                                 position "absolute"))
-          (inspect (append-child container (button "Inspect" #'inspect)))
-          (reset (append-child container (button "Reset" #'reset)))
-          (clear (append-child container (button "Clear" #'clear)))
+          (screen (set-style (create-element "div")
+                             position "absolute"
+                             px/left 0
+                             px/top 0
+                             px/right 0
+                             px/bottom 0))
           (ilisp (ilisp:new #'reply))
           (#'inspect ()
                      (mode.inspect-ilisp ilisp))
@@ -102,15 +105,7 @@
           (#'clear ()
                    (ilisp.send "javascript"
                                "repl.value=\"\""))
-          (layout (V border: 8 spacing: 8
-                     (dom ilisp.iframe)
-                     size: 30
-                     (H :filler:
-                        size: 80
-                        (dom reset)
-                        (dom clear)
-                        (dom inspect)
-                        :filler:))))
+          (layout (V border: 8 (dom ilisp.iframe))))
     (setf ilisp.clear #'clear)
     (append-child container ilisp.iframe)
     (set-style ilisp.iframe
@@ -123,6 +118,13 @@
           (lambda (x0 y0 x1 y1)
             (set-coords layout 0 0 (- x1 x0) (- y1 y0))))
     (setf container.ilisp ilisp)
+    (append-child container screen)
+    (set-handler screen oncontextmenu
+      (event.preventDefault)
+      (event.stopPropagation)
+      (menu `(("Reset inferior lisp (Alt-R)" ,#'reset)
+              ("Clear window (Alt-Z)" ,#'clear))
+            (event-pos event)))
     container))
 
 (defvar *user*)
@@ -391,12 +393,6 @@
             (*ilisp*.clear))
            ((and (or event.altKey event.metaKey) (= event.which #.(char-code "R")))
             (*ilisp*.reset))
-           ((and event.ctrlKey (= event.which #.(char-code "I")))
-            (mode.inspect-ilisp *ilisp*)
-            (set-timeout (lambda ()
-                           (when (sources.current).refresh
-                             ((sources.current).refresh)))
-                         100))
            ((and event.ctrlKey (= event.which #.(char-code "W")))
             (when (and (> (sources.current-index) 0)
                        (put-file ((sources.current).name)
@@ -425,7 +421,12 @@
            ((and event.ctrlKey (= event.which 13))
             (when event.shiftKey
               (zoom))
-            ((sources.current).ilisp-exec))
+            ((sources.current).ilisp-exec)
+            (mode.inspect-ilisp *ilisp*)
+            (set-timeout (lambda ()
+                           (when (sources.current).refresh
+                             ((sources.current).refresh)))
+                         100))
            (true (setf stop false)))
          (when stop
            (event.stopPropagation)
