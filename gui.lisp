@@ -1406,6 +1406,90 @@
                         20))
     baloon))
 
+(defun menu (options &optional pos)
+  (let** ((menu (set-style (create-element "div")
+                           position "absolute"
+                           zIndex 1000000000
+                           px/padding 8
+                           border "1px solid #000000"
+                           backgroundColor "#FFFFFF"
+                           boxShadow "5px 5px 10px rgba(0,0,0,0.5)"))
+          (cover (set-style (create-element "div")
+                            position "absolute"
+                            zIndex 999999999
+                            cursor "default"
+                            px/left 0
+                            px/top 0
+                            px/right 0
+                            px/bottom 0
+                            opacity 0.1
+                            backgroundColor "#000000"))
+          (#'close ()
+            (hide cover)
+            (hide menu)))
+    (dolist ((text action) options)
+      (let ((entry (append-child menu (create-element "div"))))
+        (set-style entry
+                   cursor "pointer"
+                   fontFamily "Arial"
+                   px/fontSize 16
+                   px/paddingTop 1
+                   px/paddingBottom 1
+                   px/paddingLeft 8
+                   px/paddingRight 8
+                   fontWeight "bold")
+        (setf entry.textContent text)
+        (set-handler entry onmouseover
+          (set-style entry
+                     color "#FFFFFF"
+                     backgroundColor "#000040"))
+        (set-handler entry onmouseout
+          (set-style entry
+                     color null
+                     backgroundColor null))
+        (set-handler entry onmousedown
+                     (event.stopPropagation)
+                     (event.preventDefault)
+                     (close)
+                     (funcall action))
+        (set-handler entry onmouseup
+                     (event.stopPropagation)
+                     (event.preventDefault)
+                     (close)
+                     (funcall action))))
+    (set-handler cover onmousedown
+      (event.stopPropagation)
+      (event.preventDefault)
+      (close))
+    (set-handler cover onmouseup
+      (event.stopPropagation)
+      (event.preventDefault)
+      (close))
+    (set-handler cover oncontextmenu
+      (event.stopPropagation)
+      (event.preventDefault)
+      (close))
+    (set-handler cover onmousemove
+      (let (((x y) (event-pos event)))
+        (when (< x (- menu.offsetLeft 10))
+          (set-style menu px/left (+ x 10)))
+        (when (< y (- menu.offsetTop 10))
+          (set-style menu px/top (+ y 10)))
+        (when (> x (+ menu.offsetLeft menu.offsetWidth 10))
+          (set-style menu px/left (- x menu.offsetWidth 10)))
+        (when (> y (+ menu.offsetTop menu.offsetHeight 10))
+          (set-style menu px/top (- y menu.offsetHeight 10)))))
+    (show cover)
+    (set-style menu opacity 0.001)
+    (show menu)
+    (unless pos
+      (setf pos (list (/ (- (screen-width) menu.offsetWidth) 2)
+                      (/ (- (screen-height) menu.offsetHeight) 2))))
+    (set-style menu
+               px/left (first pos)
+               px/top (second pos))
+    (set-style menu opacity 1.0)))
+
 (export set-style
         screen-width screen-height
         element-pos event-pos relative-pos
@@ -1433,4 +1517,5 @@
         screen-width screen-height
         message-box
         ask-login
-        baloon)
+        baloon
+        menu)
