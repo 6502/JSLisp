@@ -780,6 +780,7 @@
                                                   position "absolute"
                                                   whiteSpace "pre")))
           (area (append-child tabbed (set-style (create-element "div")
+                                                zIndex 2
                                                 position "absolute"
                                                 border "solid 1px #000000"
                                                 backgroundColor "#FFFFFF")))
@@ -795,13 +796,13 @@
             (let ((tab (set-style (create-element "span")
                                   display "inline-block"
                                   position "relative"
-                                  px/top "1"
+                                  px/top 2
                                   borderLeft "solid 1px #000000"
                                   borderRight "solid 1px #000000"
                                   borderTop "solid 1px #000000"
                                   borderBottom "solid 1px #000000"
                                   backgroundColor "#DDDDDD"
-                                  zIndex "1"
+                                  zIndex 1
                                   px/borderTopLeftRadius 6
                                   px/borderTopRightRadius 6
                                   textAlign "center"
@@ -855,11 +856,13 @@
             (unless (= index current)
               (when (/= current -1)
                 (set-style (aref tabs current)
+                           zIndex 1
                            borderBottom "solid 1px #000000"
                            backgroundColor "#DDDDDD")
                 (remove-child area (aref pages current)))
               (setf current index)
               (set-style (aref tabs current)
+                         zIndex 3
                          borderBottom "solid 1px #FFFFFF"
                          backgroundColor "#FFFFFF")
               (append-child area (aref pages current))
@@ -1371,6 +1374,7 @@
   "Shows a message in a baloon that will disappear by itself"
   (let ((baloon (set-style (create-element "div")
                            position "absolute"
+                           zIndex 999999998
                            px/padding 16
                            px/borderRadius 8
                            px/right 16
