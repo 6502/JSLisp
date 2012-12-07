@@ -180,6 +180,16 @@ f$$load(f$$http_get("boot.lisp"), "boot.lisp");
 
 up({id: id, req: null, reply: "\"ready\""});
 
+repl.oncontextmenu = function(event){
+    event.preventDefault();
+    event.stopPropagation();
+    up({id: id,
+        req: null,
+        reply: f$$json(["ctxmenu:", event.pageX, event.pageY])});
+    event.returnvalue = false;
+    return false;
+}
+
     </script>
   </body>
 </html>

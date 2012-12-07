@@ -84,27 +84,31 @@
 (defun inferior-lisp ()
   (let** ((container (set-style (create-element "div")
                                 position "absolute"))
-          (screen (set-style (create-element "div")
-                             position "absolute"
-                             px/left 0
-                             px/top 0
-                             px/right 0
-                             px/bottom 0))
           (ilisp (ilisp:new #'reply))
           (#'inspect ()
                      (mode.inspect-ilisp ilisp))
           (#'reply (msg)
-                   (when (= msg "\"ready\"")
-                     (inspect))
-                   (ilisp.send "javascript"
-                               (+ "output(f$$str_value(f$$json_parse$42_("
-                                  (json msg)
-                                  "))+\"\\n\")")))
+                   (if (and (string? msg)
+                            (= (slice msg 0 11) "[\"ctxmenu:\""))
+                       (let (((x y) (rest (json-parse msg)))
+                             ((x0 y0) (element-pos container)))
+                         (contextmenu (list (+ x x0) (+ y y0))))
+                       (progn
+                         (when (= msg "\"ready\"")
+                           (inspect))
+                         (ilisp.send "javascript"
+                                     (+ "output(f$$str_value(f$$json_parse$42_("
+                                        (json msg)
+                                        "))+\"\\n\")")))))
           (#'reset ()
                    (ilisp.reset))
           (#'clear ()
                    (ilisp.send "javascript"
                                "repl.value=\"\""))
+          (#'contextmenu (pos)
+                         (menu `(("Reset inferior lisp (Alt-R)" ,#'reset)
+                                 ("Clear window (Alt-Z)" ,#'clear))
+                               pos))
           (layout (V border: 8 (dom ilisp.iframe))))
     (setf ilisp.clear #'clear)
     (append-child container ilisp.iframe)
@@ -118,13 +122,10 @@
           (lambda (x0 y0 x1 y1)
             (set-coords layout 0 0 (- x1 x0) (- y1 y0))))
     (setf container.ilisp ilisp)
-    (append-child container screen)
-    (set-handler screen oncontextmenu
+    (set-handler container oncontextmenu
       (event.preventDefault)
       (event.stopPropagation)
-      (menu `(("Reset inferior lisp (Alt-R)" ,#'reset)
-              ("Clear window (Alt-Z)" ,#'clear))
-            (event-pos event)))
+      (contextmenu (event-pos event)))
     container))
 
 (defvar *user*)
