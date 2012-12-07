@@ -92,15 +92,34 @@
                          (when ((regexp \"^[dmf][a-zA-Z0-9_]*\\\\$\\\\$.*\").exec name)
                            (let ((x (aref (js-code \"window\") name)))
                              (case (first name)
-                               (\"m\" (push (list \"m\"
-                                                  (demangle name)
-                                                  (and x (str-value x.arglist))
-                                                  (and x x.documentation)) res))
-                               (\"f\" (push (list \"f\"
-                                                  (demangle name)
-                                                  (and x (str-value x.arglist))
-                                                  (and x x.documentation)) res))
-                               (\"d\" (push (list \"d\" (demangle name)) res))))))
+                                   (\"m\" (push (list \"m\"
+                                                    (demangle name)
+                                                    (and x (str-value x.arglist))
+                                                    (and x x.documentation)) res))
+                                   (\"f\" (push (list \"f\"
+                                                    (demangle name)
+                                                    (and x (str-value x.arglist))
+                                                    (and x x.documentation)) res))
+                                   (\"d\" (push (list \"d\" (demangle name)) res))))))
+                       (dolist (k (keys *symbol-aliases*))
+                         (let ((s (aref *symbol-aliases* k)))
+                           (when (symbol? s)
+                             (let ((f (symbol-function s)))
+                               (when f (push (list \"f\"
+                                                   (slice k 1)
+                                                   (and f (str-value f.arglist))
+                                                   (and f f.documentation))
+                                             res)))
+                             (let ((f (symbol-macro s)))
+                               (when f (push (list \"m\"
+                                                   (slice k 1)
+                                                   (and f (str-value f.arglist))
+                                                   (and f f.documentation))
+                                             res)))
+                             (let ((f (symbol-value s)))
+                               (when f (push (list \"d\"
+                                                   (slice k 1))
+                                             res))))))
                        res)"
                     (lambda (result)
                       (setf mode.body-macros #())
