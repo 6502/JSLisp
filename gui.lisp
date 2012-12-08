@@ -795,6 +795,7 @@
             (let ((tab (set-style (create-element "span")
                                   display "inline-block"
                                   position "relative"
+                                  px/height 20
                                   px/top 1
                                   borderLeft "solid 1px #000000"
                                   borderRight "solid 1px #000000"
