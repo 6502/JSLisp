@@ -170,6 +170,7 @@
             (ifind-col 0)
             (ifind-left 0)
             (ifind-top 0)
+            (ifind-last-text "")
             (ireplace-mode null)
             (last-search "")
             (last-replace "")
@@ -810,6 +811,7 @@
                                  (progn
                                    (when (> (length ifind-text) 0)
                                      (setf ifind-text (slice ifind-text 0 -1))
+                                     (setf ifind-last-text ifind-text)
                                      (setf s-col (1- s-col)))
                                    (event.preventDefault)
                                    (event.stopPropagation)
@@ -889,12 +891,15 @@
                               (when event.ctrlKey
                                 (setf ireplace-mode null)
                                 (if ifind-mode
-                                    (let ((f (ifind ifind-text lines row (+ col (length ifind-text)))))
-                                      (when f
-                                        (setf row (first f))
-                                        (setf col (second f))
-                                        (setf s-row row)
-                                        (setf s-col (+ col (length ifind-text)))))
+                                    (progn
+                                      (when (= ifind-text "")
+                                        (setf ifind-text ifind-last-text))
+                                      (let ((f (ifind ifind-text lines row (+ col (length ifind-text)))))
+                                        (when f
+                                          (setf row (first f))
+                                          (setf col (second f))
+                                          (setf s-row row)
+                                          (setf s-col (+ col (length ifind-text))))))
                                     (progn
                                       (setf ifind-mode true)
                                       (setf ifind-text "")
@@ -965,6 +970,7 @@
                            (setf row (first f))
                            (setf col (second f))
                            (setf ifind-text tx)
+                           (setf ifind-last-text tx)
                            (setf s-row row)
                            (setf s-col (+ col (length tx)))
                            (fix))))
