@@ -85,7 +85,7 @@
                 (true (next))))))))
 
 (setf mode.inspect-ilisp
-      (lambda (ilisp)
+      (lambda (ilisp &optional on-completion)
         (ilisp.send "lisp"
                     "(let ((res (list)))
                        (dolist (name (keys (js-code \"window\")))
@@ -135,7 +135,9 @@
                           ("f"
                            (setf (aref mode.functions (second x)) (slice x 2)))
                           ("d"
-                           (setf (aref mode.vars (second x)) 1))))))))
+                           (setf (aref mode.vars (second x)) 1))))
+                      (when on-completion
+                        (funcall on-completion))))))
 
 (setf mode.compute-end-context
       (lambda (line)

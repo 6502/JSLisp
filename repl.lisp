@@ -86,29 +86,29 @@
                                 position "absolute"))
           (ilisp (ilisp:new #'reply))
           (#'inspect ()
-                     (mode.inspect-ilisp ilisp))
+            (mode.inspect-ilisp ilisp))
           (#'reply (msg)
-                   (if (and (string? msg)
-                            (= (slice msg 0 11) "[\"ctxmenu:\""))
-                       (let (((x y) (rest (json-parse msg)))
-                             ((x0 y0) (element-pos container)))
-                         (contextmenu (list (+ x x0) (+ y y0))))
-                       (progn
-                         (when (= msg "\"ready\"")
-                           (inspect))
-                         (ilisp.send "javascript"
-                                     (+ "output(f$$str_value(f$$json_parse$42_("
-                                        (json msg)
-                                        "))+\"\\n\")")))))
+            (if (and (string? msg)
+                     (= (slice msg 0 11) "[\"ctxmenu:\""))
+                (let (((x y) (rest (json-parse msg)))
+                      ((x0 y0) (element-pos container)))
+                  (contextmenu (list (+ x x0) (+ y y0))))
+                (progn
+                  (when (= msg "\"ready\"")
+                    (inspect))
+                  (ilisp.send "javascript"
+                              (+ "output(f$$str_value(f$$json_parse$42_("
+                                 (json msg)
+                                 "))+\"\\n\")")))))
           (#'reset ()
-                   (ilisp.reset))
+            (ilisp.reset))
           (#'clear ()
-                   (ilisp.send "javascript"
-                               "repl.value=\"\""))
+            (ilisp.send "javascript"
+                        "repl.value=\"\""))
           (#'contextmenu (pos)
-                         (menu `(("Reset inferior lisp (Alt-R)" ,#'reset)
-                                 ("Clear window (Alt-Z)" ,#'clear))
-                               pos))
+            (menu `(("Reset inferior lisp (Alt-R)" ,#'reset)
+                    ("Clear window (Alt-Z)" ,#'clear))
+                  pos))
           (layout (V border: 8 (dom ilisp.iframe))))
     (setf ilisp.clear #'clear)
     (append-child container ilisp.iframe)
@@ -322,12 +322,12 @@
               (set-coords (dom vs) 8 8 (- last-width 8) (- last-height 8))))
           (#'doc-lookup (name)
             (*ilisp*.send
-             "lisp"
-             ~"(let ((f (intern {(json name)} undefined true)))
-                 (when f
-                   (let ((f (or (symbol-function f) (symbol-macro f))))
-                     (if f (list (documentation f) f.location)))))"
-             #'show-doc))
+              "lisp"
+              ~"(let ((f (intern {(json name)} undefined true)))
+              (when f
+              (let ((f (or (symbol-function f) (symbol-macro f))))
+              (if f (list (documentation f) f.location)))))"
+              #'show-doc))
           (#'zoom ()
             (setf zoom (not zoom))
             (vs.partition (if zoom 0 80))
@@ -361,9 +361,9 @@
                         (progn
                           (message-box
                             "<h2>File changes not saved. Quit anyway?</h2>
-                             There are changes to the current file that have
-                             not been saved yet back to server (key: ctrl-W).<br/><br/>
-                             If you close this tab these changes will be lost."
+                            There are changes to the current file that have
+                            not been saved yet back to server (key: ctrl-W).<br/><br/>
+                            If you close this tab these changes will be lost."
                             title: "Abandon edit warning"
                             buttons: (list "Yes" "No")
                             default: "No"
@@ -386,69 +386,68 @@
     (set-timeout (lambda () ((sources.current).focus)) 10)
 
     (document.body.addEventListener
-     "keydown"
-     (lambda (event)
-       (let ((stop true))
-         (cond
-           ((and (or event.altKey event.metaKey) (= event.which #.(char-code "Z")))
-            (*ilisp*.clear))
-           ((and (or event.altKey event.metaKey) (= event.which #.(char-code "R")))
-            (*ilisp*.reset))
-           ((and event.ctrlKey (= event.which #.(char-code "W")))
-            (when (and (> (sources.current-index) 0)
-                       (put-file ((sources.current).name)
-                                 ((sources.current).buffer)))
-              ((sources.current).clear-modified)))
-           ((and event.ctrlKey (= event.which #.(char-code "Q")))
-            (when (> (sources.current-index) 0)
-              (sources.remove (sources.current-index))))
-           ((and event.ctrlKey (= event.which #.(char-code "K")))
-            (when ((sources.current).selection)
-              (setf zrun ((sources.current).selection)))
-            (zoom)
-            (when zrun
-              (*ilisp*.send "lisp" zrun)))
-           ((and event.ctrlKey (= event.which #.(char-code "O"))
-                 mode.styles)
-            (customize-styles mode.styles
-                              (lambda (res)
-                                (when (and res
-                                           (sources.current).refresh)
-                                  ((sources.current).refresh)))))
-           ((and event.ctrlKey (= event.which 39))
-            (sources.next))
-           ((and event.ctrlKey (= event.which 37))
-            (sources.prev))
-           ((and event.ctrlKey (= event.which 13))
-            (when event.shiftKey
-              (zoom))
-            ((sources.current).ilisp-exec)
-            (mode.inspect-ilisp *ilisp*)
-            (set-timeout (lambda ()
-                           (when (sources.current).refresh
-                             ((sources.current).refresh)))
-                         100))
-           (true (setf stop false)))
-         (when stop
-           (event.stopPropagation)
-           (event.preventDefault))))
-     true)
+      "keydown"
+      (lambda (event)
+        (let ((stop true))
+          (cond
+            ((and (or event.altKey event.metaKey) (= event.which #.(char-code "Z")))
+             (*ilisp*.clear))
+            ((and (or event.altKey event.metaKey) (= event.which #.(char-code "R")))
+             (*ilisp*.reset))
+            ((and event.ctrlKey (= event.which #.(char-code "W")))
+             (when (and (> (sources.current-index) 0)
+                        (put-file ((sources.current).name)
+                                  ((sources.current).buffer)))
+               ((sources.current).clear-modified)))
+            ((and event.ctrlKey (= event.which #.(char-code "Q")))
+             (when (> (sources.current-index) 0)
+               (sources.remove (sources.current-index))))
+            ((and event.ctrlKey (= event.which #.(char-code "K")))
+             (when ((sources.current).selection)
+               (setf zrun ((sources.current).selection)))
+             (zoom)
+             (when zrun
+               (*ilisp*.send "lisp" zrun)))
+            ((and event.ctrlKey (= event.which #.(char-code "O"))
+                  mode.styles)
+             (customize-styles mode.styles
+                               (lambda (res)
+                                 (when (and res
+                                            (sources.current).refresh)
+                                   ((sources.current).refresh)))))
+            ((and event.ctrlKey (= event.which 39))
+             (sources.next))
+            ((and event.ctrlKey (= event.which 37))
+             (sources.prev))
+            ((and event.ctrlKey (= event.which 13))
+             (when event.shiftKey
+               (zoom))
+             ((sources.current).ilisp-exec)
+             (mode.inspect-ilisp *ilisp*
+                                 (lambda ()
+                                   (when (sources.current).refresh
+                                     ((sources.current).refresh)))))
+            (true (setf stop false)))
+          (when stop
+            (event.stopPropagation)
+            (event.preventDefault))))
+      true)
 
     (set-interval
-     (let ((last-lookup ""))
-       (lambda ()
-         (when (and (sources.current) (sources.current).pos)
-           (let* (((row col) ((sources.current).pos))
-                  (lines ((sources.current).lines))
-                  (text (aref lines row).text))
-             (do ((c col (1- c)))
-                 ((or (= c 0)
-                      (= (aref text (1- c)) "("))
-                    (let ((name (slice text c col)))
-                      (when (/= name last-lookup)
-                        (setf last-lookup name)
-                        (doc-lookup name)))))))))
-     100)))
+      (let ((last-lookup ""))
+        (lambda ()
+          (when (and (sources.current) (sources.current).pos)
+            (let* (((row col) ((sources.current).pos))
+                   (lines ((sources.current).lines))
+                   (text (aref lines row).text))
+              (do ((c col (1- c)))
+                ((or (= c 0)
+                     (= (aref text (1- c)) "("))
+                 (let ((name (slice text c col)))
+                   (when (/= name last-lookup)
+                     (setf last-lookup name)
+                     (doc-lookup name)))))))))
+      100)))
 
 (defvar *deploy-prefix* "")
 (setf *deploy-prefix* (replace *deploy-prefix* "</head>" "<title>JsLisp IDE</title></head>"))
