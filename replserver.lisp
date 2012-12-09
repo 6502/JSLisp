@@ -36,7 +36,10 @@
   (let ((proplist (check-authorization user-name session-id authcode "null")))
     (when (and proplist
                (find "admin" proplist))
-      (let* ((proc ((node:require "child_process").spawn "/bin/bash" (list "-i")))
+      (let* ((proc ((node:require "child_process").spawn
+                    "/usr/bin/script"
+                    (list "-q" "-f" "/dev/null")
+                    #((stdio "pipe"))))
              (output (list))
              (p (new-process proc user-name output null))
              (id (incf *process-id*)))

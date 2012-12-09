@@ -273,9 +273,26 @@
                whiteSpace "pre"
                px/fontSize 16)
     (setf w.lastChild.wrap "off")
+    (set-handler w.lastChild onkeydown
+      (cond
+        ((= event.which 8)
+         (event.preventDefault)
+         (event.stopPropagation)
+         (terminal-send t (char 8))
+         (setf w.lastChild.value (slice w.lastChild.value 0 -1))
+         (setf w.lastChild.scrollTop w.lastChild.scrollHeight)
+         false)
+        ((= event.which 9)
+         (event.preventDefault)
+         (event.stopPropagation)
+         (terminal-send t (char 9))
+         false)
+        (true true)))
     (set-handler w.lastChild onkeypress
       (when (and event.charCode (null? exit-code))
         (terminal-send t (char event.charCode))
+        (incf w.lastChild.value (char event.charCode))
+        (setf w.lastChild.scrollTop w.lastChild.scrollHeight)
         (event.preventDefault)
         (event.stopPropagation)))
     (setf i (set-interval (lambda ()
@@ -288,7 +305,7 @@
                                 (setf exit-code ec)
                                 (set-style w.lastChild color "#CCCCCC")
                                 (clear-interval i))))
-                          500))
+                          1000))
     (setf w.remove (lambda ()
                      (if (null? exit-code)
                          (progn
