@@ -496,7 +496,7 @@
              (when ((sources.current).selection)
                (setf zrun ((sources.current).selection)))
              (zoom)
-             (when zrun
+             (when (and zoom zrun)
                (*ilisp*.send "lisp" zrun)))
             ((and event.ctrlKey (= event.which #.(char-code "O"))
                   mode.styles)
