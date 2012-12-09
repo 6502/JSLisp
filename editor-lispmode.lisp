@@ -279,10 +279,9 @@
                 (newline (aref lines row)))
             (let ((indent (last (or (mode.compute-end-context line).parens
                                     (list 0)))))
-              (when (> indent 0)
-                (setf newline.text
-                      (+ (str-repeat " " indent)
-                         (lstrip newline.text))))
+              (setf newline.text
+                    (+ (str-repeat " " indent)
+                       (lstrip newline.text)))
               indent)))))
 
 (setf mode.toplevel-sexpr
