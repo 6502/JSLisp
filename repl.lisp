@@ -137,6 +137,10 @@
 (rpc:defun rput-file (user-name session-id filename content authcode))
 (rpc:defun rlist-files (user-name session-id path authcode))
 (rpc:defun rping (user-name session-id authcode))
+(rpc:defun rterminal (user-name session-id authcode))
+(rpc:defun rterminal-send (user-name session-id id x authcode))
+(rpc:defun rterminal-receive (user-name session-id id authcode))
+(rpc:defun rterminal-detach (user-name session-id id authcode))
 
 (defun get-file (name)
   (rget-file *user* *session-id* name
@@ -153,6 +157,18 @@
 
 (defun ping ()
   (rping *user* *session-id* (hash (+ *session-id* *secret* "null"))))
+
+(defun new-terminal ()
+  (rterminal *user* *session-id* (hash (+ *session-id* *secret* "null"))))
+
+(defun terminal-send (id x)
+  (rterminal-send *user* *session-id* id x (hash (+ *session-id* *secret* (json* (list id x))))))
+
+(defun terminal-receive (id)
+  (rterminal-receive *user* *session-id* id (hash (+ *session-id* *secret* (json* id)))))
+
+(defun terminal-detach (id)
+  (rterminal-detach *user* *session-id* id (hash (+ *session-id* *secret* (json* id)))))
 
 (defun file-browser (cback)
   (let** ((w (set-style (create-element "div")
@@ -243,6 +259,56 @@
                        ((= (text user) "") user)
                        ((= (text password) "") password)
                        (true current-path)).lastChild.focus)))
+    w))
+
+(defun terminal ()
+  (let** ((w (text-area "terminal"))
+          (t (new-terminal))
+          (i null)
+          (exit-code null))
+    (setf w.focus (lambda () (w.lastChild.focus)))
+    (set-style w.lastChild
+               backgroundColor "#444444"
+               color "#88FF88"
+               whiteSpace "pre"
+               px/fontSize 16)
+    (setf w.lastChild.wrap "off")
+    (set-handler w.lastChild onkeypress
+      (when (and event.charCode (null? exit-code))
+        (terminal-send t (char event.charCode))
+        (event.preventDefault)
+        (event.stopPropagation)))
+    (setf i (set-interval (lambda ()
+                            (let (((ec output) (terminal-receive t)))
+                              (when output.length
+                                (incf w.lastChild.value (join output ""))
+                                (setf w.lastChild.scrollTop w.lastChild.scrollHeight))
+                              (when (and (not (null? ec))
+                                         (null? exit-code))
+                                (setf exit-code ec)
+                                (set-style w.lastChild color "#CCCCCC")
+                                (clear-interval i))))
+                          500))
+    (setf w.remove (lambda ()
+                     (if (null? exit-code)
+                         (progn
+                           (message-box
+                             "<h2>Process is active. Close anyway?</h2>
+                             The process attached to this terminal is still
+                             running. Are you sure you want to detach it?<br/>"
+                             title: "Closing terminal warning"
+                             buttons: (list "Yes" "No")
+                             default: "No"
+                             modal: true
+                             cback: (lambda (reply)
+                                      (when (= reply "Yes")
+                                        (setf exit-code 0)
+                                        (set-style w.lastChild color "#CCCCCC")
+                                        (clear-interval i))))
+                           false)
+                         (progn
+                           (terminal-detach t)
+                           true))))
     w))
 
 (defun main ()
@@ -397,6 +463,10 @@
             ((and (or event.altKey event.metaKey) (= event.which #.(char-code "I")))
              (let ((expr (prompt "Expression")))
                (when (strip expr) (*ilisp*.send "lisp" expr))))
+            ((and event.ctrlKey (= event.which #.(char-code "T")))
+             (sources.add "*terminal*" (terminal) true)
+             (sources.select 0)
+             (sources.prev))
             ((and event.ctrlKey (= event.which #.(char-code "W")))
              (when (and (> (sources.current-index) 0)
                         (put-file ((sources.current).name)
