@@ -186,12 +186,14 @@
             (from-autocomplete false)
             (goto-targets #())
             (#'set-goto-target (char)
+              (baloon ~"Position {char} saved")
               (setf (aref goto-targets char)
                     (list row col s-row s-col
                           left top)))
             (#'goto (char)
               (let ((x (aref goto-targets char)))
                 (when x
+                  (baloon ~"Position {char}")
                   (setf row (first x))
                   (setf col (second x))
                   (setf s-row (third x))
