@@ -1,3 +1,19 @@
+(defvar documentation "\
+        The [heap] module allows creation and manipulation of binary heap \
+        objects. Heap objects itself are regular [list] objects in which \
+        two members are added:
+
+        [.lte]
+        a function that given two elements must return [true] if \
+        the first element is allowed to precede the second in the heap \
+        order. Unless specified at heap creation the default value is [#'<=].
+
+        [.tracking]
+        a function that will be called passing [element] and [index] to inform \
+        about the current position in the list. When an element is removed from \
+        the heap the function is called passing [null] as index.
+        ")
+
 (defun heap-fix (heap index)
   "Eventually fixes the position of element [index] in the specified [heap] \
    if this is needed to maintain heap invariant.
