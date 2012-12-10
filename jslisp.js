@@ -28,8 +28,12 @@
 d$$$42_start_time$42_ = (new Date).getTime();
 
 d$$$42_current_module$42_ = "";
-d$$$42_module_aliases$42_ = {};
-d$$$42_symbol_aliases$42_ = {};
+d$$$42_modules$42_ = {"" : { "*module-aliases*": {},
+                             "*symbol-aliases*": {},
+                             "*exports*": {}}};
+d$$$42_module_aliases$42_ = d$$$42_modules$42_[""]["*module-aliases*"];
+d$$$42_symbol_aliases$42_ = d$$$42_modules$42_[""]["*symbol-aliases*"];
+d$$$42_exports$42_ = d$$$42_modules$42_[""]["*exports*"];
 d$$$42_outgoing_calls$42_ = {};
 d$$$42_used_globals$42_ = {};
 d$$$42_debug$42_ = false;

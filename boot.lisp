@@ -73,29 +73,6 @@
 (set-arglist (symbol-macro 'defmacro)
              '(name args &rest body))
 
-(defmacro when (condition &rest body)
-  "Evaluates all forms in [body] returning last value only if [condition] \
-   evaluates to a true value, otherwise the value is [null].
-   It's preferable to use [when] forms in cases in which the conditional \
-   only has code in the [true] path.[[\
-   (when (string? x)
-     ;; One string; split on newlines
-     (setf x (split x \"\\n\")))
-   ]]"
-  (list 'if condition (append (list 'progn) body) null))
-
-(defmacro unless (condition &rest body)
-  "Evaluates all forms in [body] returning last value only if [condition] \
-   evaluates to a false value, otherwise the value is [null].
-   It's preferable to use [unless] forms in cases in which the
-   conditional only has code in the [false] path and in which
-   the condition is more natural than its negation.[[\
-   (unless *data-ready*
-     (setf *db-data* (load-data))
-     (setf *data-ready* true))
-   ]]"
-  (list 'if condition null (append (list 'progn) body)))
-
 (defmacro defun (name args &rest body)
   "Defines or redefines a regular function.
    The function [name] is always interned in current module even if an \
@@ -143,6 +120,29 @@
                 (list 'symbol-function (list 'quote name))
                 (list 'quote args))
           (list 'quote name))))
+
+(defmacro when (condition &rest body)
+  "Evaluates all forms in [body] returning last value only if [condition] \
+   evaluates to a true value, otherwise the value is [null].
+   It's preferable to use [when] forms in cases in which the conditional \
+   only has code in the [true] path.[[\
+   (when (string? x)
+     ;; One string; split on newlines
+     (setf x (split x \"\\n\")))
+   ]]"
+  (list 'if condition (append (list 'progn) body) null))
+
+(defmacro unless (condition &rest body)
+  "Evaluates all forms in [body] returning last value only if [condition] \
+   evaluates to a false value, otherwise the value is [null].
+   It's preferable to use [unless] forms in cases in which the
+   conditional only has code in the [false] path and in which
+   the condition is more natural than its negation.[[\
+   (unless *data-ready*
+     (setf *db-data* (load-data))
+     (setf *data-ready* true))
+   ]]"
+  (list 'if condition null (append (list 'progn) body)))
 
 ;; Length function
 (defun length (x)
@@ -3858,7 +3858,21 @@ A name is either an unevaluated atom or an evaluated list."
 
 ;; Module support
 
-(defvar *exports* (list))
+(defmacro in-module (x)
+  "Sets the current module to [x] (a string).
+   Every module has an independent map of [*module-aliases*] and of \
+   [*symbol-aliases*] that are used by the reader when importing symbols.
+   A module also lists exported functions in [*exports*]."
+  `(let ((x (or (aref *modules* ,x)
+                (setf (aref *modules* ,x)
+                      #((*module-aliases* #())
+                        (*symbol-aliases* #())
+                        (*exports* (list)))))))
+     (setf *current-module* ,x)
+     (setf *module-aliases* x.*module-aliases*)
+     (setf *symbol-aliases* x.*symbol-aliases*)
+     (setf *exports* x.*exports*)
+     ,x))
 
 (defmacro export (&rest symbols)
   "Lists specified [symbols] as to be exported to who uses [(import * from <module>)] import syntax.
@@ -3868,8 +3882,7 @@ A name is either an unevaluated atom or an evaluated list."
         (wildcards (filter #'string? symbols)))
     `(progn
        ,@(map (lambda (n)
-                `(push ',(intern (symbol-name n) *current-module*)
-                       ,(intern "*exports*" *current-module*)))
+                `(push ',(intern (symbol-name n) *current-module*) *exports*))
               fullsymbols)
        ,@(let ((res (list)))
               (when (> (length wildcards) 0)
@@ -3878,10 +3891,9 @@ A name is either an unevaluated atom or an evaluated list."
                     (incf re ~"|{(regexp-escape (slice (mangle w) 2))}"))
                   (let ((regexp (regexp ~"^s{(regexp-escape (slice (mangle *current-module*) 2))}\\\\$\\\\$({(slice re 1)}.*)")))
                     (dolist (k (keys (js-code "glob")))
-                      (when (funcall (. regexp exec) k)
+                      (when (regexp.exec k)
                         (let ((name (demangle k)))
-                          (push `(push ',(intern name *current-module*)
-                                       ,(intern "*exports*" *current-module*))
+                          (push `(push ',(intern name *current-module*) *exports*)
                                 res)))))))
               res))))
 
@@ -3912,31 +3924,22 @@ A name is either an unevaluated atom or an evaluated list."
     (unless (and (= (length args) 1)
                  (symbol? (first args)))
       (error "Syntax is (import [*/(.. names..) from] <module> [as <nick>])"))
-    (let* ((module (first args))
-           (guard (intern ~"*{(symbol-name module)}-imported*" "")))
+    (let ((module (first args)))
       `(progn
-         (unless (symbol-value ',guard)
-           (setf ,guard true)
-           (let ((cmod *current-module*)
-                 (calias *module-aliases*)
-                 (salias *symbol-aliases*))
-             (setf *module-aliases* (js-object))
-             (setf *symbol-aliases* (js-object))
-             (setf *current-module* ,(symbol-name module))
-             (setf ,(intern "*exports*" (symbol-name module)) (list))
+         (unless (aref *modules* ,(symbol-name module))
+           (let ((current *current-module*))
+             (in-module ,(symbol-name module))
              (load ,(if node-js
                         `(get-file ,(+ (symbol-name module) ".lisp"))
                         `(http-get ,(+ (symbol-name module) ".lisp")))
                    ,(+ (symbol-name module) ".lisp"))
-             (setf *current-module* cmod)
-             (setf *symbol-aliases* salias)
-             (setf *module-aliases* calias)))
+             (in-module current)))
          ,@(if alias
                (list `(setf (aref *module-aliases* ,(+ "!" (symbol-name alias)))
                             ,(symbol-name module)))
                (list))
          ,(if (= names '*)
-              `(dolist (s (symbol-value ',(intern "*exports*" (symbol-name module))))
+              `(dolist (s (aref *modules* ,(symbol-name module)).*exports*)
                  (setf (aref *symbol-aliases* (+ "!" (symbol-name s))) s))
               `(progn ,@(let ((res (list)))
                           (dolist (s names)
@@ -3944,7 +3947,7 @@ A name is either an unevaluated atom or an evaluated list."
                                          ',(intern (symbol-name s) (symbol-name module)))
                                   res))
                           res)))
-         (map #'symbol-name (symbol-value ',(intern "*exports*" (symbol-name module))))))))
+         (map #'symbol-name (aref *modules* ,(symbol-name module)).*exports*)))))
 
 ;; Uri encoding/decoding support
 (defun uri-decode (x)
