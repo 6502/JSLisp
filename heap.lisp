@@ -53,7 +53,7 @@
    the specified heap invariant and tracking function.
    The heap invariant function [lte] takes two elements and must return [true] \
    if it's valid for the first element to appear before than the second.
-   When not specified the [lte] function defaults to [#'<].
+   When not specified the [lte] function defaults to [#'<=].
    The tracking function if present will be called passing an element \
    and the index in which it's placed inside the heap. Every time an \
    element needs to be moved around to maintain the heap invariant the tracking \
@@ -75,8 +75,8 @@
   data)
 
 (defun heap-check (heap &optional check-tracking)
-  "Checks the internal consinstency of an heap object
-   The check is done by verifying the heap invariant and by
+  "Checks the internal consistency of an heap object
+   The check is done by verifying the heap invariant and by \
    optionally calling a tracking check function on all elements.
    The check-tracking function is present should take an element and its current \
    index, returning [false] in case the index is not what is supposed to be."
