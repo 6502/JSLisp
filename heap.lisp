@@ -47,7 +47,7 @@
   "Removes and returns the specified element from the [heap], moving other \
    elements if this is required to maintain the heap invariant.
    If the heap has a [tracking] function (see {{make-heap}}) then it will \
-   called on the extracted element passing [null] as index position."
+   be called on the extracted element passing [null] as index position."
   (let ((x (aref heap index)))
     (when heap.tracking (heap.tracking x null))
     (let ((y (pop heap)))
