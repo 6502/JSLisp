@@ -155,7 +155,7 @@ window.onerror = function(msg)
 
 window.onmessage = function(event)
 {
-    if (event.data.type === "lisp")
+    if (event.data.type === "lisp" || event.data.type === "quiet-lisp" )
     {
         var src = f$$make_source(event.data.text);
         var result = [];
@@ -163,7 +163,10 @@ window.onmessage = function(event)
         while (src.s[src.i] != undefined)
         {
             var parsed = f$$parse_value(src);
-            result.push(f$$toplevel_eval(parsed));
+            var res = f$$toplevel_eval(parsed);
+            result.push(res);
+            if (event.data.type === "lisp")
+                output(";; ==> " + f$$str_value(res) + "\n");
             f$$skip_spaces(src);
         }
         up({id: id,

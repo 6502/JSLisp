@@ -67,17 +67,22 @@
                         (if (or (= (slice name -5) ".lisp")
                                 (= name "*scratch*"))
                             mode
-                            undefined))))
+                            undefined)))
+        (basename (let ((i (last-index "." name)))
+                    (if (>= i 0)
+                        (slice name 0 i)
+                        name))))
     (set-style editor
                position "absolute")
     (setf editor.ilisp-exec
-          (lambda ()
+          (lambda (&optional expr)
             (let ((lines (editor.lines))
                   (row (first (editor.pos)))
-                  (txt (editor.selection)))
+                  (txt (or expr (editor.selection))))
               (when (and (= txt "") mode.toplevel-sexpr)
                 (setf txt (mode.toplevel-sexpr lines row)))
               (when (/= txt "")
+                (*ilisp*.send "quiet-lisp" ~"(in-module {(json basename)})")
                 (*ilisp*.send "lisp" txt)))))
     editor))
 
@@ -95,11 +100,9 @@
                   (contextmenu (list (+ x x0) (+ y y0))))
                 (progn
                   (when (= msg "\"ready\"")
-                    (inspect))
-                  (ilisp.send "javascript"
-                              (+ "output(f$$str_value(f$$json_parse$42_("
-                                 (json msg)
-                                 "))+\"\\n\")")))))
+                    (ilisp.send "javascript"
+                                "repl.value=\";; JsLisp Ready.\\n\";")
+                    (inspect)))))
           (#'reset ()
             (ilisp.reset))
           (#'clear ()
@@ -403,7 +406,7 @@
               (set-coords (dom vs) 8 8 (- last-width 8) (- last-height 8))))
           (#'doc-lookup (name)
             (*ilisp*.send
-              "lisp"
+              "quiet-lisp"
               ~"(let ((f (intern {(json name)} undefined true)))
               (when f
               (let ((f (or (symbol-function f) (symbol-macro f))))
@@ -477,7 +480,8 @@
              (*ilisp*.reset))
             ((and (or event.altKey event.metaKey) (= event.which #.(char-code "I")))
              (let ((expr (prompt "Expression")))
-               (when (strip expr) (*ilisp*.send "lisp" expr))))
+               (when (strip expr)
+                 ((sources.current).ilisp-exec expr))))
             ((and event.ctrlKey (= event.which #.(char-code "T")))
              (sources.add "*terminal*" (terminal) true)
              (sources.select 0)
@@ -495,7 +499,7 @@
                (setf zrun ((sources.current).selection)))
              (zoom)
              (when (and zoom zrun)
-               (*ilisp*.send "lisp" zrun)))
+               ((sources.current).ilisp-exec zrun)))
             ((and event.ctrlKey (= event.which #.(char-code "O"))
                   mode.styles)
              (customize-styles mode.styles

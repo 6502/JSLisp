@@ -86,7 +86,7 @@
 
 (setf mode.inspect-ilisp
       (lambda (ilisp &optional on-completion)
-        (ilisp.send "lisp"
+        (ilisp.send "quiet-lisp"
                     "(let ((res (list)))
                        (dolist (name (keys (js-code \"window\")))
                          (when ((regexp \"^[dmf][a-zA-Z0-9_]*\\\\$\\\\$.*\").exec name)
