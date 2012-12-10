@@ -265,7 +265,17 @@
   (let** ((w (text-area "terminal"))
           (t (new-terminal))
           (i null)
-          (exit-code null))
+          (exit-code null)
+          (#'update ()
+            (let (((ec output) (terminal-receive t)))
+              (when output.length
+                (incf w.lastChild.value (join output ""))
+                (setf w.lastChild.scrollTop w.lastChild.scrollHeight))
+              (when (and (not (null? ec))
+                         (null? exit-code))
+                (setf exit-code ec)
+                (set-style w.lastChild color "#CCCCCC")
+                (clear-interval i)))))
     (setf w.focus (lambda () (w.lastChild.focus)))
     (set-style w.lastChild
                backgroundColor "#444444"
@@ -273,19 +283,15 @@
                whiteSpace "pre"
                px/fontSize 16)
     (setf w.lastChild.wrap "off")
+    (setf w.lastChild.spellcheck false)
     (set-handler w.lastChild onkeydown
       (cond
         ((= event.which 8)
          (event.preventDefault)
          (event.stopPropagation)
-         (terminal-send t (char 8))
+         (when (null? exit-code) (terminal-send t (char 8)))
          (setf w.lastChild.value (slice w.lastChild.value 0 -1))
          (setf w.lastChild.scrollTop w.lastChild.scrollHeight)
-         false)
-        ((= event.which 9)
-         (event.preventDefault)
-         (event.stopPropagation)
-         (terminal-send t (char 9))
          false)
         (true true)))
     (set-handler w.lastChild onkeypress
@@ -294,18 +300,10 @@
         (incf w.lastChild.value (char event.charCode))
         (setf w.lastChild.scrollTop w.lastChild.scrollHeight)
         (event.preventDefault)
-        (event.stopPropagation)))
-    (setf i (set-interval (lambda ()
-                            (let (((ec output) (terminal-receive t)))
-                              (when output.length
-                                (incf w.lastChild.value (join output ""))
-                                (setf w.lastChild.scrollTop w.lastChild.scrollHeight))
-                              (when (and (not (null? ec))
-                                         (null? exit-code))
-                                (setf exit-code ec)
-                                (set-style w.lastChild color "#CCCCCC")
-                                (clear-interval i))))
-                          1000))
+        (event.stopPropagation)
+        (when (= event.charCode 13)
+          (set-timeout #'update 100))))
+    (setf i (set-interval #'update 1000))
     (setf w.remove (lambda ()
                      (if (null? exit-code)
                          (progn
