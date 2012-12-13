@@ -474,19 +474,17 @@ defmacro("defvar",
 function implprogn(x)
 {
     var res = "(";
-    if (x.length === 0)
+    var sep = "";
+    for (var i=0; i<x.length; i++)
     {
-        res += "null";
-    }
-    else
-    {
-        for (var i=0; i<x.length; i++)
-        {
-            if (i > 0) res += ",";
-            res += f$$js_compile(x[i]);
+        var y = f$$js_compile(x[i]);
+        if (y !== "null") {
+            res += sep + y;
+            sep = ",";
         }
     }
     res += ")";
+    if (res === "()") res = "(null)";
     return res;
 }
 
