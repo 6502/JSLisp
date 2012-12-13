@@ -292,11 +292,15 @@ defun("module-symbol",
       "Returns a symbol with same name as symbol [x] after interning it " +
       "in the specified [module] or in current module if no module is " +
       "specified. If the symbol [x] is already interned in [module] then " +
-      "simply returns it.",
+      "simply returns it. As side effect an eventually defined alias for the " +
+      "symbol in [module] will be removed.",
       function(x, module)
       {
-          return f$$intern(f$$demangle(x.name),
-                           (typeof module === "undefined" ? d$$$42_current_module$42_ : module));
+          if (typeof module === "undefined") module = d$$$42_current_module$42_;
+          var name = f$$demangle(x.name);
+          var s = f$$intern(name, module);
+          delete d$$$42_modules$42_[module]["*symbol-aliases*"]["!" + name];
+          return s;
       },
       [s$$x, f$$intern("&optional"), f$$intern("module")],[],["$$intern","$$demangle"]);
 

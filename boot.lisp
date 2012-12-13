@@ -3367,6 +3367,7 @@ A name is either an unevaluated atom or an evaluated list."
              (old-args (arglist old))
              (so '#.(gensym))
              (newm (lambda (name fields)
+                     (setf name (module-symbol name))
                      (let ((x (gensym))
                            (fnames (map (lambda (f)
                                           (if (list? f)
