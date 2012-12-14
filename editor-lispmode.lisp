@@ -17,6 +17,7 @@
 (setf mode.functions #())
 (setf mode.vars #())
 (setf mode.current-module "")
+(setf mode.module-aliases #())
 
 (setf mode.words
       (lambda ()
@@ -123,7 +124,7 @@
                                                    (str-value f.arglist)
                                                    f.documentation)
                                              res))))))
-                       (list *current-module* res))"
+                       (list *current-module* *module-aliases* res))"
                     (lambda (result)
                       (setf mode.body-macros #())
                       (setf mode.macros #())
@@ -131,7 +132,8 @@
                       (setf mode.vars #())
                       (setf result (first (json-parse result)))
                       (setf mode.current-module (first result))
-                      (dolist (x (second result))
+                      (setf mode.module-aliases (second result))
+                      (dolist (x (third result))
                         (case (first x)
                           ("m"
                            (setf (aref mode.macros (second x)) (slice x 2))
@@ -143,6 +145,15 @@
                            (setf (aref mode.vars (second x)) 1))))
                       (when on-completion
                         (funcall on-completion))))))
+
+(defun matches (name map)
+  (let ((ix (index ":" name)))
+    (if (= ix -1)
+        (or (aref map (+ ":" name))
+            (aref map (+ mode.current-module ":" name)))
+        (let ((mod (slice name 0 ix))
+              (s (slice name (1+ ix))))
+          (aref map (+ (or (aref mode.module-aliases (+ "!" mod)) mod) ":" s))))))
 
 (setf mode.compute-end-context
       (lambda (line)
@@ -221,38 +232,29 @@
                      (style i0 i number-literal))))
               ((= (aref text i) "(")
                (do ((j (1+ i) (1+ j)))
-                   ((or (>= j (length text))
-                        (= (aref text j) " ")
-                        (= (aref text j) "(")
-                        (= (aref text j) ")"))
-                      (push (cond
-                              ((>= j (length text))
-                               (+ i 2))
-                              ((= (slice text (1+ i) (+ i 3)) "#'")
-                               (+ i 2))
-                              ((= (aref text j) " ")
-                               (let ((name (slice text (1+ i) j)))
-                                 (if (or (aref mode.body-macros (+ ":" name))
-                                         (aref mode.body-macros (+ mode.current-module
-                                                                   ":"
-                                                                   name)))
-                                     (+ i 2)
-                                     (+ j 1))))
-                              (true j))
-                            (or ec.parens (setf ec.parens (list))))
-                      (cond
-                        ((or (aref mode.functions (+ ":" (slice text (1+ i) j)))
-                             (aref mode.functions (+ mode.current-module
-                                                     ":"
-                                                     (slice text (1+ i) j))))
-                         (style (1+ i) j function)
-                         (setf i (1- j)))
-                        ((or (aref mode.macros (+ ":" (slice text (1+ i) j)))
-                             (aref mode.macros (+ mode.current-module
-                                                  ":"
-                                                  (slice text (1+ i) j))))
-                         (style (1+ i) j macro)
-                         (setf i (1- j))))))
+                 ((or (>= j (length text))
+                      (= (aref text j) " ")
+                      (= (aref text j) "(")
+                      (= (aref text j) ")"))
+                  (push (cond
+                          ((>= j (length text))
+                           (+ i 2))
+                          ((= (slice text (1+ i) (+ i 3)) "#'")
+                           (+ i 2))
+                          ((= (aref text j) " ")
+                           (let ((name (slice text (1+ i) j)))
+                             (if (matches name mode.body-macros)
+                                 (+ i 2)
+                                 (+ j 1))))
+                          (true j))
+                        (or ec.parens (setf ec.parens (list))))
+                  (cond
+                    ((matches (slice text (1+ i) j) mode.functions)
+                     (style (1+ i) j function)
+                     (setf i (1- j)))
+                    ((matches (slice text (1+ i) j) mode.macros)
+                     (style (1+ i) j macro)
+                     (setf i (1- j))))))
                (incf i))
               ((= (aref text i) ")")
                (pop (or ec.parens (setf ec.parens (list))))
