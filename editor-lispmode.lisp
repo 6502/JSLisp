@@ -16,6 +16,7 @@
 (setf mode.body-macros #())
 (setf mode.functions #())
 (setf mode.vars #())
+(setf mode.current-module "")
 
 (setf mode.words
       (lambda ()
@@ -87,46 +88,50 @@
 (setf mode.inspect-ilisp
       (lambda (ilisp &optional on-completion)
         (ilisp.send "quiet-lisp"
-                    "(let ((res (list)))
+                    "(let** ((res (list))
+                             (#'full-demangle (n)
+                               (let ((ix (index \"$$\" n)))
+                                 (+ (demangle (+ \"$$\" (slice n 1 ix)))
+                                    \":\"
+                                    (demangle (slice n ix))))))
                        (dolist (name (keys (js-code \"window\")))
-                         (when ((regexp \"^[dmf][a-zA-Z0-9_]*\\\\$\\\\$.*\").exec name)
+                         (when ((regexp \"^s([$][0-9]+_|[a-zA-Z0-9_])*[$][$].*\").exec name)
                            (let ((x (aref (js-code \"window\") name)))
-                             (case (first name)
-                                   (\"m\" (push (list \"m\"
-                                                    (demangle name)
-                                                    (and x (str-value x.arglist))
-                                                    (and x x.documentation)) res))
-                                   (\"f\" (push (list \"f\"
-                                                    (demangle name)
-                                                    (and x (str-value x.arglist))
-                                                    (and x x.documentation)) res))
-                                   (\"d\" (push (list \"d\" (demangle name)) res))))))
+                             (when (symbol? x)
+                               (when (symbol-macro x)
+                                 (push (list \"m\"
+                                             (full-demangle name)
+                                             (str-value (symbol-macro x).arglist)
+                                             (symbol-macro x).documentation) res))
+                               (when (symbol-function x)
+                                 (push (list \"f\"
+                                             (full-demangle name)
+                                             (str-value (symbol-function x).arglist)
+                                             (symbol-function x).documentation) res))))))
                        (dolist (k (keys *symbol-aliases*))
                          (let ((s (aref *symbol-aliases* k)))
                            (when (symbol? s)
                              (let ((f (symbol-function s)))
                                (when f (push (list \"f\"
-                                                   (slice k 1)
-                                                   (and f (str-value f.arglist))
-                                                   (and f f.documentation))
+                                                   (+ \":\" (slice k 1))
+                                                   (str-value f.arglist)
+                                                   f.documentation)
                                              res)))
                              (let ((f (symbol-macro s)))
                                (when f (push (list \"m\"
-                                                   (slice k 1)
-                                                   (and f (str-value f.arglist))
-                                                   (and f f.documentation))
-                                             res)))
-                             (let ((f (symbol-value s)))
-                               (when f (push (list \"d\"
-                                                   (slice k 1))
+                                                   (+ \":\" (slice k 1))
+                                                   (str-value f.arglist)
+                                                   f.documentation)
                                              res))))))
-                       res)"
+                       (list *current-module* res))"
                     (lambda (result)
                       (setf mode.body-macros #())
                       (setf mode.macros #())
                       (setf mode.functions #())
                       (setf mode.vars #())
-                      (dolist (x (first (json-parse result)))
+                      (setf result (first (json-parse result)))
+                      (setf mode.current-module (first result))
+                      (dolist (x (second result))
                         (case (first x)
                           ("m"
                            (setf (aref mode.macros (second x)) (slice x 2))
@@ -227,16 +232,25 @@
                                (+ i 2))
                               ((= (aref text j) " ")
                                (let ((name (slice text (1+ i) j)))
-                                 (if (aref mode.body-macros name)
+                                 (if (or (aref mode.body-macros (+ ":" name))
+                                         (aref mode.body-macros (+ mode.current-module
+                                                                   ":"
+                                                                   name)))
                                      (+ i 2)
                                      (+ j 1))))
                               (true j))
                             (or ec.parens (setf ec.parens (list))))
                       (cond
-                        ((aref mode.functions (slice text (1+ i) j))
+                        ((or (aref mode.functions (+ ":" (slice text (1+ i) j)))
+                             (aref mode.functions (+ mode.current-module
+                                                     ":"
+                                                     (slice text (1+ i) j))))
                          (style (1+ i) j function)
                          (setf i (1- j)))
-                        ((aref mode.macros (slice text (1+ i) j))
+                        ((or (aref mode.macros (+ ":" (slice text (1+ i) j)))
+                             (aref mode.macros (+ mode.current-module
+                                                  ":"
+                                                  (slice text (1+ i) j))))
                          (style (1+ i) j macro)
                          (setf i (1- j))))))
                (incf i))
