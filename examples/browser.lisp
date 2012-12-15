@@ -17,10 +17,9 @@
                            (dom go)))
                      size: undefined
                      (dom page)))
-    (setf address.lastChild.onkeydown
-          (lambda (event)
-            (when (= event.which 13)
-              (go))))
+    (set-handler (node address) onkeydown
+      (when (= event.which 13)
+        (go)))
     (show-window w center: true)))
 
 (defun main ()

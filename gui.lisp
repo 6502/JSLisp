@@ -336,6 +336,21 @@
                 (hide modal)
                 (when ocb (funcall ocb))))))))
 
+;;
+
+(defmacro def-accessor (class name field)
+  `(progn
+     (defmethod ,name (widget) (= widget.% ,class)
+       ,field)
+     (defmethod ,#"set-{name}" (widget ,name) (= widget.% ,class)
+       (setf ,field ,name))))
+
+(defun node (widget)
+  "Returns the HTML5 DOM node associated to [widget] if it's not the widget itself"
+  (or (and widget widget.node) widget))
+
+;;
+
 (defun button (text action)
   "Creates a button DOM object with provided [text] and callback [action]"
   (let ((button (create-element "input")))
@@ -347,10 +362,14 @@
           (lambda (&rest args)
             (declare (ignorable args))
             (funcall action)))
+    (setf button.% #'button)
     button))
 
+(def-accessor #'button caption widget.value)
+(def-accessor #'button action widget.onclick)
+
 (defmacro lbutton (text &rest body)
-  "Syntactic sugar for simple buttons"
+  "Syntactic sugar for simple buttons with inlined actions"
   `(button ,text (lambda () ,@body)))
 
 (defun static-text (content)
@@ -359,7 +378,10 @@
     (set-style text
                position "absolute")
     (setf text.textContent content)
+    (setf text.% #'static-text)
     text))
+
+(def-accessor #'static-text text widget.textContent)
 
 (defun checkbox (caption &optional action)
   "Creates a checkbox DOM object with provided [caption] ad an optional callback [action]"
@@ -375,7 +397,13 @@
     (when action
       (set-handler checkbox onchange
                    (funcall action)))
+    (setf container.% #'checkbox)
+    (setf container.node checkbox)
     container))
+
+(def-accessor #'checkbox caption widget.lastChild.textContent)
+(def-accessor #'checkbox action widget.firstChild.onchange)
+(def-accessor #'checkbox checked widget.firstChild.checked)
 
 (defun radio (group caption &optional action)
   "Creates a radio button DOM object with specified logical [group], the provided [caption] ad an optional callback [action]"
@@ -392,15 +420,13 @@
     (when action
       (set-handler radio onchange
                    (funcall action)))
+    (setf container.% #'radio)
+    (setf container.node radio)
     container))
 
-(defun checked (checkbox/radio)
-  "Returns current state of a [checkbox/radio]"
-  checkbox/radio.firstChild.checked)
-
-(defun set-checked (checkbox/radio value)
-  "Sets the state of a [checkbox/radio]"
-  (setf checkbox/radio.firstChild.checked value))
+(def-accessor #'radio caption widget.lastChild.textContent)
+(def-accessor #'radio action widget.firstChild.onchange)
+(def-accessor #'radio checked widget.firstChild.checked)
 
 (defun label (txt)
   (let ((label (create-element "div")))
@@ -410,7 +436,11 @@
                %/fontSize 80
                color "#666666"
                whiteSpace "pre"
-               fontWeight "bold")))
+               fontWeight "bold")
+    (setf label.% #'label)
+    label))
+
+(def-accessor #'label caption widget.textContent)
 
 (defun input (caption)
   "Creates an input field with specified [caption]"
@@ -430,15 +460,12 @@
     (setf input.type "text")
     (append-child container label)
     (append-child container input)
+    (setf container.% #'input)
+    (setf container.node input)
     container))
 
-(defun text (input)
-  "Returns current content of a text [input]"
-  input.lastChild.value)
-
-(defun set-text (input value)
-  "Sets content of a text [input] to a new [value]"
-  (setf input.lastChild.value value))
+(def-accessor #'input caption widget.firstChild.textContent)
+(def-accessor #'input text widget.lastChild.value)
 
 (defun input-with-help (caption helper)
   "Creates an input field with specified [caption] and an helper button"
@@ -486,7 +513,13 @@
                    (event.preventDefault)
                    (event.stopPropagation)
                    (funcall helper container)))
+    (setf container.% #'input-with-help)
+    (setf container.node input)
     container))
+
+(def-accessor #'input-with-help text widget.lastChild.value)
+(def-accessor #'input-with-help caption widget.firstChild.textContent)
+(def-accessor #'input-with-help action widget.firstChild.nextSibling.onclick)
 
 (defun text-area (caption)
   "Creates a multiline input field with specified [caption]"
@@ -525,7 +558,12 @@
                        px/height (- container.offsetHeight 16 8))))
     (append-child container label)
     (append-child container input)
+    (setf container.% #'text-area)
+    (setf container.node input)
     container))
+
+(def-accessor #'text-area text widget.lastChild.value)
+(def-accessor #'text-area caption widget.firstChild.textContent)
 
 (defun select (caption values)
   "Creates an select field with specified [caption] and list of [values]"
@@ -548,42 +586,44 @@
         (append-child select item)))
     (append-child container label)
     (append-child container select)
+    (setf container.% #'select)
+    (setf container.node select)
     container))
 
-(defun selection (select)
-  "Current selected value of specified [select]"
-  (aref select.lastChild.options
-        select.lastChild.selectedIndex).value)
+(def-accessor #'select caption widget.firstChild.textContent)
 
-(defun set-selection (select value)
-  "Sets selected [value] of specified [select]"
-  (let ((ix (index value (map (lambda (option) option.value)
-                              select.lastChild.options))))
-    (setf select.lastChild.selectedIndex ix)))
+(defmethod text (widget) (= widget.% #'select)
+  (aref (node widget).options
+        (node widget).selectedIndex).value)
+
+(defmethod set-text (widget text) (= widget.% #'select)
+  (let ((ix (index text (map (get .value) (node widget).options))))
+    (setf (node widget).selectedIndex ix)
+    (if (>= ix 0) text null)))
 
 (defun group (&optional title)
   "A group of related fields with an optional [title]"
   (let ((group (create-element "div"))
-        (caption (when title (create-element "span"))))
+        (caption (create-element "span")))
     (set-style group
                position "absolute"
                border "solid 1px #CCCCCC"
                pointerEvents "none"
                px/borderRadius 4)
-    (when title
-      (set-style caption
-                 %/fontSize 80
-                 color "#666666"
-                 fontWeight "bold"
-                 backgroundColor "#FFFFFF"
-                 position "relative"
-                 px/paddingLeft 4
-                 px/paddingRight 4
-                 px/left 10
-                 px/top -11)
-      (setf caption.textContent title)
-      (append-child group caption))
+    (set-style caption
+               %/fontSize 80
+               color "#666666"
+               fontWeight "bold"
+               backgroundColor "#FFFFFF"
+               position "relative"
+               px/left 10
+               px/top -11)
+    (setf caption.textContent (or title ""))
+    (append-child group caption)
+    (setf group.% #'group)
     group))
+
+(def-accessor #'group caption widget.caption)
 
 ;; Layout node for DOM elements
 
@@ -767,6 +807,7 @@
                   (setf w table.clientWidth)
                   (setf h table.clientHeight)
                   (set-coords layout 0 0 w h)))))
+      (setf table.% #'table)
       table)))
 
 ;; Tab control
@@ -894,6 +935,7 @@
     (setf tabbed.current-index (lambda () current))
     (setf tabbed.page-index (lambda (p) (index p pages)))
     (setf tabbed."data-resize" #'fix)
+    (setf tabbed.% #'tabbed)
     tabbed))
 
 (defun add-widget (window widget)
@@ -1489,32 +1531,36 @@
                px/top (second pos))
     (set-style menu opacity 1.0)))
 
+(defun focus (widget)
+  "Sets the focus to DOM node of [widget] after 10ms.
+   Delaying is necessary because setting the focus in the handler \
+   of an event (e.g. a button click) is not going to work."
+  (set-timeout (lambda () ((node widget).focus)) 10))
+
 (export set-style
         screen-width screen-height
+
         element-pos event-pos relative-pos
         show hide
         set-handler
         tracking dragging
         dom dom-replace
         window
-        ask-color css-color-input
+
         show-window hide-window with-window
-        add-widget set-layout
-        label
-        button lbutton
-        radio checkbox checked set-checked
-        input text set-text
-        input-with-help
-        ask-date date-input
-        text-area
-        group
-        static-text
-        select selection set-selection
-        h-splitter v-splitter
-        table
-        tabbed
-        screen-width screen-height
+        add-widget set-layout node focus
+
+        label button lbutton radio checkbox input
+        input-with-help date-input text-area group
+        css-color-input static-text select
+        table tabbed h-splitter v-splitter
+
+        caption set-caption
+        text set-text
+        action set-action
+        checked set-checked
+
+        ask-login ask-date ask-color
         message-box
-        ask-login
         baloon
         menu)

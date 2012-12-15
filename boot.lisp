@@ -1644,7 +1644,7 @@
      `(setq ,place ,value))
     ((list? place)
      (let* ((f (first place))
-            (sf (intern (+ "set-" (symbol-name f)))))
+            (sf (intern (+ "set-" (symbol-name f)) (symbol-module f))))
        (cond
          ((or (lexical-macro sf)
               (lexical-function sf)
@@ -1676,7 +1676,7 @@
      `(setq ,place (+ ,place ,inc)))
     ((list? place)
      (let* ((f (first place))
-            (sf (intern (+ "inc-" (symbol-name f)))))
+            (sf (intern (+ "inc-" (symbol-name f)) (symbol-module f))))
        (cond
          ((or (lexical-macro sf)
               (lexical-function sf)
@@ -1708,7 +1708,7 @@
      `(setq ,place (- ,place ,dec)))
     ((list? place)
      (let* ((f (first place))
-            (sf (intern (+ "dec-" (symbol-name f)))))
+            (sf (intern (+ "dec-" (symbol-name f)) (symbol-module f))))
        (cond
          ((or (lexical-macro sf)
               (lexical-function sf)
