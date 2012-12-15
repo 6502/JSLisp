@@ -312,8 +312,8 @@
                          (progn
                            (message-box
                              "<h2>Process is active. Close anyway?</h2>
-                             The process attached to this terminal is still
-                             running. Are you sure you want to detach it?<br/>"
+                              The process attached to this terminal is still
+                              running. Are you sure you want to detach it?<br/>"
                              title: "Closing terminal warning"
                              buttons: (list "Yes" "No")
                              default: "No"
@@ -366,18 +366,18 @@
                 (setf x (replace x "\\n" "<br/>"))
                 (setf x (replace x "\\[\\[((.|[\\n])*?)\\]\\]"
                                  "<pre style=\"color:#008;\
-                                 font-weight:bold;\
-                                 font-size:110%\">$1</pre>"))
+                                  font-weight:bold;\
+                                  font-size:110%\">$1</pre>"))
                 (setf x (replace x "\\[(.*?)\\]"
                                  "<span style=\"font-weight:bold;\
-                                 font-family:monospace;\
-                                 color:#008\">$1</span>"))
+                                  font-family:monospace;\
+                                  color:#008\">$1</span>"))
                 (setf x (replace x "{{(.*?)}}"
                                  "<a href=\"javascript:showdoc('$1')\">\
-                                 <span style=\"font-weight:bold;\
-                                 text-decoration:underline;\
-                                 font-family:monospace;\
-                                 color:#00F\">$1</span></a>"))
+                                  <span style=\"font-weight:bold;\
+                                  text-decoration:underline;\
+                                  font-family:monospace;\
+                                  color:#00F\">$1</span></a>"))
                 (setf doc.innerHTML (+ x "<br/>"))
                 (when location
                   (let ((btn (create-element "input")))
@@ -405,13 +405,12 @@
               (setf last-height (screen-height))
               (set-coords (dom vs) 8 8 (- last-width 8) (- last-height 8))))
           (#'doc-lookup (name)
-            (*ilisp*.send
-              "quiet-lisp"
-              ~"(let ((f (intern {(json name)} undefined true)))
-              (when f
-              (let ((f (or (symbol-function f) (symbol-macro f))))
-              (if f (list (documentation f) f.location)))))"
-              #'show-doc))
+            (*ilisp*.send "quiet-lisp"
+                          ~"(let ((f (intern {(json name)} undefined true)))
+                              (when f
+                                (let ((f (or (symbol-function f) (symbol-macro f))))
+                                  (if f (list (documentation f) f.location)))))"
+                          #'show-doc))
           (#'zoom ()
             (setf zoom (not zoom))
             (vs.partition (if zoom 0 80))
@@ -445,9 +444,9 @@
                         (progn
                           (message-box
                             "<h2>File changes not saved. Quit anyway?</h2>
-                            There are changes to the current file that have
-                            not been saved yet back to server (key: ctrl-W).<br/><br/>
-                            If you close this tab these changes will be lost."
+                             There are changes to the current file that have
+                             not been saved yet back to server (key: ctrl-W).<br/><br/>
+                             If you close this tab these changes will be lost."
                             title: "Abandon edit warning"
                             buttons: (list "Yes" "No")
                             default: "No"
