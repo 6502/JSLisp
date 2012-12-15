@@ -194,7 +194,7 @@
               (list base name)))
           (#'filter ()
             (let ((search (slice (text current-path)
-                                 0 current-path.lastChild.selectionStart)))
+                                 0 (node current-path).selectionStart)))
               (when (/= last-search search)
                 (setf last-search search)
                 (let (((base name) (pathexp last-search)))
@@ -213,8 +213,8 @@
                         (setf d.textContent f))))
                   (when (and (> (length filelist) 0)
                              (= (length (text current-path))
-                                current-path.lastChild.selectionStart
-                                current-path.lastChild.selectionEnd))
+                                (node current-path).selectionStart
+                                (node current-path).selectionEnd))
                     (let ((i (length (first filelist))))
                       (dolist (x filelist)
                         (do () ((= (slice (first filelist) 0 i)
@@ -224,7 +224,7 @@
                         (when (= base "./")
                           (setf base ""))
                         (setf (text current-path) (+ base (slice (first filelist) 0 i)))
-                        (current-path.lastChild.setSelectionRange
+                        ((node current-path).setSelectionRange
                           (+ (length base) (length name))
                           (+ (length base) i)))))))))
           (#'enter ()
@@ -243,25 +243,25 @@
             (when (= event.which 13)
               (event.stopPropagation)
               (event.preventDefault)
-              (if (/= current-path.lastChild.selectionStart
-                      current-path.lastChild.selectionEnd)
-                  (current-path.lastChild.setSelectionRange
+              (if (/= (node current-path).selectionStart
+                      (node current-path).selectionEnd)
+                  ((node current-path).setSelectionRange
                     (length (text current-path))
                     (length (text current-path)))
                   (enter)))))
-    (setf password.lastChild.type "password")
-    (setf password.lastChild.onblur (lambda ()
-                                      (setf *user* (text user))
-                                      (setf *secret* (hash (text password)))
-                                      (setf *session-id* (login *user*))))
+    (setf (node password).type "password")
+    (setf (node password).onblur (lambda ()
+                                   (setf *user* (text user))
+                                   (setf *secret* (hash (text password)))
+                                   (setf *session-id* (login *user*))))
     (set-interval #'filter 250)
     (setf w."data-resize" (lambda (x0 y0 x1 y1)
                             (set-coords layout 0 0 (- x1 x0) (- y1 y0))))
     (setf w.focus (lambda ()
-                    ((cond
-                       ((= (text user) "") user)
-                       ((= (text password) "") password)
-                       (true current-path)).lastChild.focus)))
+                    ((node (cond
+                             ((= (text user) "") user)
+                             ((= (text password) "") password)
+                             (true current-path))).focus)))
     w))
 
 (defun terminal ()
@@ -272,36 +272,36 @@
           (#'update ()
             (let (((ec output) (terminal-receive t)))
               (when output.length
-                (incf w.lastChild.value (join output ""))
-                (setf w.lastChild.scrollTop w.lastChild.scrollHeight))
+                (setf (text w) (+ (text w) (join output "")))
+                (setf (node w).scrollTop (node w).scrollHeight))
               (when (and (not (null? ec))
                          (null? exit-code))
                 (setf exit-code ec)
-                (set-style w.lastChild color "#CCCCCC")
+                (set-style (node w) color "#CCCCCC")
                 (clear-interval i)))))
-    (setf w.focus (lambda () (w.lastChild.focus)))
-    (set-style w.lastChild
+    (setf w.focus (lambda () (focus w)))
+    (set-style (node w)
                backgroundColor "#444444"
                color "#88FF88"
                whiteSpace "pre"
                px/fontSize 16)
-    (setf w.lastChild.wrap "off")
-    (setf w.lastChild.spellcheck false)
-    (set-handler w.lastChild onkeydown
+    (setf (node w).wrap "off")
+    (setf (node w).spellcheck false)
+    (set-handler (node w) onkeydown
       (cond
         ((= event.which 8)
          (event.preventDefault)
          (event.stopPropagation)
          (when (null? exit-code) (terminal-send t (char 8)))
-         (setf w.lastChild.value (slice w.lastChild.value 0 -1))
-         (setf w.lastChild.scrollTop w.lastChild.scrollHeight)
+         (setf (text w) (slice (text w) 0 -1))
+         (setf (node w).scrollTop (node w).scrollHeight)
          false)
         (true true)))
-    (set-handler w.lastChild onkeypress
+    (set-handler (node w) onkeypress
       (when (and event.charCode (null? exit-code))
         (terminal-send t (char event.charCode))
-        (incf w.lastChild.value (char event.charCode))
-        (setf w.lastChild.scrollTop w.lastChild.scrollHeight)
+        (setf (text w) (+ (text w) (char event.charCode)))
+        (setf (node w).scrollTop (node w).scrollHeight)
         (event.preventDefault)
         (event.stopPropagation)
         (when (= event.charCode 13)
@@ -321,7 +321,7 @@
                              cback: (lambda (reply)
                                       (when (= reply "Yes")
                                         (setf exit-code 0)
-                                        (set-style w.lastChild color "#CCCCCC")
+                                        (set-style (node w) color "#CCCCCC")
                                         (clear-interval i))))
                            false)
                          (progn

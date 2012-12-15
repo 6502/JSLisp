@@ -1369,7 +1369,7 @@ defun("js-compile",
               if ((typeof v) === "undefined")
               {
                   if ((typeof glob["d" + x.name]) === "undefined")
-                      f$$warning("Undefined variable " + x.name);
+                      f$$warning("Undefined variable " + f$$demangle(x.name));
                   v = "d" + x.name;
                   if (x.constant &&
                       ((typeof glob["d" + x.name]) === "string" ||
@@ -1467,7 +1467,7 @@ defun("js-compile",
                               d$$$42_outgoing_calls$42_[f.name] = true;
                               if (!gf)
                               {
-                                  f$$warning("Undefined function " + f.name);
+                                  f$$warning("Undefined function " + f$$demangle(f.name));
                               }
                               else if (gf.arglist)
                               {

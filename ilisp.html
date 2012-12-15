@@ -110,26 +110,8 @@ function up(x)
 
 function decrypt(msg)
 {
-    var m = msg.replace(/f[A-Za-z0-9_]*\$\$([A-Za-z0-9_]|\$[0-9]+_)+/, function(x) {
+    var m = msg.replace(/[smdf]([A-Za-z0-9_]|\$[0-9]+_)*\$\$([A-Za-z0-9_]|\$[0-9]+_)+/, function(x) {
         var mod = f$$demangle("$$"+x.slice(1, x.indexOf("$$"))) + ":";
-        var name = f$$demangle(x.slice(x.indexOf("$$")));
-        if (mod == ":") mod = "";
-        return "lisp function " + mod + name;
-    });
-    m = m.replace(/d[A-Za-z0-9_]*\$\$([A-Za-z0-9_]|\$[0-9]+_)+/, function(x) {
-        var mod = f$$demangle("$$"+x.slice(1, x.indexOf("$$"))) + ":";
-        var name = f$$demangle(x.slice(x.indexOf("$$")));
-        if (mod == ":") mod = "";
-        return "lisp variable " + mod + name;
-    });
-    m = m.replace(/m[A-Za-z0-9_]*\$\$([A-Za-z0-9_]|\$[0-9]+_)+/, function(x) {
-        var mod = f$$demangle("$$"+x.slice(1, x.indexOf("$$"))) + ":";
-        var name = f$$demangle(x.slice(x.indexOf("$$")));
-        if (mod == ":") mod = "";
-        return "lisp macro " + mod + name;
-    });
-    m = m.replace(/[A-Za-z0-9_]*\$\$([A-Za-z0-9_]|\$[0-9]+_)+/, function(x) {
-        var mod = f$$demangle("$$"+x.slice(0, x.indexOf("$$"))) + ":";
         var name = f$$demangle(x.slice(x.indexOf("$$")));
         if (mod == ":") mod = "";
         return mod + name;
@@ -142,7 +124,12 @@ f$$display = function(msg) {
 };
 
 f$$warning = function(msg) {
-    output("* WARNING *: " + decrypt(msg) + "\n");
+    if (!confirm("* WARNING *\n\n" + decrypt(msg) + "\n\nContinue processing?"))
+        f$$error(msg);
+};
+
+f$$error = function(msg) {
+    alert("* ERROR *\n\n" + decrypt(msg) + "\n");
 };
 
 window.onerror = function(msg)
