@@ -10,7 +10,7 @@
                     (macro #((color "#0000FF")))
                     (keyword #((color "#880088")))))
 
-(setf mode.nonword "[^-a-zA-Z0-9_+*/!$%^&=<>]")
+(setf mode.nonword "[^-a-zA-Z0-9_+*/!$%^&=<>:]")
 
 (setf mode.macros #())
 (setf mode.body-macros #())
@@ -21,9 +21,24 @@
 
 (setf mode.words
       (lambda ()
-        (append (keys mode.macros)
-                (keys mode.functions)
-                (keys mode.vars))))
+        (let ((res #())
+              (revnicks #()))
+          (dolist (x (keys mode.module-aliases))
+            (setf (aref revnicks (aref mode.module-aliases x)) (slice x 1)))
+          (dolist (x (append (keys mode.macros)
+                             (keys mode.functions)
+                             (keys mode.vars)))
+            (setf (aref res x) 1)
+            (let ((ix (index ":" x)))
+              (when (>= ix 0)
+                (let ((mod (slice x 0 ix))
+                      (name (slice x (1+ ix))))
+                  (when (or (= mod "")
+                            (= mod mode.current-module))
+                    (setf (aref res name) 1))
+                  (when (aref revnicks mod)
+                    (setf (aref res (+ (aref revnicks mod) ":" name)) 1))))))
+          (sort (keys res)))))
 
 (setf mode.parmatch
       (lambda (lines row col)
