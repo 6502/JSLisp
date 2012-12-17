@@ -386,7 +386,9 @@
 (defun checkbox (caption &optional action)
   "Creates a checkbox DOM object with provided [caption] ad an optional callback [action]"
   (let ((checkbox (create-element "input"))
-        (text (create-element "span"))
+        (text (set-style (create-element "span")
+                         fontFamily "Arial"
+                         px/fontSize 16))
         (container (create-element "label")))
     (setf checkbox.type "checkbox")
     (setf text.textContent caption)
@@ -408,7 +410,9 @@
 (defun radio (group caption &optional action)
   "Creates a radio button DOM object with specified logical [group], the provided [caption] ad an optional callback [action]"
   (let ((radio (create-element "input"))
-        (text (create-element "span"))
+        (text (set-style (create-element "span")
+                         fontFamily "Arial"
+                         px/fontSize 16))
         (container (create-element "label")))
     (setf radio.type "radio")
     (setf radio.name group)
@@ -611,14 +615,15 @@
                pointerEvents "none"
                px/borderRadius 4)
     (set-style caption
+               fontFamily "sans-serif"
+               whiteSpace "pre"
                %/fontSize 80
                color "#666666"
-               fontWeight "bold"
                backgroundColor "#FFFFFF"
                position "relative"
                px/left 10
                px/top -11)
-    (setf caption.textContent (or title ""))
+    (setf caption.textContent (if title ~" {title} " ""))
     (append-child group caption)
     (setf group.% #'group)
     group))
