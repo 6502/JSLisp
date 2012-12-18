@@ -1241,9 +1241,12 @@ function f$$attach_debugger()
 
 var global_unwinding_trace = [];
 var d$$$42_stack_trace$42_ = [];
+var d$$$42_coverage$42_ = null;
 
 function erl(x, f, local_js_eval)
 {
+    if (d$$$42_coverage$42_)
+      d$$$42_coverage$42_[x] = (d$$$42_coverage$42_[x]|0)+1;
     d$$$42_stack_trace$42_.push([x, local_js_eval]);
     try
     {
@@ -1412,6 +1415,8 @@ defun("js-compile",
                   if (x.location && d$$$42_debug$42_)
                   {
                       wrapper = function(r) {
+                          if (d$$$42_coverage$42_)
+                            d$$$42_coverage$42_[x.location] = 0;
                           return ("erl(" +
                                   stringify(x.location) +
                                   ",function(){return(" +
