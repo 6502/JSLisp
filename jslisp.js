@@ -2194,6 +2194,7 @@ if (d$$node_js)
     f$$load(f$$get_file("boot.lisp"), "boot.lisp");
     for (var i=2; i<process.argv.length; i++)
     {
-        f$$load(f$$get_file(process.argv[i]));
+        var fname = process.argv[i];
+        f$$load(f$$get_file(fname), fname);
     }
 }
