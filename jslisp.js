@@ -1346,6 +1346,8 @@ function erl(x, f, local_js_eval)
 
 d$$$42_declarations$42_ = [];
 
+d$$$42_sourcemap$42_ = null;
+
 defun("js-compile",
       "[[(js-compile x)]]\n" +
       "Returns a string containing Javascript code that when evaluated in javascript will perform the " +
@@ -1412,17 +1414,28 @@ defun("js-compile",
                   var wrapper = function(r) {
                       return r;
                   };
-                  if (x.location && d$$$42_debug$42_)
+                  if (x.location)
                   {
-                      wrapper = function(r) {
-                          if (d$$$42_coverage$42_)
-                            d$$$42_coverage$42_[x.location] = 0;
-                          return ("erl(" +
-                                  stringify(x.location) +
-                                  ",function(){return(" +
-                                  r +
-                                  ")},function(x){return eval(x)})");
-                      };
+                      if (d$$$42_sourcemap$42_)
+                      {
+                          wrapper = function(r) {
+                              var i = d$$$42_sourcemap$42_.length;
+                              d$$$42_sourcemap$42_[i] = x.location;
+                              return " /*{" + i + "*/ " + r + " /*}*/ ";
+                          };
+                      }
+                      else if (d$$$42_debug$42_)
+                      {
+                          wrapper = function(r) {
+                              if (d$$$42_coverage$42_)
+                                  d$$$42_coverage$42_[x.location] = 0;
+                              return ("erl(" +
+                                      stringify(x.location) +
+                                      ",function(){return(" +
+                                      r +
+                                      ")},function(x){return eval(x)})");
+                          };
+                      }
                   }
                   var f = x[0];
                   if (f$$symbol$63_(f))

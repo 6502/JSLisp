@@ -234,11 +234,106 @@ reverse engineering point of view.
 (setf *deploy-prefix* "")
 (setf *deploy-suffix* "")
 
+(defun vlq (new old)
+  (let ((delta (- new old)))
+    (setf delta (if (< delta 0)
+                    (1+ (* -2 delta))
+                    (* 2 delta)))
+    (do ((res "")
+         (alphabet "ABCDEFGHIJKLMNOPQRSTUVWXYZ\
+                    abcdefghijklmnopqrstuvwxyz\
+                    0123456789+/"))
+        ((< delta 32) (+ res (aref alphabet delta)))
+      (incf res (aref alphabet (+ 32 (logand delta 31))))
+      (setf delta (ash delta -5)))))
+
+(defmacro vlq-out (var value)
+  (let ((new-value '#.(gensym)))
+    `(let ((,new-value ,value))
+       (incf mapdata (vlq ,new-value ,var))
+       (setf ,var ,new-value))))
+
+(defun line-col (file pos)
+  (let ((before-lines (split (slice file 0 pos) "\n")))
+    (list (1- (length before-lines))
+          (length (or (last before-lines) "")))))
+
+(defun load-source (src)
+  (if node-js (get-file src) (http-get src)))
+
 (setf (symbol-macro (intern "main" ""))
       (lambda (&rest args)
         `(progn
            (let ((m (rep (lambda ,args (funcall #',#"main" ,@args)))))
-             (display (+ *deploy-prefix*
-                         (minimize (+ *repcode* m "()"))
-                         *deploy-suffix*)))
+             (setf m (+ *deploy-prefix*
+                        (minimize (+ *repcode* m "()"))
+                        *deploy-suffix*))
+             (when :*sourcemap*
+               (let ((i 0)
+                     (result "")
+                     (sources-content (list))
+                     (sources (list))
+                     (source-file 0)
+                     (source-line 0)
+                     (source-col 0)
+                     (dest-col 0)
+                     (mapdata "")
+                     (stack (list)))
+                 (do () ((>= i (length m)))
+                   (let* ((j1 (index "/*{" m i))
+                          (j2 (index "/*}*/" m i))
+                          (mn (if (= j1 -1)
+                                  (if (= j2 -1)
+                                      (length m)
+                                      j2)
+                                  (if (= j2 -1)
+                                      j1
+                                      (min j1 j2)))))
+                     (let ((x0 (length result)))
+                       (incf result (slice m i mn))
+                       (vlq-out dest-col x0)
+                       (if (last stack)
+                           (let (((src from to) (last stack)))
+                             (unless (find src sources)
+                               (push (load-source src) sources-content)
+                               (push src sources))
+                             (let* ((ix (index src sources))
+                                    ((from-line from-col) (line-col (aref sources-content ix)
+                                                                    from))
+                                    ((to-line to-col) (line-col (aref sources-content ix)
+                                                                to)))
+                               (vlq-out source-file ix)
+                               (vlq-out source-line from-line)
+                               (vlq-out source-col from-col)
+                               (incf mapdata ",")
+                               (vlq-out dest-col (length result))
+                               (vlq-out source-file ix)
+                               (vlq-out source-line to-line)
+                               (vlq-out source-col to-col)
+                               (incf mapdata ",")))
+                           (progn
+                             (incf mapdata ",")
+                             (vlq-out dest-col (length result))
+                             (incf mapdata ","))))
+                     (if (= j1 j2 -1)
+                         (setf i (length m))
+                         (if (or (= j2 -1) (and (/= j1 -1) (< j1 j2)))
+                             (let ((ej1 (index "*/" m j1)))
+                               (push (aref :*sourcemap* (atoi (slice m (+ j1 3) ej1)))
+                                     stack)
+                               (setf i (+ ej1 2)))
+                             (progn
+                               (setf i (+ j2 5))
+                               (pop stack))))))
+                 (put-file "sourcemap.js.smap"
+                           ~"\\{\
+                             version:3,\
+                             file:\"compiled.js\",\
+                             sourceRoot:\"\",\
+                             sources:{(json sources)},\
+                             names:[],\
+                             mappings:{(json (slice mapdata 0 -1))}\
+                             \\}")
+                 (setf m (+ result "\n//@ sourceMappingURL=sourcemap.js.smap"))))
+             (display m))
            null)))
