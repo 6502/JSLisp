@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <input type="button" value="Step" id="step"/>
+    <input type="button" value="Continue" id="continue"/>
+    <div id="src" style="border:solid 1px #000; overflow:auto; height:200px; white-space:pre; font-family:monospace; font-size:12px;">
+    </div>
+    stack trace<br/>
+    <div id="st">
+    </div>
+    <script>
+
+var stack = window.dialogArguments[0];
+var parent = window.dialogArguments[1];
+var st = document.getElementById("st");
+var sources = {};
+var current_source = null;
+var src = document.getElementById("src");
+var lines = [];
+
+var chspan = document.createElement("span");
+chspan.textContent = "XXXXXXXXXX";
+src.appendChild(chspan);
+var chw = chspan.offsetWidth / 10;
+src.removeChild(chspan);
+
+for (var i=0,n=stack.length; i<n; i++)
+{
+    var x = document.createElement("div");
+    x.textContent = stack[i];
+    x.onclick = (function(x){return function(){select(x);}})(stack[i]);
+    st.appendChild(x);
+}
+
+function linecol(text, pos)
+{
+    var x = text.slice(0, pos).split("\n");
+    return {line: x.length-1,
+            col: x[x.length-1].length};
+}
+
+function source(name)
+{
+    if (!sources[name])
+    {
+        var req = new XMLHttpRequest();
+        req.open("GET", name, false);
+        req.send(null);
+        sources[name] = req.responseText;
+    }
+    return sources[name];
+}
+
+function select(location)
+{
+    if (current_source != location[0])
+    {
+        while (src.firstChild)
+            src.removeChild(src.firstChild);
+        current_source = location[0];
+        var s = source(current_source);
+        lines = s.split("\n");
+        for (var i=0; i<lines.length; i++)
+        {
+            var L = document.createElement("div");
+            L.style.position = "relative";
+            L.textContent = lines[i];
+            var sel = document.createElement("div");
+            sel.style.position = "absolute";
+            sel.style.left = "0px";
+            sel.style.width = "0px";
+            sel.style.top = "0px";
+            sel.style.bottom = "0px";
+            sel.style.backgroundColor = "rgba(0, 255, 0, 0.25)";
+            L.appendChild(sel);
+            lines[i] = L;
+            src.appendChild(L);
+        }
+    }
+
+    var LC0 = linecol(source(current_source), location[1]);
+    var LC1 = linecol(source(current_source), location[2]);
+    for (var i=0; i<lines.length; i++)
+    {
+        if (i < LC0.line || i > LC1.line)
+        {
+            lines[i].lastChild.style.width = "0px";
+            lines[i].lastChild.style.right = null;
+        }
+        else if (i == LC0.line && i == LC1.line)
+        {
+            lines[i].lastChild.style.left = chw*LC0.col + "px";
+            lines[i].lastChild.style.right = null;
+            lines[i].lastChild.style.width = chw*(LC1.col - LC0.col) + "px";
+        }
+        else if (i == LC0.line)
+        {
+            lines[i].lastChild.style.left = chw*LC0.col + "px";
+            lines[i].lastChild.style.width = null;
+            lines[i].lastChild.style.right = "0px";
+        }
+        else if (i == LC1.line)
+        {
+            lines[i].lastChild.style.left = "0px";
+            lines[i].lastChild.style.right = null;
+            lines[i].lastChild.style.width = chw*LC1.col + "px";
+        }
+        else
+        {
+            lines[i].lastChild.style.left = "0px";
+            lines[i].lastChild.style.width = null;
+            lines[i].lastChild.style.right = "0px";
+        }
+    }
+
+    src.scrollTop = Math.max(0, lines[LC0.line].offsetTop - src.offsetHeight/2);
+}
+
+select(stack[stack.length-1]);
+
+document.getElementById("step").onclick = function() {
+    window.returnValue = "step";
+    window.parent.debug_screenLeft = window.screenLeft;
+    window.parent.debug_screenTop = window.screenTop;
+    window.close();
+};
+
+document.getElementById("continue").onclick = function() {
+    window.returnValue = "cont";
+    window.parent.debug_screenLeft = window.screenLeft;
+    window.parent.debug_screenTop = window.screenTop;
+    window.close();
+};
+
+    </script>
+  </body>
+</html>

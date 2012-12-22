@@ -1153,215 +1153,70 @@ if (typeof window !== "undefined")
 
 d$$$42_error_location$42_ = null;
 
-d$$$42_debugger$42_ = false;
-
-function f$$safe()
-{
-    var args = Array.prototype.slice.call(arguments);
-    try
-    {
-        return args[0].apply(glob, args.slice(1));
-    }
-    catch(err)
-    {
-        return "" + err;
-    }
-}
-
-var skip_cmds = 0;
-var skip_cmds_i = 0;
-
-function f$$send_debugger(x)
-{
-    f$$http("POST", "http://127.0.0.1:1337/send?debugger",
-            f$$str_value(x));
-}
-
-function f$$receive_debugger()
-{
-    var res = f$$http("POST", "http://127.0.0.1:1337/receive?debugged&"+skip_cmds).split("\n");
-    for (var i=0; i<res.length; i++)
-    {
-        var ix = res[i].indexOf(":");
-        skip_cmds = 1 + parseInt(res[i].slice(0, ix));
-        res[i] = res[i].slice(1+ix);
-    }
-    return res;
-}
-
-var d$$$42_breakpoints$42_ = [];
-var d$$$42_watches$42_ = [];
-
-function f$$add_breakpoint(loc)
-{
-    d$$$42_breakpoints$42_.push(loc);
-}
-
-function f$$remove_breakpoint(loc)
-{
-    var i = 0;
-    while (i < d$$$42_breakpoints$42_.length &&
-           (d$$$42_breakpoints$42_[i][0] != loc[0] ||
-            d$$$42_breakpoints$42_[i][1] != loc[1] ||
-            d$$$42_breakpoints$42_[i][2] != loc[2]))
-        i++;
-    if (i < d$$$42_breakpoints$42_.length)
-        d$$$42_breakpoints$42_.splice(i, 1);
-}
-
-function f$$add_watch(watch)
-{
-    d$$$42_watches$42_.push(watch);
-}
-
-function f$$remove_watch(watch)
-{
-    var i = d$$$42_watches$42_.length-1;
-    while (i>=0 && d$$$42_watches$42_[i] !== watch)
-        --i;
-    if (i >= 0) d$$$42_watches$42_.splice(i, 1);
-}
-
-var debugger_failcount = 0;
-
-function f$$attach_debugger()
-{
-    f$$http("POST", "http://127.0.0.1:1337/receive?debugged_i&"+skip_cmds_i, "",
-            function(text)
-            {
-                debugger_failcount = 0;
-                var res = text.split("\n");
-                for (var i=0; i<res.length; i++)
-                {
-                    var ix = res[i].indexOf(":");
-                    skip_cmds_i = 1 + parseInt(res[i].slice(0, ix));
-                    var cmd = res[i].slice(1+ix);
-                    try
-                    {
-                        f$$load(cmd);
-                    }
-                    catch (err)
-                    {
-                        f$$send_debugger([f$$intern("debug-cmd-error"), err+""]);
-                    }
-                }
-                setTimeout(f$$attach_debugger, 10);
-            },
-            function(err)
-            {
-                if (++debugger_failcount == 100)
-                {
-                    alert("Error connecting to debugger process");
-                }
-                else
-                {
-                    setTimeout(f$$attach_debugger, 10);
-                }
-            });
-}
-
 var global_unwinding_trace = [];
 var d$$$42_stack_trace$42_ = [];
 var d$$$42_coverage$42_ = null;
+var d$$$42_breakpoints$42_ = [];
+var d$$$42_step$42_ = false;
+
+var debug_screenLeft = 400;
+var debug_screenTop = 200;
+
+function debug()
+{
+    for(;;)
+    {
+        var cmd = window.showModalDialog("debug.html", [d$$$42_stack_trace$42_, window],
+                                         "dialogleft=" + debug_screenLeft + ";" +
+                                         "dialogwidth=600;" +
+                                         "dialogtop=" + debug_screenTop + ";" +
+                                         "dialogheight=400");
+        if (cmd == "cont")
+        {
+            d$$$42_step$42_ = false;
+            return;
+        }
+        if (cmd == "step")
+        {
+            d$$$42_step$42_ = true;
+            return;
+        }
+        if (cmd.slice(0, 5) == "eval ")
+        {
+            f$$toplevel_eval(f$$parse_value(cmd.slice(6)));
+        }
+    }
+}
 
 function erl(x, f, local_js_eval)
 {
     if (d$$$42_coverage$42_)
-      d$$$42_coverage$42_[x] = (d$$$42_coverage$42_[x]|0)+1;
-    d$$$42_stack_trace$42_.push([x, local_js_eval]);
+        d$$$42_coverage$42_[x] = (d$$$42_coverage$42_[x]|0)+1;
+    d$$$42_stack_trace$42_.push(x);
     try
     {
         for (var i=0; i<d$$$42_breakpoints$42_.length; i++)
             if (d$$$42_breakpoints$42_[i][0] == x[0] &&
                 d$$$42_breakpoints$42_[i][1] == x[1] &&
                 d$$$42_breakpoints$42_[i][2] == x[2])
-                d$$$42_debugger$42_ = true;
-        while(d$$$42_debugger$42_)
+                d$$$42_step$42_ = true;
+        if (d$$$42_step$42_)
         {
-            var ww = [];
-            for (var i=0; i<d$$$42_watches$42_.length; i++)
-            {
-                try
-                {
-                    ww.push(f$$str_value(local_js_eval(d$$$42_watches$42_[i])));
-                }
-                catch (err)
-                {
-                    ww.push("*ERROR*: " + err);
-                }
-            }
-            var ss = [];
-            for (var i=0; i<d$$$42_stack_trace$42_.length; i++)
-                ss.push(d$$$42_stack_trace$42_[i][0]);
-            f$$send_debugger([f$$intern("stopped"), ss, ww]);
-            var dbg_commands = f$$receive_debugger();
-            f$$send_debugger([f$$intern("running")]);
-            for (var i=0; i<dbg_commands.length; i++)
-            {
-                var cmd = dbg_commands[i];
-                if (cmd === "step") break;
-                try
-                {
-                    f$$load(cmd);
-                }
-                catch (err)
-                {
-                    f$$send_debugger([f$$intern("debug-cmd-error"), err+""]);
-                }
-            }
-            if (i < dbg_commands.length) break;
+            d$$$42_step$42_ = false;
+            debug();
         }
-        var result = f();
-        d$$$42_stack_trace$42_.pop();
-        return result;
+        try
+        {
+            return f();
+        }
+        catch(err)
+        {
+            debug();
+        }
     }
-    catch (err)
+    finally
     {
-        if (!err.location)
-            err.location = [];
-        err.location.push(x);
-        global_unwinding_trace.push(x);
-        if (d$$$42_debug$42_)
-        {
-            d$$$42_debugger$42_ = true;
-            while(d$$$42_debugger$42_)
-            {
-                var ww = [];
-                for (var i=0; i<d$$$42_watches$42_.length; i++)
-                {
-                    try
-                    {
-                        ww.push(f$$str_value(local_js_eval(d$$$42_watches$42_[i])));
-                    }
-                    catch (err)
-                    {
-                        ww.push("*ERROR*: " + err);
-                    }
-                }
-                var ss = [];
-                for (var i=0; i<d$$$42_stack_trace$42_.length; i++)
-                    ss.push(d$$$42_stack_trace$42_[i][0]);
-                f$$send_debugger([f$$intern("exception"), "" + err, ss, ww]);
-                var dbg_commands = f$$receive_debugger();
-                f$$send_debugger([f$$intern("running")]);
-                for (var i=0; i<dbg_commands.length; i++)
-                {
-                    var cmd = dbg_commands[i];
-                    if (cmd === "step") break;
-                    try
-                    {
-                        f$$load(cmd);
-                    }
-                    catch (err)
-                    {
-                        f$$send_debugger([f$$intern("debug-cmd-error"), err+""]);
-                    }
-                }
-                if (i < dbg_commands.length) break;
-            }
-        }
         d$$$42_stack_trace$42_.pop();
-        throw err;
     }
 }
 
@@ -1430,7 +1285,7 @@ defun("js-compile",
           else if (f$$list$63_(x))
           {
               try {
-                  var decl = d$$$42_declarations$42_.length;
+                  var declsz = d$$$42_declarations$42_.length;
 
                   var wrapper = function(r) {
                       return r;
@@ -1550,7 +1405,7 @@ defun("js-compile",
               }
               finally
               {
-                  d$$$42_declarations$42_.length = decl;
+                  d$$$42_declarations$42_.length = declsz;
               }
           }
           else if ((typeof x) === "undefined")
