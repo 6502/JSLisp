@@ -509,60 +509,64 @@ defmacro("let",
                  return [f$$intern("progn")].concat(body);
              lexvar.begin();
              lexsmacro.begin();
-             var osmacro = [];
+             try {
+                 var osmacro = [];
 
-             var spe = [];
-             var res = "((function(";
-             for (var i=0; i<bindings.length; i++)
-             {
-                 if (bindings[i].length != 2 ||
-                     !f$$symbol$63_(bindings[i][0]))
-                     throw new String("Invalid 'let' binding " + f$$str_value(bindings[i]));
-                 if (i > 0) res += ",";
-                 var name = bindings[i][0].name;
-                 if (specials[name])
+                 var spe = [];
+                 var res = "((function(";
+                 for (var i=0; i<bindings.length; i++)
                  {
-                     res += "sd" + name;
-                     spe.push(name);
+                     if (bindings[i].length != 2 ||
+                         !f$$symbol$63_(bindings[i][0]))
+                         throw new String("Invalid 'let' binding " + f$$str_value(bindings[i]));
+                     if (i > 0) res += ",";
+                     var name = bindings[i][0].name;
+                     if (specials[name])
+                     {
+                         res += "sd" + name;
+                         spe.push(name);
+                     }
+                     else
+                     {
+                         lexvar.add(name, "d" + name);
+                         res += "d" + name;
+                     }
+                     lexsmacro.add(name, undefined);
+                     if (bindings[i][0].symbol_macro)
+                     {
+                         osmacro.push([bindings[i][0], bindings[i][0].symbol_macro]);
+                         bindings[i][0].symbol_macro = undefined;
+                     }
+                 }
+                 res += "){";
+                 if (spe.length)
+                 {
+                     for (var i=0; i<spe.length; i++)
+                     {
+                         res += "var osd" + spe[i] + "=d" + spe[i] + ";";
+                         res += "d" + spe[i] + "=sd" + spe[i] + ";";
+                     }
+                     res += "var res=";
+                     res += implprogn(body);
+                     res += ";";
+                     for (var i=0; i<spe.length; i++)
+                     {
+                         res += "d" + spe[i] + "=osd" + spe[i] + ";";
+                     }
+                     res += "return res;})(";
                  }
                  else
                  {
-                     lexvar.add(name, "d" + name);
-                     res += "d" + name;
-                 }
-                 lexsmacro.add(name, undefined);
-                 if (bindings[i][0].symbol_macro)
-                 {
-                     osmacro.push([bindings[i][0], bindings[i][0].symbol_macro]);
-                     bindings[i][0].symbol_macro = undefined;
+                     res += "return " + implprogn(body) + "})(";
                  }
              }
-             res += "){";
-             if (spe.length)
+             finally
              {
-                 for (var i=0; i<spe.length; i++)
-                 {
-                     res += "var osd" + spe[i] + "=d" + spe[i] + ";";
-                     res += "d" + spe[i] + "=sd" + spe[i] + ";";
-                 }
-                 res += "var res=";
-                 res += implprogn(body);
-                 res += ";";
-                 for (var i=0; i<spe.length; i++)
-                 {
-                     res += "d" + spe[i] + "=osd" + spe[i] + ";";
-                 }
-                 res += "return res;})(";
+                 lexsmacro.end();
+                 lexvar.end(true);
+                 for (var i=0; i<osmacro.length; i++)
+                     osmacro[i][0].symbol_macro = osmacro[i][1];
              }
-             else
-             {
-                 res += "return " + implprogn(body) + "})(";
-             }
-
-             lexsmacro.end();
-             lexvar.end(true);
-             for (var i=0; i<osmacro.length; i++)
-                 osmacro[i][0].symbol_macro = osmacro[i][1];
 
              for (var i=0; i<bindings.length; i++)
              {
@@ -593,109 +597,115 @@ defmacro("lambda",
              var body = Array.prototype.slice.call(arguments, 1);
              lexvar.begin();
              lexsmacro.begin();
-             var osmacro = [];
-             var spe = [];
-             var res = "(function(";
-             var rest = null;
-             var nargs = 0;
-             for (var i=0; i<args.length; i++)
+             try
              {
-                 var v = args[i].name;
-                 if (v === "$$$38_rest")
+                 var osmacro = [];
+                 var spe = [];
+                 var res = "(function(";
+                 var rest = null;
+                 var nargs = 0;
+                 for (var i=0; i<args.length; i++)
                  {
-                     rest = args[i+1].name;
-                     if (!specials[rest])
-                         lexvar.add(rest, "d"+ rest);
-                     lexsmacro.add(rest, undefined);
-                 }
-                 else if (!rest)
-                 {
-                     if (i > 0) res += ",";
-                     if (specials[v])
+                     var v = args[i].name;
+                     if (v === "$$$38_rest")
                      {
-                         res += "sd" + v;
-                         spe.push(v);
+                         rest = args[i+1].name;
+                         if (!specials[rest])
+                             lexvar.add(rest, "d"+ rest);
+                         lexsmacro.add(rest, undefined);
+                     }
+                     else if (!rest)
+                     {
+                         if (i > 0) res += ",";
+                         if (specials[v])
+                         {
+                             res += "sd" + v;
+                             spe.push(v);
+                         }
+                         else
+                         {
+                             res += "d" + v;
+                             lexvar.add(v, "d" + v);
+                         }
+                         nargs++;
+                         lexsmacro.add(v, undefined);
+                         if (args[i].symbol_macro)
+                         {
+                             osmacro.push([args[i], args[i].symbol_macro]);
+                             args[i].symbol_macro = undefined;
+                         }
+                     }
+                 }
+                 res += "){";
+                 for (var i=0; i<spe.length; i++)
+                 {
+                     res += "var osd" + spe[i] + "=d" + spe[i] + ";";
+                     res += "d" + spe[i] + "=sd" + spe[i] + ";";
+                 }
+                 if (rest)
+                 {
+                     if (specials[rest])
+                     {
+                         spe.push(rest);
+                         res += "var osd" + rest + "=d" + rest + ";";
                      }
                      else
                      {
-                         res += "d" + v;
-                         lexvar.add(v, "d" + v);
+                         res += "var ";
                      }
-                     nargs++;
-                     lexsmacro.add(v, undefined);
-                     if (args[i].symbol_macro)
-                     {
-                         osmacro.push([args[i], args[i].symbol_macro]);
-                         args[i].symbol_macro = undefined;
-                     }
+                     res += "d" + rest + "=Array.prototype.slice.call(arguments,"+nargs+");";
                  }
-             }
-             res += "){";
-             for (var i=0; i<spe.length; i++)
-             {
-                 res += "var osd" + spe[i] + "=d" + spe[i] + ";";
-                 res += "d" + spe[i] + "=sd" + spe[i] + ";";
-             }
-             if (rest)
-             {
-                 if (specials[rest])
+                 if (spe.length === 0)
                  {
-                     spe.push(rest);
-                     res += "var osd" + rest + "=d" + rest + ";";
+                     res += "return " + implprogn(body) + ";})";
                  }
                  else
                  {
-                     res += "var ";
-                 }
-                 res += "d" + rest + "=Array.prototype.slice.call(arguments,"+nargs+");";
-             }
-             if (spe.length === 0)
-             {
-                 res += "return " + implprogn(body) + ";})";
-             }
-             else
-             {
-                 res += "var res=";
-                 res += implprogn(body);
+                     res += "var res=";
+                     res += implprogn(body);
 
-                 res += ";"
-                 for (var i=0; i<spe.length; i++)
-                 {
-                     res += "d" + spe[i] + "=osd" + spe[i] + ";";
+                     res += ";"
+                     for (var i=0; i<spe.length; i++)
+                     {
+                         res += "d" + spe[i] + "=osd" + spe[i] + ";";
+                     }
+                     res += "return res;})";
                  }
-                 res += "return res;})";
+                 var ocnames = "";
+                 var ugnames = "";
+                 for (var k in d$$$42_outgoing_calls$42_)
+                 {
+                     ocnames += "," + stringify(k);
+                     current_outgoing_calls[k] = true;
+                 }
+                 for (var k in d$$$42_used_globals$42_)
+                 {
+                     ugnames += "," + stringify(k);
+                     current_used_globals[k] = true;
+                 }
+                 var li = lisp_literals.length;
+                 lisp_literals[li] = args;
+                 res = ("((function(){" +
+                        "var f =" +
+                        res +
+                        ";" +
+                        "f.usedglobs=[" +
+                        ugnames.substr(1) +
+                        "];f.outcalls=[" +
+                        ocnames.substr(1) +
+                        "];f.arglist=lisp_literals[" + li + "];return " +
+                        "f;})())");
+                 return [s$$js_code, res];
              }
-             lexvar.end(true);
-             lexsmacro.end();
-             for (var i=0; i<osmacro.length; i++)
-                 osmacro[i][0].symbol_macro = osmacro[i][1];
-             var ocnames = "";
-             var ugnames = "";
-             for (var k in d$$$42_outgoing_calls$42_)
+             finally
              {
-                 ocnames += "," + stringify(k);
-                 current_outgoing_calls[k] = true;
+                 lexvar.end(true);
+                 lexsmacro.end();
+                 for (var i=0; i<osmacro.length; i++)
+                     osmacro[i][0].symbol_macro = osmacro[i][1];
+                 d$$$42_outgoing_calls$42_ = current_outgoing_calls;
+                 d$$$42_used_globals$42_ = current_used_globals;
              }
-             for (var k in d$$$42_used_globals$42_)
-             {
-                 ugnames += "," + stringify(k);
-                 current_used_globals[k] = true;
-             }
-             d$$$42_outgoing_calls$42_ = current_outgoing_calls;
-             d$$$42_used_globals$42_ = current_used_globals;
-             var li = lisp_literals.length;
-             lisp_literals[li] = args;
-             res = ("((function(){" +
-                    "var f =" +
-                    res +
-                    ";" +
-                    "f.usedglobs=[" +
-                    ugnames.substr(1) +
-                    "];f.outcalls=[" +
-                    ocnames.substr(1) +
-                    "];f.arglist=lisp_literals[" + li + "];return " +
-                    "f;})())");
-             return [s$$js_code, res];
          },
          [f$$intern("args"), f$$intern("&rest"), f$$intern("body")]);
 
@@ -745,36 +755,41 @@ defmacro("labels",
              // and also adds immediately the functions to the lexical functions list
              lexfunc.begin();
              lexmacro.begin();
-             var hmacros = [];
-             for (var i=0; i<bindings.length; i++)
+             try
              {
-                 var v = bindings[i][0].name;
-                 lexmacro.add(v, undefined);
-                 if (glob["m" + v])
+                 var hmacros = [];
+                 for (var i=0; i<bindings.length; i++)
                  {
-                     hmacros.push([v, glob["m" + v]]);
-                     glob["m" + v] = undefined;
+                     var v = bindings[i][0].name;
+                     lexmacro.add(v, undefined);
+                     if (glob["m" + v])
+                     {
+                         hmacros.push([v, glob["m" + v]]);
+                         glob["m" + v] = undefined;
+                     }
+                     lexfunc.add(v, {arglist:bindings[i][1]});
                  }
-                 lexfunc.add(v, {arglist:bindings[i][1]});
-             }
 
-             // Compile function definitions
-             var res = "((function(){";
-             for (var i=0; i<bindings.length; i++)
+                 // Compile function definitions
+                 var res = "((function(){";
+                 for (var i=0; i<bindings.length; i++)
+                 {
+                     var v = bindings[i][0].name;
+                     res += "var f" + v + "=" +
+                         f$$js_compile([f$$intern("lambda")].concat(bindings[i].slice(1))) + ";";
+                 }
+                 res += "return ";
+                 res += implprogn(body);
+                 res += ";})())";
+             }
+             finally
              {
-                 var v = bindings[i][0].name;
-                 res += "var f" + v + "=" +
-                     f$$js_compile([f$$intern("lambda")].concat(bindings[i].slice(1))) + ";";
+                 lexfunc.end();
+                 lexmacro.end();
+                 // Restore hidden global macros
+                 for (var i=0; i<hmacros.length; i++)
+                     glob["m" + hmacros[i][0]] = hmacros[i][1];
              }
-             res += "return ";
-             res += implprogn(body);
-             res += ";})())";
-
-             lexfunc.end();
-             lexmacro.end();
-             // Restore hidden global macros
-             for (var i=0; i<hmacros.length; i++)
-                 glob["m" + hmacros[i][0]] = hmacros[i][1];
              return [s$$js_code, res];
          },
          [f$$intern("bindings"), f$$intern("&rest"), f$$intern("body")]);
@@ -1002,57 +1017,63 @@ defmacro("do",
              var body = Array.prototype.slice.call(arguments, 2);
              lexsmacro.begin();
              lexvar.begin();
-             var spe = [];
-             var res = "(function(";
-             for (var i=0; i<vars.length; i++)
+             try
              {
-                 var v = vars[i][0].name;
-                 if (i > 0) res += ",";
-                 if (specials[v])
+                 var spe = [];
+                 var res = "(function(";
+                 for (var i=0; i<vars.length; i++)
                  {
-                     res += "sd" + v;
-                     spe.push(v);
+                     var v = vars[i][0].name;
+                     if (i > 0) res += ",";
+                     if (specials[v])
+                     {
+                         res += "sd" + v;
+                         spe.push(v);
+                     }
+                     else
+                     {
+                         res += "d" + v;
+                         lexvar.add(v, "d" + v);
+                     }
+                     lexsmacro.add(v, undefined);
+                 }
+                 res += "){";
+                 for (var i=0; i<spe.length; i++)
+                 {
+                     res += "var osd" + spe[i] + "=d" + spe[i] + ";";
+                     res += "d" + spe[i] + "=sd" + spe[i] + ";";
+                 }
+                 res += "for(;;){";
+                 res += "if(" + f$$js_compile(test[0]) + "){";
+                 if (spe.length)
+                 {
+                     res += "var res=" + implprogn(test.slice(1)) + ";";
+                     for (var i=0; i<spe.length; i++)
+                     {
+                         res += "d" + spe[i] + "=osd" + spe[i] + ";";
+                     }
+                     res += "return res;}";
                  }
                  else
                  {
-                     res += "d" + v;
-                     lexvar.add(v, "d" + v);
+                     res += "return " + implprogn(test.slice(1)) + "}";
                  }
-                 lexsmacro.add(v, undefined);
-             }
-             res += "){";
-             for (var i=0; i<spe.length; i++)
-             {
-                 res += "var osd" + spe[i] + "=d" + spe[i] + ";";
-                 res += "d" + spe[i] + "=sd" + spe[i] + ";";
-             }
-             res += "for(;;){";
-             res += "if(" + f$$js_compile(test[0]) + "){";
-             if (spe.length)
-             {
-                 res += "var res=" + implprogn(test.slice(1)) + ";";
-                 for (var i=0; i<spe.length; i++)
+                 res += implprogn(body) + ";";
+                 for (var i=0; i<vars.length; i++)
                  {
-                     res += "d" + spe[i] + "=osd" + spe[i] + ";";
+                     if (vars[i].length === 3)
+                     {
+                         var v = vars[i][0].name;
+                         res += "d" + v + "=(" + f$$js_compile(vars[i][2]) + ");";
+                     }
                  }
-                 res += "return res;}";
+                 res += "}})(";
              }
-             else
+             finally
              {
-                 res += "return " + implprogn(test.slice(1)) + "}";
+                 lexsmacro.end();
+                 lexvar.end(true);
              }
-             res += implprogn(body) + ";";
-             for (var i=0; i<vars.length; i++)
-             {
-                 if (vars[i].length === 3)
-                 {
-                     var v = vars[i][0].name;
-                     res += "d" + v + "=(" + f$$js_compile(vars[i][2]) + ");";
-                 }
-             }
-             res += "}})(";
-             lexsmacro.end();
-             lexvar.end(true);
              for (var i=0; i<vars.length; i++)
              {
                  if (i > 0) res += ",";
