@@ -3,20 +3,19 @@
   <body>
     <input type="button" value="Step" id="step"/>
     <input type="button" value="Continue" id="continue"/>
-    <div id="src" style="border:solid 1px #000; overflow:auto; height:200px; white-space:pre; font-family:monospace; font-size:12px;">
+    <div id="src" style="position:relative; border:solid 1px #000; height:200px; white-space:pre; font-family:monospace; font-size:12px;">
     </div>
     stack trace<br/>
     <div id="st">
     </div>
     <script>
 
-var stack = window.dialogArguments[0];
-var parent = window.dialogArguments[1];
+var parent = window.dialogArguments[0];
+var stack = window.dialogArguments[1];
 var st = document.getElementById("st");
-var sources = {};
+var sources = parent.debug_sources || (parent.debug_sources = {});
 var current_source = null;
 var src = document.getElementById("src");
-var lines = [];
 
 var chspan = document.createElement("span");
 chspan.textContent = "XXXXXXXXXX";
@@ -46,20 +45,15 @@ function source(name)
         var req = new XMLHttpRequest();
         req.open("GET", name, false);
         req.send(null);
-        sources[name] = req.responseText;
-    }
-    return sources[name];
-}
-
-function select(location)
-{
-    if (current_source != location[0])
-    {
-        while (src.firstChild)
-            src.removeChild(src.firstChild);
-        current_source = location[0];
-        var s = source(current_source);
-        lines = s.split("\n");
+        var src = req.responseText;
+        var lines = src.split("\n");
+        var container = document.createElement("div");
+        container.style.position = "absolute";
+        container.style.left = "0px";
+        container.style.right = "0px";
+        container.style.top = "0px";
+        container.style.bottom = "0px";
+        container.style.overflow = "auto";
         for (var i=0; i<lines.length; i++)
         {
             var L = document.createElement("div");
@@ -73,13 +67,28 @@ function select(location)
             sel.style.bottom = "0px";
             sel.style.backgroundColor = "rgba(0, 255, 0, 0.25)";
             L.appendChild(sel);
+            container.appendChild(L);
             lines[i] = L;
-            src.appendChild(L);
         }
+        sources[name] = {src: src, lines: lines, container: container};
+    }
+    return sources[name];
+}
+
+function select(location)
+{
+    var s = source(location[0]);
+    if (current_source != location[0])
+    {
+        while (src.firstChild)
+            src.removeChild(src.firstChild);
+        current_source = location[0];
+        src.appendChild(s.container);
     }
 
-    var LC0 = linecol(source(current_source), location[1]);
-    var LC1 = linecol(source(current_source), location[2]);
+    var LC0 = linecol(s.src, location[1]);
+    var LC1 = linecol(s.src, location[2]);
+    var lines = s.lines;
     for (var i=0; i<lines.length; i++)
     {
         if (i < LC0.line || i > LC1.line)
@@ -113,22 +122,22 @@ function select(location)
         }
     }
 
-    src.scrollTop = Math.max(0, lines[LC0.line].offsetTop - src.offsetHeight/2);
+    src.firstChild.scrollTop = Math.max(0, lines[LC0.line].offsetTop - src.firstChild.offsetHeight/2);
 }
 
 select(stack[stack.length-1]);
 
 document.getElementById("step").onclick = function() {
     window.returnValue = "step";
-    window.parent.debug_screenLeft = window.screenLeft;
-    window.parent.debug_screenTop = window.screenTop;
+    parent.debug_screenLeft = window.screenLeft;
+    parent.debug_screenTop = window.screenTop;
     window.close();
 };
 
 document.getElementById("continue").onclick = function() {
     window.returnValue = "cont";
-    window.parent.debug_screenLeft = window.screenLeft;
-    window.parent.debug_screenTop = window.screenTop;
+    parent.debug_screenLeft = window.screenLeft;
+    parent.debug_screenTop = window.screenTop;
     window.close();
 };
 

@@ -1166,7 +1166,7 @@ function debug()
 {
     for(;;)
     {
-        var cmd = window.showModalDialog("debug.html", [d$$$42_stack_trace$42_, window],
+        var cmd = window.showModalDialog("debug.html", [window, d$$$42_stack_trace$42_],
                                          "dialogleft=" + debug_screenLeft + ";" +
                                          "dialogwidth=600;" +
                                          "dialogtop=" + debug_screenTop + ";" +
