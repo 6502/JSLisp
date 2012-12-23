@@ -1211,7 +1211,10 @@ function erl(x, f, local_js_eval)
         }
         catch(err)
         {
-            debug();
+            if (!err || !err.gotag)
+                debug();
+            else
+                throw err;
         }
     }
     finally

@@ -3640,12 +3640,14 @@ A name is either an unevaluated atom or an evaluated list."
        `(progn ,@body null))
       ((and (= (length fragments) 2)
             (= (length (aref fragments 1)) 1))
-       (let ((exit-tag (aref (aref fragments 1) 0)))
+       (let* ((exit-tag (aref (aref fragments 1) 0))
+              (tagname (+ "$tag$" (mangle (symbol-name exit-tag)))))
          `(js-code ,(+ "((function(){"
-                       "var $tag$" (mangle (symbol-name exit-tag)) "=[];"
+                       "var " tagname "=[];"
+                       tagname ".gotag=true;"
                        "try{"
                        (js-compile `(progn ,@(first fragments)))
-                       "}catch($ee$){if($ee$!=$tag$" (mangle (symbol-name exit-tag)) "){throw $ee$}}"
+                       "}catch($ee$){if($ee$!=" tagname "){throw $ee$}}"
                        "return null;})())"))))
       (true
        `(js-code ,(+ "((function(){"
