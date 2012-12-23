@@ -1,21 +1,23 @@
 <!DOCTYPE html>
 <html>
   <body>
-    <input type="button" value="Step" id="step"/>
-    <input type="button" value="Continue" id="continue"/>
-    <div id="src" style="position:relative; border:solid 1px #000; height:200px; white-space:pre; font-family:monospace; font-size:12px;">
-    </div>
-    stack trace<br/>
-    <div id="st">
+    <div style="position:absolute; left:0px; top:0px; right:0px; bottom:0px">
+      <input type="button" value="Step" id="step" style="position:absolute; left:8px; top:8px; width:80px; height:30px"/>
+      <input type="button" value="Continue" id="continue" style="position:absolute; left:96px; top:8px; width:80px; height:30px"/>
+      <select id="stack" style="position:absolute; left:184px; top:8px; right:8px; height:30px"></select>
+      <div id="src" style="position:absolute; left:8px; top:46px; right:8px; bottom:8px; border:solid 1px #000; white-space:pre; font-family:monospace; font-size:12px;">
+      </div>
     </div>
     <script>
 
 var parent = window.dialogArguments[0];
 var stack = window.dialogArguments[1];
-var st = document.getElementById("st");
+var st = document.getElementById("stack");
 var sources = parent.debug_sources || (parent.debug_sources = {});
 var current_source = null;
 var src = document.getElementById("src");
+var step = document.getElementById("step");
+var cont = document.getElementById("continue");
 
 var chspan = document.createElement("span");
 chspan.textContent = "XXXXXXXXXX";
@@ -23,11 +25,11 @@ src.appendChild(chspan);
 var chw = chspan.offsetWidth / 10;
 src.removeChild(chspan);
 
-for (var i=0,n=stack.length; i<n; i++)
+for (var i=stack.length-1; i>=0; i--)
 {
-    var x = document.createElement("div");
+    var x = document.createElement("option");
+    x.value = i;
     x.textContent = stack[i];
-    x.onclick = (function(x){return function(){select(x);}})(stack[i]);
     st.appendChild(x);
 }
 
@@ -58,6 +60,7 @@ function source(name)
         {
             var L = document.createElement("div");
             L.style.position = "relative";
+            L.style.minHeight = "1em";
             L.textContent = lines[i];
             var sel = document.createElement("div");
             sel.style.position = "absolute";
@@ -78,6 +81,8 @@ function source(name)
 function select(location)
 {
     var s = source(location[0]);
+    var lines = s.lines;
+
     if (current_source != location[0])
     {
         while (src.firstChild)
@@ -88,7 +93,6 @@ function select(location)
 
     var LC0 = linecol(s.src, location[1]);
     var LC1 = linecol(s.src, location[2]);
-    var lines = s.lines;
     for (var i=0; i<lines.length; i++)
     {
         if (i < LC0.line || i > LC1.line)
@@ -122,24 +126,24 @@ function select(location)
         }
     }
 
-    src.firstChild.scrollTop = Math.max(0, lines[LC0.line].offsetTop - src.firstChild.offsetHeight/2);
+    s.container.scrollTop = Math.max(0, lines[LC0.line].offsetTop - s.container.offsetHeight/2);
 }
 
 select(stack[stack.length-1]);
 
-document.getElementById("step").onclick = function() {
-    window.returnValue = "step";
+function bye(x)
+{
+    window.returnValue = x;
     parent.debug_screenLeft = window.screenLeft;
     parent.debug_screenTop = window.screenTop;
+    parent.debug_screenWidth = window.innerWidht;
+    parent.debug_screenHeight = window.innerHeight;
     window.close();
-};
+}
 
-document.getElementById("continue").onclick = function() {
-    window.returnValue = "cont";
-    parent.debug_screenLeft = window.screenLeft;
-    parent.debug_screenTop = window.screenTop;
-    window.close();
-};
+step.onclick = function() { bye("step"); };
+cont.onclick = function() { bye("cont"); };
+st.onchange = function() { select(stack[st.options[st.selectedIndex].value]); }
 
     </script>
   </body>

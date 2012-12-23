@@ -1161,6 +1161,8 @@ var d$$$42_step$42_ = false;
 
 var debug_screenLeft = 400;
 var debug_screenTop = 200;
+var debug_screenWidth = 600;
+var debug_screenHeight = 400;
 
 function debug()
 {
@@ -1168,9 +1170,9 @@ function debug()
     {
         var cmd = window.showModalDialog("debug.html", [window, d$$$42_stack_trace$42_],
                                          "dialogleft=" + debug_screenLeft + ";" +
-                                         "dialogwidth=600;" +
+                                         "dialogwidth=" + debug_screenWidth + ";" +
                                          "dialogtop=" + debug_screenTop + ";" +
-                                         "dialogheight=400");
+                                         "dialogheight=" + debug_screenHeight + ";");
         if (cmd == "cont")
         {
             d$$$42_step$42_ = false;
