@@ -256,7 +256,7 @@ reverse engineering point of view.
 (defun line-col (file pos)
   (let ((before-lines (split (slice file 0 pos) "\n")))
     (list (1- (length before-lines))
-          (length (or (last before-lines) "")))))
+          (length (last before-lines)))))
 
 (defun load-source (src)
   (if node-js (get-file src) (http-get src)))
@@ -270,6 +270,7 @@ reverse engineering point of view.
                         *deploy-suffix*))
              (when :*sourcemap*
                (let ((i 0)
+                     (first true)
                      (result "")
                      (sources-content (list))
                      (sources (list))
@@ -291,30 +292,33 @@ reverse engineering point of view.
                                       (min j1 j2)))))
                      (let ((x0 (length result)))
                        (incf result (slice m i mn))
-                       (vlq-out dest-col x0)
-                       (if (last stack)
-                           (let (((src from to) (last stack)))
-                             (unless (find src sources)
-                               (push (load-source src) sources-content)
-                               (push src sources))
-                             (let* ((ix (index src sources))
-                                    ((from-line from-col) (line-col (aref sources-content ix)
-                                                                    from))
-                                    ((to-line to-col) (line-col (aref sources-content ix)
-                                                                to)))
-                               (vlq-out source-file ix)
-                               (vlq-out source-line from-line)
-                               (vlq-out source-col from-col)
-                               (incf mapdata ",")
-                               (vlq-out dest-col (length result))
-                               (vlq-out source-file ix)
-                               (vlq-out source-line to-line)
-                               (vlq-out source-col to-col)
-                               (incf mapdata ",")))
-                           (progn
-                             (incf mapdata ",")
-                             (vlq-out dest-col (length result))
-                             (incf mapdata ","))))
+                       (when (last stack)
+                         ;; We need to map [x0...x1] to the location on top of stack
+                         (let (((src from to) (last stack)))
+                           ;; Source maps only define what is the POINT in the source
+                           ;; code corrispondent to a RANGE in the compiled code.
+                           ;; We just map to the start of the source range.
+                           ;; A compiled code segment is defined by its starting point,
+                           ;; the end being defined as the start of next segment (or
+                           ;; end of line (?) a the specs say, but JsLisp generated code
+                           ;; is at this point always entirely on a single line).
+                           (declare (ignorable to))
+
+                           (unless (find src sources)
+                             (push (load-source src) sources-content)
+                             (push src sources))
+                           (let* ((ix (index src sources))
+                                  ((from-line from-col) (line-col (aref sources-content ix)
+                                                                  from)))
+                             (when (and (not first) (> x0 dest-col))
+                               (vlq-out dest-col x0)
+                               (incf mapdata ","))
+                             (setf first false)
+                             (vlq-out dest-col x0)
+                             (vlq-out source-file ix)
+                             (vlq-out source-line from-line)
+                             (vlq-out source-col from-col)
+                             (incf mapdata ",")))))
                      (if (= j1 j2 -1)
                          (setf i (length m))
                          (if (or (= j2 -1) (and (/= j1 -1) (< j1 j2)))
