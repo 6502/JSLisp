@@ -1008,7 +1008,7 @@
                                    (if (and (< 0 x screen.clientWidth)
                                             (< 0 y screen.clientHeight))
                                        (let ((a (max 0 (min (1- (length lines)) (+ (floor (/ y ch)) top)))))
-                                         (list a (max 0 (min (floor (/ x cw)) (length (aref lines a).text)))))
+                                         (list a (max 0 (min (+ left (floor (/ x cw))) (length (aref lines a).text)))))
                                        (list null null)))))
                      (let (((r c) (apply #'pos (event-pos event))))
                        (unless (null? r)
