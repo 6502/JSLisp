@@ -140,6 +140,18 @@ window.onerror = function(msg)
     global_unwinding_trace = [];
 };
 
+function safejson(x)
+{
+    try
+    {
+        return f$$json$42_(x);
+    }
+    catch(err)
+    {
+        return "*** ERROR: unable to convert to JSON*";
+    }
+}
+
 window.onmessage = function(event)
 {
     if (event.data.type === "lisp" || event.data.type === "quiet-lisp" )
@@ -158,7 +170,7 @@ window.onmessage = function(event)
         }
         up({id: id,
             req: event.data.req,
-            reply: f$$json$42_(result)});
+            reply: safejson(result)});
     }
     else if (event.data.type  === "javascript")
     {
