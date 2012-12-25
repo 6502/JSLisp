@@ -464,6 +464,8 @@
     (setf input.type "text")
     (append-child container label)
     (append-child container input)
+    (setf input.onfocus (lambda ()
+                          (input.setSelectionRange 0 (length input.value))))
     (setf container.% #'input)
     (setf container.node input)
     container))
