@@ -1833,6 +1833,16 @@
   (declare (ignorable seq))
   (js-code "(Math.max.apply(Math,d$$seq))"))
 
+(defun average (&rest seq)
+  "Returns the numeric average of specified values"
+  (let ((res 0))
+    (dolist (x seq)
+      (incf res x))
+    (/ res (length seq))))
+
+(defmacro average (&rest seq)
+  `(/ (+ ,@seq) ,(length seq)))
+
 (defun index (x L &optional start)
   "Returns the index position in which [x] appears in \
    list/string [L] or -1 if it's not present.
