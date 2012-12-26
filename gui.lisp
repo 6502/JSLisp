@@ -147,6 +147,19 @@
     (show modal)
     modal))
 
+;;
+
+(defmacro def-accessor (class name field)
+  `(progn
+     (defmethod ,name (widget) (= widget.% ,class)
+       ,field)
+     (defmethod ,#"set-{name}" (widget ,name) (= widget.% ,class)
+       (setf ,field ,name))))
+
+(defun node (widget)
+  "Returns the HTML5 DOM node associated to [widget] if it's not the widget itself"
+  (or (and widget widget.node) widget))
+
 ;; A gui window object
 
 (defobject window
@@ -288,6 +301,7 @@
                  (when window.close-cback
                    (window.close-cback))
                  (hide frame))
+
     (setf window (make-window frame: frame
                               titlebar: titlebar
                               resizer: resizer
@@ -338,20 +352,7 @@
 
 ;;
 
-(defmacro def-accessor (class name field)
-  `(progn
-     (defmethod ,name (widget) (= widget.% ,class)
-       ,field)
-     (defmethod ,#"set-{name}" (widget ,name) (= widget.% ,class)
-       (setf ,field ,name))))
-
-(defun node (widget)
-  "Returns the HTML5 DOM node associated to [widget] if it's not the widget itself"
-  (or (and widget widget.node) widget))
-
-;;
-
-(defun button (text action)
+(defun button (text action &key (default (= text "OK")) (cancel (= text "Cancel")))
   "Creates a button DOM object with provided [text] and callback [action]"
   (let ((button (create-element "input")))
     (setf button.type "button")
@@ -363,10 +364,30 @@
             (declare (ignorable args))
             (funcall action)))
     (setf button.% #'button)
+    (setf button.default default)
+    (setf button.cancel cancel)
     button))
 
 (def-accessor #'button caption widget.value)
 (def-accessor #'button action widget.onclick)
+
+(defun check-default-actions (container event)
+  (cond
+    ((= event.which 13)
+     (event.preventDefault)
+     (event.stopPropagation)
+     (dolist (x container.children)
+       (when (and (= x.% #'button) x.default)
+         (funcall (action x))))
+     false)
+    ((= event.which 27)
+     (event.preventDefault)
+     (event.stopPropagation)
+     (dolist (x container.children)
+       (when (and (= x.% #'button) x.cancel)
+         (funcall (action x))))
+     false)
+    (true true)))
 
 (defmacro lbutton (text &rest body)
   "Syntactic sugar for simple buttons with inlined actions"
@@ -446,7 +467,7 @@
 
 (def-accessor #'label caption widget.textContent)
 
-(defun input (caption)
+(defun input (caption &key (autofocus false) (autoselect true))
   "Creates an input field with specified [caption]"
   (let ((input (create-element "input"))
         (label (label caption))
@@ -464,10 +485,17 @@
     (setf input.type "text")
     (append-child container label)
     (append-child container input)
-    (setf input.onfocus (lambda ()
-                          (input.setSelectionRange 0 (length input.value))))
+
+    (setf input.onkeydown
+          (lambda (event)
+            (check-default-actions container.parentNode event)))
+
+    (if autoselect
+        (setf input.onfocus (lambda ()
+                              (input.setSelectionRange 0 (length input.value)))))
     (setf container.% #'input)
     (setf container.node input)
+    (setf input.autofocus autofocus)
     container))
 
 (def-accessor #'input caption widget.firstChild.textContent)

@@ -3,8 +3,8 @@
 
 (defun browser ()
   (let** ((w (window 0 0 0.75 0.75 title: "Browser"))
-          (address (add-widget w (input "address")))
-          (go (add-widget w (button "go" #'go)))
+          (address (add-widget w (input "address" autofocus: true)))
+          (go (add-widget w (button "go" #'go default: true)))
           (page (add-widget w (create-element "iframe")))
           (#'go ()
             (setf page.src (text address))))
@@ -17,9 +17,6 @@
                            (dom go)))
                      size: undefined
                      (dom page)))
-    (set-handler (node address) onkeydown
-      (when (= event.which 13)
-        (go)))
     (show-window w center: true)))
 
 (defun main ()
