@@ -238,17 +238,16 @@
                         (dom current-path))
                      size: undefined
                      (dom files))))
-    (setf current-path.onkeydown
-          (lambda (event)
-            (when (= event.which 13)
-              (event.stopPropagation)
-              (event.preventDefault)
-              (if (/= (node current-path).selectionStart
-                      (node current-path).selectionEnd)
-                  ((node current-path).setSelectionRange
-                    (length (text current-path))
-                    (length (text current-path)))
-                  (enter)))))
+    (set-handler current-path onkeydown
+      (when (= event.which 13)
+        (event.stopPropagation)
+        (event.preventDefault)
+        (if (/= (node current-path).selectionStart
+                (node current-path).selectionEnd)
+            ((node current-path).setSelectionRange
+             (length (text current-path))
+             (length (text current-path)))
+            (enter))))
     (setf (node password).type "password")
     (setf (node password).onblur (lambda ()
                                    (setf *user* (text user))

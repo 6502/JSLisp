@@ -82,10 +82,12 @@
      (set-handler mywidget onmousedown
                   (display ~\"Mouse pressed at {(event-pos event)}\"))
 ]]"
-  `(setf (. ,element ,event)
-         (lambda (,#"event")
-           (declare (ignorable ,#"event"))
-           ,@body)))
+  (unless (= (slice (symbol-name event) 0 2) "on")
+    (error "Event name must start with 'on'"))
+  `((. ,element addEventListener) ,(slice (symbol-name event) 2)
+     (lambda (,#"event")
+       (declare (ignorable ,#"event"))
+         ,@body)))
 
 (defun tracking (f &optional end cursor)
   "Starts tracking mouse movements with calls to [f] until mouseup and then call [end]"
@@ -374,20 +376,14 @@
 (defun check-default-actions (container event)
   (cond
     ((= event.which 13)
-     (event.preventDefault)
-     (event.stopPropagation)
      (dolist (x container.children)
        (when (and (= x.% #'button) x.default)
-         (funcall (action x))))
-     false)
+         (funcall (action x)))))
     ((= event.which 27)
-     (event.preventDefault)
-     (event.stopPropagation)
      (dolist (x container.children)
        (when (and (= x.% #'button) x.cancel)
-         (funcall (action x))))
-     false)
-    (true true)))
+         (funcall (action x))))))
+  true)
 
 (defmacro lbutton (text &rest body)
   "Syntactic sugar for simple buttons with inlined actions"
@@ -486,9 +482,8 @@
     (append-child container label)
     (append-child container input)
 
-    (setf input.onkeydown
-          (lambda (event)
-            (check-default-actions container.parentNode event)))
+    (set-handler input onkeydown
+      (check-default-actions container.parentNode event))
 
     (if autoselect
         (setf input.onfocus (lambda ()
