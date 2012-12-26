@@ -12,13 +12,12 @@
 (defun new (default-cback)
   (unless *cback-installed*
     (setf *cback-installed* true)
-    (setf (js-code "window").onmessage
-          (lambda (event)
-            (let ((x (aref *instances* event.data.id)))
-              (when x
-                (let ((cback (or (aref x.reqs event.data.req) x.default-cback)))
-                  (remove-key x.reqs event.data.req)
-                  (funcall cback event.data.reply)))))))
+    (set-handler (js-code "window") onmessage
+      (let ((x (aref *instances* event.data.id)))
+        (when x
+          (let ((cback (or (aref x.reqs event.data.req) x.default-cback)))
+            (remove-key x.reqs event.data.req)
+            (funcall cback event.data.reply))))))
   (let ((ilisp (make-ilisp id: (incf *id*)
                            iframe: (create-element "iframe")
                            reqs: #()

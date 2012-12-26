@@ -78,16 +78,27 @@
   (remove-child x.parentNode x))
 
 (defmacro set-handler (element event &rest body)
-  "Sets an event handler. Example:[[
-     (set-handler mywidget onmousedown
-                  (display ~\"Mouse pressed at {(event-pos event)}\"))
-]]"
+  "Sets an event handler. The return value can be used in {{unset-handler}} \
+   to deactivate the installed handler. Example:[[
+   (set-handler mywidget onmousedown
+     (display ~\"Mouse pressed at {(event-pos event)}\"))
+   ]]"
   (unless (= (slice (symbol-name event) 0 2) "on")
     (error "Event name must start with 'on'"))
-  `((. ,element addEventListener) ,(slice (symbol-name event) 2)
-     (lambda (,#"event")
-       (declare (ignorable ,#"event"))
-         ,@body)))
+  (let ((elm '#.(gensym))
+        (handler '#.(gensym)))
+  `(labels ((,handler (,#"event")
+                      (declare (ignorable ,#"event"))
+                      ,@body))
+     (let ((,elm ,element))
+       ((. ,elm addEventListener) ,(slice (symbol-name event) 2)
+        #',handler)
+       (list ,elm ,(slice (symbol-name event) 2) #',handler)))))
+
+(defun unset-handler (x)
+  "Removes an event handler installed with {{set-handler}}."
+  (let (((elm event handler) x))
+    (elm.removeEventListener event handler)))
 
 (defun tracking (f &optional end cursor)
   "Starts tracking mouse movements with calls to [f] until mouseup and then call [end]"
@@ -361,28 +372,25 @@
     (setf button.value text)
     (set-style button
                position "absolute")
-    (setf button.onclick
-          (lambda (&rest args)
-            (declare (ignorable args))
-            (funcall action)))
+    (set-handler button onclick
+      (funcall action))
     (setf button.% #'button)
     (setf button.default default)
     (setf button.cancel cancel)
     button))
 
 (def-accessor #'button caption widget.value)
-(def-accessor #'button action widget.onclick)
 
 (defun check-default-actions (container event)
   (cond
     ((= event.which 13)
      (dolist (x container.children)
        (when (and (= x.% #'button) x.default)
-         (funcall (action x)))))
+         ((node x).click))))
     ((= event.which 27)
      (dolist (x container.children)
        (when (and (= x.% #'button) x.cancel)
-         (funcall (action x))))))
+         ((node x).click)))))
   true)
 
 (defmacro lbutton (text &rest body)
@@ -486,8 +494,8 @@
       (check-default-actions container.parentNode event))
 
     (if autoselect
-        (setf input.onfocus (lambda ()
-                              (input.setSelectionRange 0 (length input.value)))))
+        (set-handler input onfocus
+          (input.setSelectionRange 0 (length input.value))))
     (setf container.% #'input)
     (setf container.node input)
     (setf input.autofocus autofocus)
@@ -729,17 +737,16 @@
                      (dom splitter)
                      weight: (- 100 split)
                      (dom b))))
-      (setf splitter.onmousedown
-            (lambda (event)
-              (event.preventDefault)
-              (event.stopPropagation)
-              (tracking (lambda (x y)
-                          (declare (ignorable y))
-                          (let ((w container.offsetWidth))
-                            (decf x (first (element-pos container)))
-                            (setsplit (/ x w 0.01) container layout min max)))
-                        (lambda ())
-                        "move")))
+      (set-handler splitter onmousedown
+        (event.preventDefault)
+        (event.stopPropagation)
+        (tracking (lambda (x y)
+                    (declare (ignorable y))
+                    (let ((w container.offsetWidth))
+                      (decf x (first (element-pos container)))
+                      (setsplit (/ x w 0.01) container layout min max)))
+                  (lambda ())
+                  "move"))
       (setf container."data-resize"
             (lambda (x0 y0 x1 y1)
               (set-coords layout 0 0 (- x1 x0) (- y1 y0))))
@@ -766,17 +773,16 @@
                      (dom splitter)
                      weight: (- 100 split)
                      (dom b))))
-      (setf splitter.onmousedown
-            (lambda (event)
-              (event.preventDefault)
-              (event.stopPropagation)
-              (tracking (lambda (x y)
-                          (declare (ignorable x))
-                          (let ((h container.offsetHeight))
-                            (decf y (second (element-pos container)))
-                            (setsplit (/ y h 0.01) container layout min max)))
-                        (lambda ())
-                        "move")))
+      (set-handler splitter onmousedown
+        (event.preventDefault)
+        (event.stopPropagation)
+        (tracking (lambda (x y)
+                    (declare (ignorable x))
+                    (let ((h container.offsetHeight))
+                      (decf y (second (element-pos container)))
+                      (setsplit (/ y h 0.01) container layout min max)))
+                  (lambda ())
+                  "move"))
       (setf container."data-resize"
             (lambda (x0 y0 x1 y1)
               (set-coords layout 0 0 (- x1 x0) (- y1 y0))))
@@ -891,10 +897,10 @@
                                          fontWeight "normal"
                                          cursor "pointer")))
                   (setf closer.innerHTML "&nbsp;×")
-                  (setf closer.onmousedown (lambda (event)
-                                             (event.stopPropagation)
-                                             (event.preventDefault)
-                                             (remove (index tab tabs))))
+                  (set-handler closer onmousedown
+                    (event.stopPropagation)
+                    (event.preventDefault)
+                    (remove (index tab tabs)))
                   (append-child tab closer)))
               (append-child tabbed tab)
               (push tab tabs)
@@ -1232,9 +1238,9 @@
                          backgroundColor (css-color col)
                          color (if (< luma 512) "#FFFFFF" "#000000")))
             true))
-    (setf x.lastChild.onkeyup #'update-style)
-    (setf x.lastChild.onfocus #'update-style)
-    (setf x.lastChild.onblur #'update-style)
+    ((node x).addEventListener "keyup" #'update-style)
+    ((node x).addEventListener "focus" #'update-style)
+    ((node x).addEventListener "blur" #'update-style)
     (setf x.update-style #'update-style)
     x))
 
@@ -1339,7 +1345,8 @@
                         (dotimes (j 7)
                           (setf (aref cells i j).textContent "")
                           (setf (aref cells i j).style.backgroundColor "#FFFFFF")
-                          (setf (aref cells i j).onmousedown null)))
+                          (when (aref cells i j).data-handler
+                            (unset-handler (aref cells i j).data-handler))))
                       (let ((x (d.getDay)))
                         (dolist (i (range 1 7))
                           (dolist (j (range x 7))
@@ -1356,9 +1363,10 @@
                                                              "#FFFF80"
                                                              "#FFFFFF"))
                               (let ((dd (date (d.getTime))))
-                                (set-handler (aref cells i j) onmousedown
-                                  (setf selection dd)
-                                  (hide-window w)))
+                                (setf (aref cells i j).data-handler
+                                      (set-handler (aref cells i j) onmousedown
+                                        (setf selection dd)
+                                        (hide-window w))))
                               (d.setDate (1+ (d.getDate)))))
                           (setf x 0))))))
     (declare (ignorable current-month))
@@ -1572,7 +1580,7 @@
 
         element-pos event-pos relative-pos
         show hide
-        set-handler
+        set-handler unset-handler
         tracking dragging
         dom dom-replace
         window

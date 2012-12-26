@@ -210,8 +210,8 @@
               (let ((sdiv (create-element "div")))
                 (setf sdiv.textContent ~"{file}:{from}-{to}")
                 (append-child cstack sdiv)
-                (setf sdiv.onclick (lambda ()
-                                     (show-source file from to)))))
+                (set-handler sdiv onclick
+                  (show-source file from to))))
             (dolist (w ww)
               (let ((wdiv (create-element "div")))
                 (setf wdiv.textContent w)
@@ -221,9 +221,9 @@
             (let ((r (create-element "div")))
               (setf r.textContent ~"{file}:{from}-{to}")
               (append-child breakpoints r)
-              (setf r.onclick (lambda ()
-                                (remove-child breakpoints r)
-                                (debugged_i `(remove-breakpoint ',(list file from to))))))))
+              (set-handler r onclick
+                (remove-child breakpoints r)
+                (debugged_i `(remove-breakpoint ',(list file from to)))))))
     (set-layout w (V border: 8 spacing: 8
                      size: 40
                      (H (dom step) (dom cont) (dom load))

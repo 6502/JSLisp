@@ -73,8 +73,8 @@
 
 (defmethod edit (e editor) (node? e)
   (let** ((w (window 0 0 400 300 title: "Table properties"))
-          (text (add-widget w (input "text")))
-          (color (add-widget w (css-color-input "preferred color")))
+          (text (add-widget w (input "text" autofocus: true)))
+          (color (add-widget w (css-color-input "color")))
           (fields (add-widget w (text-area "fields")))
           (ok (add-widget w (button "OK" #'ok)))
           (cancel (add-widget w (button "Cancel" #'cancel)))
@@ -94,7 +94,7 @@
             (hide-window w)))
     (set-layout w (V border: 8 spacing: 8
                      size: 40
-                     (H (dom text) size: 110 (dom color))
+                     (H (dom text) size: 120 (dom color))
                      size: undefined
                      (dom fields)
                      size: 30
@@ -102,8 +102,7 @@
     (setf (text text) e.text)
     (setf (text color) e.color)
     (setf (text fields) (join e.fields "\n"))
-    (show-window w center: true)
-    (focus text)))
+    (show-window w center: true)))
 
 (defmethod hit2 (e x y editor) (node? e)
   (when (and (<= e.x x (+ e.x e.width))
@@ -244,13 +243,11 @@
                               (/= canvas.height editor.offsetHeight))
                       (repaint)))
                   10)
-    (setf canvas.onmousedown
-          (lambda (event)
-            (when (= event.button 0)
-              (mousedown event #'hit))))
-    (setf canvas.oncontextmenu
-          (lambda (event)
-            (mousedown event #'hit2)))
+    (set-handler canvas onmousedown
+      (when (= event.button 0)
+        (mousedown event #'hit)))
+    (set-handler canvas oncontextmenu
+      (mousedown event #'hit2))
     (append-child document.body editor)
     (setf editor.repaint #'repaint)
     (repaint)))

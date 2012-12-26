@@ -27,17 +27,16 @@
                                  "bp" "br" "bn" "bb" "bq" "bk"))
                       (setf (aref pieces x)
                             (let ((img (create-element "img")))
-                              (setf img.onload
-                                    (lambda ()
-                                      (when (= (incf load-count) 12)
-                                        (redraw)
-                                        (redraw-pselect))))
+                              (set-handler img onload
+                                (when (= (incf load-count) 12)
+                                  (redraw)
+                                  (redraw-pselect)))
                               (setf img.src (aref *image-data* x))
                               img)))
                     pieces))
-          (lightsq "#BBCCDD")
-          (darksq "#99AABB")
-          (border "#778899")
+          (lightsq "#DDCCBB")
+          (darksq "#BBAA99")
+          (border "#998877")
           (background "#EEEEEE")
           (#'start ()
             (parse-fen "rnbqkbnr/
@@ -185,7 +184,7 @@
                    (setf x 0)
                    (incf y)))))
             (redraw)))
-    (setf w.client.onmousedown #'mousedown)
+    (w.client.addEventListener "mousedown" #'mousedown)
     (setf canvas.data-resize #'redraw)
     (setf pselect.data-resize #'redraw-pselect)
     (set-layout w (H border: 8 spacing: 8

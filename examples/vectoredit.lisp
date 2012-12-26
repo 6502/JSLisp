@@ -165,10 +165,10 @@
                 (setf view.zero (xy+ view.zero (xy* p (- oldscale view.scale))))
                 (update)))))
 
-    (setf canvas.onmousedown #'mousedown)
-    (setf canvas.onmousemove #'mousemove)
-    (setf canvas.onmouseup #'mouseup)
-    (setf canvas.onmousewheel #'mousewheel)
+    (canvas.addEventListener "mousedown" #'mousedown)
+    (canvas.addEventListener "mousemove" #'mousemove)
+    (canvas.addEventListener "mouseup" #'mouseup)
+    (canvas.addEventListener "mousewheel" #'mousewheel)
 
     (setf canvas."data-resize" #'redraw)
     (set-layout w (V border: 8 (dom canvas)))
