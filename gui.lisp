@@ -100,8 +100,11 @@
   (let (((elm event handler) x))
     (elm.removeEventListener event handler)))
 
-(defun tracking (f &optional end cursor)
-  "Starts tracking mouse movements with calls to [f] until mouseup and then call [end]"
+(defun tracking (f &optional end cursor zero)
+  "Starts tracking mouse movements with calls to [f] until mouseup and \
+   then call [end] if specified. The parameter [cursor] is the shape \
+   that the cursor should use (e.g. \"move\") and the parameter [zero] \
+   if specified is an [(x y)] point to be use as zero for the coordinates."
   (let ((cover (set-style (create-element "div")
                           position "absolute"
                           zIndex 999999999
@@ -111,26 +114,30 @@
                           px/right 0
                           px/bottom 0
                           opacity 0.001
-                          backgroundColor "#000000")))
-    (set-handler cover oncontextmenu
-                 (when cover.parentNode
+                          backgroundColor "#000000"))
+        (zx (if zero (first zero) 0))
+        (zy (if zero (second zero) 0)))
+    (labels ((call (f event)
                    (event.preventDefault)
-                   (event.stopPropagation)))
-    (set-handler cover onmousemove
-                 (when cover.parentNode
-                   (event.preventDefault)
-                   (apply f (event-pos event))))
-    (set-handler cover onmouseup
-                 (when cover.parentNode
-                   (hide cover)
-                   (when end
-                     (apply end (event-pos event)))))
-    (set-handler cover onmouseout
-                 (when cover.parentNode
-                   (hide cover)
-                   (when end
-                     (apply end (event-pos event)))))
-    (show cover)))
+                   (event.stopPropagation)
+                   (let (((xx yy) (event-pos event)))
+                     (funcall f (- xx zx) (- yy zy)))))
+      (set-handler cover oncontextmenu
+        (when cover.parentNode
+          (event.preventDefault)
+          (event.stopPropagation)))
+      (set-handler cover onmousemove
+        (when cover.parentNode
+          (call f event)))
+      (set-handler cover onmouseup
+        (when cover.parentNode
+          (hide cover)
+          (call end event)))
+      (set-handler cover onmouseout
+        (when cover.parentNode
+          (hide cover)
+          (call end event)))
+      (show cover))))
 
 (defun dragging (div x0 y0)
   "Starts dragging an absolute DOM element starting from position [(x0, y0)]"

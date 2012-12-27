@@ -161,8 +161,8 @@
 
 (defmethod draw (e ctx editor) (link? e)
   (declare (ignorable editor))
-  (setf ctx.strokeStyle "#CCCCCC")
-  (setf ctx.lineWidth 8)
+  (setf ctx.strokeStyle "#DDDDDD")
+  (setf ctx.lineWidth 6)
   (ctx.beginPath)
   (enumerate (i (x y) (link-geometry e))
     (if (= i 0)
@@ -212,6 +212,7 @@
 (defun main ()
   (let** ((editor (set-style (create-element "div")
                              position "absolute"
+                             overflow "hidden"
                              px/left 0
                              px/top 0
                              px/right 0
@@ -230,7 +231,7 @@
                          px/height h)
               (setf canvas.width w)
               (setf canvas.height h)
-              (setf ctx.fillStyle "#CCCCCC")
+              (setf ctx.fillStyle "#DDDDDD")
               (ctx.fillRect 0 0 w h)
               (dolist (e entities)
                 (draw e ctx editor))))
@@ -243,17 +244,13 @@
                   (progn
                     (funcall handler x y 'down)
                     (tracking (lambda (xx yy)
-                                (let (((x0 y0) (element-pos canvas)))
-                                  (decf xx x0)
-                                  (decf yy y0)
-                                  (funcall handler xx yy 'move)
-                                  (repaint)))
+                                (funcall handler xx yy 'move)
+                                (repaint))
                               (lambda (xx yy)
-                                (let (((x0 y0) (element-pos canvas)))
-                                  (decf xx x0)
-                                  (decf yy y0)
-                                  (funcall handler xx yy 'up)
-                                  (repaint)))))
+                                (funcall handler xx yy 'up)
+                                (repaint))
+                              null
+                              (element-pos canvas)))
                   (when (= hitf #'hit2)
                     (push (make-node x: x y: y list: entities)
                           entities)
