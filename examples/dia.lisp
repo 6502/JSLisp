@@ -1,17 +1,41 @@
 (import * from gui)
 (import * from layout)
 
+(defvar *font* "bold 16px Arial")
+
 (defobject node
-           ((text "<new node>")
+           ((text* "<new node>")
             (fields (list))
             (color "#FFFFFF")
             (x 100)
             (y 100)
-            (width 80)
-            (height 30)
             (outgoing (list))
             (incoming (list))
+            (cached-size null)
             (list (error "Container is required"))))
+
+(defun calc-size (e)
+  (let* ((c (create-element "canvas"))
+         (ctx (c.getContext "2d")))
+    (setf ctx.font *font*)
+    (let ((sz (ctx.measureText e.text)))
+      (list (+ sz.width 16) (+ 16 16)))))
+
+(defproperty node width
+             (first (or this.cached-size
+                        (setf this.cached-size (calc-size this))))
+             (error "Cannot set node width"))
+
+(defproperty node height
+             (second (or this.cached-size
+                         (setf this.cached-size (calc-size this))))
+             (error "Cannot set node height"))
+
+(defproperty node text
+             this.text*
+             (progn
+               (setf this.cached-size null)
+               (setf this.text* value)))
 
 (defobject link ((from (error "From table is required"))
                  (to (error "Target table is required"))
@@ -53,7 +77,7 @@
   (ctx.closePath)
   (ctx.fill)
   (ctx.stroke)
-  (setf ctx.font "bold 16px Arial")
+  (setf ctx.font *font*)
   (setf ctx.fillStyle "#000000")
   (setf ctx.textBaseline "top")
   (let ((w (ctx.measureText e.text).width))
@@ -231,11 +255,7 @@
                                   (funcall handler xx yy 'up)
                                   (repaint)))))
                   (when (= hitf #'hit2)
-                    (push (make-node x: (- x 60)
-                                     y: (- y 15)
-                                     width: 120
-                                     height: 30
-                                     list: entities)
+                    (push (make-node x: x y: y list: entities)
                           entities)
                     (repaint))))))
     (set-interval (lambda ()
