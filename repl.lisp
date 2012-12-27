@@ -295,6 +295,17 @@
          (setf (text w) (slice (text w) 0 -1))
          (setf (node w).scrollTop (node w).scrollHeight)
          false)
+        ((and event.ctrlKey (= event.which #.(char-code "V")))
+         (let ((current (text w)))
+           (set-timeout
+             (lambda ()
+               (let ((new (text w)))
+                 (when (and (> (length new) (length current))
+                            (= (slice new 0 (length current)) current)
+                            (null? exit-code))
+                   (terminal-send t (slice new (length current))))))
+             100))
+         true)
         (true true)))
     (set-handler (node w) onkeypress
       (when (and event.charCode (null? exit-code))
@@ -303,7 +314,8 @@
         (setf (node w).scrollTop (node w).scrollHeight)
         (event.preventDefault)
         (event.stopPropagation)
-        (when (= event.charCode 13)
+        (when (or (= event.charCode 13) ;; CR
+                  (= event.charCode 4)) ;; Ctrl-D
           (set-timeout #'update 100))))
     (setf i (set-interval #'update 1000))
     (setf w.remove (lambda ()
@@ -326,6 +338,7 @@
                          (progn
                            (terminal-detach t)
                            true))))
+    (set-timeout #'update 100)
     w))
 
 (defun main ()
