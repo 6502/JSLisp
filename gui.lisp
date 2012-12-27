@@ -120,8 +120,9 @@
     (labels ((call (f event)
                    (event.preventDefault)
                    (event.stopPropagation)
-                   (let (((xx yy) (event-pos event)))
-                     (funcall f (- xx zx) (- yy zy)))))
+                   (when f
+                     (let (((xx yy) (event-pos event)))
+                       (funcall f (- xx zx) (- yy zy))))))
       (set-handler cover oncontextmenu
         (when cover.parentNode
           (event.preventDefault)
