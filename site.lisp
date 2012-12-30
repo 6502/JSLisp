@@ -328,6 +328,6 @@ show('About');
             (display (generate-site))))
     (eval '(progn
             (parse-site (http-get "site.txt"))
-            (set-timeout (lambda (&rest args)
+            (set-timeout (lambda ()
                            (funcall (. document write) (generate-site)))
              0))))
