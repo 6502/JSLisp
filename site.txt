@@ -220,7 +220,7 @@ problem.
 (*) Simplicity is used with the meaning of "obvious" and that doesn't
 need hard thinking or further explanations. For humans for example
 counting concept is simple, and Peano axiomatic constructions of
-finite ordinals it's not, even if the latter is in a formal sense
+finite ordinals is not, even if the latter is in a formal sense
 "simpler" than counting.
 
 When a human thinks to a sequence of three objects, it's just that:
