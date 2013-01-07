@@ -633,6 +633,8 @@
     (append-child container select)
     (setf container.% #'select)
     (setf container.node select)
+    (set-handler select onkeydown
+      (check-default-actions container.parentNode event))
     container))
 
 (def-accessor #'select caption widget.firstChild.textContent)
