@@ -3,7 +3,7 @@
 
 (setf *font* "\"Droid Sans Mono\",\"Courier New\",\"Courier\",monospace")
 (setf *fontsz* 18)
-(setf *line* 20)
+(setf *line* 21)
 
 (defun font (ctx opts)
   (let ((font ""))
