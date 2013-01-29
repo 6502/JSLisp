@@ -3,7 +3,7 @@
 
 (setf *font* "\"Droid Sans Mono\",\"Courier New\",\"Courier\",monospace")
 (setf *fontsz* 18)
-(setf *line* 20)
+(setf *line* 21)
 
 (defun font (ctx opts)
   (let ((font ""))
@@ -156,6 +156,25 @@
     (setf (checked regexp) last-regexp)
     (set-timeout (lambda () (search.lastChild.focus)) 10)
     (show-window w center: true)))
+
+(defun goto-line (f)
+  (let** ((w (window 0 0 300 140 title: "Goto line" close: false))
+          (line (add-widget w (input "line" autofocus: true)))
+          (ok (add-widget w (button "OK" #'ok)))
+          (cancel (add-widget w (button "Cancel" #'cancel)))
+          (#'ok ()
+            (let ((n (atoi (text line))))
+              (when n
+                (hide-window w)
+                (funcall f n))))
+          (#'cancel ()
+            (hide-window w)
+            (funcall f null)))
+    (set-layout w (V border: 8 spacing: 8
+                     size: 40 (dom line)
+                     :filler: size: 30
+                     (H :filler: size: 80 (dom ok) (dom cancel) :filler:)))
+    (show-window w center: true modal: true)))
 
 (defun editor (name content &optional (mode nullmode))
   (macrolet ((mutate (redo undo)
@@ -735,6 +754,17 @@
                               (when (or event.ctrlKey event.altKey event.metaKey)
                                 (clipboard-paste))
                               (setf block false))
+                           (#.(char-code "L")
+                              (if event.ctrlKey
+                                  (goto-line (lambda (L)
+                                               (when (and L (<= 1 L (1+ (length lines))))
+                                                 (setf row (1- L))
+                                                 (setf col 0)
+                                                 (setf s-row (1- L))
+                                                 (setf s-col 0)
+                                                 (fix))
+                                               (focus frame)))
+                                  (setf block false)))
                            (9
                              (indent-selection))
                            (191
