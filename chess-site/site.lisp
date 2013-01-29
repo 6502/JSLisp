@@ -20,8 +20,7 @@
                            ! *colonna 1 ! *colonna 2
                            ! dato 1     ! dato 2
                            ! =centrato  ! >destra
-
-                           [children]")
+                           ")
                  (children (list))))
 
 (defun tag (txt)
@@ -73,12 +72,13 @@
     (true "<span style=\"color:#F00\">**INVALID TAG**</span>")))
 
 (defun format (txt)
+  (setf txt (replace txt "\r" ""))
   (setf txt (htm txt))
   (setf txt (replace txt "^ *$" ""))
   (setf txt (replace txt "\\n([!-]) " "\n\n$1 "))
   (setf txt (replace txt
-                     "^([^\\n]*)\\n==+\\n"
-                     "[h $1]\n"))
+                     "(^|\\n)([^\\n]*)\\n==+(\\n|$)"
+                     "$1[h $2]$3"))
   (setf txt (replace txt
                      "\\*\\*([^*]+)\\*\\*"
                      "[b $1]"))
@@ -129,9 +129,9 @@
                        margin-right: auto;
                        max-width: 400px;
                        display: block }
-         body \\{ font-family: Arial;
-                  font-size: 16px;
-                  color: #000040 }
+         div.preview \\{ font-family: Arial;
+                         font-size: 16px;
+                         color: #000040 }
          table \\{ border-collapse: collapse; }
          li \\{ margin-bottom: 0.5em; }
          td \\{ border: solid 1px #000000;
@@ -145,14 +145,16 @@
       </div>"))
 
 (defun edit-page (page &optional cback)
-  (let** ((w (window 0 0 0.75 0.75 title: "Editing pagina"))
+  (let** ((w (window 0 0 0.9 0.9 title: "Editing pagina"))
           (title (add-widget w (input "titolo")))
           (date (add-widget w (button "date" #'date)))
           (commenti (add-widget w (checkbox "Accetta commenti")))
-          (text (add-widget w (text-area "Sorgente")))
-          (html (add-widget w (set-style (create-element "div")
-                                         overflow "auto"
-                                         backgroundColor "#EEEEEE")))
+          (text (text-area "Sorgente"))
+          (html (set-style (create-element "div")
+                           position "absolute"
+                           overflow "auto"
+                           backgroundColor "#EEEEEE"))
+          (hs (add-widget w (h-splitter text html split: 100)))
           (ok (add-widget w (button "OK" #'ok)))
           (cancel (add-widget w (button "Annulla" #'cancel cancel: true)))
           (last-text null)
@@ -165,22 +167,22 @@
           (#'cancel ()
             (hide-window w)
             (when cback (funcall cback false))))
-    (set-layout w (H border: 8 spacing: 8
-                     (V size: 40
-                        (H (dom title)
-                           size: 60
-                           (V :filler: size: 28 (dom date)))
-                        size: 20
-                        (H (dom commenti))
-                        size: undefined
-                        (dom text)
-                        size: 30
-                        (H :filler:
-                           size: 80
-                           (dom ok)
-                           (dom cancel)
-                           :filler:))
-                     (dom html)))
+    (setf html.className "preview")
+    (set-layout w (V border: 8 spacing: 8
+                     size: 40
+                     (H (dom title)
+                        size: 60
+                        (V :filler: size: 28 (dom date)))
+                     size: 20
+                     (H (dom commenti))
+                     size: undefined
+                     (dom hs)
+                     size: 30
+                     (H :filler:
+                        size: 80
+                        (dom ok)
+                        (dom cancel)
+                        :filler:)))
     (let ((t (set-interval (lambda ()
                              (when (/= last-text (text text))
                                (setf last-text (text text))
@@ -193,7 +195,7 @@
     (show-window w center: true)))
 
 (defun site-editor ()
-  (let** ((w (window 0 0 0.75 0.75 title: "Site editor"))
+  (let** ((w (window 0 0 0.9 0.9 title: "Site editor"))
           (treeview (add-widget w (set-style (create-element "div")
                                              overflow "auto"
                                              backgroundColor "#EEEEEE")))
