@@ -450,7 +450,7 @@
         (lambda (f)
           (let ((editor (src-tab f (or (get-file f) ""))))
             (sources.add f editor true)
-            (setf editor.remove
+            (setf editor.remove?
                   (lambda ()
                     (if (editor.modified)
                         (progn

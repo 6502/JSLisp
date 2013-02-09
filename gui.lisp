@@ -921,8 +921,8 @@
               (when (= (length pages) 1)
                 (select 0))))
           (#'remove (index)
-            (when (or (not (aref pages index).remove)
-                      (funcall (aref pages index).remove))
+            (when (or (not (aref pages index).remove?)
+                      (funcall (aref pages index).remove?))
               (if (= (length pages) 1)
                   (progn
                     (setf pages (list))
