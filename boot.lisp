@@ -2941,26 +2941,6 @@ A field is either an unevaluated symbol, a number, a string or an (evaluated) fo
                   (true (+ res "[" (str-value x) "]")))))
     `(js-code ,res)))
 
-;; Funcall specialization for (funcall (. a b) ...) to avoid wrapper creation
-(setf (symbol-macro 'funcall)
-      (let ((om (symbol-macro 'funcall)))
-        (lambda (f &rest args)
-          (if (and (list? f)
-                   (= (first f) '.)
-                   (= (length f) 3))
-              `(js-code ,(+ (js-compile (second f))
-                            "."
-                            (symbol-name (third f))
-                            "("
-                            (let ((sep "")
-                                  (res ""))
-                              (dolist (x args)
-                                (setf res (+ res sep (js-compile x)))
-                                (setf sep ","))
-                              res)
-                            ")"))
-              (apply om (append (list f) args))))))
-
 (defmacro js-object (&rest body)
   "Creates a javascript object and eventually assigns fields in [body].
 Each field is either a list (name value) or just a name (associated to null).
