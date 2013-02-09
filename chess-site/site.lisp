@@ -31,6 +31,8 @@
      ~"<h2>{(slice txt 2)}</h2>")
     ((= (slice txt 0 2) "i ")
      ~"<img class=\"image\" src=\"{(slice txt 2)}\">")
+    ((= (slice txt 0 4) "pgn ")
+     ~"</p><div class=\"chessboard\">{(slice txt 4)}</div><p>")
     ((= (slice txt 0 4) "fen ")
      (let* ((sz 32)
             (res ~"<div style=\"margin-left:auto; margin-right:auto; \
@@ -123,15 +125,16 @@
               (setf li false)
               (incf res "</ul>"))
             (incf res ~"<p>{p}</p>")))))
-    ~"<div>
+    ~"<!DOCTYPE html>
+      <html><head>
       <style type=\"text/css\">
          img.image \\{ margin-left: auto;
                        margin-right: auto;
                        max-width: 400px;
                        display: block }
-         div.preview \\{ font-family: Arial;
-                         font-size: 16px;
-                         color: #000040 }
+         body \\{ font-family: Arial;
+                  font-size: 16px;
+                  color: #000040 }
          table \\{ border-collapse: collapse; }
          li \\{ margin-bottom: 0.5em; }
          td \\{ border: solid 1px #000000;
@@ -141,8 +144,12 @@
                 padding: 8px;
                 text-align: center; }
       </style>
+      <script src=\"chessboard.js\"></script>
+      </head>
+      <body>
       {res}
-      </div>"))
+      </body>
+      </html>"))
 
 (defun edit-page (page &optional cback)
   (let** ((w (window 0 0 0.9 0.9 title: "Editing pagina"))
@@ -150,7 +157,7 @@
           (date (add-widget w (button "date" #'date)))
           (commenti (add-widget w (checkbox "Accetta commenti")))
           (text (text-area "Sorgente"))
-          (html (set-style (create-element "div")
+          (html (set-style (create-element "iframe")
                            position "absolute"
                            overflow "auto"
                            backgroundColor "#EEEEEE"))
@@ -167,7 +174,6 @@
           (#'cancel ()
             (hide-window w)
             (when cback (funcall cback false))))
-    (setf html.className "preview")
     (set-layout w (V border: 8 spacing: 8
                      size: 40
                      (H (dom title)
@@ -186,7 +192,11 @@
     (let ((t (set-interval (lambda ()
                              (when (/= last-text (text text))
                                (setf last-text (text text))
-                               (setf html.innerHTML (format last-text))))
+                               (let ((page (format last-text)))
+                                 (setf html.contentWindow.document.body.innerHTML "")
+                                 (html.contentWindow.document.write page)
+                                 (when (find "\"chessboard\"" page)
+                                   (alert page)))))
                            1000)))
       (setf w.close-cback (lambda () (clear-interval t))))
     (setf (text title) page.title)
