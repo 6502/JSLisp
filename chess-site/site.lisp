@@ -20,6 +20,32 @@
                            ! *colonna 1 ! *colonna 2
                            ! dato 1     ! dato 2
                            ! =centrato  ! >destra
+
+                           [[fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR]]
+
+                           [[pgn
+                           [Event \"Ch World (cities) (team) (KO-system)\"]
+                           [Site \"Al-Ain (United Arab Emirates)\"]
+                           [Date \"2012.12.26\"]
+                           [Round \"5\"]
+                           [White \"Banikas Hristos (GRE)\"]
+                           [Black \"Kvon Andrey (UZB)\"]
+                           [Result \"1/2-1/2\"]
+                           [ECO \"D19\"]
+                           [WhiteElo \"2620\"]
+                           [BlackElo \"2501\"]
+                           [ID \"\"]
+                           [FileName \"\"]
+                           [Annotator \"\"]
+                           [Source \"\"]
+                           [Remark \"\"]
+
+                           1.d4 d5 2.c4 c6 3.Nf3 Nf6 4.Nc3 dxc4 5.a4 Bf5 6.e3 e6 7.Bxc4
+                           Bb4 8.O-O Nbd7 9.Qe2 Bg6 10.e4 O-O 11.Bd3 Re8 12.Bf4 Bh5 13.e5
+                           Nd5 14.Nxd5 cxd5 15.Qe3 a6 16.Ng5 Bg6 17.Bxg6 fxg6 18.Qd3 Nf8
+                           19.Rfc1 Be7 20.Nf3 Qd7 21.b3 Rec8 22.h4 Rxc1+ 23.Rxc1 Rc8 24.Rc2
+                           Rc6 25.Bg5 Bb4 26.Bd2 Be7 27.Bg5 Bb4 28.Bd2 Be7 1/2-1/2
+                           ]]
                            ")
                  (children (list))))
 
@@ -31,8 +57,10 @@
      ~"<h2>{(slice txt 2)}</h2>")
     ((= (slice txt 0 2) "i ")
      ~"<img class=\"image\" src=\"{(slice txt 2)}\">")
-    ((= (slice txt 0 4) "pgn ")
-     ~"</p><div class=\"chessboard\">{(slice txt 4)}</div><p>")
+    ((= (slice txt 0 3) "pgn")
+     (+ "</p><div class=\"chessboard\">"
+        (replace (slice txt 3) "\\n" " ")
+        "</div><p>"))
     ((= (slice txt 0 4) "fen ")
      (let* ((sz 32)
             (res ~"<div style=\"margin-left:auto; margin-right:auto; \
@@ -62,7 +90,7 @@
            (incf res ~"<div style=\"width:{sz}px; height:{sz}px; display:inline-block; \
                        background-color:{(if (odd? (+ y x)) a b)}\">")
            (when (aref pos y x)
-             (incf res ~"<img src=\"examples/img/{(aref pos y x)}.png\" width={sz} height={sz}>"))
+             (incf res ~"<img src=\"http://127.0.0.1:1337/examples/img/{(aref pos y x)}.png\" width={sz} height={sz}>"))
            (incf res ~"</div>"))
          (incf res ~"</div>"))
        (incf res ~"</div>")))
@@ -80,13 +108,13 @@
   (setf txt (replace txt "\\n([!-]) " "\n\n$1 "))
   (setf txt (replace txt
                      "(^|\\n)([^\\n]*)\\n==+(\\n|$)"
-                     "$1[h $2]$3"))
+                     "$1[[h $2]]$3"))
   (setf txt (replace txt
                      "\\*\\*([^*]+)\\*\\*"
-                     "[b $1]"))
-  (setf txt (replace txt "\\[([^\\]]*)\\]"
+                     "[[b $1]]"))
+  (setf txt (replace txt "\\[\\[(([^\\]]|\\][^\\]])*)\\]\\]"
                      (lambda (txt)
-                       (tag (slice txt 1 -1)))))
+                       (tag (slice txt 2 -2)))))
   (let ((res "")
         (li false)
         (tab false))
@@ -144,7 +172,7 @@
                 padding: 8px;
                 text-align: center; }
       </style>
-      <script src=\"chessboard.js\"></script>
+      <script src=\"http://127.0.0.1:1337/chessboard.js\"></script>
       </head>
       <body>
       {res}
@@ -193,10 +221,8 @@
                              (when (/= last-text (text text))
                                (setf last-text (text text))
                                (let ((page (format last-text)))
-                                 (setf html.contentWindow.document.body.innerHTML "")
-                                 (html.contentWindow.document.write page)
-                                 (when (find "\"chessboard\"" page)
-                                   (alert page)))))
+                                 (setf html.src (+ "data:text/html;charset=utf-8,"
+                                                   page)))))
                            1000)))
       (setf w.close-cback (lambda () (clear-interval t))))
     (setf (text title) page.title)
