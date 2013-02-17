@@ -209,7 +209,10 @@
                                                               px/fontSize 18
                                                               fontFamily "monospace"
                                                               whiteSpace "pre"
+                                                              cursor "pointer"
                                                               px/padding 2))))
+                        (set-handler d onclick
+                          (funcall cback (+ base f)))
                         (setf d.textContent f))))
                   (when (and (> (length filelist) 0)
                              (= (length (text current-path))
