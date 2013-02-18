@@ -935,7 +935,8 @@
                               (add c (+ depth 28))
                               (when (find c closed-nodes)
                                 (append-child container (place n (1+ i) (+ depth 28))))))))))
-              (add container.tree 0))))
+              (when container.tree
+                (add container.tree 0)))))
     (setf container.rebuild #'rebuild)
     (setf container.tree tree)
     (setf container.select-node (lambda (f)
