@@ -856,6 +856,95 @@
       (setf table.% #'table)
       table)))
 
+;; Tree view
+
+(defun tree-view (tree &key (text-of (get .text)) (children-of (get .children)) (closed-nodes (list)))
+  (let** ((container (set-style (create-element "div")
+                                backgroundColor "#EEEEEE"
+                                overflow "auto"))
+          (select-nodes null)
+          (select-places null)
+          (#'rebuild ()
+            (do () ((not container.firstChild))
+              (remove-child container container.firstChild))
+            (let** ((#'add (n depth)
+                      (let ((row (create-element "div")))
+                        (set-style row
+                                   px/paddingLeft (+ 4 depth)
+                                   px/paddingTop 2
+                                   px/paddingBottom 2
+                                   px/fontSize 16
+                                   cursor "default"
+                                   fontFamily "monospace"
+                                   fontWeight "bold")
+                        (set-handler row onmouseover
+                          (when select-nodes
+                            (set-style row backgroundColor "#FF0000")))
+                        (set-handler row onmouseout
+                          (set-style row backgroundColor ""))
+                        (set-handler row onmousedown
+                          (event.preventDefault)
+                          (event.stopPropagation)
+                          (when select-nodes
+                            (let ((f select-nodes))
+                              (setf select-nodes null)
+                              (funcall f n)))
+                          false)
+                        (let ((expander (create-element "span")))
+                          (set-style expander
+                                     cursor "default"
+                                     backgroundColor "#FFFFFF"
+                                     px/paddingLeft 3
+                                     px/paddingRight 3
+                                     px/marginRight 9
+                                     border "solid 1px #000000")
+                          (setf expander.textContent
+                                (if (find n closed-nodes) "+" "-"))
+                          (set-handler expander onmousedown
+                            (event.preventDefault)
+                            (event.stopPropagation)
+                            (if (find n closed-nodes)
+                                (nremove n closed-nodes)
+                                (push n closed-nodes))
+                            (rebuild)
+                            false)
+                          (append-child row expander))
+                        (append-child row (document.createTextNode (funcall text-of n)))
+                        (append-child container row)
+                        (let** ((#'place (parent index d)
+                                  (let ((place (set-style (create-element "div")
+                                                          px/marginLeft d
+                                                          px/height 4)))
+                                    (set-handler place onmouseover
+                                      (when select-places
+                                        (set-style place backgroundColor "#FF0000")))
+                                    (set-handler place onmouseout
+                                      (set-style place backgroundColor ""))
+                                    (set-handler place onmousedown
+                                      (event.preventDefault)
+                                      (event.stopPropagation)
+                                      (when select-places
+                                        (let ((f select-places))
+                                          (setf select-places null)
+                                          (funcall f parent index)))
+                                      false)
+                                    place)))
+                          (unless (find n closed-nodes)
+                            (append-child container (place n 0 (+ depth 28)))
+                            (enumerate (i c n.children)
+                              (add c (+ depth 28))
+                              (when (find c closed-nodes)
+                                (append-child container (place n (1+ i) (+ depth 28))))))))))
+              (add container.tree 0))))
+    (setf container.rebuild #'rebuild)
+    (setf container.tree tree)
+    (setf container.select-node (lambda (f)
+                                  (setf select-nodes f)))
+    (setf container.select-place (lambda (f)
+                                   (setf select-places f)))
+    (rebuild)
+    container))
+
 ;; Tab control
 
 (defun tabbed ()
@@ -1602,6 +1691,7 @@
         input-with-help date-input text-area group
         css-color-input static-text select
         table tabbed h-splitter v-splitter
+        tree-view
 
         caption set-caption
         text set-text
