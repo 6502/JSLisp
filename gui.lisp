@@ -890,6 +890,7 @@
                               (let ((f select-nodes))
                                 (setf select-nodes null)
                                 (funcall f n)))
+                            (select-places)
                             (onclick
                               (funcall onclick n)))
                           false)
