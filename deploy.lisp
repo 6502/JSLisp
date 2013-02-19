@@ -48,6 +48,7 @@ reverse engineering point of view.
                    (+ (nstr (floor (/ x 62)))
                       (nstr (% x 62)))))
              (newlit (x)
+               (setf x (replace x "</script" "<\\u002Fscript"))
                (or (aref lits x)
                    (let ((n (+ "_" (nstr (1- (incf litcount))))))
                      (setf (aref rlits n) x)
