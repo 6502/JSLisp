@@ -858,7 +858,7 @@
 
 ;; Tree view
 
-(defun tree-view (tree &key (text-of (get .text)) (children-of (get .children)) (closed-nodes (list)))
+(defun tree-view (tree &key onclick (text-of (get .text)) (children-of (get .children)) (closed-nodes (list)))
   (let** ((container (set-style (create-element "div")
                                 backgroundColor "#EEEEEE"
                                 overflow "auto"))
@@ -885,10 +885,13 @@
                         (set-handler row onmousedown
                           (event.preventDefault)
                           (event.stopPropagation)
-                          (when select-nodes
-                            (let ((f select-nodes))
-                              (setf select-nodes null)
-                              (funcall f n)))
+                          (cond
+                            (select-nodes
+                              (let ((f select-nodes))
+                                (setf select-nodes null)
+                                (funcall f n)))
+                            (onclick
+                              (funcall onclick n)))
                           false)
                         (let ((expander (create-element "span")))
                           (set-style expander

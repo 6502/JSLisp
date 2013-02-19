@@ -19,19 +19,16 @@
                             (node "3.2")
                             (node "3.3")
                             (node "3.4"))))
-          (tw (add-widget w (tree-view tree)))
-          (edit (add-widget w (button "Edit" #'edit)))
+          (tw (add-widget w (tree-view tree onclick: #'edit)))
           (add (add-widget w (button "Add" #'add)))
           (cut (add-widget w (button "Cut" #'cut)))
           (paste (add-widget w (button "Paste" #'paste)))
           (clipboard null)
-          (#'edit ()
-            (baloon "Select node")
-            (tw.select-node (lambda (n)
-                              (let ((name (prompt "New node name?")))
-                                (when name
-                                  (setf n.text name)
-                                  (tw.rebuild))))))
+          (#'edit (n)
+            (let ((name (prompt "New node name?")))
+              (when name
+                (setf n.text name)
+                (tw.rebuild))))
           (#'add ()
             (let ((name (prompt "Node name?")))
               (when name
@@ -61,7 +58,6 @@
                      size: 30
                      (H :filler:
                         size: 80
-                        (dom edit)
                         (dom add)
                         (dom cut)
                         (dom paste)
