@@ -32,16 +32,15 @@
 (defun open-session (user-name)
   "Creates a new session for the specified [user-name]"
   (let ((user (aref *users* user-name))
-        (session-id (join (map (lambda (x)
-                                 (declare (ignorable x))
+        (session-id (join (repeat-collect 20
                                  (aref "abcdefghijklmnopqrstuvwxyz\
                                         ABCDEFGHIJKLMNOPQRSTUVWXYZ\
                                         0123456789"
                                        (random-int (+ 26 26 10))))
-                               (range 20)) "")))
+                          "")))
     (when user
-      (setf (aref *open-sessions* session-id) (new-session user (clock)))
-      session-id)))
+      (setf (aref *open-sessions* session-id) (new-session user (clock))))
+    session-id))
 
 (defun check-authorization (user-name session-id authcode request)
   "Returns the list of authorization tokens of the user \
