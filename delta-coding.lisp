@@ -16,32 +16,67 @@
           (incf best))
         (incf i))))
 
+(defconstant +ALPHABET+ "ABCDEFGHIJKLMNOPQRSTUVWXYZ\
+                         abcdefghijklmnopqrstuvwxyz\
+                         0123456789+/")
+
+(defun encode-uint (x)
+  (if (> x 31)
+      (+ (aref +ALPHABET+ (+ 32 (logand x 31))) (encode-uint (ash x -5)))
+      (aref +ALPHABET+ x)))
+
+(defun encode-int (x)
+  (if (< x 0)
+      (encode-uint (1+ (* x -2)))
+      (encode-uint (* x 2))))
+
+(defmacro decode-uint (delta i)
+  (let ((x '#.(gensym))
+        (shift '#.(gensym))
+        (c '#.(gensym)))
+  `(do ((,x 0)
+        (,shift 0)
+        (,c (index (aref ,delta (1- (incf ,i))) +ALPHABET+)))
+     ((< ,c 32) (+ ,x (ash ,c ,shift)))
+     (incf ,x (ash (- ,c 32) ,shift))
+     (incf ,shift 5)
+     (setf ,c (index (aref ,delta (1- (incf ,i))) +ALPHABET+)))))
+
+(defun decode-int (x)
+  (if (logand x 1)
+      (- (ash x -1))
+      (ash x -1)))
+
 (defun delta-encode (current new)
   "Returns a compressed delta needed to compute [new] from [current]"
-  (let ((res (list))
+  (let ((res "")
         (i0 0)
         (i 0))
     (labels ((flush ()
                     (when (> i i0)
-                      (push (slice new i0 i) res)
+                      (incf res (+ (encode-int (- i0 i)) (slice new i0 i)))
                       (setf i0 i))))
       (do () ((>= i (length new)) (flush) res)
         (let (((sz pos) (longest-match (+ current (slice new 0 i)) (slice new i))))
-          (if (<= sz (length ~"{pos} {sz}"))
+          (if (<= sz 4)
               (incf i)
               (progn
                 (flush)
-                (push (list pos sz) res)
+                (incf res (+ (encode-int sz) (encode-uint pos)))
                 (incf i sz)
                 (setf i0 i))))))))
 
 (defun delta-decode (current delta)
   "Returns a new version given [current] and a delta-encoded list of changes [delta]"
-  (let ((res current))
-    (dolist (x delta)
-      (if (string? x)
-          (incf res x)
-          (incf res (slice res (first x) (+ (first x) (second x))))))
-    (slice res (length current))))
+  (do ((res current)
+       (i 0))
+    ((>= i (length delta)) (slice res (length current)))
+    (let ((x1 (decode-int (decode-uint delta i))))
+      (if (< x1 0)
+          (progn
+            (incf res (slice delta i (- i x1)))
+            (decf i x1))
+          (let ((x2 (decode-uint delta i)))
+            (incf res (slice res x2 (+ x1 x2))))))))
 
 (export delta-encode delta-decode)
