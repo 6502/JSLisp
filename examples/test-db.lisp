@@ -1,7 +1,7 @@
 (import * from gui)
 
 (defun remote (x)
-  (parse-value (http-get (+ "eval?" (uri-encode (str-value x false))))))
+  (read (http-get (+ "eval?" (uri-encode (str-value x false))))))
 
 (defun records-window (table)
   (let* ((w (window 0 0 200 300 title: ~"Records {table}"))

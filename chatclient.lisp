@@ -13,9 +13,9 @@
                    (dolist (x (split (uri-decode msg) "\n"))
                      (let ((ix (index ":" x)))
                        (setf last-received
-                             (max last-received (1+ (parse-value (slice x 0 ix)))))
+                             (max last-received (1+ (read (slice x 0 ix)))))
                        (unless stopped
-                         (try (funcall handler (parse-value (slice x (1+ ix)))) null)))))
+                         (try (funcall handler (read (slice x (1+ ix)))) null)))))
                  (http "POST" ~"{server}/receive?{channel}&{last-received}" ""
                        #'process
                        (lambda ()

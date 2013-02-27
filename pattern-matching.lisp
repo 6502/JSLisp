@@ -41,8 +41,8 @@
              *patterns*)
        ',pattern)))
 
-(setf #'parse-value
-      (let ((of #'parse-value))
+(setf #'read
+      (let ((of #'read))
         (lambda (src)
           (let ((x (funcall of src)))
             (when (list? x)

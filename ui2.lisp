@@ -267,7 +267,7 @@
 (setf (reader "$")
       (lambda (src)
         (funcall src 1)
-        `(. *fields* ,(parse-value src) value)))
+        `(. *fields* ,(read src) value)))
 
 (defmacro dialog-store (var)
   (let ((k (gensym)))

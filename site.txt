@@ -361,17 +361,17 @@ transformation could lead to a subjectively more readable code.
                 `(lambda (x) ,form))))))
 ;; ==> #CODE
 
-(parse-value "{x y -> (* x y)}")
+(read "{x y -> (* x y)}")
 ;; ==> (lambda (x y) (* x y))
 
 (map {* x x} (range 10))
 ;; ==> (0 1 4 9 16 25 36 49 64 81)
 ]
 
-### 2) Redefining (wrapping) the [parse-value] predefined function
+### 2) Redefining (wrapping) the [read] predefined function
 
 
-The other option is replacing the [parse-value] function that is used
+The other option is replacing the [read] function that is used
 every time JsLisp needs to read from a character source.
 
 For example consider the same customization as before but using
@@ -380,9 +380,9 @@ to transform the form in an anonymous function depending on the
 presence of a [->] symbol at the form top level (of course the
 implicit [x] version will not be implemented).
 
-[Redefining parse-value
-(setf #'parse-value
-      (let ((oldf #'parse-value))
+[Redefining read
+(setf #'read
+      (let ((oldf #'read))
         (lambda (src)
           (let* ((x (funcall oldf src))
                  (ix (if (list? x)
@@ -394,7 +394,7 @@ implicit [x] version will not be implemented).
                 x)))))
 ;; ==> #CODE
 
-(parse-value "(x y -> (+ x y))")
+(read "(x y -> (+ x y))")
 ;; ==> (lambda (x y) (+ x y))
 
 (map (x -> (* x x)) (range 10))

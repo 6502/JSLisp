@@ -39,7 +39,7 @@
                                                  (setf (aref targets source) (list))))
                                 (push source (or (aref sources target)
                                                  (setf (aref sources target) (list))))))
-                       (try (let ((x (parse-value (slice srctext i))))
+                       (try (let ((x (read (slice srctext i))))
                               (cond
                                 ;; (import <module> [as <nick>])
                                 ((and (or (= (length x) 2)

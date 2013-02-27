@@ -48,7 +48,7 @@ if (typeof window === "undefined")
     var glob = global;
     exports.eval = function (x)
     {
-        return eval(f$$js_compile(f$$parse_value(x)));
+        return eval(f$$js_compile(f$$read(x)));
     };
 
     glob["f$$display"] = f$$display = function(x)
@@ -1185,7 +1185,7 @@ function debug()
         }
         if (cmd.slice(0, 5) == "eval ")
         {
-            f$$toplevel_eval(f$$parse_value(cmd.slice(6)));
+            f$$toplevel_eval(f$$read(cmd.slice(6)));
         }
     }
 }
@@ -1516,7 +1516,7 @@ defun("parse-delimited-list",
           d$$$42_stopchars$42_ += stop;
           while (src.s[src.i] != undefined && src.s[src.i] != stop)
           {
-              res.push(f$$parse_value(src));
+              res.push(f$$read(src));
               f$$skip_spaces(src);
           }
           d$$$42_stopchars$42_ = oldstops;
@@ -1527,7 +1527,7 @@ defun("parse-delimited-list",
       },
       [f$$intern("src"), f$$intern("stop")],
       ["$$$42_stopchars$42_"],
-      ["$$skip_spaces", "$$parse_value"]);
+      ["$$skip_spaces", "$$read"]);
 
 defun("make-source",
       "[[(make-source x)]]\n" +
@@ -1558,7 +1558,7 @@ defun("parse-symbol",
 d$$$42_hash_readers$42_ = { "'": function(src)
                             {
                                 src.i++;
-                                return [f$$intern("function"), f$$parse_value(src)]
+                                return [f$$intern("function"), f$$read(src)]
                             },
 
                             "\\": function(src)
@@ -1570,7 +1570,7 @@ d$$$42_hash_readers$42_ = { "'": function(src)
                             ".": function(src)
                             {
                                 src.i++;
-                                return f$$toplevel_eval(f$$parse_value(src));
+                                return f$$toplevel_eval(f$$read(src));
                             },
 
                             "|": function(src)
@@ -1589,7 +1589,7 @@ d$$$42_hash_readers$42_ = { "'": function(src)
                                         if (src.s[src.i++] == "#") balance--;
                                     }
                                 }
-                                return f$$parse_value(src);
+                                return f$$read(src);
                             }
                           };
 
@@ -1681,13 +1681,13 @@ d$$$42_readers$42_ = { "|": function(src)
                        "'": function(src)
                        {
                            src.i++;
-                           return [f$$intern("quote"), f$$parse_value(src)];
+                           return [f$$intern("quote"), f$$read(src)];
                        },
 
                        "`": function(src)
                        {
                            src.i++;
-                           return [f$$intern("`"), f$$parse_value(src)];
+                           return [f$$intern("`"), f$$read(src)];
                        },
 
                        ",": function(src)
@@ -1696,11 +1696,11 @@ d$$$42_readers$42_ = { "|": function(src)
                            if (src.s[src.i] === '@')
                            {
                                src.i++;
-                               return [f$$intern(",@"), f$$parse_value(src)];
+                               return [f$$intern(",@"), f$$read(src)];
                            }
                            else
                            {
-                               return [f$$intern(","), f$$parse_value(src)];
+                               return [f$$intern(","), f$$read(src)];
                            }
                        },
 
@@ -1746,8 +1746,8 @@ d$$$42_readers$42_ = { "|": function(src)
                        "default": f$$parse_symbol
                      };
 
-defun("parse-value",
-      "[[(parse-value src)]]\n" +
+defun("read",
+      "[[(read src)]]\n" +
       "Parses a value from the given character source or string.",
       function(src)
       {
@@ -1964,7 +1964,7 @@ defun("load",
               while (src.s[src.i])
               {
                   var phase = "parsing";
-                  var form = f$$parse_value(src);
+                  var form = f$$read(src);
                   ++nforms;
                   phase = "toplevel-evaluating";
                   last = f$$toplevel_eval(form);

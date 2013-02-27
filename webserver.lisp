@@ -32,11 +32,11 @@
       (funcall (. response end) content))))
 
 (defun square (x)
-  (let ((value (parse-value x)))
+  (let ((value (read x)))
     (* value value)))
 
 (defun lisp (x)
-  (eval (parse-value (uri-decode x))))
+  (eval (read (uri-decode x))))
 
 (start-server "127.0.0.1" 1337
               #'my-handler)

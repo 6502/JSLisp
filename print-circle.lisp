@@ -19,10 +19,10 @@
                               (undefined? (current-char src)))
                             (next-char src)
                             result)
-                       (push (parse-value src) result)
+                       (push (read src) result)
                        (skip-spaces src)))
                    (setf (aref *read-backpointers* name)
-                         (parse-value src))))))
+                         (read src))))))
     (incf name (current-char src))
     (next-char src)))
 

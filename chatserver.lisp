@@ -42,7 +42,7 @@
   "Receive all messages from [channel] after the specified number"
   (let* ((channel (channel channel-name))
          (messages channel.messages)
-         (skip (max 0 (- (parse-value after) channel.n0))))
+         (skip (max 0 (- (read after) channel.n0))))
     (if (< skip (length messages))
         (let ((reply (list)))
           (do ((id (+ channel.n0 skip) (1+ id))

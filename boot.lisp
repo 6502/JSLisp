@@ -2620,13 +2620,13 @@ The resulting list length is equal to the first input sequence."
        'ampersand)))
    ;; ==> #CODE
 
-   (parse-value \"(&1)\")
+   (read \"(&1)\")
    ;; ==> (ampersand 1)
 
    (setf (reader \"&\") undefined)
    ;; ==> undefined
 
-   (parse-value \"(&1)\")
+   (read \"(&1)\")
    ;; ==> (&1)
    ]]"
   (unless (and (string? char) (= (length char) 1))
@@ -2642,13 +2642,13 @@ The resulting list length is equal to the first input sequence."
        'ampersand)))
    ;; ==> #CODE
 
-   (parse-value \"(#&1)\")
+   (read \"(#&1)\")
    ;; ==> (ampersand 1)
 
    (setf (hash-reader \"&\") undefined)
    ;; ==> undefined
 
-   (parse-value \"(#&1)\")
+   (read \"(#&1)\")
    **ERROR**: Unsupported hash combination
    ]]"
   (unless (and (string? char) (= (length char) 1))
@@ -2677,7 +2677,7 @@ The resulting list length is equal to the first input sequence."
       (lambda (src)
         (next-char src)
         (if (= (current-char src) "\"")
-            (let ((x (parse-value src))
+            (let ((x (read src))
                   (pieces (list))  ; list of parts
                   (part "")        ; current part
                   (expr false)     ; is current part an expression?
@@ -2691,14 +2691,14 @@ The resulting list length is equal to the first input sequence."
                    (setf escape true))
                   ((= c (if expr "}" "{"))
                    (when (> (length part) 0)
-                     (push (if expr (parse-value part) part) pieces)
+                     (push (if expr (read part) part) pieces)
                      (setf part ""))
                    (setf expr (not expr)))
                   (true (incf part c))))
               (if escape
                   (error "Invalid escaping"))
               (if (> (length part) 0)
-                  (push (if expr (parse-value part) part) pieces))
+                  (push (if expr (read part) part) pieces))
               (cond
                 ((= 0 (length pieces)) "")
                 ((= 1 (length pieces)) (aref pieces 0))
@@ -2708,8 +2708,8 @@ The resulting list length is equal to the first input sequence."
 ;; Computed symbol reader macro #"foo{(+ 1 2)}" --> foo3
 (setf (hash-reader "\"")
       (lambda (src)
-        (let ((x (parse-value src)))
-          `(intern ,(parse-value ~"~{(str-value x)}")))))
+        (let ((x (read src)))
+          `(intern ,(read ~"~{(str-value x)}")))))
 
 ;; Math functions
 (defmacro/f sqrt (x) "Square root of [x]"
@@ -2987,8 +2987,8 @@ A name is either an unevaluated atom or an evaluated list."
 
 ;; dot reader
 
-(setf #'parse-value
-      (let ((oldf #'parse-value))
+(setf #'read
+      (let ((oldf #'read))
         (lambda (src)
           (when (string? src)
             (setf src (make-source src)))
@@ -4018,7 +4018,7 @@ A name is either an unevaluated atom or an evaluated list."
                   (rnum (atoi (first args))))
              (return-from interactive-handler (apply (aref x.restarts (aref keys (1- rnum)))
                                                      (map #'eval (rest args))))))
-          (true (incf repl (+ ~"\n{cmd} ==> {(str-value (eval (parse-value cmd)))}"))))))))
+          (true (incf repl (+ ~"\n{cmd} ==> {(str-value (eval (read cmd)))}"))))))))
 
 ;; simple destructuring let
 (setf (symbol-macro 'let)

@@ -40,7 +40,7 @@
                         (setf #'alert (lambda (x) (push (list "a" x) out)))
                         (setf result (try
                                        (str-value (toplevel-eval
-                                                    (parse-value src)))
+                                                    (read src)))
                                        "**ERROR**"))
                         (setf #'alert oa)
                         (setf #'display od)

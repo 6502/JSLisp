@@ -24,7 +24,7 @@
   (js-code "parseFloat(d$$x)"))
 
 (defun web-eval (x)
-  (toplevel-eval (parse-value x)))
+  (toplevel-eval (read x)))
 
 (defun process (url parms data response)
   (display ~"Processing url={url}, parms={parms}, data={data}")
