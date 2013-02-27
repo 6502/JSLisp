@@ -401,7 +401,7 @@ function process()
     f$$skip_spaces(src);
     while (src.s[src.i] != undefined)
     {
-        var parsed = f$$parse_value(src);
+        var parsed = f$$read(src);
         var result = f$$toplevel_eval(parsed);
         d$$$42_$42_$42_ = d$$$42_$42_;
         d$$$42_$42_ = d$$$42_;

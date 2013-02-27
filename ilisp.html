@@ -75,7 +75,7 @@ function keydown(event)
             f$$skip_spaces(src);
             while (src.s[src.i] != undefined)
             {
-                var parsed = f$$parse_value(src);
+                var parsed = f$$read(src);
                 var reply = f$$str_value(f$$toplevel_eval(parsed));
                 repl.value = (repl.value.slice(0, se) +
                               "\n" + reply + "\n" +
@@ -161,7 +161,7 @@ window.onmessage = function(event)
         f$$skip_spaces(src);
         while (src.s[src.i] != undefined)
         {
-            var parsed = f$$parse_value(src);
+            var parsed = f$$read(src);
             var res = f$$toplevel_eval(parsed);
             result.push(res);
             if (event.data.type === "lisp")
