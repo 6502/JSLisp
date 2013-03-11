@@ -134,11 +134,8 @@
         (when cover.parentNode
           (hide cover)
           (call end event)))
-      (set-handler cover onmouseout
-        (when cover.parentNode
-          (hide cover)
-          (call end event)))
-      (show cover))))
+      (show cover)
+      (cover.setCapture))))
 
 (defun dragging (div x0 y0)
   "Starts dragging an absolute DOM element starting from position [(x0, y0)]"
