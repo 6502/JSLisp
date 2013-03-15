@@ -122,20 +122,26 @@
                    (event.stopPropagation)
                    (when f
                      (let (((xx yy) (event-pos event)))
-                       (funcall f (- xx zx) (- yy zy))))))
-      (set-handler cover oncontextmenu
-        (when cover.parentNode
-          (event.preventDefault)
-          (event.stopPropagation)))
-      (set-handler cover onmousemove
-        (when cover.parentNode
-          (call f event)))
-      (set-handler cover onmouseup
-        (when cover.parentNode
-          (hide cover)
-          (call end event)))
-      (show cover)
-      (cover.setCapture))))
+                       (funcall f (- xx zx) (- yy zy)))))
+             (ignore (event)
+                     (event.preventDefault)
+                     (event.stopPropagation))
+             (move (event)
+                   (event.preventDefault)
+                   (event.stopPropagation)
+                   (call f event))
+             (up (event)
+                 (event.preventDefault)
+                 (event.stopPropagation)
+                 (document.removeEventListener "contextmenu" #'ignore true)
+                 (document.removeEventListener "mousemove" #'move true)
+                 (document.removeEventListener "mouseup" #'up true)
+                 (hide cover)
+                 (call end event)))
+      (document.addEventListener "contextmenu" #'ignore true)
+      (document.addEventListener "mousemove" #'move true)
+      (document.addEventListener "mouseup" #'up true)
+      (show cover))))
 
 (defun dragging (div x0 y0)
   "Starts dragging an absolute DOM element starting from position [(x0, y0)]"
