@@ -3493,9 +3493,16 @@ A name is either an unevaluated atom or an evaluated list."
 (defmacro get-element-by-id (id)
   "Returns the DOM element with the specified id value"
   `(document.getElementById ,id))
-(defmacro create-element (type)
-  "Creates a new DOM element with the specified type passed as a string"
-  `(document.createElement ,type))
+(defun create-element (type)
+  "Creates a new DOM element with the specified type passed as a string. \
+   If the string contains a dot then the part after the dot is assigned \
+   to the element class"
+  (let ((ix (index "." type)))
+    (if (>= ix 0)
+        (let ((d ((js-code "document").createElement (slice type 0 ix))))
+          (setf d.className (slice type (1+ ix)))
+          d)
+        ((js-code "document").createElement type))))
 (defmacro append-child (parent child &optional reference)
   "Appends the DOM element [child] before specifed [reference] child \
    element of the [parent] DOM element. When [reference] is not specified \
