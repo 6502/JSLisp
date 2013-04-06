@@ -40,6 +40,7 @@
 (import-nomain examples/mandelbrot)
 (import-nomain examples/life)
 (import-nomain examples/tsp)
+(import-nomain examples/primegraph)
 (import-nomain examples/piechart)
 (import-nomain examples/hexa)
 (import-nomain examples/guitest)
