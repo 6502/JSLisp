@@ -2051,7 +2051,7 @@ defun("get-file",
       "Reads and returns the content of the specified file",
       function(name, encoding)
       {
-          if (arguments.length == 1)
+          if (arguments.length === 1)
               encoding = "utf-8";
           var fs = require("fs");
           return fs.readFileSync(name, encoding);
@@ -2063,7 +2063,7 @@ defun("put-file",
       "Writes a file with specified [data]",
       function(name, data, encoding)
       {
-          if ((typeof encoding) === "undefined")
+          if (arguments.length === 2)
               encoding = "utf-8";
           var fs = require("fs");
           return fs.writeFileSync(name, data, encoding);
@@ -2075,7 +2075,7 @@ defun("append-file",
       "Appends to a file the specified [data]",
       function(name, data, encoding)
       {
-          if ((typeof encoding) === "undefined")
+          if (arguments.length === 2)
               encoding = "utf-8";
           var fs = require("fs");
           return fs.appendFileSync(name, data, encoding);
