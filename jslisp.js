@@ -1516,7 +1516,20 @@ defun("parse-delimited-list",
           d$$$42_stopchars$42_ += stop;
           while (src.s[src.i] != undefined && src.s[src.i] != stop)
           {
-              res.push(f$$read(src));
+              try {
+                  res.push(f$$read(src));
+              } catch(err) {
+                  if (err == "Value expected") {
+                      f$$skip_spaces(src);
+                      if (src.s[src.i] == stop) {
+                          // Hack, after skipping a comment we found
+                          // the stop character; just quit reading elements
+                          // without errors
+                          break;
+                      }
+                  }
+                  throw err;
+              }
               f$$skip_spaces(src);
           }
           d$$$42_stopchars$42_ = oldstops;
