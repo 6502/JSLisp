@@ -738,10 +738,6 @@
       (set-handler hinput onkeydown
                    (let ((block true))
                      (case event.which
-                           (#.(char-code "R")
-                              ;; Ignore
-                              (unless event.ctrlKey
-                                (setf block false)))
                            (#.(char-code "F")
                               (if event.ctrlKey
                                   (setf fps (not fps))

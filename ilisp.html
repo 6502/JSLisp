@@ -93,6 +93,11 @@ function keydown(event)
         if (window.parent != window)
             window.parent.unzoom();
     }
+    else if (event.which == "R".charCodeAt(0) && event.ctrlKey)
+    {
+        event.stopPropagation();
+        event.preventDefault();
+    }
 }
 
 if (url.indexOf("?") != -1)

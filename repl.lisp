@@ -345,6 +345,16 @@
     w))
 
 (defun main ()
+  ;; Block ctrl-R at toplevel
+  (set-handler document.body onkeydown
+    (if (and event.ctrlKey
+             (= event.which #.(char-code "R")))
+        (progn
+          (event.stopPropagation)
+          (event.preventDefault)
+          false)
+        true))
+
   (set-style document.body
              fontFamily "Droid Serif"
              px/border 0
