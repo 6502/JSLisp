@@ -16,7 +16,11 @@
     (user               ;; A user object (not just the name).
      last-activity))    ;; (clock) at last successfull operation (used for timeouts)
 
+;; Currently active sessions. Managed automatically
 (defvar *open-sessions* #())
+
+;; Map from user name to user object. This map must be filled and maintained by
+;; the server application.
 (defvar *users* #())
 
 (import (hash) from crypto)
