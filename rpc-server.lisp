@@ -37,10 +37,9 @@
   "Creates a new session for the specified [user-name]"
   (let ((user (aref *users* user-name))
         (session-id (join (repeat-collect 20
-                                 (aref "abcdefghijklmnopqrstuvwxyz\
-                                        ABCDEFGHIJKLMNOPQRSTUVWXYZ\
-                                        0123456789"
-                                       (random-int (+ 26 26 10))))
+                            (random-choice "abcdefghijklmnopqrstuvwxyz\
+                                            ABCDEFGHIJKLMNOPQRSTUVWXYZ\
+                                            0123456789"))
                           "")))
     (when user
       (setf (aref *open-sessions* session-id) (new-session user (clock))))
