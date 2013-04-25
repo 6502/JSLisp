@@ -278,13 +278,26 @@
                  (event.stopPropagation)
                  (append-child document.body frame)
                  (let ((x0 (first (event-pos event)))
-                       (y0 (second (event-pos event))))
+                       (y0 (second (event-pos event)))
+                       (disp (append-child document.body (set-style (create-element "div")
+                                                                    position "absolute"
+                                                                    backgroundColor "rgba(0,0,0,0.75)"
+                                                                    px/padding 4
+                                                                    px/borderRadius 4
+                                                                    color "#FFF"
+                                                                    fontFamily "sans-serif"
+                                                                    px/fontSize 16
+                                                                    fontWeight "bold"))))
                    (tracking (lambda (x y)
                                (let ((dx (- x x0))
                                      (dy (- y y0)))
                                  (set-style frame
                                             px/width (+ frame.clientWidth dx)
                                             px/height (+ frame.clientHeight dy))
+                                 (setf disp.textContent ~"{frame.clientWidth} x {frame.clientHeight}")
+                                 (set-style disp
+                                            px/left (+ 20 x)
+                                            px/top (+ 20 y))
                                  (setf x0 x)
                                  (setf y0 y))
                                (set-style window.client
@@ -298,7 +311,9 @@
                                                       (+ client.offsetLeft
                                                          client.clientWidth)
                                                       (+ client.offsetTop
-                                                         client.clientHeight)))))))
+                                                         client.clientHeight))))
+                             (lambda ()
+                               (remove-child document.body disp)))))
     (set-style closer
                display (if close "block" "none")
                position "absolute"
