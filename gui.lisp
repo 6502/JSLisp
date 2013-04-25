@@ -1571,26 +1571,34 @@
                                                      "password"))))
     (user.lastChild.focus)))
 
+(defvar *baloons* null)
+
 (defun baloon (html &optional (duration 2000))
   "Shows a message in a baloon that will disappear by itself"
+  (unless *baloons*
+    (setf *baloons* (append-child document.body
+                                  (set-style (create-element "div")
+                                             position "absolute"
+                                             pointerEvents "none"
+                                             px/right 0
+                                             px/top 0
+                                             zIndex 999999998))))
   (let ((baloon (set-style (create-element "div")
-                           position "absolute"
-                           zIndex 999999998
+                           px/margin 8
                            px/padding 16
                            px/borderRadius 8
-                           px/right 16
-                           px/top 16
                            backgroundColor "rgba(0,0,0,0.75)"
                            color "#FFFFFF"
                            opacity 0
                            fontFamily "monospace"
+                           pointerEvents "none"
                            px/fontSize 18
                            px/fontWeight "bold"))
         (animation null)
         (direction 1)
         (start (clock)))
     (setf baloon.innerHTML html)
-    (append-child document.body baloon)
+    (*baloons*.insertBefore baloon *baloons*.firstChild)
     (setf animation
           (set-interval (lambda ()
                           (let ((s (/ (- (clock) start) 500)))
@@ -1603,7 +1611,7 @@
                                (setf start (+ (clock) duration)))
                               ((>= s 1)
                                (clear-interval animation)
-                               (remove-child document.body baloon)))))
+                               (remove-child *baloons* baloon)))))
                         20))
     baloon))
 
