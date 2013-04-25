@@ -399,6 +399,8 @@
     (set-style button
                position "absolute")
     (set-handler button onclick
+      (event.preventDefault)
+      (event.stopPropagation)
       (funcall action))
     (setf button.% #'button)
     (setf button.default default)
