@@ -209,6 +209,17 @@
 (test (if (> 1 2) 1)
       "undefined")
 
+(test (list
+        (cond)
+        (cond (1))
+        (let ((x 0))
+          (list
+            (cond ((incf x)))
+            x))
+        (cond ((< 1 2) 1) (true 2))
+        (cond ((> 1 2) 1) (true 2)))
+      "(null 1 (1 1) 1 2)")
+
 (test (defvar *foo* 42)
       "42")
 

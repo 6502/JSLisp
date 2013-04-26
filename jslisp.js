@@ -990,17 +990,31 @@ defmacro("cond",
          "Returns [null] if no condition [t] evaluates to logically true",
          function()
          {
+             var wrapper = false;
              var x = Array.prototype.slice.call(arguments);
              var res = "(";
              for (var i=0; i<x.length; i++)
              {
                  if (i > 0)
                      res += ":";
-                 res += (f$$js_compile(x[i][0]) + "?" +
-                         implprogn(x[i].slice(1)));
+                 if (x[i].length > 1)
+                 {
+                     res += (f$$js_compile(x[i][0]) + "?" +
+                             implprogn(x[i].slice(1)));
+                 }
+                 else
+                 {
+                     wrapper = true;
+                     res += "(cx=(" + f$$js_compile(x[i][0]) + "))?cx";
+                 }
              }
              if (x.length > 0) res += ":"
-             return [s$$js_code, res + "null)"];
+             res += "null)";
+             if (wrapper)
+             {
+                 res = "(function(){var cx; return " + res + ";})()";
+             }
+             return [s$$js_code, res];
          },
          [f$$intern("&rest"), f$$intern("body")]);
 
