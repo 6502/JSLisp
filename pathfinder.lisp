@@ -17,7 +17,7 @@
         (heap (make-heap (list)
                          (lambda (a b)
                            (<= a.cost b.cost))
-                         (set .index))))
+                         (set index))))
     (dolist (x start)
       (let ((info (make-info state: x
                              cost: 0

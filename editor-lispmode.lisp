@@ -334,6 +334,6 @@
                                      (list)))
                          0)))
             (incf r1))
-          (join (map (get .text) (slice lines r0 r1)) "\n"))))
+          (join (map (get text) (slice lines r0 r1)) "\n"))))
 
 (export mode)

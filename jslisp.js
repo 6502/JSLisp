@@ -1492,25 +1492,36 @@ defun("parse-number-or-symbol",
       function(src)
       {
           var res = "";
-          if (src.s[src.i] === "-")
+          var oknum = false;
+          if (src.s[src.i] === "-" || src.s[src.i] === "+")
               res += src.s[src.i++];
           while (src.s[src.i] >= "0" && src.s[src.i] <= "9")
+          {
+              oknum = true;
               res += src.s[src.i++];
+          }
           if (src.s[src.i] === ".")
           {
               res += src.s[src.i++];
               while (src.s[src.i] >= "0" && src.s[src.i] <= "9")
+              {
+                  oknum = true;
                   res += src.s[src.i++];
+              }
           }
-          if (src.s[src.i] == "e" || src.s[src.i] == "E")
+          if (oknum && (src.s[src.i] == "e" || src.s[src.i] == "E"))
           {
+              oknum = false;
               res += src.s[src.i++];
               if (src.s[src.i] == "-" || src.s[src.i] == "+")
                   res += src.s[src.i++];
               while (src.s[src.i] >= "0" && src.s[src.i] <= "9")
-                  res += src.s[src.i++];
+              {
+                 oknum = true;
+                 res += src.s[src.i++];
+              }
           }
-          if (res != "-" && f$$parse_stopping(src.s[src.i]))
+          if (oknum && f$$parse_stopping(src.s[src.i]))
               return parseFloat(res);
           while (!f$$parse_stopping(src.s[src.i]))
               res += src.s[src.i++];
@@ -1769,6 +1780,8 @@ d$$$42_readers$42_ = { "|": function(src)
                        "8": f$$parse_number_or_symbol,
                        "9": f$$parse_number_or_symbol,
                        "-": f$$parse_number_or_symbol,
+                       "+": f$$parse_number_or_symbol,
+                       ".": f$$parse_number_or_symbol,
 
                        "default": f$$parse_symbol
                      };

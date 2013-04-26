@@ -2992,30 +2992,22 @@ A name is either an unevaluated atom or an evaluated list."
         (lambda (src)
           (when (string? src)
             (setf src (make-source src)))
-          (if (= (current-char src) ".")
-              (progn
-                (next-char src)
-                '.)
-              (do ((x (funcall oldf src)))
-                  ((/= (current-char src) ".") x)
-                (next-char src)
-                (setf x `(. ,x ,(funcall oldf src))))))))
+          (do ((x (funcall oldf src)))
+            ((/= (current-char src) ".") x)
+            (next-char src)
+            (setf x `(. ,x ,(funcall oldf src)))))))
 
 (incf *stopchars* ".")
 
 ;; Field and element getter function
 
-(defmacro get (. x)
-  "[(get .x)] is an hygienic shorthand for [(lambda (obj) obj.x)]"
-  (unless (= . '.)
-    (error "Syntax is (get .<field>)"))
+(defmacro get (x)
+  "[(get x)] is an hygienic shorthand for [(lambda (obj) obj.x)]"
   (let ((obj '#.(gensym)))
     `(lambda (,obj) (. ,obj ,x))))
 
-(defmacro set (. x)
-  "[(set .x)] is an hygienic shorthand for [(lambda (obj value) (setf obj.x value))]"
-  (unless (= . '.)
-    (error "Syntax is (set .<field>)"))
+(defmacro set (x)
+  "[(set x)] is an hygienic shorthand for [(lambda (obj value) (setf obj.x value))]"
   (let ((obj '#.(gensym))
         (value '#.(gensym)))
     `(lambda (,obj ,value) (setf (. ,obj ,x) ,value))))

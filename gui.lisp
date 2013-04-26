@@ -664,7 +664,7 @@
         (node widget).selectedIndex).value)
 
 (defmethod set-text (widget text) (= widget.% #'select)
-  (let ((ix (index text (map (get .value) (node widget).options))))
+  (let ((ix (index text (map (get value) (node widget).options))))
     (setf (node widget).selectedIndex ix)
     (if (>= ix 0) text null)))
 
@@ -878,7 +878,7 @@
 
 ;; Tree view
 
-(defun tree-view (tree &key onclick (text-of (get .text)) (children-of (get .children)) (closed-nodes (list)))
+(defun tree-view (tree &key onclick (text-of (get text)) (children-of (get children)) (closed-nodes (list)))
   (let** ((container (set-style (create-element "div")
                                 backgroundColor "#EEEEEE"
                                 overflow "auto"))
