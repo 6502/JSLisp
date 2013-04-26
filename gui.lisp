@@ -1362,6 +1362,8 @@
                          backgroundColor (css-color col)
                          color (if (< luma 512) "#FFFFFF" "#000000")))
             true))
+    (set-handler (node x) onkeydown
+      (check-default-actions x.parentNode event))
     ((node x).addEventListener "keyup" #'update-style)
     ((node x).addEventListener "focus" #'update-style)
     ((node x).addEventListener "blur" #'update-style)

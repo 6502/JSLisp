@@ -23,6 +23,7 @@
                         (dom ok)
                         (dom cancel)
                         :filler:)))
+          (first null)
           (#'ok ()
             (dolist (k (keys styles))
               (let (((color background underline) (map #'text (aref widgets k))))
@@ -44,6 +45,8 @@
             (color (add-widget w (css-color-input "color")))
             (background (add-widget w (css-color-input "background")))
             (underline (add-widget w (css-color-input "underline"))))
+        (unless first
+          (setf first color))
         (setf label.textContent k)
         (setf (text color) (or (aref styles k "color") ""))
         (setf (text background) (or (aref styles k "background") ""))
@@ -59,6 +62,8 @@
                         (dom background)
                         (dom underline)))
         (setf (aref widgets k) (list color background underline))))
+    (when first
+      (focus first))
     (show-window w center: true)))
 
 (defun src-tab (name content)
