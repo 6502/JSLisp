@@ -1336,7 +1336,7 @@
 (defmacro/f ash (x count)
   "Arithmetic shift left [(> count 0)] or right [(< count 0)]
    Computation is done using 32-bit signed integer arithmetic and \
-   operands are converted to 3d-bit integers using Javascript rules.
+   operands are converted to 32-bit integers using Javascript rules.
    The result of shifting more than 32 times is undefined.[[
    (ash 16 3)
    ;; ==> 128
@@ -2920,6 +2920,17 @@ The resulting list length is equal to the first input sequence."
    [padding] chars (or spaces) to the left of string [x] or \
    by truncating if it's longer."
   (slice (+ (str-repeat (or padding " ") size) x) (- size)))
+
+(defun cpad (x size &optional padding)
+  "Returns a centered string of length [size] by adding \
+   [padding] chars (or spaces) to the left/right of string [x] or \
+   by truncating if it's longer."
+  (if (>= (length x) size)
+      (slice x 0 size)
+      (let ((h (ash (- size (length x)) -1)))
+        (+ (str-repeat (or padding " ") h)
+           x
+           (str-repeat (or padding " ") (- size (length x) h))))))
 
 ;; Anonymous JS object access/creation
 (defun valid-js-name (x)
