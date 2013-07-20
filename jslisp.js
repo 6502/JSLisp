@@ -2122,6 +2122,16 @@ defun("append-file",
       },
       [f$$intern("filename"), f$$intern("data"), f$$intern("&optional"), f$$intern("encoding")], [], []);
 
+defun("delete-file",
+      "[[(delete-file filename)]]\n" +
+      "Removes (unlinks) the specified filename",
+      function(name)
+      {
+          var fs = require("fs");
+          return fs.unlinkSync(name);
+      },
+      [f$$intern("filename")], [], []);
+
 if (d$$node_js)
 {
     var fs = require("fs");
