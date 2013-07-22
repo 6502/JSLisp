@@ -2879,7 +2879,7 @@ The resulting list length is equal to the first input sequence."
 
 (defun regexp-escape (x)
   "Returns a string with all regexp-meaningful characters escaped"
-  (replace (replace x "([$^\\][()+*?\\\\])" "\\$1")
+  (replace (replace x "([$^\\][()|+*?\\\\])" "\\$1")
            "[\\x00-\\x1F]"
            (lambda (x)
              (declare (ignorable x))
