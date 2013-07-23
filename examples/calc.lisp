@@ -11,7 +11,7 @@
                                    (vy (val e y)))
                    (new-binop ,precedence ',associativity (lambda (x y) (lambda (e) ,f))))))
   (defvar binops
-          #(("**"  (bop  1 R (exp (* (log vx) vy))))
+          #(("**"  (bop  1 R (expt vx vy)))
             ("*"   (bop  2 L (* vx vy)))
             ("/"   (bop  2 L (/ vx vy)))
             ("%"   (bop  2 L (% vx vy)))
@@ -108,9 +108,10 @@
                   (let ((cmd (append-child document.body (create-element "div"))))
                     (setf cmd.innerText input.value))
                   (let ((res (append-child document.body (create-element "div"))))
-                    (setf res.innerText (try
-                                          (calc env input.value)
-                                          *exception*)))
+                    (setf res.style.color "#F00")
+                    (setf res.innerText (+ "==> " (try
+                                                    (calc env input.value)
+                                                    *exception*))))
                   (append-child document.body input)
                   (setf input.value "")
                   (set-timeout (lambda () (input.focus)) 10)))))))
