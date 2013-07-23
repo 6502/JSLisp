@@ -2736,6 +2736,8 @@ The resulting list length is equal to the first input sequence."
   `(js-code ,(+ "Math.abs(" (js-compile x) ")")))
 (defmacro/f atan2 (y x) "Arc-tangent of [y/x] in radians with proper handling of all quadrants"
   `(js-code ,(+ "Math.atan2(" (js-compile y) "," (js-compile x) ")")))
+(defmacro/f expt (x y) "[x] raised to the power of [y]"
+  `(js-code ,(+ "Math.pow(" (js-compile x) "," (js-compile y) ")")))
 (setq pi (js-code "Math.PI"))
 (setq 2pi (* 2 pi))
 
