@@ -68,25 +68,25 @@
             node.elements))))
 
 (defmethod set-coords (node x0 y0 x1 y1) (hv? node)
-  (let* ((epsilon 0.0001)
-         (elements node.elements)
-         (num-elements (length elements))
-         (spacing (if (number? node.spacing) node.spacing *spacing*))
-         (border node.border)
-         (algo node.algorithm)
-         (*spacing* spacing))
+  (let** ((epsilon 0.0001)
+          (elements node.elements)
+          (num-elements (length elements))
+          (spacing (if (number? node.spacing) node.spacing *spacing*))
+          (border node.border)
+          (algo node.algorithm)
+          (*spacing* spacing))
     (if (= num-elements 0)
         (list x0 y0 x1 y1)
-        (let* ((assigned (map (get min) elements))
-               (active (filter (lambda (i) (< (aref assigned i)
-                                              (aref elements i).max))
-                               (range num-elements)))
-               (avail (- (if (= algo :H:)
-                             (- x1 x0)
-                             (- y1 y0))
-                         (* 2 border)
-                         (reduce #'+ assigned)
-                         (* (1- num-elements) spacing))))
+        (let** ((assigned (map (get min) elements))
+                (active (filter (lambda (i) (< (aref assigned i)
+                                               (aref elements i).max))
+                                (range num-elements)))
+                (avail (- (if (= algo :H:)
+                              (- x1 x0)
+                              (- y1 y0))
+                          (* 2 border)
+                          (reduce #'+ assigned)
+                          (* (1- num-elements) spacing))))
           (do () ((or (zero? (length active))
                       (<= avail epsilon))
                     (if (= algo :H:)
@@ -129,21 +129,21 @@
             ;; IOW we're not going to loop forever (unless there's a
             ;; numeric precision problem, that's why epsilon is used).
             ;;
-            (let* ((minclass (apply #'min (map (lambda (i)
-                                                 (aref elements i).class)
-                                               active)))
-                   (selected (filter (lambda (i) (= (aref elements i).class
-                                                    minclass))
-                                     active))
-                   (selected-nodes (map (lambda (i) (aref elements i))
-                                        selected))
-                   (total-weight (reduce #'+ (map (get weight)
-                                                  selected-nodes)))
-                   (share (/ avail total-weight)))
+            (let** ((minclass (apply #'min (map (lambda (i)
+                                                  (aref elements i).class)
+                                                active)))
+                    (selected (filter (lambda (i) (= (aref elements i).class
+                                                     minclass))
+                                      active))
+                    (selected-nodes (map (lambda (i) (aref elements i))
+                                         selected))
+                    (total-weight (reduce #'+ (map (get weight)
+                                                   selected-nodes)))
+                    (share (/ avail total-weight)))
               (dolist (i selected)
-                (let* ((n (aref elements i))
-                       (quota (min (- n.max (aref assigned i))
-                                   (* share n.weight))))
+                (let** ((n (aref elements i))
+                        (quota (min (- n.max (aref assigned i))
+                                    (* share n.weight))))
                   (decf avail quota)
                   (incf (aref assigned i) quota)))
               (setf active (filter (lambda (i)
@@ -308,14 +308,14 @@
      rows))    ;; hv of type :V: or number
 
 (defmethod set-coords (node x0 y0 x1 y1) (tablayout? node)
-  (let* ((col-pos (list))
-         (row-pos (list))
-         (columns node.columns)
-         (rows node.rows)
-         (elements node.elements)
-         ((xa ya xb yb) (list x0 y0 x1 y1))
-         (drows (length elements))
-         (dcols (and drows (length (first elements)))))
+  (let** ((col-pos (list))
+          (row-pos (list))
+          (columns node.columns)
+          (rows node.rows)
+          (elements node.elements)
+          (xa x0) (ya y0) (xb x1) (yb y1)
+          (drows (length elements))
+          (dcols (and drows (length (first elements)))))
     (unless rows
       (setf rows (V null)))
     (unless columns
@@ -325,38 +325,38 @@
     (when (number? columns)
       (setf columns (H size: columns null)))
     ;; Compute rows and columns layout
-    (let* ((nc (length columns.elements))
-           (h (make-hv elements: (map (lambda (i)
-                                        (let ((c (aref columns.elements (min i (1- nc)))))
-                                          (make-hv-element
-                                           element: (new-callback
-                                                     null
-                                                     (lambda (x0 y0 x1 y1)
-                                                       (declare (ignorable y0 y1))
-                                                       (push (list x0 x1) col-pos)))
-                                           min: c.min
-                                           max: c.max
-                                           class: c.class
-                                           weight: c.weight)))
-                                      (range dcols))
-                       algorithm: :H:
-                       spacing: columns.spacing))
-           (nr (length rows.elements))
-           (v (make-hv elements: (map (lambda (i)
-                                        (let ((c (aref rows.elements (min i (1- nr)))))
-                                          (make-hv-element
-                                           element: (new-callback
-                                                     null
-                                                     (lambda (x0 y0 x1 y1)
-                                                       (declare (ignorable x0 x1))
-                                                       (push (list y0 y1) row-pos)))
-                                           min: c.min
-                                           max: c.max
-                                           class: c.class
-                                           weight: c.weight)))
-                                      (range drows))
-                       algorithm: :V:
-                       spacing: rows.spacing)))
+    (let** ((nc (length columns.elements))
+            (h (make-hv elements: (map (lambda (i)
+                                         (let ((c (aref columns.elements (min i (1- nc)))))
+                                           (make-hv-element
+                                             element: (new-callback
+                                                        null
+                                                        (lambda (x0 y0 x1 y1)
+                                                          (declare (ignorable y0 y1))
+                                                          (push (list x0 x1) col-pos)))
+                                             min: c.min
+                                             max: c.max
+                                             class: c.class
+                                             weight: c.weight)))
+                                       (range dcols))
+                        algorithm: :H:
+                        spacing: columns.spacing))
+            (nr (length rows.elements))
+            (v (make-hv elements: (map (lambda (i)
+                                         (let ((c (aref rows.elements (min i (1- nr)))))
+                                           (make-hv-element
+                                             element: (new-callback
+                                                        null
+                                                        (lambda (x0 y0 x1 y1)
+                                                          (declare (ignorable x0 x1))
+                                                          (push (list y0 y1) row-pos)))
+                                             min: c.min
+                                             max: c.max
+                                             class: c.class
+                                             weight: c.weight)))
+                                       (range drows))
+                        algorithm: :V:
+                        spacing: rows.spacing)))
       (dolist (L (list h v))
         (let (((xxa yya xxb yyb) (set-coords L x0 y0 x1 y1)))
           (setf xa (min xa xxa))
