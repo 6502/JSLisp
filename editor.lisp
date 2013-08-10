@@ -961,13 +961,15 @@
                                          (setf s-row row)
                                          (setf s-col col)))))))
                            (27
-                             (when ifind-mode
-                               (setf ifind-mode false)
-                               (setf row (first (first ifind-stack)))
-                               (setf col (second (first ifind-stack)))
-                               (setf top (third (first ifind-stack)))
-                               (setf left (fourth (first ifind-stack)))
-                               (fix)))
+                             (if ifind-mode
+                                 (progn
+                                   (setf ifind-mode false)
+                                   (setf row (first (first ifind-stack)))
+                                   (setf col (second (first ifind-stack)))
+                                   (setf top (third (first ifind-stack)))
+                                   (setf left (fourth (first ifind-stack)))
+                                   (fix))
+                                 (setf block false)))
                            (#.(char-code "S")
                               (when event.ctrlKey
                                 (setf ireplace-mode null)

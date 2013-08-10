@@ -384,6 +384,7 @@
           (vs (append-child w (v-splitter sources hs split: 80)))
           (zoom false)
           (zrun "")
+          (splitv 100)
           (#'show-doc (x)
             (setf x (json-parse x))
             (when (and x (list? (first x)) (string? (first (first x))))
@@ -536,6 +537,10 @@
                                  (when (and res
                                             (sources.current).refresh)
                                    ((sources.current).refresh)))))
+            ((= event.which 27)
+             (vs.partition splitv)
+             (setf splitv (- (+ 80 100) splitv))
+             (setf stop false))
             ((and event.ctrlKey (= event.which 39))
              (sources.next))
             ((and event.ctrlKey (= event.which 37))
