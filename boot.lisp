@@ -2260,6 +2260,10 @@ The resulting list length is equal to the first input sequence."
    ]]"
   `(nsort (slice ,x) ,condition))
 
+(defmacro/f special? (s)
+  "Returns [true] if symbol [s] is a special (dynamic) variable."
+  `(js-code ,(+ "(!!specials[(" (js-compile s) ").name])")))
+
 ;; let** (like letrec of scheme)
 (defmacro let** (bindings &rest body)
   "Like [let*] but all variables are created first, initially [undefined] and then \
@@ -2285,7 +2289,9 @@ The resulting list length is equal to the first input sequence."
               (error "Either a symbol or a (function x) form was expected"))
             (push `(,(second (first b)) ,@(rest b)) funcs))))
     `(let ,(map (lambda (v)
-                  `(,(second v) undefined))
+                  `(,(second v) ,(if (special? (second v))
+                                     (second v)
+                                     'undefined)))
             vars)
        (labels ,funcs
          ,@vars
