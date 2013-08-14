@@ -37,6 +37,7 @@ d$$$42_exports$42_ = d$$$42_modules$42_[""]["*exports*"];
 d$$$42_outgoing_calls$42_ = {};
 d$$$42_used_globals$42_ = {};
 d$$$42_debug$42_ = false;
+d$$$42_function_context$42_ = [];
 
 d$$node_js = false;
 
@@ -103,12 +104,12 @@ function Namespace()
     this.stack = [];
     this.current_frame = 0;
 
-    this.get = function(name)
+    this.get = function(name, nouse)
     {
         name = "!" + name;
         var res = this.vars[name];
-        if (res) this.props[name].used = true;
-        if (res && this.props[name].frame !== this.current_frame)
+        if (res && !nouse) this.props[name].used = true;
+        if (res && this.props[name].fc !== d$$$42_function_context$42_[d$$$42_function_context$42_.length-1])
             this.props[name].captured = true;
         return res;
     }
@@ -118,7 +119,7 @@ function Namespace()
         name = "!" + name;
         this.stack.push([name, this.vars[name], this.props[name]]);
         this.vars[name] = value;
-        this.props[name] = {frame: this.current_frame};
+        this.props[name] = {fc: d$$$42_function_context$42_[d$$$42_function_context$42_.length-1]};
     };
 
     this.begin = function()
@@ -514,36 +515,81 @@ defmacro("let",
                  return [f$$intern("progn")].concat(body);
              lexvar.begin();
              lexsmacro.begin();
-             try {
-                 var osmacro = [];
 
-                 var spe = [];
-                 var res = "((function(";
+             var osmacro = [];
+
+             var spe = [];
+             var res = "((function(";
+             for (var i=0; i<bindings.length; i++)
+             {
+                 if (bindings[i].length != 2 ||
+                     !f$$symbol$63_(bindings[i][0]))
+                     throw new String("Invalid 'let' binding " + f$$str_value(bindings[i]));
+                 if (i > 0) res += ",";
+                 var name = bindings[i][0].name;
+                 if (specials[name])
+                 {
+                     res += "sd" + name;
+                     spe.push(name);
+                 }
+                 else
+                 {
+                     lexvar.add(name, "d" + lexvar.current_frame + "_" + name);
+                     res += "d" + lexvar.current_frame + "_" + name;
+                 }
+                 lexsmacro.add(name, undefined);
+                 if (bindings[i][0].symbol_macro)
+                 {
+                     osmacro.push([bindings[i][0], bindings[i][0].symbol_macro]);
+                     bindings[i][0].symbol_macro = undefined;
+                 }
+             }
+             res += "){";
+
+             var cbody = implprogn(body);
+
+             // Check if we can avoid creating a nested function
+             // scope because all bindings are local and are not
+             // captured in the body. In such a case the bindings
+             // are just function-level locals of the closest
+             // function scope (this works because the *compiled*
+             // name of a lexical is already unique).
+             var canlift = d$$$42_function_context$42_.length > 0;
+             for (var i=0; canlift && i<bindings.length; i++)
+             {
+                 var name = bindings[i][0].name;
+                 var vp;
+                 if (specials[name] || !(vp = lexvar.props["!"+name]) || vp.captured)
+                     canlift = false;
+             }
+             if (canlift) {
+                 // This LET form can be simplified to a sequence
+                 // of assignments to locals followed by the body
+                 // and there's no need of a nested scope.
+                 var cfc = d$$$42_function_context$42_[d$$$42_function_context$42_.length-1];
+                 var lnames = [];
                  for (var i=0; i<bindings.length; i++)
                  {
-                     if (bindings[i].length != 2 ||
-                         !f$$symbol$63_(bindings[i][0]))
-                         throw new String("Invalid 'let' binding " + f$$str_value(bindings[i]));
-                     if (i > 0) res += ",";
-                     var name = bindings[i][0].name;
-                     if (specials[name])
-                     {
-                         res += "sd" + name;
-                         spe.push(name);
-                     }
-                     else
-                     {
-                         lexvar.add(name, "d" + lexvar.current_frame + "_" + name);
-                         res += "d" + lexvar.current_frame + "_" + name;
-                     }
-                     lexsmacro.add(name, undefined);
-                     if (bindings[i][0].symbol_macro)
-                     {
-                         osmacro.push([bindings[i][0], bindings[i][0].symbol_macro]);
-                         bindings[i][0].symbol_macro = undefined;
-                     }
+                     var cname = lexvar.get(bindings[i][0].name, true);
+                     lnames.push(cname);
+                     cfc.push(cname);
                  }
-                 res += "){";
+                 lexsmacro.end();
+                 lexvar.end(true);
+                 for (var i=0; i<osmacro.length; i++)
+                     osmacro[i][0].symbol_macro = osmacro[i][1];
+                 res = "(";
+                 for (var i=0; i<lnames.length; i++)
+                 {
+                     if (i > 0) res += ",";
+                     res += lnames[i] + "=(" + f$$js_compile(bindings[i][1]) + ")";
+                 }
+                 if (lnames.length > 0) res += ",";
+                 res += cbody + ")";
+             }
+             else
+             {
+                 // A full nested scope is necessary
                  if (spe.length)
                  {
                      for (var i=0; i<spe.length; i++)
@@ -552,7 +598,7 @@ defmacro("let",
                          res += "d" + spe[i] + "=sd" + spe[i] + ";";
                      }
                      res += "var res=";
-                     res += implprogn(body);
+                     res += cbody;
                      res += ";";
                      for (var i=0; i<spe.length; i++)
                      {
@@ -562,23 +608,20 @@ defmacro("let",
                  }
                  else
                  {
-                     res += "return " + implprogn(body) + "})(";
+                     res += "return " + cbody + "})(";
                  }
-             }
-             finally
-             {
                  lexsmacro.end();
                  lexvar.end(true);
                  for (var i=0; i<osmacro.length; i++)
                      osmacro[i][0].symbol_macro = osmacro[i][1];
-             }
 
-             for (var i=0; i<bindings.length; i++)
-             {
-                 if (i > 0) res += ",";
-                 res += f$$js_compile(bindings[i][1]);
+                 for (var i=0; i<bindings.length; i++)
+                 {
+                     if (i > 0) res += ",";
+                     res += f$$js_compile(bindings[i][1]);
+                 }
+                 res += "))";
              }
-             res += "))";
              return [s$$js_code, res];
          },
          [f$$intern("bindings"), f$$intern("&rest"), f$$intern("body")]);
@@ -594,6 +637,14 @@ defmacro("lambda",
              // default values; just removes the keyword from the arg list)
              var iopt = args.indexOf(s$$$38_optional);
              if (iopt >= 0) args = args.slice(0,iopt).concat(args.slice(1+iopt));
+
+             // Create a function context so LET bindings that are not
+             // captured can be lifted to simple local variables (for
+             // unknown reasons recent Android implementations have a
+             // very low limit for nested functions).  A function
+             // context is simply a list of extra local variables to
+             // declare
+             d$$$42_function_context$42_.push([]);
 
              var current_outgoing_calls = d$$$42_outgoing_calls$42_;
              d$$$42_outgoing_calls$42_ = {};
@@ -660,22 +711,31 @@ defmacro("lambda",
                      }
                      res += "d" + rest + "=Array.prototype.slice.call(arguments,"+nargs+");";
                  }
+                 var cbody = "";
                  if (spe.length === 0)
                  {
-                     res += "return " + implprogn(body) + ";})";
+                     cbody += "return " + implprogn(body) + ";})";
                  }
                  else
                  {
-                     res += "var res=";
-                     res += implprogn(body);
+                     cbody += "var res=";
+                     cbody += implprogn(body);
 
-                     res += ";"
+                     cbody += ";"
                      for (var i=0; i<spe.length; i++)
                      {
-                         res += "d" + spe[i] + "=osd" + spe[i] + ";";
+                         cbody += "d" + spe[i] + "=osd" + spe[i] + ";";
                      }
-                     res += "return res;})";
+                     cbody += "return res;})";
                  }
+                 // We compiled the body so now we can check if any
+                 // lifted LET binding should be declared as
+                 // function-level local
+                 var lb = d$$$42_function_context$42_.pop();
+                 if (lb.length) {
+                     res += "var " + lb.join(", ") + ";";
+                 }
+                 res += cbody;
                  var ocnames = "";
                  var ugnames = "";
                  for (var k in d$$$42_outgoing_calls$42_)
