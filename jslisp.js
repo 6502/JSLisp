@@ -533,8 +533,8 @@ defmacro("let",
                      }
                      else
                      {
-                         lexvar.add(name, "d" + name);
-                         res += "d" + name;
+                         lexvar.add(name, "d" + lexvar.current_frame + "_" + name);
+                         res += "d" + lexvar.current_frame + "_" + name;
                      }
                      lexsmacro.add(name, undefined);
                      if (bindings[i][0].symbol_macro)
@@ -1344,7 +1344,10 @@ defun("js-compile",
                       {
                           if (x.length != 2 || !f$$string$63_(x[1]))
                               throw "js-code requires a string literal";
-                          return x[1];
+                          return x[1].replace(/d[a-z0-9_]*\$[a-zA-Z_$0-9]+/g,
+                                              function(x) {
+                                                  return "d" + (lexvar.get(x.substr(1)) || x).substr(1);
+                                              });
                       }
                       else if (lexmacro.get(f.name))
                       {
