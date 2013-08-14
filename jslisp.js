@@ -101,11 +101,15 @@ function Namespace()
     this.vars = {};
     this.props = {};
     this.stack = [];
+    this.current_frame = 0;
 
     this.get = function(name)
     {
-        var res = this.vars["!" + name];
-        if (res) this.props["!" + name].used = true;
+        name = "!" + name;
+        var res = this.vars[name];
+        if (res) this.props[name].used = true;
+        if (res && this.props[name].frame !== this.current_frame)
+            this.props[name].captured = true;
         return res;
     }
 
@@ -114,12 +118,13 @@ function Namespace()
         name = "!" + name;
         this.stack.push([name, this.vars[name], this.props[name]]);
         this.vars[name] = value;
-        this.props[name] = {};
+        this.props[name] = {frame: this.current_frame};
     };
 
     this.begin = function()
     {
         this.stack.push(false);
+        this.current_frame += 1;
     };
 
     this.end = function(warn_unused)
