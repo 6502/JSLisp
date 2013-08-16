@@ -36,7 +36,7 @@
   `(import ,module))
 
 (import-nomain examples/3dboard)
-(import-nomain examples/trifill)
+(import-nomain examples/crayons)
 (import-nomain examples/mandelbrot)
 (import-nomain examples/life)
 (import-nomain examples/tsp)
