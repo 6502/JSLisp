@@ -894,6 +894,7 @@
                                    px/paddingTop 2
                                    px/paddingBottom 2
                                    px/fontSize 16
+                                   whiteSpace "nowrap"
                                    cursor "default"
                                    fontFamily "monospace"
                                    fontWeight "bold")
