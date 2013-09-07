@@ -1,6 +1,204 @@
 (import * from gui)
 (import * from layout)
 
+(defun edit-hv-node (n cback)
+  (let** ((w (window 0 0 370 200 title: "Layout node"))
+          (min (add-widget w (input "minimum size" autofocus: true)))
+          (max (add-widget w (input "maximum size")))
+          (class (add-widget w (input "class")))
+          (weight (add-widget w (input "weight")))
+          (ok (add-widget w (button "OK" #'ok)))
+          (cancel (add-widget w (button "Cancel" #'cancel)))
+          (#'cancel () (hide-window w))
+          (#'ok ()
+            (setf n.min (or (atoi (text min)) undefined))
+            (setf n.max (or (atoi (text max)) infinity))
+            (setf n.class (or (atoi (text class)) 1))
+            (setf n.weight (or (atoi (text weight)) 100))
+            (hide-window w)
+            (funcall cback)))
+    (set-layout w (V border: 8 spacing: 8
+                     size: 40
+                     (H (dom min) (dom max))
+                     (H (dom class) (dom weight))
+                     :filler:
+                     size: 30
+                     (H :filler:
+                        size: 80
+                        (dom ok) (dom cancel)
+                        :filler:)))
+    (setf (text min) (or n.min ""))
+    (setf (text max) (or n.max ""))
+    (setf (text class) n.class)
+    (setf (text weight) n.weight)
+    (show-window w modal: true center: true)))
+
+(defun button-edit (b hv-node cback)
+  (let** ((w (window 0 0 300 230 title: "Button properties"))
+          (name (add-widget w (input "name" autofocus: true)))
+          (caption (add-widget w (input "caption")))
+          (default-button (add-widget w (checkbox "Default (Enter)")))
+          (cancel-button (add-widget w (checkbox "Cancel (ESC)")))
+          (editnode (add-widget w (button "Layout" #'layout)))
+          (ok (add-widget w (button "OK" #'ok)))
+          (cancel (add-widget w (button "Cancel" #'cancel)))
+          (#'layout () (edit-hv-node hv-node (lambda ())))
+          (#'cancel () (hide-window w))
+          (#'ok ()
+            (setf b.data-name (text name))
+            (setf (caption b) (text caption))
+            (setf b.default (checked default-button))
+            (setf b.cancel (checked cancel-button))
+            (hide-window w)
+            (funcall cback)))
+    (setf (text caption) (caption b))
+    (setf (text name) (or b.data-name ""))
+    (setf (checked default-button) b.default)
+    (setf (checked cancel-button) b.cancel)
+    (unless hv-node (setf editnode.disabled "disabled"))
+    (set-layout w (V border: 8 spacing: 8
+                     size: 40
+                     (dom name)
+                     (dom caption)
+                     size: 30
+                     (H (dom default-button) (dom cancel-button))
+                     :filler:
+                     size: 30
+                     (H :filler: size: 80
+                        (dom editnode) (dom ok) (dom cancel)
+                        :filler:)))
+    (show-window w center: true modal: true)))
+
+(defun input-edit (b hv-node cback)
+  (let** ((w (window 0 0 300 230 title: "Input properties"))
+          (name (add-widget w (input "name" autofocus: true)))
+          (caption (add-widget w (input "caption")))
+          (autofocus (add-widget w (checkbox "Autofocus")))
+          (autoselect (add-widget w (checkbox "Autoselect")))
+          (editnode (add-widget w (button "Layout" #'layout)))
+          (ok (add-widget w (button "OK" #'ok)))
+          (cancel (add-widget w (button "Cancel" #'cancel)))
+          (#'layout () (edit-hv-node hv-node (lambda ())))
+          (#'cancel () (hide-window w))
+          (#'ok ()
+            (setf b.data-name (text name))
+            (setf (caption b) (text caption))
+            (setf b.autofocus (checked autofocus))
+            (setf b.autoselect (checked autoselect))
+            (hide-window w)
+            (funcall cback)))
+    (setf (text caption) (caption b))
+    (setf (text name) (or b.data-name ""))
+    (setf (checked autofocus) (or b.autofocus false))
+    (setf (checked autoselect) (or b.autoselect false))
+    (unless hv-node (setf editnode.disabled "disabled"))
+    (set-layout w (V border: 8 spacing: 8
+                     size: 40
+                     (dom name)
+                     (dom caption)
+                     size: 30
+                     (H (dom autofocus) (dom autoselect))
+                     :filler:
+                     size: 30
+                     (H :filler: size: 80
+                        (dom editnode) (dom ok) (dom cancel)
+                        :filler:)))
+    (show-window w center: true modal: true)))
+
+(defun checkbox-edit (b hv-node cback)
+  (let** ((w (window 0 0 300 200 title: "Checkbox properties"))
+          (name (add-widget w (input "name" autofocus: true)))
+          (caption (add-widget w (input "caption")))
+          (editnode (add-widget w (button "Layout" #'layout)))
+          (ok (add-widget w (button "OK" #'ok)))
+          (cancel (add-widget w (button "Cancel" #'cancel)))
+          (#'layout () (edit-hv-node hv-node (lambda ())))
+          (#'cancel () (hide-window w))
+          (#'ok ()
+            (setf b.data-name (text name))
+            (setf (caption b) (text caption))
+            (hide-window w)
+            (funcall cback)))
+    (setf (text caption) (caption b))
+    (setf (text name) (or b.data-name ""))
+    (unless hv-node (setf editnode.disabled "disabled"))
+    (set-layout w (V border: 8 spacing: 8
+                     size: 40
+                     (dom name)
+                     (dom caption)
+                     :filler:
+                     size: 30
+                     (H :filler: size: 80
+                        (dom editnode) (dom ok) (dom cancel)
+                        :filler:)))
+    (show-window w center: true modal: true)))
+
+(defun textarea-edit (b hv-node cback)
+  (let** ((w (window 0 0 300 200 title: "Textarea properties"))
+          (name (add-widget w (input "name" autofocus: true)))
+          (caption (add-widget w (input "caption")))
+          (editnode (add-widget w (button "Layout" #'layout)))
+          (ok (add-widget w (button "OK" #'ok)))
+          (cancel (add-widget w (button "Cancel" #'cancel)))
+          (#'layout () (edit-hv-node hv-node (lambda ())))
+          (#'cancel () (hide-window w))
+          (#'ok ()
+            (setf b.data-name (text name))
+            (setf (caption b) (text caption))
+            (hide-window w)
+            (funcall cback)))
+    (setf (text caption) (caption b))
+    (setf (text name) (or b.data-name ""))
+    (unless hv-node (setf editnode.disabled "disabled"))
+    (set-layout w (V border: 8 spacing: 8
+                     size: 40
+                     (dom name)
+                     (dom caption)
+                     :filler:
+                     size: 30
+                     (H :filler: size: 80
+                        (dom editnode) (dom ok) (dom cancel)
+                        :filler:)))
+    (show-window w center: true modal: true)))
+
+(defun select-edit (b hv-node cback)
+  (let** ((w (window 0 0 300 400 title: "Select properties"))
+          (name (add-widget w (input "name" autofocus: true)))
+          (caption (add-widget w (input "caption")))
+          (values (add-widget w (text-area "values")))
+          (editnode (add-widget w (button "Layout" #'layout)))
+          (ok (add-widget w (button "OK" #'ok)))
+          (cancel (add-widget w (button "Cancel" #'cancel)))
+          (#'layout () (edit-hv-node hv-node (lambda ())))
+          (#'cancel () (hide-window w))
+          (#'ok ()
+            (setf b.data-name (text name))
+            (setf (caption b) (text caption))
+            (do () ((not (node b).firstChild))
+              (remove-child (node b) (node b).firstChild))
+            (dolist (L (split (text values) "\n"))
+              (when (> (length L) 0)
+                (let ((opt (append-child (node b)
+                                         (create-element "option"))))
+                  (setf opt.textContent L))))
+            (hide-window w)
+            (funcall cback)))
+    (setf (text caption) (caption b))
+    (setf (text name) (or b.data-name ""))
+    (setf (text values) (join (map (get textContent) (node b).children) "\n"))
+    (unless hv-node (setf editnode.disabled "disabled"))
+    (set-layout w (V border: 8 spacing: 8
+                     size: 40
+                     (dom name)
+                     (dom caption)
+                     size: undefined
+                     (dom values)
+                     size: 30
+                     (H :filler: size: 80
+                        (dom editnode) (dom ok) (dom cancel)
+                        :filler:)))
+    (show-window w center: true modal: true)))
+
 (defun editor ()
   (let** ((w (window 0 0 0.75 0.75 title: "GUI editor"))
           (area (set-style (create-element "div")
@@ -58,10 +256,12 @@
                                                           (<= (+ d.offsetTop d.offsetHeight) (max y0 y1))))
                                                    area.children))
                                   (n (length widgets))
-                                  (left-avg (/ (reduce #'+ (map (get offsetLeft) widgets)) n))
-                                  (top-avg (/ (reduce #'+ (map (get offsetTop) widgets)) n))
-                                  (h-score (reduce #'+ (map (lambda (d) (expt (- d.offsetTop top-avg) 2)) widgets)))
-                                  (v-score (reduce #'+ (map (lambda (d) (expt (- d.offsetLeft left-avg) 2)) widgets))))
+                                  (#'x (d) (+ d.offsetLeft (/ d.offsetWidth 2)))
+                                  (#'y (d) (+ d.offsetTop (/ d.offsetHeight 2)))
+                                  (x-avg (/ (reduce #'+ (map #'x widgets)) n))
+                                  (y-avg (/ (reduce #'+ (map #'y widgets)) n))
+                                  (h-score (reduce #'+ (map (lambda (d) (expt (- (y d) y-avg) 2)) widgets)))
+                                  (v-score (reduce #'+ (map (lambda (d) (expt (- (x d) x-avg) 2)) widgets))))
                             (when (> n 1)
                               (let** ((ww (if (< h-score v-score)
                                               (+ (* (1- (length widgets)) 8)
@@ -106,6 +306,7 @@
                                              backgroundColor "none")
                                   (nremove w.data-node tree.children)
                                   (push w.data-node node.children)
+                                  (setf w.data-node.hv-node (last layout.elements))
                                   (append-child d w))
                                 (setf d.data-resize (lambda (x0 y0 x1 y1)
                                                       (set-coords layout 0 0 (- x1 x0) (- y1 y0))))
@@ -191,13 +392,18 @@
                               (fix-box)))))
               (set-current box)
               box))
-          (#'add-widget-button (text builder)
+          (#'add-widget-button (text builder ww hh &optional propedit)
             (let** ((c (button text #'add))
                     (#'add ()
-                      (let* ((box (wrap (funcall builder) 0 0))
+                      (let* ((box (wrap (set-style (funcall builder)
+                                                   position "absolute"
+                                                   px/width ww
+                                                   px/height hh)
+                                        0 0))
                              (node #((children (list))
                                      (text text)
-                                     (box box))))
+                                     (box box)
+                                     (propedit propedit))))
                         (setf box.data-node node)
                         (push node tree.children)
                         (wtree.rebuild)
@@ -217,11 +423,21 @@
                          px/height 26)))
           (tree #((children (list))
                   (text "Window")))
-          (wtree (set-style (tree-view tree)
+          (#'refresh ()
+            (dolist (w area.children)
+              (when w.data-resize
+                (funcall w.data-resize 0 0 w.offsetWidth w.offsetHeight))))
+          (#'node-click (n)
+            (cond
+              (n.propedit
+                (n.propedit n.box.firstChild n.hv-node #'refresh))
+              (n.hv-node
+                (edit-hv-node n.hv-node #'refresh))))
+          (wtree (set-style (tree-view tree onclick: #'node-click)
                             position "absolute"
                             overflow "auto"))
           (vs (v-splitter widget-list wtree))
-          (hs (add-widget w (h-splitter area vs split: 90)))
+          (hs (add-widget w (h-splitter area vs split: 80)))
           (widgets (list))
           (layout null))
     (setf widget-list.data-resize #'fix-widget-list)
@@ -230,53 +446,19 @@
       (event.stopPropagation)
       (rect-selection event))
 
-    (add-widget-button "Button" (lambda () (set-style (button "Button" (lambda ()))
-                                                      position "absolute"
-                                                      px/width 80
-                                                      px/height 30)))
-
-    (add-widget-button "Input" (lambda () (set-style (input "Input field")
-                                                     position "absolute"
-                                                     px/width 200
-                                                     px/height 40)))
-
-    (add-widget-button "Select" (lambda () (set-style (select "Select field" (range 10))
-                                                      position "absolute"
-                                                      px/width 200
-                                                      px/height 40)))
-
-    (add-widget-button "Checkbox" (lambda () (set-style (checkbox "Checkbox")
-                                                        position "absolute"
-                                                        px/width 200
-                                                        px/height 40)))
-
-    (add-widget-button "Radio" (lambda () (set-style (radio 1 "Radio button")
-                                                     position "absolute"
-                                                     px/width 200
-                                                     px/height 40)))
-
-    (add-widget-button "Textarea" (lambda () (set-style (text-area "Text area")
-                                                        position "absolute"
-                                                        px/width 200
-                                                        px/height 80)))
-
-    (add-widget-button "Color" (lambda () (set-style (css-color-input "Color")
-                                                     position "absolute"
-                                                     px/width 200
-                                                     px/height 40)))
-
-    (add-widget-button "Date" (lambda () (set-style (date-input "Date")
-                                                    position "absolute"
-                                                    px/width 120
-                                                    px/height 40)))
-
+    (add-widget-button "Button" (lambda () (button "Button" (lambda ()))) 80 30 #'button-edit)
+    (add-widget-button "Input" (lambda () (input "Input field")) 200 40 #'input-edit)
+    (add-widget-button "Select" (lambda () (select "Select field" (range 10))) 200 40 #'select-edit)
+    (add-widget-button "Checkbox" (lambda () (checkbox "Checkbox")) 200 40 #'checkbox-edit)
+    (add-widget-button "Radio" (lambda () (radio 1 "Radio button")) 200 40)
+    (add-widget-button "Textarea" (lambda () (text-area "Text area")) 200 80 #'textarea-edit)
+    (add-widget-button "Color" (lambda () (css-color-input "Color")) 200 40)
+    (add-widget-button "Date" (lambda () (date-input "Date")) 120 40)
     (add-widget-button "Spacer" (lambda () (set-style (let ((d (create-element "div")))
                                                         (setf d.data-spacer true)
                                                         d)
-                                                      position "absolute"
-                                                      backgroundColor "#CEE"
-                                                      px/width 20
-                                                      px/height 20)))
+                                                      backgroundColor "#CEE"))
+                       20 20)
 
     (set-layout w (H spacing: 8 border: 8
                      (dom hs)))
