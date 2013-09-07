@@ -4,10 +4,12 @@
 (defun editor ()
   (let** ((w (window 0 0 0.75 0.75 title: "GUI editor"))
           (area (set-style (create-element "div")
+                           overflow "auto"
                            position "absolute"))
           (widget-list (set-style (create-element "div")
                                   position "absolute"
-                                  background-color "#EEE"))
+                                  background-color "#EEE"
+                                  overflow "auto"))
           (current null)
           (#'set-current (x)
             (when current
@@ -77,22 +79,41 @@
                                                     px/height hh))
                                       (layout (if (< h-score v-score)
                                                   (H border: 0 spacing: 8)
-                                                  (V border: 0 spacing: 8))))
+                                                  (V border: 0 spacing: 8)))
+                                      (spacers (any (w widgets) w.firstChild.data-spacer))
+                                      (xa (apply #'min (map (get offsetLeft) widgets)))
+                                      (ya (apply #'min (map (get offsetTop) widgets)))
+                                      (node #((children (list))
+                                              (text (if (< h-score v-score) "H-group" "V-group")))))
                                 (nsort widgets (if (< h-score v-score)
                                                    (lambda (a b) (< a.offsetLeft b.offsetLeft))
                                                    (lambda (a b) (< a.offsetTop b.offsetTop))))
                                 (dolist (w widgets)
-                                  (add-element layout
-                                               weight: (if (< h-score v-score)
-                                                           w.offsetWidth
-                                                           w.offsetHeight)
-                                               (dom w))
+                                  (if spacers
+                                      (if w.firstChild.data-spacer
+                                          (add-element layout (dom w))
+                                          (add-element layout
+                                                       size: (if (< h-score v-score)
+                                                                 w.offsetWidth
+                                                                 w.offsetHeight)
+                                                       (dom w)))
+                                      (add-element layout
+                                                   weight: (if (< h-score v-score)
+                                                               w.offsetWidth
+                                                               w.offsetHeight)
+                                                   (dom w)))
                                   (set-style (aref w.children 1)
                                              backgroundColor "none")
+                                  (nremove w.data-node tree.children)
+                                  (push w.data-node node.children)
                                   (append-child d w))
                                 (setf d.data-resize (lambda (x0 y0 x1 y1)
                                                       (set-coords layout 0 0 (- x1 x0) (- y1 y0))))
-                                (wrap d (min x0 x1) (min y0 y1))))))
+                                (let ((box (wrap d xa ya)))
+                                  (setf box.data-node node)
+                                  (setf node.box box)
+                                  (push node tree.children)
+                                  (wtree.rebuild))))))
                         "pointer"
                         (element-pos area))))
           (#'wrap (d x0 y0)
@@ -173,7 +194,13 @@
           (#'add-widget-button (text builder)
             (let** ((c (button text #'add))
                     (#'add ()
-                      (let ((box (wrap (funcall builder) 0 0)))
+                      (let* ((box (wrap (funcall builder) 0 0))
+                             (node #((children (list))
+                                     (text text)
+                                     (box box))))
+                        (setf box.data-node node)
+                        (push node tree.children)
+                        (wtree.rebuild)
                         (set-style box
                                    px/left (/ (- area.offsetWidth box.offsetWidth) 2)
                                    px/top (/ (- area.offsetHeight box.offsetHeight) 2)))))
@@ -188,7 +215,13 @@
                          px/top (+ (* i 30) 2)
                          px/right 2
                          px/height 26)))
-          (vs (add-widget w (h-splitter area widget-list split: 90)))
+          (tree #((children (list))
+                  (text "Window")))
+          (wtree (set-style (tree-view tree)
+                            position "absolute"
+                            overflow "auto"))
+          (vs (v-splitter widget-list wtree))
+          (hs (add-widget w (h-splitter area vs split: 90)))
           (widgets (list))
           (layout null))
     (setf widget-list.data-resize #'fix-widget-list)
@@ -237,8 +270,16 @@
                                                     px/width 120
                                                     px/height 40)))
 
+    (add-widget-button "Spacer" (lambda () (set-style (let ((d (create-element "div")))
+                                                        (setf d.data-spacer true)
+                                                        d)
+                                                      position "absolute"
+                                                      backgroundColor "#CEE"
+                                                      px/width 20
+                                                      px/height 20)))
+
     (set-layout w (H spacing: 8 border: 8
-                     (dom vs)))
+                     (dom hs)))
     (show-window w center: true)))
 
 (defun main ()
