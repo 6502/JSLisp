@@ -216,6 +216,8 @@
               (set-style (aref current.children 2)
                          display "none")
               (set-style (aref current.children 3)
+                         display "none")
+              (set-style (aref current.children 4)
                          display "none"))
             (setf current x)
             (when current
@@ -224,6 +226,8 @@
               (set-style (aref current.children 2)
                          display "block")
               (set-style (aref current.children 3)
+                         display "block")
+              (set-style (aref current.children 4)
                          display "block")))
           (#'rect-selection (event)
             (set-current null)
@@ -334,6 +338,12 @@
                                              px/height 8
                                              cursor "e-resize"
                                              backgroundColor "#F00"))
+                    (double-handle (set-style (create-element "div")
+                                              position "absolute"
+                                              px/width 8
+                                              px/height 8
+                                              cursor "se-resize"
+                                              backgroundColor "#F00"))
                     (height-handle (set-style (create-element "div")
                                               position "absolute"
                                               px/width 8
@@ -349,6 +359,9 @@
                       (set-style height-handle
                                  px/left (+ -4 (/ box.offsetWidth 2))
                                  px/top (+ -4 box.offsetHeight))
+                      (set-style double-handle
+                                 px/left (+ -4 box.offsetWidth)
+                                 px/top (+ -4 box.offsetHeight))
                       (set-style width-handle
                                  px/left (+ -4 box.offsetWidth)
                                  px/top (+ -4 (/ box.offsetHeight 2)))))
@@ -357,6 +370,7 @@
               (append-child box glass)
               (append-child box width-handle)
               (append-child box height-handle)
+              (append-child box double-handle)
               (append-child area box)
               (set-style box
                          px/left x0
@@ -379,6 +393,20 @@
                               (let ((dx (- xx x)))
                                 (setf x xx)
                                 (setf box.style.width ~"{(max 10 (min (+ box.offsetWidth dx)))}px"))
+                              (fix-box)))))
+              (set-handler double-handle onmousedown
+                (event.preventDefault)
+                (event.stopPropagation)
+                (let ((x (first (event-pos event)))
+                      (y (second (event-pos event))))
+                  (tracking (lambda (xx yy)
+                              (let ((dx (- xx x))
+                                    (dy (- yy y)))
+                                (setf x xx)
+                                (setf y yy)
+                                (set-style box
+                                           width ~"{(max 10 (min (+ box.offsetWidth dx)))}px"
+                                           height ~"{(max 10 (min (+ box.offsetHeight dy)))}px"))
                               (fix-box)))))
               (set-handler height-handle onmousedown
                 (event.preventDefault)
