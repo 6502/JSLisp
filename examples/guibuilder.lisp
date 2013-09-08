@@ -33,6 +33,36 @@
     (setf (text weight) n.weight)
     (show-window w modal: true center: true)))
 
+(defun layout-edit (n hv-node cback)
+  (let** ((w (window 0 0 370 200 title: "Layout group edit"))
+          (border (add-widget w (input "border" autofocus: true)))
+          (spacing (add-widget w (input "spacing")))
+          (editnode (add-widget w (button "Layout" #'layout)))
+          (delete (add-widget w (button "Delete" #'delete)))
+          (ok (add-widget w (button "OK" #'ok)))
+          (cancel (add-widget w (button "Cancel" #'cancel)))
+          (#'layout () (edit-hv-node hv-node (lambda ())))
+          (#'delete () (baloon "To do"))
+          (#'cancel () (hide-window w))
+          (#'ok ()
+            (setf n.border (or (atoi (text border)) undefined))
+            (setf n.spacing (or (atoi (text spacing)) undefined))
+            (hide-window w)
+            (funcall cback)))
+    (setf (text border) n.border)
+    (setf (text spacing) n.spacing)
+    (unless hv-node (setf editnode.disabled "disabled"))
+    (set-layout w (V border: 8 spacing: 8
+                     size: 40
+                     (H (dom border) (dom spacing))
+                     :filler:
+                     size: 30
+                     (H :filler:
+                        size: 80
+                        (dom editnode) (dom delete) (dom ok) (dom cancel)
+                        :filler:)))
+    (show-window w modal: true center: true)))
+
 (defun button-edit (b hv-node cback)
   (let** ((w (window 0 0 300 230 title: "Button properties"))
           (name (add-widget w (input "name" autofocus: true)))
@@ -375,7 +405,9 @@
                                       (xa (apply #'min (map (get offsetLeft) widgets)))
                                       (ya (apply #'min (map (get offsetTop) widgets)))
                                       (node #((children (list))
-                                              (text (if (< h-score v-score) "H-group" "V-group")))))
+                                              (text (if (< h-score v-score) "H-group" "V-group"))
+                                              (item layout)
+                                              (propedit #'layout-edit))))
                                 (nsort widgets (if (< h-score v-score)
                                                    (lambda (a b) (< a.offsetLeft b.offsetLeft))
                                                    (lambda (a b) (< a.offsetTop b.offsetTop))))
@@ -561,7 +593,7 @@
           (#'node-click (n)
             (cond
               (n.propedit
-                (n.propedit n.box.firstChild n.hv-node #'refresh))
+                (n.propedit (or n.item n.box.firstChild) n.hv-node #'refresh))
               (n.hv-node
                 (edit-hv-node n.hv-node #'refresh))))
           (wtree (set-style (tree-view tree onclick: #'node-click)
