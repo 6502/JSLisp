@@ -161,6 +161,93 @@
                         :filler:)))
     (show-window w center: true modal: true)))
 
+(defun color-edit (b hv-node cback)
+  (let** ((w (window 0 0 300 200 title: "Color input properties"))
+          (name (add-widget w (input "name" autofocus: true)))
+          (caption (add-widget w (input "caption")))
+          (editnode (add-widget w (button "Layout" #'layout)))
+          (ok (add-widget w (button "OK" #'ok)))
+          (cancel (add-widget w (button "Cancel" #'cancel)))
+          (#'layout () (edit-hv-node hv-node (lambda ())))
+          (#'cancel () (hide-window w))
+          (#'ok ()
+            (setf b.data-name (text name))
+            (setf (caption b) (text caption))
+            (hide-window w)
+            (funcall cback)))
+    (setf (text caption) (caption b))
+    (setf (text name) (or b.data-name ""))
+    (unless hv-node (setf editnode.disabled "disabled"))
+    (set-layout w (V border: 8 spacing: 8
+                     size: 40
+                     (dom name)
+                     (dom caption)
+                     :filler:
+                     size: 30
+                     (H :filler: size: 80
+                        (dom editnode) (dom ok) (dom cancel)
+                        :filler:)))
+    (show-window w center: true modal: true)))
+
+(defun date-edit (b hv-node cback)
+  (let** ((w (window 0 0 300 200 title: "Date input properties"))
+          (name (add-widget w (input "name" autofocus: true)))
+          (caption (add-widget w (input "caption")))
+          (editnode (add-widget w (button "Layout" #'layout)))
+          (ok (add-widget w (button "OK" #'ok)))
+          (cancel (add-widget w (button "Cancel" #'cancel)))
+          (#'layout () (edit-hv-node hv-node (lambda ())))
+          (#'cancel () (hide-window w))
+          (#'ok ()
+            (setf b.data-name (text name))
+            (setf (caption b) (text caption))
+            (hide-window w)
+            (funcall cback)))
+    (setf (text caption) (caption b))
+    (setf (text name) (or b.data-name ""))
+    (unless hv-node (setf editnode.disabled "disabled"))
+    (set-layout w (V border: 8 spacing: 8
+                     size: 40
+                     (dom name)
+                     (dom caption)
+                     :filler:
+                     size: 30
+                     (H :filler: size: 80
+                        (dom editnode) (dom ok) (dom cancel)
+                        :filler:)))
+    (show-window w center: true modal: true)))
+
+(defun radio-edit (b hv-node cback)
+  (let** ((w (window 0 0 300 200 title: "Radio button properties"))
+          (name (add-widget w (input "name" autofocus: true)))
+          (group (add-widget w (select "group" (range 1 11))))
+          (caption (add-widget w (input "caption")))
+          (editnode (add-widget w (button "Layout" #'layout)))
+          (ok (add-widget w (button "OK" #'ok)))
+          (cancel (add-widget w (button "Cancel" #'cancel)))
+          (#'layout () (edit-hv-node hv-node (lambda ())))
+          (#'cancel () (hide-window w))
+          (#'ok ()
+            (setf b.data-name (text name))
+            (setf (caption b) (text caption))
+            (setf (node b).name (text group))
+            (hide-window w)
+            (funcall cback)))
+    (setf (text caption) (caption b))
+    (setf (text name) (or b.data-name ""))
+    (setf (text group) (or (node b).name ""))
+    (unless hv-node (setf editnode.disabled "disabled"))
+    (set-layout w (V border: 8 spacing: 8
+                     size: 40
+                     (H (dom name) size: 50 (dom group))
+                     (dom caption)
+                     :filler:
+                     size: 30
+                     (H :filler: size: 80
+                        (dom editnode) (dom ok) (dom cancel)
+                        :filler:)))
+    (show-window w center: true modal: true)))
+
 (defun select-edit (b hv-node cback)
   (let** ((w (window 0 0 300 400 title: "Select properties"))
           (name (add-widget w (input "name" autofocus: true)))
@@ -478,10 +565,10 @@
     (add-widget-button "Input" (lambda () (input "Input field")) 200 40 #'input-edit)
     (add-widget-button "Select" (lambda () (select "Select field" (range 10))) 200 40 #'select-edit)
     (add-widget-button "Checkbox" (lambda () (checkbox "Checkbox")) 200 40 #'checkbox-edit)
-    (add-widget-button "Radio" (lambda () (radio 1 "Radio button")) 200 40)
+    (add-widget-button "Radio" (lambda () (radio 1 "Radio button")) 200 40 #'radio-edit)
     (add-widget-button "Textarea" (lambda () (text-area "Text area")) 200 80 #'textarea-edit)
-    (add-widget-button "Color" (lambda () (css-color-input "Color")) 200 40)
-    (add-widget-button "Date" (lambda () (date-input "Date")) 120 40)
+    (add-widget-button "Color" (lambda () (css-color-input "Color")) 200 40 #'color-edit)
+    (add-widget-button "Date" (lambda () (date-input "Date")) 120 40 #'date-edit)
     (add-widget-button "Spacer" (lambda () (set-style (let ((d (create-element "div")))
                                                         (setf d.data-spacer true)
                                                         d)
