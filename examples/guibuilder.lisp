@@ -508,8 +508,8 @@
               (set-current box)
               box))
           (#'add-widget-button (text builder ww hh &optional propedit)
-            (let** ((c (button text #'add))
-                    (#'add ()
+            (let** ((c (button text (lambda ())))
+                    (#'add (x y)
                       (let* ((box (wrap (set-style (funcall builder)
                                                    position "absolute"
                                                    px/width ww
@@ -523,8 +523,24 @@
                         (push node tree.children)
                         (wtree.rebuild)
                         (set-style box
-                                   px/left (/ (- area.offsetWidth box.offsetWidth) 2)
-                                   px/top (/ (- area.offsetHeight box.offsetHeight) 2)))))
+                                   px/left (- x (/ box.offsetWidth 2))
+                                   px/top (- y (/ box.offsetHeight 2)))
+                        box)))
+              (set-handler c onmousedown
+                (event.preventDefault)
+                (event.stopPropagation)
+                (let** ((x (first (relative-pos event area)))
+                        (y (second (relative-pos event area)))
+                        (box (add x y)))
+                  (tracking (lambda (xx yy)
+                              (set-style box
+                                         px/left (+ box.offsetLeft (- xx x))
+                                         px/top (+ box.offsetTop (- yy y)))
+                              (setf x xx)
+                              (setf y yy))
+                            undefined
+                            "move"
+                            (element-pos area))))
               (append-child widget-list c)))
           (#'fix-widget-list ()
             (do ((c widget-list.firstChild c.nextSibling)
