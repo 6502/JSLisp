@@ -11,7 +11,7 @@
           (cancel (add-widget w (button "Cancel" #'cancel)))
           (#'cancel () (hide-window w))
           (#'ok ()
-            (setf n.min (or (atoi (text min)) undefined))
+            (setf n.min (atoi (text min)))
             (setf n.max (or (atoi (text max)) infinity))
             (setf n.class (or (atoi (text class)) 1))
             (setf n.weight (or (atoi (text weight)) 100))
@@ -28,7 +28,7 @@
                         (dom ok) (dom cancel)
                         :filler:)))
     (setf (text min) (or n.min ""))
-    (setf (text max) (or n.max ""))
+    (setf (text max) (if (infinity? n.max) "" n.max))
     (setf (text class) n.class)
     (setf (text weight) n.weight)
     (show-window w modal: true center: true)))
@@ -45,8 +45,8 @@
           (#'delete () (baloon "To do"))
           (#'cancel () (hide-window w))
           (#'ok ()
-            (setf n.border (or (atoi (text border)) undefined))
-            (setf n.spacing (or (atoi (text spacing)) undefined))
+            (setf n.border (atoi (text border)))
+            (setf n.spacing (atoi (text spacing)))
             (hide-window w)
             (funcall cback)))
     (setf (text border) n.border)
@@ -157,6 +157,34 @@
                      (dom name)
                      (dom caption)
                      :filler:
+                     size: 30
+                     (H :filler: size: 80
+                        (dom editnode) (dom ok) (dom cancel)
+                        :filler:)))
+    (show-window w center: true modal: true)))
+
+(defun html-edit (b hv-node cback)
+  (let** ((w (window 0 0 300 300 title: "HTML properties"))
+          (name (add-widget w (input "name" autofocus: true)))
+          (html (add-widget w (text-area "html")))
+          (editnode (add-widget w (button "Layout" #'layout)))
+          (ok (add-widget w (button "OK" #'ok)))
+          (cancel (add-widget w (button "Cancel" #'cancel)))
+          (#'layout () (edit-hv-node hv-node (lambda ())))
+          (#'cancel () (hide-window w))
+          (#'ok ()
+            (setf b.data-name (text name))
+            (setf b.innerHTML (text html))
+            (hide-window w)
+            (funcall cback)))
+    (setf (text html) b.innerHTML)
+    (setf (text name) (or b.data-name ""))
+    (unless hv-node (setf editnode.disabled "disabled"))
+    (set-layout w (V border: 8 spacing: 8
+                     size: 40
+                     (dom name)
+                     size: undefined
+                     (dom html)
                      size: 30
                      (H :filler: size: 80
                         (dom editnode) (dom ok) (dom cancel)
@@ -540,7 +568,15 @@
               (set-current box)
               box))
           (#'add-widget-button (text builder ww hh &optional propedit)
-            (let** ((c (button text (lambda ())))
+            (let** ((c (set-style (create-element "div")
+                                  backgroundColor "#FFF"
+                                  fontWeight "bold"
+                                  fontFamily "monospace"
+                                  px/fontSize 16
+                                  cursor "move"
+                                  boxShadow "1px 1px 1px rgba(0,0,0,0.5)"
+                                  px/margin 4
+                                  px/padding 4))
                     (#'add (x y)
                       (let* ((box (wrap (set-style (funcall builder)
                                                    position "absolute"
@@ -558,6 +594,7 @@
                                    px/left (- x (/ box.offsetWidth 2))
                                    px/top (- y (/ box.offsetHeight 2)))
                         box)))
+              (setf c.textContent text)
               (set-handler c onmousedown
                 (event.preventDefault)
                 (event.stopPropagation)
@@ -574,16 +611,6 @@
                             "move"
                             (element-pos area))))
               (append-child widget-list c)))
-          (#'fix-widget-list ()
-            (do ((c widget-list.firstChild c.nextSibling)
-                 (i 0 (1+ i)))
-              ((not c))
-              (set-style c
-                         position "absolute"
-                         px/left 2
-                         px/top (+ (* i 30) 2)
-                         px/right 2
-                         px/height 26)))
           (tree #((children (list))
                   (text "Window")))
           (#'refresh ()
@@ -603,7 +630,6 @@
           (hs (add-widget w (h-splitter area vs split: 80)))
           (widgets (list))
           (layout null))
-    (setf widget-list.data-resize #'fix-widget-list)
     (set-handler area onmousedown
       (event.preventDefault)
       (event.stopPropagation)
@@ -617,6 +643,8 @@
     (add-widget-button "Textarea" (lambda () (text-area "Text area")) 200 80 #'textarea-edit)
     (add-widget-button "Color" (lambda () (css-color-input "Color")) 200 40 #'color-edit)
     (add-widget-button "Date" (lambda () (date-input "Date")) 120 40 #'date-edit)
+    (add-widget-button "Table" (lambda () (table (repeat-collect 5 (range 5)))) 300 300)
+    (add-widget-button "HTML" (lambda () (create-element "div")) 120 40 #'html-edit)
     (add-widget-button "Spacer" (lambda () (set-style (let ((d (create-element "div")))
                                                         (setf d.data-spacer true)
                                                         d)
