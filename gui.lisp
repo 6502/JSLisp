@@ -366,7 +366,8 @@
 
 (defun show-window (w &key center modal)
   "Displays the specified window"
-  (let ((modal (when modal (modal-screen))))
+  (let ((modal (when modal (modal-screen)))
+        (ca document.activeElement))
     (show w.frame)
 
     (when center
@@ -387,7 +388,9 @@
               (lambda ()
                 (setf w.close-cback ocb)
                 (hide modal)
-                (when ocb (funcall ocb))))))))
+                (when ocb (funcall ocb))
+                (when ca (set-timeout (lambda () (ca.focus))
+                                      100))))))))
 
 ;;
 
@@ -873,6 +876,8 @@
                   (setf w table.clientWidth)
                   (setf h table.clientHeight)
                   (set-coords layout 0 0 w h)))))
+      (setf table.data-cols cols)
+      (setf table.data-rows rows)
       (setf table.% #'table)
       table)))
 
