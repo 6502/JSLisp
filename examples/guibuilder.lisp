@@ -400,7 +400,7 @@
                           (remove-child area d)
                           (let** ((widgets (filter (lambda (d)
                                                      (and (>= d.offsetLeft (min x0 x1))
-                                                          (>= d.offsetTop (min y0 y0))
+                                                          (>= d.offsetTop (min y0 y1))
                                                           (<= (+ d.offsetLeft d.offsetWidth) (max x0 x1))
                                                           (<= (+ d.offsetTop d.offsetHeight) (max y0 y1))))
                                                    area.children))
