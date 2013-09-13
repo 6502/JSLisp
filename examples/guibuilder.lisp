@@ -38,11 +38,9 @@
           (border (add-widget w (input "border" autofocus: true)))
           (spacing (add-widget w (input "spacing")))
           (editnode (add-widget w (button "Layout" #'layout)))
-          (delete (add-widget w (button "Delete" #'delete)))
           (ok (add-widget w (button "OK" #'ok)))
           (cancel (add-widget w (button "Cancel" #'cancel)))
           (#'layout () (edit-hv-node hv-node (lambda ())))
-          (#'delete () (baloon "To do"))
           (#'cancel () (hide-window w))
           (#'ok ()
             (setf n.border (atoi (text border)))
@@ -59,7 +57,7 @@
                      size: 30
                      (H :filler:
                         size: 80
-                        (dom editnode) (dom delete) (dom ok) (dom cancel)
+                        (dom editnode) (dom ok) (dom cancel)
                         :filler:)))
     (show-window w modal: true center: true)))
 
