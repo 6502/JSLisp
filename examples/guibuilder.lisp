@@ -347,6 +347,20 @@
           (area (set-style (create-element "div")
                            overflow "auto"
                            position "absolute"))
+          (status (set-style (append-child area (create-element "div"))
+                             position "absolute"
+                             px/top 0
+                             px/right 0
+                             background-color "#000"
+                             px/margin 8
+                             px/padding 16
+                             px/borderRadius 8
+                             color "#FFF"
+                             fontFamily "sans-serif"
+                             fontWeight "bold"
+                             px/fontSize 18
+                             opacity "0.75"
+                             display "none"))
           (widget-list (set-style (create-element "div")
                                   position "absolute"
                                   background-color "#EEE"
@@ -563,17 +577,23 @@
                 (event.preventDefault)
                 (event.stopPropagation)
                 (let ((x (first (event-pos event))))
+                  (setf status.textContent ~"width {box.offsetWidth}px")
+                  (setf status.style.display "block")
                   (tracking (lambda (xx yy)
                               (declare (ignorable yy))
                               (let ((dx (- xx x)))
                                 (setf x xx)
-                                (setf box.style.width ~"{(max 10 (min (+ box.offsetWidth dx)))}px"))
-                              (fix-box)))))
+                                (setf box.style.width ~"{(max 10 (min (+ box.offsetWidth dx)))}px")
+                                (setf status.textContent ~"width {box.offsetWidth}px"))
+                              (fix-box))
+                            (lambda () (setf status.style.display "none")))))
               (set-handler double-handle onmousedown
                 (event.preventDefault)
                 (event.stopPropagation)
                 (let ((x (first (event-pos event)))
                       (y (second (event-pos event))))
+                  (setf status.textContent ~"size {box.offsetWidth}x{box.offsetHeight}px")
+                  (setf status.style.display "block")
                   (tracking (lambda (xx yy)
                               (let ((dx (- xx x))
                                     (dy (- yy y)))
@@ -581,18 +601,24 @@
                                 (setf y yy)
                                 (set-style box
                                            width ~"{(max 10 (min (+ box.offsetWidth dx)))}px"
-                                           height ~"{(max 10 (min (+ box.offsetHeight dy)))}px"))
-                              (fix-box)))))
+                                           height ~"{(max 10 (min (+ box.offsetHeight dy)))}px")
+                                (setf status.textContent ~"size {box.offsetWidth}x{box.offsetHeight}px"))
+                              (fix-box))
+                            (lambda () (setf status.style.display "none")))))
               (set-handler height-handle onmousedown
                 (event.preventDefault)
                 (event.stopPropagation)
                 (let ((y (second (event-pos event))))
+                  (setf status.textContent ~"height {box.offsetHeight}px")
+                  (setf status.style.display "block")
                   (tracking (lambda (xx yy)
                               (declare (ignorable xx))
                               (let ((dy (- yy y)))
                                 (setf y yy)
-                                (setf box.style.height ~"{(max 10 (min (+ box.offsetHeight dy)))}px"))
-                              (fix-box)))))
+                                (setf box.style.height ~"{(max 10 (min (+ box.offsetHeight dy)))}px")
+                                (setf status.textContent ~"size {box.offsetWidth}x{box.offsetHeight}px"))
+                              (fix-box))
+                            (lambda () (setf status.style.display "none")))))
               (set-current box)
               box))
           (#'add-widget-button (text builder ww hh &optional propedit)
@@ -659,6 +685,7 @@
           (hs (add-widget w (h-splitter area vs split: 80)))
           (widgets (list))
           (layout null))
+
     (set-handler area onmousedown
       (event.preventDefault)
       (event.stopPropagation)
