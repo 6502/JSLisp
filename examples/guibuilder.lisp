@@ -361,6 +361,8 @@
               (set-style (aref current.children 3)
                          display "none")
               (set-style (aref current.children 4)
+                         display "none")
+              (set-style (aref current.children 5)
                          display "none"))
             (setf current x)
             (when current
@@ -371,6 +373,8 @@
               (set-style (aref current.children 3)
                          display "block")
               (set-style (aref current.children 4)
+                         display "block")
+              (set-style (aref current.children 5)
                          display "block")))
           (#'rect-selection (event)
             (set-current null)
@@ -459,6 +463,7 @@
                                   (append-child d w))
                                 (setf d.data-resize (lambda (x0 y0 x1 y1)
                                                       (set-coords layout 0 0 (- x1 x0) (- y1 y0))))
+                                (setf d.data-layout layout)
                                 (let ((box (wrap d xa ya)))
                                   (setf box.data-node node)
                                   (setf node.box box)
@@ -466,6 +471,19 @@
                                   (wtree.rebuild))))))
                         "pointer"
                         (element-pos area))))
+          (#'destroy (box)
+            (nremove box.data-node tree.children)
+            (when box.firstChild.data-layout
+              (dolist (e box.firstChild.data-layout.elements)
+                (let ((b e.element.element))
+                  (set-style b
+                             px/left (+ box.offsetLeft b.offsetLeft)
+                             px/top (+ box.offsetTop b.offsetTop))
+                  (append-child area b)
+                  (setf b.firstChild.backgroundColor "#EEE")
+                  (push b.data-node tree.children))))
+            (area.removeChild box)
+            (refresh))
           (#'wrap (d x0 y0)
             (let** ((box (set-style (create-element "div")
                                     position "absolute"))
@@ -495,6 +513,12 @@
                                               px/height 8
                                               cursor "s-resize"
                                               backgroundColor "#F00"))
+                    (destroyer (set-style (create-element "div")
+                                          position "absolute"
+                                          px/right -4
+                                          px/top -8
+                                          color "#F00"
+                                          cursor "pointer"))
                     (#'fix-box ()
                       (set-style d
                                  px/width box.offsetWidth
@@ -510,12 +534,14 @@
                       (set-style width-handle
                                  px/left (+ -4 box.offsetWidth)
                                  px/top (+ -4 (/ box.offsetHeight 2)))))
+              (setf destroyer.textContent "☒")
               (setf box.data-resize #'fix-box)
               (append-child box d)
               (append-child box glass)
               (append-child box width-handle)
               (append-child box height-handle)
               (append-child box double-handle)
+              (append-child box destroyer)
               (append-child area box)
               (set-style box
                          px/left x0
@@ -523,6 +549,10 @@
                          px/width d.offsetWidth
                          px/height d.offsetHeight)
               (fix-box)
+              (set-handler destroyer onmousedown
+                (event.preventDefault)
+                (event.stopPropagation)
+                (destroy box))
               (set-handler box onmousedown
                 (event.preventDefault)
                 (event.stopPropagation)
@@ -614,7 +644,8 @@
           (#'refresh ()
             (dolist (w area.children)
               (when w.data-resize
-                (funcall w.data-resize 0 0 w.offsetWidth w.offsetHeight))))
+                (funcall w.data-resize 0 0 w.offsetWidth w.offsetHeight)))
+            (wtree.rebuild))
           (#'node-click (n)
             (cond
               (n.propedit
