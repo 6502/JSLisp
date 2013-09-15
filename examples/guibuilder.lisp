@@ -11,8 +11,8 @@
           (cancel (add-widget w (button "Cancel" #'cancel)))
           (#'cancel () (hide-window w))
           (#'ok ()
-            (setf n.min (atoi (text min)))
-            (setf n.max (or (atoi (text max)) infinity))
+            (setf n.min (if (text min) (atoi (text min)) 0))
+            (setf n.max (if (text max) (atoi (text max)) infinity))
             (setf n.class (or (atoi (text class)) 1))
             (setf n.weight (or (atoi (text weight)) 100))
             (hide-window w)
@@ -661,7 +661,9 @@
                                          px/top (+ box.offsetTop (- yy y)))
                               (setf x xx)
                               (setf y yy))
-                            undefined
+                            (lambda ()
+                              (when propedit
+                                (funcall propedit box.firstChild undefined #'refresh)))
                             "move"
                             (element-pos area))))
               (append-child widget-list c)))
@@ -678,7 +680,10 @@
                 (n.propedit (or n.item n.box.firstChild) n.hv-node #'refresh))
               (n.hv-node
                 (edit-hv-node n.hv-node #'refresh))))
-          (wtree (set-style (tree-view tree onclick: #'node-click)
+          (wtree (set-style (tree-view tree
+                                       onclick: #'node-click
+                                       text-of: (lambda (n)
+                                                  (or (and n n.box n.box.firstChild.data-name) n.text)))
                             position "absolute"
                             overflow "auto"))
           (vs (v-splitter widget-list wtree))
