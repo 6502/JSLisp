@@ -247,7 +247,7 @@
 
 (defun textarea-code (b section)
   (if (= section "let")
-      ~"(text-area {(str-value b.caption)})"
+      ~"(text-area {(str-value (caption b))})"
       undefined))
 
 (defun color-edit (b hv-node cback)
@@ -280,7 +280,7 @@
 
 (defun color-code (b section)
   (if (= section "let")
-      ~"(css-color-input {(str-value b.caption)})"
+      ~"(css-color-input {(str-value (caption b))})"
       undefined))
 
 (defun date-edit (b hv-node cback)
@@ -313,7 +313,7 @@
 
 (defun date-code (b section)
   (if (= section "let")
-      ~"(date-input {(str-value b.caption)})"
+      ~"(date-input {(str-value (caption b))})"
       undefined))
 
 (defun radio-edit (b hv-node cback)
@@ -349,7 +349,7 @@
 
 (defun radio-code (b section)
   (if (= section "let")
-      ~"(radio {(str-value (node b).name)} {(str-value b.caption)})"
+      ~"(radio {(str-value (node b).name)} {(str-value (caption b))})"
       undefined))
 
 (defun select-edit (b hv-node cback)
@@ -393,7 +393,7 @@
 (defun select-code (b section)
   (if (= section "let")
       (let ((data (map (get textContent) (node b).children)))
-        ~"(select {(str-value b.caption)} '{(str-value data)})")
+        ~"(select {(str-value (caption b))} '{(str-value data)})")
       undefined))
 
 (defun editor ()
