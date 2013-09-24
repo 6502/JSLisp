@@ -1,6 +1,111 @@
 (import * from gui)
 (import * from layout)
 
+(defun parse-let** (let**)
+  (when (and (list? let**) (= (first let**) 'let**))
+    (let** ((widgets (list))
+            (widget-names #())
+            (placed-widgets #())
+            (window null)
+            (layout null)
+            (#'constant (x)
+              (or (number? x)
+                  (string? x)
+                  (keyword? x)
+                  (find x '(true false undefined null infinity NaN -infinity))
+                  (and (list? x) (= (first x) 'function)))))
+      (dolist (binding (second let**))
+        (cond
+          ((and (list? binding)
+                (= (length binding) 2)
+                (symbol? (first binding))
+                (list? (second binding)))
+           (cond
+             ((= (first (second binding)) 'window)
+              (setf window binding))
+             ((and window
+                   (= (first (second binding)) 'add-widget)
+                   (= (second (second binding)) (first window))
+                   (list? (third (second binding)))
+                   (find (first (third (second binding)))
+                         '(input button select checkbox radio text-area))
+                   (all (x (slice (third (second binding)) 1)) (constant x)))
+              (setf (aref widget-names (first binding)) binding)
+              (push binding widgets))))))
+      (dolist (expr (slice let** 2))
+        (when (and window
+                   (list? expr)
+                   (= (first expr) 'set-layout)
+                   (= (second expr) (first window)))
+          (let** ((pure true)
+                  (#'visit (x)
+                    (cond
+                      ((and (list? x)
+                            (or (= (first x) 'V)
+                                (= (first x) 'H)))
+                       (do ((i 1))
+                         ((>= i (length x)))
+                         (cond
+                           ((find (aref x i) '(border: spacing:
+                                               min: max: weight: class:
+                                               size: range:))
+                            (incf i 2))
+                           ((= (aref x i) :filler:)
+                            (incf i))
+                           ((list? (aref x i))
+                            (visit (aref x i))
+                            (incf i))
+                           (true
+                             (setf pure false)
+                             (incf i)))))
+                      ((and (list? x)
+                            (= (first x) 'dom)
+                            (symbol? (second x))
+                            (aref widget-names (second x)))
+                       (setf (aref placed-widgets (second x)) true))
+                      (true
+                        (setf pure false)))))
+            (visit (third expr))
+            (when pure
+              (setf layout (third expr))))))
+
+      (display ~"window = {(str-value window)}")
+      (dolist (w widgets)
+        (display ~"widget {(str-value w)}"))
+      (display ~"layout {(str-value layout)}")
+      (display ~"placed widgets {(keys placed-widgets)}"))))
+
+(parse-let** '(let** ((w (window 0 0 370 200 title: "Layout node"))
+                      (min (add-widget w (input "minimum size" autofocus: true)))
+                      (max (add-widget w (input "maximum size")))
+                      (class (add-widget w (input "class")))
+                      (weight (add-widget w (input "weight")))
+                      (ok (add-widget w (button "OK" #'ok)))
+                      (cancel (add-widget w (button "Cancel" #'cancel)))
+                      (#'cancel () (hide-window w))
+                      (#'ok ()
+                        (setf n.min (if (text min) (atoi (text min)) 0))
+                        (setf n.max (if (text max) (atoi (text max)) infinity))
+                        (setf n.class (or (atoi (text class)) 1))
+                        (setf n.weight (or (atoi (text weight)) 100))
+                        (hide-window w)
+                        (funcall cback)))
+                (set-layout w (V border: 8 spacing: 8
+                                 size: 40
+                                 (H (dom min) (dom max))
+                                 (H (dom class) (dom weight))
+                                 :filler:
+                                 size: 30
+                                 (H :filler:
+                                    size: 80
+                                    (dom ok) (dom cancel)
+                                    :filler:)))
+                (setf (text min) (or n.min ""))
+                (setf (text max) (if (infinity? n.max) "" n.max))
+                (setf (text class) n.class)
+                (setf (text weight) n.weight)
+                (show-window w modal: true center: true)))
+
 (defun edit-hv-node (n cback)
   (let** ((w (window 0 0 370 200 title: "Layout node"))
           (min (add-widget w (input "minimum size" autofocus: true)))
@@ -247,7 +352,7 @@
 
 (defun textarea-code (b section)
   (if (= section "let")
-      ~"(text-area {(str-value b.caption)})"
+      ~"(text-area {(str-value (caption b))})"
       undefined))
 
 (defun color-edit (b hv-node cback)
@@ -280,7 +385,7 @@
 
 (defun color-code (b section)
   (if (= section "let")
-      ~"(css-color-input {(str-value b.caption)})"
+      ~"(css-color-input {(str-value (caption b))})"
       undefined))
 
 (defun date-edit (b hv-node cback)
@@ -313,7 +418,7 @@
 
 (defun date-code (b section)
   (if (= section "let")
-      ~"(date-input {(str-value b.caption)})"
+      ~"(date-input {(str-value (caption b))})"
       undefined))
 
 (defun radio-edit (b hv-node cback)
@@ -349,7 +454,7 @@
 
 (defun radio-code (b section)
   (if (= section "let")
-      ~"(radio {(str-value (node b).name)} {(str-value b.caption)})"
+      ~"(radio {(str-value (node b).name)} {(str-value (caption b))})"
       undefined))
 
 (defun select-edit (b hv-node cback)
@@ -393,7 +498,7 @@
 (defun select-code (b section)
   (if (= section "let")
       (let ((data (map (get textContent) (node b).children)))
-        ~"(select {(str-value b.caption)} '{(str-value data)})")
+        ~"(select {(str-value (caption b))} '{(str-value data)})")
       undefined))
 
 (defun editor ()
