@@ -48,7 +48,7 @@
                               (ctx.moveTo 0 yy)
                               (ctx.lineTo w yy)
                               (ctx.stroke)
-                              (ctx.fillText (str-value y) 0 yy)))))))
+                              (ctx.fillText (json y) 0 yy)))))))
               (set-layout w (V border: 8 spacing: 8
                                (dom canvas)))
               (setf canvas.data-resize #'repaint)
