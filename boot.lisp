@@ -2551,7 +2551,7 @@ The resulting list length is equal to the first input sequence."
 ;; Any/all
 (defmacro any ((var list) &rest body)
   "Returns the first logical true evaluation of [body] forms \
-   after binding [var] to [list] elements or [null] if
+   after binding [var] to [list] elements or [null] if \
    every evaluations returns a logically false value. See also {{all}}.
    [[
    (any (x (range 10)) (> x 4))
@@ -2583,7 +2583,7 @@ The resulting list length is equal to the first input sequence."
 
 (defmacro all ((var list) &rest body)
   "[true] if after binding [var] to each of the values in \
-   [list] the last [body] form always evaluate to a true
+   [list] the last [body] form always evaluate to a true \
    value and [false] otherwise. See also {{any}}.
   [[
   (all (x (range 10)) (< x 100))
@@ -4050,23 +4050,36 @@ A name is either an unevaluated atom or an evaluated list."
         (setf (documentation newm) (documentation oldm))
         newm))
 
-;; tracing
+;; Tracing
+
+(defvar *trace-prefix* "")
+
+(defun traced (name f)
+  "Returns a version of function [f] that displays every call and every \
+   returned value. The specified [name] is used as the name of the \
+   function in the output. See also {{trace}} and {{untrace}}."
+  (lambda (&rest args)
+    (display (+ *trace-prefix* (str-value (append name args) false)))
+    (incf *trace-prefix* "  ")
+    (let ((result (apply f args)))
+      (setf *trace-prefix* (slice *trace-prefix* 2))
+      (display (+ *trace-prefix* "--> " (str-value result false)))
+      result)))
+
 (defmacro trace (name)
+  "Replaces the function with specified [name] (an un-evaluated symbol) \
+   with a traced version that displays every call and every returned \
+   value. See also {{traced}} and {{untrace}}."
   `(unless (. #',name org-func)
-     (let ((i "")
-           (org-func #',name))
-       (setf #',name
-             (lambda (&rest args)
-               (display (+ i (str-value (append (list ',name) args) false)))
-               (incf i "  ")
-               (let ((result (apply org-func args)))
-                 (setf i (slice i 2))
-                 (display (+ i "--> " (str-value result false)))
-                 result)))
+     (let ((org-func #',name))
+       (setf #',name (traced ',name #',name))
        (setf (. #',name org-func) org-func)
        ',name)))
 
 (defmacro untrace (name)
+  "Restores a function that has been traced to its original \
+   version, undoing the effect of calling [trace] on it. See also \
+   {{traced}} and {{trace}}."
   `(when (. #',name org-func)
      (setf #',name (. #',name org-func))
      ',name))
