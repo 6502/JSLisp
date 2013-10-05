@@ -6,7 +6,7 @@
 (defconstant R3 200)
 
 (defobject digit (x y n))
-(defobject operator (x y op f a b))
+(defobject operator (x y op f entities a b))
 
 (defmethod draw (ctx e) (digit? e)
   (ctx.beginPath)
@@ -41,7 +41,7 @@
   (ctx.beginPath)
   (ctx.arc e.x e.y R 0 (* 2 pi) true)
   (ctx.closePath)
-  (setf ctx.fillStyle "#FFC")
+  (setf ctx.fillStyle (if e.entities "#CFC" "#FFC"))
   (setf ctx.strokeStyle "#000")
   (setf ctx.lineWidth 2)
   (ctx.fill)
@@ -55,7 +55,7 @@
   (declare (ignorable ctx e)))
 
 (defmethod draw-links (ctx e) (operator? e)
-  (setf ctx.style "#00F")
+  (setf ctx.strokeStyle "#00F")
   (setf ctx.lineWidth 4)
   (ctx.beginPath)
   (when e.a
@@ -113,6 +113,10 @@
 (defmethod hit (e x y) (operator? e)
   (when (and (< (abs (- e.x x)) R)
              (< (abs (- e.y y)) R))
+    (when e.entities
+      (let ((ee (new-operator e.x e.y e.op e.f null)))
+        (push ee e.entities)
+        (setf e ee)))
     (lambda (xx yy)
       (xlate e (- xx x) (- yy y))
       (setf x xx)
@@ -125,16 +129,58 @@
   (funcall e.f (value-of e.a) (value-of e.b)))
 
 (defun game ()
-  (let** ((w (window 0 0 0.75 0.75 title: "24"))
-          (canvas (add-widget w (create-element "canvas")))
+  (let** ((container (append-child document.body
+                                   (set-style (create-element "div")
+                                              position "absolute"
+                                              px/left 0
+                                              px/top 0
+                                              px/right 0
+                                              px/bottom 0)))
+          (digits (repeat-collect 4 (random-choice (range 1 10))))
+          (target (do ((t 0))
+                    ((<= 1 t 99) t)
+                    (setf t (do ((r (slice digits)))
+                              ((= (length r) 1) (first r))
+                              (let** ((a (random-choice r))
+                                      (b (random-choice (remove-first a r)))
+                                      (x (funcall (random-choice (list #'+ #'- #'* #'/)) a b)))
+                                (when (< (abs (- x (round x))) 0.0001)
+                                  (nremove-first a r)
+                                  (nremove-first b r)
+                                  (push x r)))))))
+          (canvas (append-child container (set-style (create-element "canvas")
+                                                     position "absolute"
+                                                     px/left 0
+                                                     px/top 0)))
           (ctx (canvas.getContext "2d"))
           (entities (list))
           (#'repaint ()
+            (set-style canvas
+                       px/width container.offsetWidth
+                       px/height container.offsetHeight)
             (let ((w canvas.offsetWidth)
                   (h canvas.offsetHeight)
                   (result (autoconnect entities)))
               (setf canvas.width w)
               (setf canvas.height h)
+
+              (setf ctx.fillStyle "#EEE")
+              (ctx.fillRect 0 0 w h)
+              (setf ctx.fillStyle "#FFF")
+              (setf ctx.font ~"bold {(* R2 3.5)}px monospace")
+              (setf ctx.textAlign "center")
+              (ctx.fillText (+ "" target) (* R2 3.5) (* R2 6.5))
+
+              (setf ctx.strokeStyle "#888")
+              (setf ctx.lineWidth 1)
+              (ctx.beginPath)
+              (ctx.moveTo (* R2 0.5) (* R2 1.5))
+              (ctx.lineTo (* R2 6.5) (* R2 1.5))
+              (ctx.lineTo (* R2 6.5) (* R2 7.5))
+              (ctx.lineTo (* R2 0.5) (* R2 7.5))
+              (ctx.closePath)
+              (ctx.stroke)
+
               (dolist (e entities)
                 (draw-links ctx e))
               (dolist (e (reverse entities))
@@ -153,7 +199,7 @@
                           (when e.b (visit e.b))))
                   (visit (first result))
                   (setf ctx.strokeStyle
-                        (if (< (abs (- (value-of (first result)) 24))
+                        (if (< (abs (- (value-of (first result)) target))
                                0.00001)
                             "#0F0"
                             "#F00"))
@@ -172,24 +218,35 @@
                 (tracking
                   (lambda (x y)
                     (funcall cb (- x x0) (- y y0))
-                    (repaint)))))))
-    (dolist (y (list R2 (* R2 2) (* R2 3)))
-      (push (new-operator R2 y "+" #'+) entities)
-      (push (new-operator (* R2 2) y "-" #'-) entities)
-      (push (new-operator (* R2 3) y "*" #'*) entities)
-      (push (new-operator (* R2 4) y "/" #'/) entities))
-    (dolist ((x n) (zip (list R2 (* R2 2) (* R2 3) (* R2 4))
-                        (repeat-collect 4 (random-choice (range 1 10)))))
-      (push (new-digit x (* R2 4) n) entities))
+                    (repaint))
+                  (lambda (x y)
+                    (declare (ignorable x y))
+                    (dolist (e (filter (lambda (e)
+                                         (or (digit? e)
+                                             e.entities
+                                             (and (<= (* R2 0.5) e.x (* R2 6.5))
+                                                  (<= (* R2 1.5) e.y (* R2 7.5)))))
+                                       (splice entities)))
+                      (push e entities))
+                    (repaint))
+                  "move")))))
 
-    (set-layout w (V border: 8 spacing: 8
-                     (dom canvas)))
-    (setf canvas.data-resize #'repaint)
+    (push (new-operator (* R2 2) R2 "+" #'+ entities) entities)
+    (push (new-operator (* R2 3) R2 "-" #'- entities) entities)
+    (push (new-operator (* R2 4) R2 "*" #'* entities) entities)
+    (push (new-operator (* R2 5) R2 "/" #'/ entities) entities)
+    (dolist ((x n) (zip (list (* R2 2) (* R2 3) (* R2 4) (* R2 5)) digits))
+      (push (new-digit x (* R2 2) n) entities))
+
+    (set-interval (lambda ()
+                    (when (or (/= canvas.width container.offsetWidth)
+                              (/= canvas.height container.offsetHeight))
+                      (repaint)))
+                  50)
     (set-handler canvas onmousedown
       (event.preventDefault)
       (event.stopPropagation)
-      (apply #'down (event-pos event)))
-    (show-window w center: true)))
+      (apply #'down (event-pos event)))))
 
 (defun main ()
   (game))
