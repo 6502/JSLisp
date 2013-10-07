@@ -11,8 +11,8 @@
 (defvar R 30)
 (defvar R2 80)
 
-(defobject digit (x y n))
-(defobject operator (x y op f entities a b))
+(defobject digit (x y n xx yy))
+(defobject operator (x y op f entities a b xx yy))
 
 (defmethod draw (ctx e selected) (digit? e)
   (ctx.beginPath)
@@ -86,12 +86,12 @@
      (if e.b (node-width e.b) 0)))
 
 (defmethod set-pos (x0 y0 x1 y1 e) (digit? e)
-  (setf e.x (/ (+ x0 x1) 2))
-  (setf e.y y1))
+  (setf e.xx (/ (+ x0 x1) 2))
+  (setf e.yy y1))
 
 (defmethod set-pos (x0 y0 x1 y1 e) (operator? e)
-  (setf e.x (/ (+ x0 x1) 2))
-  (setf e.y y1)
+  (setf e.xx (/ (+ x0 x1) 2))
+  (setf e.yy y1)
   (when e.a
     (set-pos x0 y0 (+ x0 (node-width e.a)) (- y1 R2) e.a))
   (when e.b
@@ -137,6 +137,7 @@
           (rounds 5)
           (ith 0)
           (selected (list))
+          (moving true)
 
           (container (append-child document.body
                                    (set-style (create-element "div")
@@ -216,6 +217,23 @@
                            entities)
                    R2 (* 6 R2) R2))
 
+          (#'animate ()
+            (setf moving false)
+            (dolist (e entities)
+              (let** ((dx (- (or e.xx e.x) e.x))
+                      (dy (- (or e.yy e.y) e.y))
+                      (d2 (+ (* dx dx) (* dy dy))))
+                (if (< d2 1)
+                    (progn
+                      (setf e.x (or e.xx e.x))
+                      (setf e.y (or e.yy e.y)))
+                    (progn
+                      (incf e.x (* dx 0.1))
+                      (incf e.y (* dy 0.1))
+                      (setf moving true)))))
+            (when moving
+              (set-timeout #'repaint 10)))
+
           (#'repaint ()
             (set-style canvas
                        px/width container.offsetWidth
@@ -233,6 +251,7 @@
             (let ((w canvas.offsetWidth)
                   (h canvas.offsetHeight)
                   (result (free)))
+              (when moving (animate))
               (setf canvas.width w)
               (setf canvas.height h)
               (setf ctx.font ~"bold {(* R2 3.5)}px monospace")
@@ -277,7 +296,6 @@
                    (free (free)))
               (decf x x0)
               (decf y y0)
-              (display (length free))
               (dolist (e entities)
                 (when (and (< (abs (- x e.x)) R)
                            (< (abs (- y e.y)) R))
@@ -295,8 +313,9 @@
                       (nremove op selected)
                       (let ((a (first selected))
                             (b (second selected)))
-                        (push (new-operator 0 0 op.op op.f null a b) entities)))
+                        (push (new-operator R2 R2 op.op op.f null a b) entities)))
                     (splice selected))
+                  (setf moving true)
                   (repaint)
                   (return-from down))))
             (if (length selected)
@@ -306,6 +325,7 @@
                                          e.entities))
                                    (splice entities)))
                   (push e entities)))
+            (setf moving true)
             (repaint)))
 
     (push (new-operator (* R2 2) R2 "+" #'+ entities) entities)
