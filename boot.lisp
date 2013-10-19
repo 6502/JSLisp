@@ -2264,39 +2264,6 @@ The resulting list length is equal to the first input sequence."
   "Returns [true] if symbol [s] is a special (dynamic) variable."
   `(js-code ,(+ "(!!specials[(" (js-compile s) ").name])")))
 
-;; let** (like letrec of scheme)
-(defmacro let** (bindings &rest body)
-  "Like [let*] but all variables are created first, initially [undefined] and then \
-   they are assigned the values. When evaluating the value part all bindings are \
-   visible. Also the name of a variable is allowed to be [#'<symbol>] and in this \
-   case the binding is indeed a label entry.[[\
-   >> (let** ((x 42)
-              (y (lambda () (incf x)))
-              (#'dec () (decf x)))
-        (list (funcall y) (dec) (dec) x))
-   = (43 42 41 41)
-   ]]"
-  (let ((funcs (list))
-        (vars (list)))
-    (dolist (b bindings)
-      (if (symbol? (first b))
-          (push `(setf ,(first b) ,(second b)) vars)
-          (progn
-            (unless (and (list? (first b))
-                         (= 'function (first (first b)))
-                         (and (= (length (first b)) 2))
-                         (and (symbol? (second (first b)))))
-              (error "Either a symbol or a (function x) form was expected"))
-            (push `(,(second (first b)) ,@(rest b)) funcs))))
-    `(let ,(map (lambda (v)
-                  `(,(second v) ,(if (special? (second v))
-                                     (second v)
-                                     'undefined)))
-            vars)
-       (labels ,funcs
-         ,@vars
-         ,@body))))
-
 ;; &optional
 
 (setf (symbol-macro 'lambda)
@@ -4049,6 +4016,57 @@ A name is either an unevaluated atom or an evaluated list."
         (setf (arglist newm) (arglist oldm))
         (setf (documentation newm) (documentation oldm))
         newm))
+
+;; let** (like letrec of scheme)
+(defmacro let** (bindings &rest body)
+  "Like [let*] but all variables are created first, initially [undefined] and then \
+   they are assigned the values. When evaluating the value part all bindings are \
+   visible. Also the name of a variable is allowed to be [#'<symbol>] and in this \
+   case the binding is indeed a label entry.[[\
+   >> (let** ((x 42)
+              (y (lambda () (incf x)))
+              (#'dec () (decf x)))
+        (list (funcall y) (dec) (dec) x))
+   = (43 42 41 41)
+   ]]"
+  (let ((funcs (list))
+        (vars (list))
+        (prologue (list)))
+    (dolist (b bindings)
+      (cond
+        ((and (list? b)
+              (= (length b) 2)
+              (symbol? (first b)))
+         (push `(setf ,(first b) ,(second b)) prologue)
+         (push `(,(first b) ,(if (special? (first b))
+                                 (first b)
+                                 undefined))
+               vars))
+        ((and (list? b)
+              (list? (first b))
+              (= (first (first b)) 'function)
+              (symbol? (second (first b)))
+              (= (length (first b)) 2)
+              (list? (second b)))
+         (push `(,(second (first b)) ,@(rest b)) funcs))
+        ((and (list? b)
+              (= (length b) 2)
+              (list? (first b))
+              (all (x (first b)) (symbol? x)))
+         (let ((g (gensym)))
+           (push `(,g ,(second b)) vars)
+           (enumerate (i x (first b))
+             (push `(,x ,(if (special? x)
+                             x
+                             undefined))
+                   vars)
+             (push `(setf ,x (aref ,g ,i)) prologue))))
+        (true
+          (error ~"Invalid let** binding {(str-value b)}"))))
+    `(let ,vars
+       (labels ,funcs
+         ,@prologue
+         (progn ,@body)))))
 
 ;; Tracing
 
