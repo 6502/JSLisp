@@ -2227,39 +2227,6 @@ The resulting list length is equal to the first input sequence."
         (push x res)))
     res))
 
-(defmacro/f nsort (x &optional condition)
-  "Modifies a sequence [x] inplace by sorting the elements according to the \
-   specified [condition] or [#'<] if no condition is given. Returns [x].
-   [condition] must be callable with two parameters and should return [true]
-   when passed two elements if the elements are already sorted. See also {{sort}}.[[
-   (let ((x (list 1 4 2 3)))
-     (list (nsort x) x))
-   ;; ==> ((1 2 3 4) #1)
-
-   (let ((x (list 1 4 2 3)))
-     (nsort x #'>)
-     x)
-   ;; ==> (4 3 2 1)
-   ]]"
-  (if (undefined? condition)
-      `(js-code ,(+ "(" (js-compile x) ").sort(function(a,b){return a<b?-1:1;})"))
-      `(js-code ,(+ "(" (js-compile x) ").sort(function(a,b){return (" (js-compile condition) ")(a,b)?-1:1;})"))))
-
-(defmacro/f sort (x &optional condition)
-  "Returns a copy of a sequence [x] with elements sorted according to the \
-   specified [condition] or [#'<] if no condition is given. See also {{nsort}}.[[
-   (let ((x (list 1 4 2 3)))
-     (list (sort x) x))
-   ;; ==> ((1 2 3 4) (1 4 2 3))
-
-   (let ((x (list \"abc\"
-                  \"w\"
-                  \"xy\")))
-     (sort x (lambda (a b) (< (length a) (length b)))))
-   ;; ==> (\"w\" \"xy\" \"abc\")
-   ]]"
-  `(nsort (slice ,x) ,condition))
-
 (defmacro/f special? (s)
   "Returns [true] if symbol [s] is a special (dynamic) variable."
   `(js-code ,(+ "(!!specials[(" (js-compile s) ").name])")))
@@ -4101,6 +4068,41 @@ A name is either an unevaluated atom or an evaluated list."
   `(when (. #',name org-func)
      (setf #',name (. #',name org-func))
      ',name))
+
+;; Sorting
+
+(defun nsort (x &optional condition)
+  "Modifies a sequence [x] inplace by sorting the elements according to the \
+   specified [condition] or [#'<] if no condition is given. Returns [x].
+   [condition] must be callable with two parameters and should return [true]
+   when passed two elements if the elements are already sorted. See also {{sort}}.[[
+   (let ((x (list 1 4 2 3)))
+     (list (nsort x) x))
+   ;; ==> ((1 2 3 4) #1)
+
+   (let ((x (list 1 4 2 3)))
+     (nsort x #'>)
+     x)
+   ;; ==> (4 3 2 1)
+   ]]"
+  (if (undefined? condition)
+      (x.sort (lambda (a b) (if (< a b) -1 1)))
+      (x.sort (lambda (a b) (if (funcall condition a b) -1 1)))))
+
+(defmacro/f sort (x &optional condition)
+  "Returns a copy of a sequence [x] with elements sorted according to the \
+   specified [condition] or [#'<] if no condition is given. See also {{nsort}}.[[
+   (let ((x (list 1 4 2 3)))
+     (list (sort x) x))
+   ;; ==> ((1 2 3 4) (1 4 2 3))
+
+   (let ((x (list \"abc\"
+                  \"w\"
+                  \"xy\")))
+     (sort x (lambda (a b) (< (length a) (length b)))))
+   ;; ==> (\"w\" \"xy\" \"abc\")
+   ]]"
+  `(nsort (slice ,x) ,condition))
 
 ;; Hex literals
 
