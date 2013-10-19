@@ -117,7 +117,7 @@
           (search (add-widget w (input "search")))
           (replace (add-widget w (input "replace")))
           (regexp (add-widget w (checkbox "Regular expression")))
-          (ok (add-widget w (button "OK" #'ok)))
+          (ok (add-widget w (button "OK" #'ok default: false)))
           (cancel (add-widget w (button "Cancel" #'cancel)))
           (oldcf document.activeElement)
           (#'ok ()
@@ -134,7 +134,6 @@
       (set-handler f onkeydown
                    (let ((block true))
                      (cond
-                       ((= event.which 13) (ok))
                        ((= event.which 27) (cancel))
                        (true (setf block false)))
                      (when block
