@@ -1807,6 +1807,24 @@
           (setf res (funcall f res x)))
         res)))
 
+(defmacro reduce (f seq)
+  "[reduce] specialization used when [f] is [(function ...)]."
+  (if (and (list? f)
+           (= (first f) 'function))
+      (let ((s (gensym-noprefix))
+            (result (gensym-noprefix))
+            (n (gensym-noprefix))
+            (i (gensym-noprefix)))
+        `(let* ((,s ,seq)
+                (,n (length ,s))
+                (,result (if (= ,n 0)
+                             (,(second f))
+                             (first ,s))))
+           (dotimes (,i (1- ,n))
+             (setf ,result (,(second f) ,result (aref ,s (1+ ,i)))))
+           ,result))
+      `(funcall #'reduce ,f ,seq)))
+
 (defmacro min (&rest seq)
   "Returns the minimum value of all arguments under comparison with [<]"
   `(js-code ,(let ((code "(Math.min(")
