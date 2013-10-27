@@ -2207,6 +2207,10 @@ if (d$$node_js)
     for (var i=2; i<process.argv.length; i++)
     {
         var fname = process.argv[i];
-        f$$load(f$$get_file(fname), fname);
+        if (fname[0] == "(") {
+            f$$toplevel_eval(f$$read(fname));
+        } else {
+            f$$load(f$$get_file(fname), fname);
+        }
     }
 }
