@@ -110,7 +110,7 @@
                      "\n")
                "\n")))
 
-(rpc:defun set-user-secret (user-name session-id newsecret authcode)
+(rpc:defun rset-user-secret (user-name session-id newsecret authcode)
   (auth (check-authorization user-name session-id authcode
                              (json* newsecret))
         "read" "write" "terminal" "list")
@@ -118,18 +118,21 @@
   (save-users)
   true)
 
-(rpc:defun add-user (user-name session-id newuser newsecret permissions authcode)
+(rpc:defun rupdate-user (user-name session-id user secret permissions authcode)
   (auth (check-authorization user-name session-id authcode
-                             (json* (list newuser newsecret permissions)))
+                             (json* (list user secret permissions)))
         "admin")
-  (when (aref rpc-server:*users* newuser)
-    (error "User already defined"))
-  (setf (aref rpc-server:*users* newuser)
-        (rpc-server:new-user newuser newsecret permissions))
+  (when (null? secret)
+    (let ((u (aref rpc-server:*users* user)))
+      (if u
+          (setf secret u.secret)
+          (error "Unknown user"))))
+  (setf (aref rpc-server:*users* user)
+        (rpc-server:new-user user secret permissions))
   (save-users)
   true)
 
-(rpc:defun remove-user (user-name session-id user authcode)
+(rpc:defun rremove-user (user-name session-id user authcode)
   (auth (check-authorization user-name session-id authcode
                              (json* user))
         "admin")
@@ -139,13 +142,15 @@
   (save-users)
   true)
 
-(rpc:defun list-users (user-name session-id authcode)
+(rpc:defun rlist-users (user-name session-id authcode)
   (auth (check-authorization user-name session-id authcode "null")
         "admin")
-  (map (lambda (name)
-         #((name name)
-           (permissions (aref rpc-server:*users* name).permissions)))
-       (keys rpc-server:*users*)))
+  (let ((res #()))
+    (dolist (name (keys rpc-server:*users*))
+      (setf (aref res name)
+            #((name name)
+              (permissions (aref rpc-server:*users* name).permissions))))
+    res))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

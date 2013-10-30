@@ -149,6 +149,10 @@
 (rpc:defun rterminal-send (user-name session-id id x authcode))
 (rpc:defun rterminal-receive (user-name session-id id authcode))
 (rpc:defun rterminal-detach (user-name session-id id authcode))
+(rpc:defun rset-user-secret (user-name session-id newsecret authcode))
+(rpc:defun rupdate-user (user-name session-id user secret permissions authcode))
+(rpc:defun rremove-user (user-name session-id user authcode))
+(rpc:defun rlist-users (user-name session-id authcode))
 
 (defun get-file (name)
   (rget-file *user* *session-id* name
@@ -178,12 +182,163 @@
 (defun terminal-detach (id)
   (rterminal-detach *user* *session-id* id (hash (+ *session-id* *secret* (json* id)))))
 
+(defun set-user-secret (newsecret)
+  (rset-user-secret *user* *session-id* newsecret (hash (+ *session-id* *secret* (json* newsecret)))))
+
+(defun update-user (user secret permissions)
+  (rupdate-user *user* *session-id* user secret permissions
+                (hash (+ *session-id* *secret*
+                         (json* (list user secret permissions))))))
+
+(defun remove-user (user)
+  (rremove-user *user* *session-id* user (hash (+ *session-id* *secret* (json* user)))))
+
+(defun list-users ()
+  (rlist-users *user* *session-id* (hash (+ *session-id* *secret* "null"))))
+
+(defun set-new-password ()
+  (let** ((w (window 0 0 280 190 title: "Set new password"))
+          (p1 (add-widget w (input "new password")))
+          (p2 (add-widget w (input "repeat new password")))
+          (ok (add-widget w (button "OK" #'ok)))
+          (cancel (add-widget w (button "Cancel" #'cancel)))
+          (#'cancel ()
+            (hide-window w))
+          (#'ok ()
+            (if (/= (text p1)
+                    (text p2))
+                (baloon "The two password are not identical")
+                (progn
+                  (set-user-secret (hash (text p1)))
+                  (baloon "Password has been updated")
+                  (hide-window w)))))
+    (set-layout w (V border: 8 spacing: 8
+                     size: 40
+                     (dom p1)
+                     (dom p2)
+                     :filler:
+                     size: 30
+                     (H :filler:
+                        size: 80
+                        (dom ok)
+                        (dom cancel)
+                        :filler:)))
+    (setf (node p1).type "password")
+    (setf (node p2).type "password")
+    (show-window w center: true modal: true)))
+
+(defun edit-user (user-name user-permissions)
+  (let** ((new-user (= user-name "<new>"))
+          (w (window 0 0 400 312 title: (if new-user "New user" "Edit user")))
+          (name (add-widget w (input "name")))
+          (p1 (add-widget w (input "set new password")))
+          (p2 (add-widget w (input "repeat new password")))
+          (permissions (add-widget w (group "permissions")))
+          (admin-priv (add-widget w (checkbox "Administrator")))
+          (read-priv (add-widget w (checkbox "Read")))
+          (write-priv (add-widget w (checkbox "Write")))
+          (list-priv (add-widget w (checkbox "List")))
+          (terminal-priv (add-widget w (checkbox "Terminal")))
+          (save (add-widget w (button "Save" #'save)))
+          (delete (add-widget w (button "Delete" #'delete)))
+          (#'save ()
+            (cond
+              ((and (or (text p1) (text p2))
+                    (/= (text p1) (text p2)))
+               (baloon "The two passwords are different"))
+              ((and new-user (not (text p1)))
+               (baloon "The password is mandatory"))
+              (true
+                (update-user (text name)
+                             (hash (text p1))
+                             (append (if (checked admin-priv) '("admin") '())
+                                     (if (checked read-priv) '("read") '())
+                                     (if (checked write-priv) '("write") '())
+                                     (if (checked list-priv) '("list") '())
+                                     (if (checked terminal-priv) '("terminal") '())))
+                (baloon "User data updated")
+                (hide-window w))))
+          (#'delete ()
+            (unless new-user
+              (remove-user (text name))
+              (baloon "User removed")
+              (hide-window w))))
+    (unless new-user
+      (setf (text name) user-name)
+      (setf (node name).disabled "disabled"))
+    (setf (node p1).type "password")
+    (setf (node p2).type "password")
+    (setf (checked admin-priv) (find "admin" user-permissions))
+    (setf (checked read-priv) (find "read" user-permissions))
+    (setf (checked write-priv) (find "write" user-permissions))
+    (setf (checked list-priv) (find "list" user-permissions))
+    (setf (checked terminal-priv) (find "terminal" user-permissions))
+
+    (set-layout w (V border: 8 spacing: 8
+                     size: 42
+                     (dom name)
+                     (H (dom p1) (dom p2))
+                     size: undefined
+                     (dom permissions
+                          (V border: 12
+                             (dom admin-priv)
+                             (dom read-priv)
+                             (dom write-priv)
+                             (dom list-priv)
+                             (dom terminal-priv)))
+                     size: 30
+                     (H :filler:
+                        size: 80
+                        (dom save)
+                        (dom delete)
+                        :filler:)))
+    (if new-user
+        (focus p1)
+        (focus name))
+    (show-window w center: true)))
+
+(defun user-list ()
+  (let** ((w (window 0 0 548 312 title: "User management"))
+          (users (add-widget w (set-style (create-element "div")
+                                          overflow "auto")))
+          (#'user-item (name permissions)
+            (let** ((row (append-child users
+                                       (set-style (create-element "div")
+                                                  fontFamily "monospace"
+                                                  backgroundColor "#EEE"
+                                                  px/padding 4
+                                                  px/margin 4
+                                                  px/fontSize 16
+                                                  cursor "pointer"
+                                                  fontWeight "bold")))
+                    (fname (append-child row (set-style (create-element "div")
+                                                        display "inline-block"
+                                                        %/width 30)))
+                    (fpermissions (append-child row (set-style (create-element "div")
+                                                               display "inline-block"
+                                                               %/width 70))))
+              (setf fname.textContent name)
+              (setf fpermissions.textContent permissions)
+              (set-handler row onmousedown
+                (event.preventDefault)
+                (event.stopPropagation)
+                (edit-user name permissions)
+                (hide-window w)))))
+    (set-layout w (V border: 8 spacing: 8
+                     (dom users)))
+    (let ((ud (list-users)))
+      (dolist (name (keys ud))
+        (user-item name (aref ud name).permissions)))
+    (user-item "<new>" "<new>")
+    (show-window w center: true)))
+
 (defun file-browser (cback)
   (let** ((w (set-style (create-element "div")
                         position "absolute"))
           (user (append-child w (input "username")))
           (password (append-child w (input "password")))
           (current-path (append-child w (input "current path")))
+          (edit-users (append-child w (button "edit users" #'edit-users)))
           (files (append-child w (set-style (create-element "div")
                                             position "absolute"
                                             border  "solid 1px #000000"
@@ -192,6 +347,10 @@
                                             px/padding 2)))
           (last-search null)
           (filelist (list))
+          (#'edit-users ()
+            (if (= *user* "admin")
+                (user-list)
+                (set-new-password)))
           (#'pathexp (s)
             (let* ((last-sep (last-index "/" s))
                    (base (if (= last-sep -1) "./" (slice s 0 (1+ last-sep))))
@@ -243,7 +402,9 @@
                         (dom user)
                         (dom password)
                         size: undefined
-                        (dom current-path))
+                        (dom current-path)
+                        size: 80
+                        (V :filler: size: 24 (dom edit-users)))
                      size: undefined
                      (dom files))))
     (set-handler current-path onkeydown
