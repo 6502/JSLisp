@@ -1390,7 +1390,9 @@
        (warning ,(+ "operator " name " invoked without arguments"))
        true)
       ((= (length args) 1)
-       (warning ,(+ "operator " name " invoked with one argument (it will not be evaluated)"))
+       (warning (+ "Only argument in "
+                   (str-value (append ',(list name) args))
+                   " will not be evaluated"))
        true)
       ((= (length args) 2)
        `(js-code ,(+ "(" (js-compile (aref args 0)) ,jsname (js-compile (aref args 1)) ")")))
