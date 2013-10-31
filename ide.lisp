@@ -225,6 +225,7 @@
                         :filler:)))
     (setf (node p1).type "password")
     (setf (node p2).type "password")
+    (focus p1)
     (show-window w center: true modal: true)))
 
 (defun edit-user (user-name user-permissions)
