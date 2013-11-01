@@ -90,7 +90,7 @@ for example after opening an SSH tunnel with
      ssh -L1337:127.0.0.1:1337 myuser@my.host.public.ip
 
 I can point a browser on http://127.0.0.1:1337/ide.html and use securely
-the IDE server on my machine from the other side of the world.
+the IDE server on my machine across the internet.
 
 IDE key bindings
 ================
