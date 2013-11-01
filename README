@@ -75,7 +75,7 @@ You can customize the listening address (default 127.0.0.1) and port
 
     node jslisp.js deploy.lisp \
                    '(defvar address "0.0.0.0")' \
-                   '(defvar port "8000")'
+                   '(defvar port "8000")' \
                    ideserver.lisp > ideserver.js
 
 To access the filesystem the IDE server has an embedded toy security
