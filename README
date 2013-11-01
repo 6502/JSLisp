@@ -1,4 +1,5 @@
-A tiny lisp compiler in javascript (not an interpreter, code compiles to javascript functions)
+A tiny lisp compiler in javascript (not an interpreter, code compiles
+to javascript functions)
 
 - lisp-2 common-lisp like (but not too much)
 - indeed a lisp-3 (a macro and a function can have the same name)
@@ -20,3 +21,107 @@ A tiny lisp compiler in javascript (not an interpreter, code compiles to javascr
 - treeshaker/minifier
 - compile-only implementation, semantic checks at compile time
 ... and a lot more ...
+
+HOW TO INSTALL
+==============
+
+Just get the source code
+
+
+HOW TO RUN A SIMPLE REPL
+========================
+
+You will need a web server because for security reasons a browser is
+not allowed to use ajax requests to get local files if the page is
+opened from the local file system.
+
+If you have a web browser then just navigate to jslisp.html.
+
+It's also possible to create a single stand-alone REPL page that contains
+most important libraries. To do this you need to install node.js and then
+type at the command prompt in the source directory:
+
+    node jslisp.js standalone.lisp
+
+This will create a standalone.html REPL that can be used even without a
+web server. This repl however is not able to load external lisp files
+so it's only good for experimenting a bit.
+
+
+HOW TO RUN THE JSLISP IDE
+=========================
+
+JsLisp IDE is composed of two parts: an IDE server and an IDE client.
+The first runs under node.js and provides the client the ability to
+navigate and read/write from the filesystem (something that is forbidden
+for a web application).
+
+To compile both parts you need node.js installed and to type the following
+commands from the source directory:
+
+    node jslisp.js deploy-html.lisp ide.lisp > ide.html
+    node jslisp.js deploy.lisp ideserver.lisp > ideserver.js
+
+Then you can start the ideserver with
+
+    node ideserver.js
+
+and you can use the IDE by pointing a browser to
+
+    http://127.0.0.1:1337/ide.html
+
+You can customize the listening address (default 127.0.0.1) and port
+(default 1337) by compiling the server with
+
+    node jslisp.js deploy.lisp \
+                   '(defvar address "0.0.0.0")' \
+                   '(defvar port "8000")'
+                   ideserver.lisp > ideserver.js
+
+To access the filesystem the IDE server has an embedded toy security
+level based on user/password. If no "ide-users" file is present then
+the only user defined is "admin" with password "adminpw".  Using the
+IDE you can add more users and/or change the password.
+
+If you really care about security however you should use SSH
+tunnelling instead of allowing direct connections from other machines;
+for example after opening an SSH tunnel with
+
+     ssh -L1337:127.0.0.1:1337 myuser@my.host.public.ip
+
+I can point a browser on http://127.0.0.1:1337/ide.html and use securely
+the IDE server on my machine from the other side of the world.
+
+IDE key bindings
+================
+
+Currently the key bindings cannot be customized and they are
+
+ctrl-x .............. clipboard cut (*)
+ctrl-c .............. clipboard copy (*)
+ctrl-v .............. clipboard paste (*)
+ctrl-z .............. undo
+ctrl-y .............. redo
+ctrl-enter .......... send current sexpr to inferior lisp
+alt-enter ........... send all current source to inferior lisp and zoom it
+ctrl-k .............. go to inferior lisp and zoom it or go back to source
+esc ................. hide/show inferior lisp and documentation panels
+ctrl-left/right ..... switch to previous/next tab
+ctrl-q .............. close current tab (**)
+ctrl-t .............. open a terminal window (linux only) (**)
+ctrl-d .............. when in a terminal ends the session
+ctrl-w .............. save current file (**)
+alt-r ............... reset inferior lisp
+alt-z ............... clean inferior lisp window
+ctrl-r .............. search/replace dialog
+alt-i ............... ask and evaluate expression in inferior lisp
+
+(*)  For security reasons these are the only keys that allow a browser
+     to do cut/copy/paste using the system clipboad.
+
+(**) These keys are sometimes reserved by browsers and cannot be
+     intercepted by Javascript. To avoid problems try using a web-app
+     mode if available: google chrome for example has a -app option and
+     calling "google-chrome -app=http://127.0.0.1:1337/ide.html" solves
+     some issues and also provides a clean tool-bars free experience.
+
