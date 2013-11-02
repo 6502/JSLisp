@@ -251,7 +251,7 @@
                (baloon "The password is mandatory"))
               (true
                 (update-user (text name)
-                             (hash (text p1))
+                             (if (text p1) (hash (text p1)) null)
                              (append (if (checked admin-priv) '("admin") '())
                                      (if (checked read-priv) '("read") '())
                                      (if (checked write-priv) '("write") '())
