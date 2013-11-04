@@ -5,8 +5,8 @@
         (failed 0)
         (glob (js-code "glob")))
     (dolist (n (keys glob))
-      (when (find (slice n 0 3) (list "f$$" "m$$"))
-        (let ((f (aref (js-code "glob") n))
+      (when ((regexp "^[mf]([a-z0-9]|\\$[0-9]+_)*\\$\\$.*").exec n)
+        (let ((f (aref glob n))
               (name (demangle n)))
           (if (callable? f)
               (when (and f.documentation
