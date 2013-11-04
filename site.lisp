@@ -322,12 +322,19 @@ show('About');
                           (replace index "\\$" "$$")))
     result))
 
+(defun full-load (txt get)
+  (do ()
+      ((not (find "@include \"" txt)) txt)
+    (setf txt (replace txt
+                       "@include \"[^\"]*\""
+                       (lambda (x)
+                         (funcall get (slice x 10 -1)))))))
 (if node-js
     (eval '(progn
-            (parse-site (get-file "site.txt"))
+            (parse-site (full-load (get-file "site/site.txt") #'get-file))
             (display (generate-site))))
     (eval '(progn
-            (parse-site (http-get "site.txt"))
+            (parse-site (full-load (http-get "site/site.txt") #'get-file))
             (set-timeout (lambda ()
                            (funcall (. document write) (generate-site)))
              0))))

@@ -1,0 +1,14 @@
+@ Examples
+
+These are a few examples of JsLisp programs. Unless noted otherwise
+a recent HTML5 browser is required.
+
+!Naive Fibonacci computation:fibo.lisp
+!Memoization:memoize.lisp
+!An interactive 3d Rubik cube:3d.lisp
+!A pie chart builder:piechart.lisp
+!A dialog window:guitest.lisp
+!A chess playing program:chessboard.lisp
+!An hexagonal tiling pathfinder:hexa.lisp
+!A Mandelbrot fractal explorer:mandelbrot.lisp
+!A Conway's game of life implementation:life.lisp

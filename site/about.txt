@@ -1,0 +1,70 @@
+@ About
+
+JsLisp is a Lisp(1) Compiler(2) targeting Javascript(3)
+
+In more detail...
+
+# (1) A Lisp
+
+JsLisp is a Lisp-2, similar to Common Lisp but is not Common Lisp
+
+- Symbols are case sensitive.
+- No cons cells. Lists are represented using Javascript lists.
+- Lists are first-class objects. [push] is a regular function.
+- No numeric tower. Numbers are double-precision floats (they provide
+  53 bits of integer numeric accuracy).
+- Dynamic and lexical variables.
+- There can be both a function and a macro with the same name. Macro
+  is used in explicit calls, function can be used for [funcall]/[apply].
+- [NaN], [null], [undefined], [false], [0] are present with their
+  Javascript value semantic.
+- No [NIL]/[T]. Truth values are Javscript [true]/[false].
+- [defmacro], [define-symbol-macro], [macrolet], [symbol-macrolet] are
+  present mimicking Common Lisp semantic. Quasiquoting.
+- Read macros.
+- Interpolated string literals.
+- No [loop] macro for now.
+
+# (2) Compiler
+
+JsLisp is a compile-only implementation and contains no interpreter,
+[eval] is implemented by compiling and executing.  The core of the
+compiler is hand-written Javascript, everything else is written in
+JsLisp itself (boot.lisp).
+
+Compiled functions are regular Javscript functions, callable from
+Javascript code (with the exception of keyword arguments) and they
+can call Javascript code.
+
+Javascript inlining is possible and used heavily in the default
+runtime library. Name mangling is necessary when converting JsLisp
+symbol names to Javascript and vice versa [(mangle x)]/[(demangle x)].
+
+Compiler does a few static checks at compile time:
+
+- Unknown variables
+- Unknown functions
+- Wrong number of arguments or wrong keyword arguments in a static call
+- Unused locals
+- Map over a lambda with the wrong number of arguments
+
+JsLisp also supports docstrings and doctests (i.e. tests embedded in
+the docstring, ensuring conformance).
+
+# (3) Targeting Javascript
+
+No attempt is made to create human-readable idiomatic Javascript,
+generated code is not meant to be manually maintained.
+
+Works with recent browsers and node.js.
+
+Using node.js allows writing the server side and the client side
+of a web application in a single language. There is also an
+RPC module that facilitates the approach by avoiding any
+explicit binding (you can just define the functions in a module
+using [rpc-defun] and they will be callable by the client and
+will run in the server).
+
+Any Javascript functions or methods can be called from JsLisp.
+JsLisp code can be called by Javascript or used as event handler.
+

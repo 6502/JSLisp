@@ -1,0 +1,16 @@
+@ Give it a try!
+
+JsLisp REPL can run in most recent web browsers.
+
+This means there is no program to download and to install.
+
+You can start a new fresh JsLisp session in a separate
+window by clicking the following button.
+
+<<
+<input type=button value="Start JsLisp" onclick="window.open('jslisp.html', '_blank', 'width=800, height=800, left=100, top=100')"/>
+>>
+
+If you want to install JsLisp on your own computer unfortunately you
+need to use a local web server because for security reasons Ajax
+requests are not supported on local filesystem browsing.

@@ -1,0 +1,64 @@
+@ License
+
+I am not a lawyer and I just hope this is enough to leave me out
+of jail... if you think it's not, then please drop me a line.
+
+The intention is that you can use JsLisp for whatever you want
+(commercial or not) provided you just don't pretend you did something
+that I did or that you blame me if you have any problem.
+
+<<
+<div style="border:solid 2px #000080; background-color:#EEEEFF;
+            padding:12px; font-size:120%">
+<p>Copyright (c) 2011-2013 by Andrea Griffini</p>
+
+<p>Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:</p>
+
+<ol>
+<li style="margin-bottom:20px">
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.</li>
+
+<li style="font-weight:bold">
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+</li></ol>
+</div>
+>>
+
+<<
+<div style="border:solid 4px #880000; border-radius: 8px;
+            background-color:#FFCCCC; font-weight:bold; margin-top:50px;
+            padding:12px; font-size:120%">
+<div style="text-decoration:underline; text-align:center; font-size:150%">WARNING</div>
+<p>PLEASE NOTE THAT CURRENTLY I'M APPARENTLY THE ONLY USER OF THE
+LANGUAGE AND I JUST CHANGE THINGS AT MY WILL WITHOUT CARING ABOUT
+BACKWARD COMPATIBILITY.</p>
+<p>IF YOU DECIDE TO USE IT FOR ANYTHING PLEASE BE SURE TO UNDERSTAND
+THAT I'M NOT NECESSARILY GOING TO HELP YOU ON THIS INSTABILITY
+ISSUE.</p>
+</div>
+>>
+
+Note that of course I'm open about hearing any suggestion or
+critics...  but I'm not currently willing to take to extra load of
+thinking to someone else using JsLisp. I am using it for some pet
+projects but if you do then please be sure you're also ready to pay
+the price (i.e. porting everything or eventually maintaining your
+clone of JsLisp).
+
+In all honesty I don't refrain from making changes just because of my
+already existing codebase. At the moment however I won't stop because
+of your codebase either.
+

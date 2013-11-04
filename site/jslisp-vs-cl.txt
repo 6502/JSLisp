@@ -1,0 +1,254 @@
+@ JsLisp <=> CL
+
+In this sections the differences between Common Lisp and JsLisp will
+be explained in more detail. This is not meant to be a tutorial on
+Lisp and a fairly decent understanding of Lisp is assumed.
+
+## Main JsLisp philosophy
+
+The main idea behind JsLisp was to create a Lisp system starting from
+Javascript (instead of starting from IBM 704 instruction set) and
+trying to become similar to Common Lisp up to the point where the
+Javascript machine below would like to start complaining about that.
+
+So basically the target of JsLisp was to become "as close as
+reasonably possible to CL, but not closer".
+Over the time this target has shifted a bit and the aim is to use
+CL as a model only when the added value is understood and not just
+for following CL minor warts that have been caused by the history
+of its evolution.
+
+Please also consider that current state of JsLisp is EXTREMELY flux
+and subject to change. Quite a few parts are departures from CL or
+tentative implementations that I'm not fully convinced about.
+
+@@ No CAR / CDR
+
+In JsLisp there is no [cons], no [car] and no [cdr]. I'm not joking.
+I'm not talking about just the name [car]/[first] or
+[cdr]/[rest]... but about the very concept of linked list made of cons
+cells that is typical of most if not all other Lisp dialects.
+
+OK. Please start breathing again. This is not a fundamental departure
+from Lisp. Really.
+
+There is nothing "essential" into using cons cells except a conceptual
+and formal minimality that represents a model neither our human brain
+nor the today computer brain finds particularly simple(*).
+
+Don't get me wrong. I think this was a fantastic smart choice for the
+problem McCarthy was working on, but for both humans and most current
+computers the array is a much more fundamental block than a linked
+list. To understand a cons cell you need to conceive the idea of two
+parts stuck together, then why not thinking to several (any n >= 0)
+parts stuck together instead of building a chain?
+
+JsLisp uses Javascript array objects to represent lists and lists are
+mutable first-class objects. [push] in JsLisp can a be simple function
+and doesn't need to be necessarily a macro.  Moreover [push] and [pop]
+are defined to work like they naturally do in Javascript by adding and
+removing elements at the end.
+
+There are of course both [reverse] and [nreverse] available, but
+they're much less needed than in Common Lisp because after pushing
+things in a list they're already in the correct order.
+
+Sharing is still possible and happens often with nested list
+structures, but only at subtree level and not at the tail level.
+Still for example is not safe to assume that quasiquoting will return
+a fresh unshared tree structure.
+
+For representing code and in many cases in which sharing is not
+essential this approach is much more efficient than using cons cells
+to build lists and it's also the way the underlying "hardware" works
+(Javascript).
+
+Creating cells-based linked lists is of course possible for example
+using two-elements arrays and can be a sensible choice if the
+tail-sharing possibilities are playing an important role for your
+problem.
+
+(*) Simplicity is used with the meaning of "obvious" and that doesn't
+need hard thinking or further explanations. For humans for example
+counting concept is simple, and Peano axiomatic constructions of
+finite ordinals is not, even if the latter is in a formal sense
+"simpler" than counting.
+
+When a human thinks to a sequence of three objects, it's just that:
+three objects... the first, the second and the third. No one would
+think first to just a compound of two parts... one part with the
+interesting object and the other part a pointer to where to find
+another compound when the element isn't the last one.
+
+For both humans and present day computers arrays are "simpler" than
+linked lists.
+
+@@ Lisp-3
+
+In JsLisp there are three main values for a symbol: the value, the
+function and the macro. In JsLisp is therefore possible to have both a
+function and a macro sharing the same name.
+
+The macro is used (if present) every time a static call form is
+compiled, while the function is used instead every time a [(function
+...)] form is used to pass or store away the function.
+
+Like in Common Lisp the call [(symbol-function x)] returns the global
+function associated with the symbol [x] (not considering lexical
+function bindings) and [(function x)] abbreviated as usual [#'x]
+returns the function binding of the unevaluated symbol [x] those
+introduced in a lexical scope.
+
+In a similar way the function [(symbol-macro x)] returns the global
+macro associated to the symbol [x] (not considering lexical macros
+established by [macrolet]). The current macro binding associated
+with the unevaluated symbol [x] is accessible with [(macro x)] and
+there is no reader macro for this very infrequent need.
+
+Something that is used quite often in [boot.lisp] is the macro
+[defmacro/f] that allows defining at the same time a macro and a
+function. Note that [defmacro/f] can be used however only for
+functions with a fixed number of arguments.
+
+[defmacro/f
+(defmacro/f square (x)
+  (let ((y (gensym)))
+    `(let ((,y ,x))
+       (* ,y ,y))))
+;; ==> square
+
+(square 12)
+;; ==> 144
+
+(macroexpand-1 '(square (+ x y)))
+;; ==> (let ((G#27 (+ x y))) (* G#27 G#27))
+
+(map #'square (range 10))
+;; ==> (0 1 4 9 16 25 36 49 64 81)
+]
+
+There is also an experimental [defun/inline] macro dual of
+[defmacro/f] that allows defining a function and a macro at the same
+time provided the function implementation.
+
+[defun/inline
+(defun/inline square (x)
+  (* x x))
+;; ==> square
+
+(square 12)
+;; ==> 144
+
+(js-compile '(square 12))
+;; ==> "((144))"
+
+(js-compile '(square z))
+WARNING: Undefined variable z
+WARNING: Undefined variable z
+;; ==> "((((d$$z)*(d$$z))))"
+
+(defun cube (x)
+  (* x x x))
+;; ==> cube
+
+(js-compile '(cube 33))
+;; ==> "f$$cube(33)"
+]
+
+@@ Numbers
+
+JsLisp doesn't provide the Common Lisp numeric tower.
+
+Numbers are just Javascript numbers, i.e. double-precision floating
+point values that ensure unit-accurate integer computations "only" up
+to [-/+ 9,007,199,254,740,992] (2 to the 53rd power, more than
+nine millions of billions).
+
+Also all math functions are simple wrappers of Javascript math
+functions and therefore the rules about [NaN] and [infinity] results
+of computations are dictated down there (e.g. [(/ 0) -> infinity],
+and [(log -1) -> NaN]).
+
+@@ Reader
+
+JsLisp reader allows customization like Common Lisp, but using a
+different approach.
+
+Parse functions take as only argument a "source" that is an object
+on which you can call either [(current-char src)] to get the
+current character or [(next-char src)] to return current character
+and advance to next at the same time.
+
+To read from a string there is a predefined [(make-source s)]
+that returns a suitable scanner the string [s].
+
+Reader customization can be done mainly in two ways:
+
+### 1) Defining a reader function for a character
+
+Consider a classical example of customizing the reader so
+that lambda forms can be specified more succinctly:
+
++--------------------+--------------------------+
+|        this        |  is interpreted as this  |
++--------------------+--------------------------+
+| [{x -> (* x 2)}]   | [(lambda (x) (* x 2))]   |
+| [{x y -> (+ x y)}] | [(lambda (x y) (+ x y))] |
+| [{+ x 1}]          | [(lambda (x) (+ x 1))]   |
++--------------------+--------------------------+
+
+If an application is using a lot of anonymous functions this
+transformation could lead to a subjectively more readable code.
+
+[Reader customization example 1
+(setf (reader "{")
+      (lambda (src)
+        (next-char src)
+        (let ((form (parse-delimited-list src "}")))
+          (let ((i (index '-> form)))
+            (if (>= i 0)
+                `(lambda ,(slice form 0 i)
+                   ,@(slice form (1+ i)))
+                `(lambda (x) ,form))))))
+;; ==> #CODE
+
+(read "{x y -> (* x y)}")
+;; ==> (lambda (x y) (* x y))
+
+(map {* x x} (range 10))
+;; ==> (0 1 4 9 16 25 36 49 64 81)
+]
+
+### 2) Redefining (wrapping) the [read] predefined function
+
+
+The other option is replacing the [read] function that is used
+every time JsLisp needs to read from a character source.
+
+For example consider the same customization as before but using
+regular parenthesis instead of braces and having the choice about
+to transform the form in an anonymous function depending on the
+presence of a [->] symbol at the form top level (of course the
+implicit [x] version will not be implemented).
+
+[Redefining read
+(setf #'read
+      (let ((oldf #'read))
+        (lambda (src)
+          (let* ((x (funcall oldf src))
+                 (ix (if (list? x)
+                         (index '-> x)
+                         -1)))
+            (if (>= ix 0)
+                `(lambda ,(slice x 0 ix)
+                   ,@(slice x (1+ ix)))
+                x)))))
+;; ==> #CODE
+
+(read "(x y -> (+ x y))")
+;; ==> (lambda (x y) (+ x y))
+
+(map (x -> (* x x)) (range 10))
+;; ==> (0 1 4 9 16 25 36 49 64 81)
+]
+

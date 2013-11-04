@@ -1,0 +1,196 @@
+@ JsLisp <=> Javascript
+
+Javascript syntax is of course very different from JsLisp default
+syntax.
+
+In hand-written Javascript there are some typical patterns used to
+emulate language features that are not present natively (for example
+immediate calling of an anonymous function to be able to have a local
+scope).
+
+In other cases however the workaround is way too annoying to be
+implemented manually in Javascript (due to the lack of macro
+capabilities) and the features provided by JsLisp are simply not used.
+
+@@ Block scope
+
+In JsLisp you can define a variable that is visible only for a block
+of code, like in C/C++, without interfering with another variable
+with the same name in the containing block.
+
+[BLock scope
+// Javascript
+function foo ()
+{
+    var x = 1;
+    for (var y = 0; y < 4; y++)
+    {
+        var x = y * y;
+        // ... use x ...
+    }
+    // Here x content has been destroyed; no
+    // matter how many var declarations you
+    // put only one x per function is allocated.
+    // The commonly used workaround is to use
+    //
+    //       (function(){var x = y*y; ... })();
+    //
+    // instead of just a block.
+}
+
+;; JsLisp
+(defun foo ()
+  (let ((x 1))
+    (dotimes (y 4)
+       (let ((x (* y y)))
+         ;; ... use x ...
+       ))
+    ;; Here x content is still 1. The x variable
+    ;; inside the loop is a different separate
+    ;; value from the external one.
+    ;; Every (let ...) form introduces a new
+    ;; scope shielding unwanted changes.
+  ))
+]
+
+@@ Arguments
+
+JsLisp supports [&optional], [&rest] and [&key] arguments for
+functions.  For both [&optional] and [&key] arguments it's possible to
+provide a default expression to be used. Note that default expressions
+for [&optional] and [&key] arguments are evaluated at each call (not
+like in Python for example) but only if the parameter value is not
+passed.
+
+Differently from Common Lisp [&rest] and [&key] arguments cannot be combined
+(at the moment) and also neither [&allow-other-keys] nor [allow-other-keys:]
+are supported. Note also that the colon in keywords in JsLisp is at
+the END of the word, not at the beginning.
+
+[Optional/keyword/rest
+(defun foo (x &optional y (z 42))
+  (list x y z))
+;; ==> foo
+
+(foo 1)
+;; ==> (1 undefined 42)
+
+(foo 1 2 3)
+;; ==> (1 2 3)
+
+(defun bar (x &key y (z 42))
+  (list x y z))
+;; ==> bar
+
+(bar 1)
+;; ==> (1 undefined 42)
+
+(bar 1 z: 99)
+;; ==> (1 undefined 99)
+
+(bar 1 z: 99 y: 33)
+;; ==> (1 33 99)
+
+(defun baz (x y &rest z)
+  (list x y z))
+;; ==> baz
+
+(baz 1 2 3 4 5)
+;; ==> (1 2 (3 4 5))
+]
+
+@@ Static checks
+
+JsLisp can perform a few static (compile-time) checks that
+help avoiding typos in programs. A few of these checks are
+about the use of undefined variables or wrong parameters
+when calling a function.
+
+It is important to note that these checks are performed
+when the function containing the wrong call is compiled,
+not when (and no matter if) it's executed.
+
+The checks are also performed at runtime and in that case
+the result is an error and not a warning.
+
+[Undefined variables
+>> (defun foo (x)
+     (* x y))
+WARNING: Undefined variable y
+= foo
+
+>> (foo 12)
+**ERROR**: ReferenceError: y is not defined
+>> (defvar z 99)
+= 99
+
+>> (defun bar (x)
+     (* x z))
+= bar
+
+>> (bar 33)
+= 3267
+]
+
+[Undefined functions
+>> (defun bar (x)
+     (* x (foo (1+ x))))
+WARNING: Undefined function foo
+= bar
+
+>> (bar 12)
+**ERROR**: ReferenceError: function foo is not defined
+>> (defun foo (x) (* x 2))
+= foo
+
+>> (bar 12)
+= 312
+]
+
+[Wrong parameters in static call
+>> (defun square (x) (* x x))
+= square
+
+>> (defun bar ()
+     (square)
+     (square 12)
+     (square 1 2 3))
+WARNING: Not enough arguments in (square)
+WARNING: Unexpected arguments in (square 1 2 3)
+= bar
+
+>> (defun foo (x &key y z)
+     (list x y z))
+= foo
+
+>> (defun baz ()
+     (foo)
+     (foo 1)
+     (foo 1 z: 2)
+     (foo 1 k: 99))
+WARNING: Not enough arguments in (foo)
+WARNING: Invalid keyword parameter k: in (foo 1 k: 99)
+= baz
+]
+
+[Unused local names
+>> (defun foo (x y) (* x 12))
+WARNING: Local name y defined but not used
+= foo
+
+>> (defun bar (x y)
+      (declare (ignorable y))
+      (* x 12))
+= bar
+]
+
+[Map/lambda parameters count and arity mismatch
+>> (defun dilbert ()
+     (map (lambda () (random-int 10)) (range 10)))
+WARNING: function argument count doesn't match
+         number of passed lists
+= dilbert
+
+>> (dilbert)
+= (9 9 9 9 9 9 9 9 9 9)
+]

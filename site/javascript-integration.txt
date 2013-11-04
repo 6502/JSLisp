@@ -1,0 +1,39 @@
+@Javascript integration
+
+JsLisp compiled functions are regular Javascript functions and can
+call or be called from Javascript. The only problems are
+
+- Names of the functions defined in JsLisp are "mangled" because
+  they may contain characters that cannot be used in Javascript.
+  For example the JsLisp function [circle-area] will be seen from
+  Javascript as [f$$circle_area] and the predefined JsLisp
+  function [1+] is seen from Javascript as [f$$$49$$43$].
+
+- Keyword parameters cannot be easily passed from Javascript to
+  JsLisp functions
+
+@@ Inline Javascript
+
+It is possible to inline Javascript code from JsLisp, note however
+that the strings inlined must be string literals and not string
+expressions.
+
+Dynamically building Javascript code by string manipulation is done
+often in macros (it's actually how the compiler is implemented).
+In "leaf" cases the output of a macro is a single [js-code] form.
+
+[Inline Javascript code
+(display (+ "Hello "
+            (js-code "prompt('What is your name?')")
+            ",\nhow's going?"))
+.Hello Andrea,
+.how's going?
+;; ==> "Hello Andrea,\nhow's going?"
+
+(macroexpand-1 '(aref x i j k))
+WARNING: Undefined variable x
+WARNING: Undefined variable i
+WARNING: Undefined variable j
+WARNING: Undefined variable k
+;; ==> (js-code "(d$$x[d$$i][d$$j][d$$k])")
+]
