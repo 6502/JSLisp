@@ -2,8 +2,9 @@
   (let ((tested (list))
         (skipped (list))
         (total 0)
-        (failed 0))
-    (dolist (n (keys (js-code "glob")))
+        (failed 0)
+        (glob (js-code "glob")))
+    (dolist (n (keys glob))
       (when (find (slice n 0 3) (list "f$$" "m$$"))
         (let ((f (aref (js-code "glob") n))
               (name (demangle n)))
@@ -38,10 +39,13 @@
                         (setf #'display (lambda (x) (push (list "d" x) out)))
                         (setf #'warning (lambda (x) (push (list "w" x) out)))
                         (setf #'alert (lambda (x) (push (list "a" x) out)))
-                        (setf result (try
-                                       (str-value (toplevel-eval
-                                                    (read src)))
-                                       "**ERROR**"))
+                        (let ((current-module *current-module*))
+                          (in-module (symbol-module (aref glob (+ "s" (slice n 1)))))
+                          (setf result (try
+                                         (str-value (toplevel-eval
+                                                      (read src)))
+                                         "**ERROR**"))
+                          (in-module current-module))
                         (setf #'alert oa)
                         (setf #'display od)
                         (setf #'warning ow))
