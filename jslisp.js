@@ -1416,7 +1416,7 @@ defun("js-compile",
                           {
                               var caf = glob["f$$static_check_args"];
                               if (caf && caf!=42)
-                                  caf(x, lmf.arglist);
+                                  caf(x, lmf);
                           }
                           var ouc = d$$$42_outgoing_calls$42_;
                           var oug = d$$$42_used_globals$42_;
@@ -1434,7 +1434,7 @@ defun("js-compile",
                           {
                               var caf = glob["f$$static_check_args"];
                               if (caf && caf!=42)
-                                  caf(x, gmf.arglist);
+                                  caf(x, gmf);
                           }
                           var macro_expansion = gmf.apply(glob, x.slice(1));
                           return wrapper(f$$js_compile(macro_expansion));
@@ -1454,14 +1454,14 @@ defun("js-compile",
                               {
                                   var caf = glob["f$$static_check_args"];
                                   if (caf && caf!=42)
-                                      caf(x, gf.arglist);
+                                      caf(x, gf);
                               }
                           }
                           else
                           {
                               var caf = glob["f$$static_check_args"];
                               if (caf && caf!=42)
-                                  caf(x, lf.arglist);
+                                  caf(x, lf);
                           }
 
                           var res = "f" + f.name + "(";
@@ -1978,7 +1978,7 @@ defun("toplevel-eval",
               {
                   var caf = glob["f$$static_check_args"];
                   if (caf && caf!=42)
-                      caf(x, m$$if.arglist);
+                      caf(x, m$$if);
                   if (f$$js_eval(f$$toplevel_eval(x[1])))
                   {
                       result = f$$toplevel_eval(x[2]);
@@ -2010,7 +2010,7 @@ defun("toplevel-eval",
                   {
                       var caf = glob["f$$static_check_args"];
                       if (caf && caf!=42)
-                          caf(x, f.arglist);
+                          caf(x, f);
                   }
                   result = f$$toplevel_eval(f.apply(glob, x.slice(1)));
               }

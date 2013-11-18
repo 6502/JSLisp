@@ -3740,12 +3740,13 @@ A name is either an unevaluated atom or an evaluated list."
 
 ;; Compile-time argument checking
 
-(defun static-check-args (form args)
-  (let ((fi 1)
-        (ai 0)
-        (fn (length form))
-        (an (length args))
-        (uae false))
+(defun static-check-args (form func)
+  (let* ((args func.arglist)
+         (fi 1)
+         (ai 0)
+         (fn (length form))
+         (an (length args))
+         (uae false))
     (do ()
         ((or (= fi fn)
              (= ai an)
