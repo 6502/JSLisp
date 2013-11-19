@@ -38,6 +38,7 @@ d$$$42_outgoing_calls$42_ = {};
 d$$$42_used_globals$42_ = {};
 d$$$42_debug$42_ = false;
 d$$$42_function_context$42_ = [];
+d$$$42_function_type_info$42_ = [];
 
 d$$node_js = false;
 
@@ -245,6 +246,10 @@ constants[f$$intern('infinity').name] = 'Infinity';
 constants[f$$intern('-infinity').name] = '(-Infinity)';
 
 f$$intern("js-code");
+f$$intern("declare");
+f$$intern("ignorable");
+f$$intern("type");
+f$$intern("return-type");
 
 function defun(name, doc, f, arglist, usedglobs, outcalls)
 {
@@ -646,6 +651,13 @@ defmacro("lambda",
              // declare
              d$$$42_function_context$42_.push([]);
 
+             // Type declarations for this function. Types can be
+             // optionally declared for arguments and/or return value
+             // to help finding type errors at compile time.  TODO:
+             // Add deduction logic for simple cases when return type
+             // is not declared.
+             d$$$42_function_type_info$42_.push({});
+
              var current_outgoing_calls = d$$$42_outgoing_calls$42_;
              d$$$42_outgoing_calls$42_ = {};
              var current_used_globals = d$$$42_used_globals$42_;
@@ -750,6 +762,18 @@ defmacro("lambda",
                  }
                  var li = lisp_literals.length;
                  lisp_literals[li] = args;
+                 lisp_literals[li+1] = d$$$42_function_type_info$42_.pop();
+
+                 // Copy parameter type declarations to fti for compile-time checking
+                 for (var i=0; i<args.length; i++) {
+                     var v = args[i];
+                     if (f$$symbol$63_(v)) {
+                         var p = lexvar.props["!"+v.name];
+                         if (p && p.type) {
+                             lisp_literals[li+1][v.name] = p.type;
+                         }
+                     }
+                 }
                  res = ("((function(){" +
                         "var f =" +
                         res +
@@ -758,8 +782,9 @@ defmacro("lambda",
                         ugnames.substr(1) +
                         "];f.outcalls=[" +
                         ocnames.substr(1) +
-                        "];f.arglist=lisp_literals[" + li + "];return " +
-                        "f;})())");
+                        "];f.arglist=lisp_literals[" + li +
+                        "];f.fti=lisp_literals[" + (li+1) +
+                        "];return f;})())");
                  return [s$$js_code, res];
              }
              finally
@@ -1350,19 +1375,32 @@ defun("js-compile",
 
               return v;
           }
-          else if (f$$list$63_(x) && f$$symbol$63_(x[0]) && x[0].name === "$$declare")
+          else if (f$$list$63_(x) && x[0] === s$$declare)
           {
               d$$$42_declarations$42_.push(x);
               for (var j=1; j<x.length; j++)
               {
                   var decl = x[j];
-                  if (f$$list$63_(decl) && f$$symbol$63_(decl[0]) && decl[0].name === "$$ignorable")
-                  {
-                      for (var i=1; i<decl.length; i++)
-                      {
-                          var p = lexvar.props["!" + decl[i].name];
-                          if (p) p.ignorable = true;
+                  if (f$$list$63_(decl)) {
+                      var d = decl[0];
+                      if (d === s$$ignorable) {
+                          for (var i=1; i<decl.length; i++)
+                          {
+                              var p = lexvar.props["!" + decl[i].name];
+                              if (p) p.ignorable = true;
+                          }
+                      } else if (d === s$$type) {
+                          for (var i=2; i<decl.length; i++) {
+                              var p = lexvar.props["!" + decl[i].name];
+                              if (p) p.type = decl[1];
+                          }
+                      } else if (d === s$$return_type) {
+                          d$$$42_function_type_info$42_[d$$$42_function_type_info$42_.length-1][""] = decl[1];
+                      } else {
+                          f$$warning("Invalid declaration");
                       }
+                  } else {
+                      f$$warning("Invalid declaration format");
                   }
               }
           }
@@ -1434,7 +1472,7 @@ defun("js-compile",
                           {
                               var caf = glob["f$$static_check_args"];
                               if (caf && caf!=42)
-                                  caf(x, gmf);
+                                  caf(x, glob["f" + f.name] || gmf);
                           }
                           var macro_expansion = gmf.apply(glob, x.slice(1));
                           return wrapper(f$$js_compile(macro_expansion));

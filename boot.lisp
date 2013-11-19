@@ -1,7 +1,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;                                                                          ;;;
-;;;  Copyright (c) 2011 by Andrea Griffini                                   ;;;
+;;;  Copyright (c) 2011-2013 by Andrea Griffini                              ;;;
 ;;;                                                                          ;;;
 ;;;  Permission is hereby granted, free of charge, to any person obtaining   ;;;
 ;;;  a copy of this software and associated documentation files (the         ;;;
@@ -158,10 +158,12 @@
    ;; ==> (3 6 (100 99))
    ]]"
   (declare (ignorable x))
+  (declare (return-type number))
   (js-code "d$$x.length"))
 
 ;; Simple versions of a few operators needed for bootstrap, they will be redefined
 (defun = (a b) (declare (ignorable a b)) (js-code "(d$$a===d$$b)"))
+(defun /= (a b) (declare (ignorable a b)) (js-code "(d$$a/=d$$b)"))
 (defun < (a b) (declare (ignorable a b)) (js-code "(d$$a<d$$b)"))
 (defun > (a b) (declare (ignorable a b)) (js-code "(d$$a>d$$b)"))
 (defun - (a b) (declare (ignorable a b)) (js-code "(d$$a-d$$b)"))
@@ -184,6 +186,7 @@
            false false false)
    ]]"
   (declare (ignorable x))
+  (declare (return-type bool))
   (js-code "!d$$x"))
 
 (defmacro not (x)
@@ -260,11 +263,13 @@
 (defun callable? (x)
   "True if [x] can be called"
   (declare (ignorable x))
+  (declare (return-type bool))
   (js-code "((typeof d$$x)==='function')"))
 
 (defun bool? (x)
   "True if and only if [x] is a boolean"
   (declare (ignorable x))
+  (declare (return-type bool))
   (js-code "((typeof d$$x)==='boolean')"))
 
 (defun undefined? (x)
@@ -296,6 +301,7 @@
    ;; ==> \"null\"
    ]]"
   (declare (ignorable x))
+  (declare (return-type bool))
   (js-code "((typeof d$$x)==='undefined')"))
 
 (defun null? (x)
@@ -311,6 +317,7 @@
    ;; Ready
    ]]"
   (declare (ignorable x))
+  (declare (return-type bool))
   (js-code "(d$$x===null)"))
 
 (defun infinity? (x)
@@ -331,6 +338,7 @@
    ;; ==> undefined
    ]]"
   (declare (ignorable x))
+  (declare (return-type bool))
   (js-code "(d$$x===Infinity)"))
 
 (defun -infinity? (x)
@@ -351,6 +359,7 @@
    ;; ==> undefined
    ]]"
   (declare (ignorable x))
+  (declare (return-type bool))
   (js-code "(d$$x===-Infinity)"))
 
 (defun NaN? (x)
@@ -372,6 +381,7 @@
    ;; ==> undefined
    ]]"
   (declare (ignorable x))
+  (declare (return-type bool))
   (js-code "((typeof d$$x)==='number'&&!d$$x&&!(d$$x===0))"))
 
 (defun object? (x)
@@ -404,6 +414,7 @@
 
 (defun zero? (x)
   "True if and only if [x] is the number zero."
+  (declare (return-type bool))
   (and (number? x) (= x 0)))
 
 (defun odd? (x)
@@ -423,6 +434,7 @@
    ;; ==> true
    ]]"
   (declare (ignorable x))
+  (declare (return-type bool))
   (js-code "(!!(d$$x&1))"))
 
 (defun even? (x)
@@ -442,6 +454,7 @@
    ;; ==> true
    ]]"
   (declare (ignorable x))
+  (declare (return-type bool))
   (js-code "(!(d$$x&1))"))
 
 ;; Dolist macro
@@ -570,6 +583,7 @@
    ;; ==> (0 1 4 9 16 25 36 49 64 81)
    ]]"
   (declare (ignorable value list))
+  (declare (type list list))
   (js-code "d$$list.push(d$$value)"))
 
 (defmacro push (x L)
@@ -658,6 +672,8 @@
    ;; ==> ((0 1 2 3 4 5 6 7) (8 9))
    ]]"
   (declare (ignorable x start))
+  (declare (return-type list))
+  (declare (type list x))
   (if (undefined? size)
       (js-code "(d$$x.splice(d$$start))")
       (js-code "(d$$x.splice(d$$start,d$$size))")))
@@ -686,6 +702,8 @@
    ;; ==> ((0 1 2 3 4 5 6 7 8 9 \"*NEW*\") \"*NEW*\")
    ]]"
   (declare (ignorable x i y))
+  (declare (type list x))
+  (declare (type number i))
   (js-code "(d$$x.splice(d$$i,0,d$$y),d$$y)"))
 
 ;; Indexing
@@ -1065,6 +1083,9 @@
          res))
      (defun ,name (&rest args)
        ,comment
+       ,@(if (/= name '+)
+             '((declare (return-type number)))
+             '())
        (cond
          ((= (length args) 0) (,name))
          ((= (length args) 1) (,name (aref args 0)))
@@ -1367,6 +1388,7 @@
 (defun make-symbol (name)
   "Creates a new uninterned symbol"
   (declare (ignorable name))
+  (declare (type string name))
   (js-code "(new Symbol(f$$mangle(d$$name)))"))
 
 (defvar *gensym-count* 0)
@@ -1407,6 +1429,7 @@
   "Defines a variadic relational operator function given a corresponding macro name"
   `(progn
      (defun ,name (&rest args)
+       (declare (return-type bool))
        (if (< (length args) 2)
            true
            (do ((current (first args))
@@ -1597,6 +1620,7 @@
    (/= 1)
    ;; ==> true
    ]]"
+  (declare (return-type bool))
   (if (< (length args) 2)
       true
       (do ((n (- (length args) 1))
@@ -1737,13 +1761,25 @@
   "Decrement of js literal lvalue as last resort on (decf (...))"
   `(js-code ,(+ "((" x ")-=(" (js-compile delta) "))")))
 
-(defmacro/f 1+ (x)
+(defmacro 1+ (x)
   "Returns [(+ x 1)]"
   `(+ ,x 1))
 
-(defmacro/f 1- (x)
+(defmacro 1- (x)
   "Returns [(- x 1)]"
   `(- ,x 1))
+
+(defun 1+ (x)
+  "Returns [(+ x 1)]"
+  (declare (type number x))
+  (declare (return-type number))
+  (1+ x))
+
+(defun 1- (x)
+  "Returns [(- x 1)]"
+  (declare (type number x))
+  (declare (return-type number))
+  (1- x))
 
 ;; Repeat macros
 (defmacro repeat (count &rest body)
@@ -1855,6 +1891,7 @@
 
 (defun average (&rest seq)
   "Returns the numeric average of specified values"
+  (declare (return-type number))
   (let ((res 0))
     (dolist (x seq)
       (incf res x))
@@ -1887,6 +1924,7 @@
    ;; ==> -1
    ]]"
   (declare (ignorable x L))
+  (declare (return-type number))
   (if start
       (js-code "d$$L.indexOf(d$$x,d$$start)")
       (js-code "d$$L.indexOf(d$$x)")))
@@ -1909,6 +1947,7 @@
    ;; ==> -1
    ]]"
   (declare (ignorable x L))
+  (declare (return-type number))
   (js-code "d$$L.lastIndexOf(d$$x)"))
 
 (defun find (x L)
@@ -1926,10 +1965,12 @@
    (find NaN (list 1 2 NaN 3 4))
    ;; ==> false
    ]]"
+  (declare (return-type bool))
   (/= -1 (index x L)))
 
 (defun map (f &rest lists)
   "Returns the list obtained by applying function [f] to corresponding elements in [lists]"
+  (declare (return-type list))
   (let ((res (list)))
     (enumerate (i x (first lists))
       (let ((args (list x)))
@@ -2003,6 +2044,7 @@
 (defun zip (&rest sequences)
   "Returns a list of lists built from corresponding elements in all sequences.
 The resulting list length is equal to the first input sequence."
+  (declare (return-type list))
   (let ((n (length (first sequences))))
     (let ((res (list)))
       (dotimes (i n)
@@ -2017,6 +2059,7 @@ The resulting list length is equal to the first input sequence."
 
 (defun filter (f seq)
   "Returns the subset of elements from [seq] for which the function [f] returned a logical true value"
+  (declare (return-type list))
   (let ((res (list)))
     (dolist (x seq)
       (when (funcall f x)
@@ -2065,6 +2108,7 @@ The resulting list length is equal to the first input sequence."
    (nremove NaN (list 1 2 NaN 3 4))
    ;; ==> 0
    ]]"
+  (declare (return-type number))
   (let ((wp 0)
         (n (length L)))
     (dotimes (rp n)
@@ -2118,6 +2162,7 @@ The resulting list length is equal to the first input sequence."
    (nremove-first NaN (list 1 2 NaN 3 4))
    ;; ==> false
    ]]"
+  (declare (return-type bool))
   (let ((i (index x L)))
     (when (>= i 0)
       (splice L i 1))
@@ -2165,6 +2210,7 @@ The resulting list length is equal to the first input sequence."
    (nremove-last NaN (list 1 2 NaN 3 4))
    ;; ==> false
    ]]"
+  (declare (return-type bool))
   (let ((i (last-index x L)))
     (when (>= i 0)
       (splice L i 1))
@@ -2186,6 +2232,7 @@ The resulting list length is equal to the first input sequence."
    (subset (list 1 2 3) (list 1 2))
    ;; ==> false
    ]]"
+  (declare (return-type bool))
   (do ((i 0 (1+ i)))
       ((or (>= i (length L1))
            (not (find (aref L1 i) L2)))
@@ -2203,6 +2250,7 @@ The resulting list length is equal to the first input sequence."
    (set-union (list) (list 1 2))
    ;; ==> (1 2)
    ]]"
+  (declare (return-type list))
   (let ((res (slice L1)))
     (dolist (x L2)
       (unless (find x res)
@@ -2222,6 +2270,7 @@ The resulting list length is equal to the first input sequence."
    (set-difference (list 1 2) (list 1 2 3))
    ;; ==> ()
    ]]"
+  (declare (return-type list))
   (let ((res (list)))
     (dolist (x L1)
       (unless (find x L2)
@@ -2241,6 +2290,7 @@ The resulting list length is equal to the first input sequence."
    (set-intersection (list 1 2) (list 1 2))
    ;; ==> (1 2)
    ]]"
+  (declare (return-type list))
   (let ((res (list)))
     (dolist (x L1)
       (when (find x L2)
@@ -2400,6 +2450,7 @@ The resulting list length is equal to the first input sequence."
    (make-array (list 2 3) 99)
    ;; ==> ((99 99 99) (99 99 99))
    ]]"
+  (declare (return-type list))
   (unless (list? n)
     (setf n (list n)))
   (let ((sz (length n)))
@@ -2423,6 +2474,9 @@ The resulting list length is equal to the first input sequence."
            (< n 100)
            (or (number? initial-value)
                (string? initial-value)
+               (bool? initial-value)
+               (NaN? initial-value)
+               (null? initial-value)
                (undefined? initial-value)))
       `(list ,@(funcall #'make-array n initial-value))
       `(funcall #'make-array ,n ,initial-value)))
@@ -2449,6 +2503,8 @@ The resulting list length is equal to the first input sequence."
    (range 10 0 -2)
    ;; ==> (10 8 6 4 2)
    ]]"
+  (declare (type number start stop step))
+  (declare (return-type list))
   (when (= step undefined)
     (setf step 1))
   (when (= stop undefined)
@@ -2476,6 +2532,8 @@ The resulting list length is equal to the first input sequence."
    (fp-range 0 10 0)
    ;; ==> ()
    ]]"
+  (declare (type number from to n))
+  (declare (return-type list))
   (let ((result (list)))
     (when (> n 0)
       (dotimes (i (1- n))
@@ -2716,16 +2774,22 @@ The resulting list length is equal to the first input sequence."
 
 (defun random-int (n)
   "Random integer number 0 [<= x < n]"
+  (declare (type number n))
+  (declare (return-type number))
   (ash (* (random) n) 0))
 
 (defun random-shuffle (L)
   "Randomly shuffles an array [L] inplace and returns null"
+  (declare (type list L))
+  (declare (return-type null))
   (dotimes (i (1- (length L)))
     (let ((j (+ i (random-int (- (length L) i)))))
       (swap (aref L i) (aref L j)))))
 
 (defun random-shuffled (L)
   "Returns a randomly shuffled version of an array [L]"
+  (declare (type list L))
+  (declare (return-type list))
   (let ((x (slice L)))
     (random-shuffle x)
     x))
@@ -2736,6 +2800,9 @@ The resulting list length is equal to the first input sequence."
 
 (defun random-choices (L n)
   "Picks [n] random elements from list [L]"
+  (declare (type list L))
+  (declare (type number n))
+  (declare (return-type list))
   (let ((L (slice L)))
     (dotimes (i n)
       (let ((j (+ i (random-int (- (length L) i)))))
@@ -2801,6 +2868,7 @@ The resulting list length is equal to the first input sequence."
 
 (defun clock ()
   "Returns the number of millisecond passed since 00:00:00.000 of January 1st, 1970"
+  (declare (return-type number))
   (js-code "(new Date).getTime()"))
 
 (defmacro time (&rest body)
@@ -2834,18 +2902,27 @@ The resulting list length is equal to the first input sequence."
 ;; Whitespace stripping and padding
 (defun lstrip (x)
   "Removes initial spaces from string [x]"
+  (declare (type string x))
+  (declare (return-type string))
   (replace x "^\\s+" ""))
 
 (defun rstrip (x)
   "Removes final spaces from string [x]"
+  (declare (type string x))
+  (declare (return-type string))
   (replace x "\\s+$" ""))
 
 (defun strip (x)
   "Remove both initial and final spaces from string [x]"
+  (declare (type string x))
+  (declare (return-type string))
   (lstrip (rstrip x)))
 
 (defun str-repeat (s n)
   "Returns the concatenation of [n] copies of string [s]"
+  (declare (type string s))
+  (declare (type number n))
+  (declare (return-type string))
   (cond
    ((<= n 0) "")
    ((= n 1) s)
@@ -2859,18 +2936,27 @@ The resulting list length is equal to the first input sequence."
   "Returns a left-aligned string of length [size] by adding \
    [padding] chars (or spaces) to the right of string [x] \
    or by truncating it if it's longer."
+  (declare (type string x))
+  (declare (type number size))
+  (declare (return-type string))
   (slice (+ x (str-repeat (or padding " ") size)) 0 size))
 
 (defun rpad (x size &optional padding)
   "Returns a right-aligned string of length [size] by adding \
    [padding] chars (or spaces) to the left of string [x] or \
    by truncating if it's longer."
+  (declare (type string x))
+  (declare (type number size))
+  (declare (return-type string))
   (slice (+ (str-repeat (or padding " ") size) x) (- size)))
 
 (defun cpad (x size &optional padding)
   "Returns a centered string of length [size] by adding \
    [padding] chars (or spaces) to the left/right of string [x] or \
    by truncating if it's longer."
+  (declare (type string x))
+  (declare (type number size))
+  (declare (return-type string))
   (if (>= (length x) size)
       (slice x 0 size)
       (let ((h (ash (- size (length x)) -1)))
@@ -2882,6 +2968,7 @@ The resulting list length is equal to the first input sequence."
 (defun valid-js-name (x)
   "True if and only if string [x] is a valid identifier for Javascript"
   (declare (ignorable x))
+  (declare (return-type bool))
   (not (not (js-code "d$$x.match(/^[a-zA-Z_$][a-zA-Z_$0-9]*$/)"))))
 
 (defmacro . (obj &rest fields)
@@ -2935,6 +3022,7 @@ A name is either an unevaluated atom or an evaluated list."
 (defun keys (obj)
   "Returns a list of all keys defined in the specified javascript object [obj]."
   (declare (ignorable obj))
+  (declare (return-type list))
   (js-code "((function(){var res=[];for(var $i in d$$obj)res.push($i);return res})())"))
 
 (defun remove-key (object key)
@@ -3063,6 +3151,7 @@ A name is either an unevaluated atom or an evaluated list."
                                          (+ res "))"))))))))
        (defun ,(intern ~"{name}?") (x)
          ,~"True if and only if [x] is an instance of [{name}]"
+         (declare (return-type bool))
          ;; Next line is a NOP but needed for deploy machinery
          (deploy-ref (function ,#"new-{name}")
                      ',class)
@@ -3135,22 +3224,30 @@ A name is either an unevaluated atom or an evaluated list."
 (defun uppercase (x)
   "Returns the string [x] converted to uppercase"
   (declare (ignorable x))
+  (declare (type string x))
+  (declare (return-type string))
   (js-code "d$$x.toUpperCase()"))
 
 (defun lowercase (x)
   "Returns the string [x] converted to lowercase"
   (declare (ignorable x))
+  (declare (type string x))
+  (declare (return-type string))
   (js-code "d$$x.toLowerCase()"))
 
 ;; Char <-> numeric code conversion
 (defun char (x)
   "Character associated to code [x]"
   (declare (ignorable x))
+  (declare (type number x))
+  (declare (return-type string))
   (js-code "String.fromCharCode(d$$x)"))
 
 (defun char-code (x)
   "Numeric code of character [x]"
   (declare (ignorable x))
+  (declare (type string x))
+  (declare (return-type number))
   (js-code "d$$x.charCodeAt(0)"))
 
 ;; Case
@@ -3338,11 +3435,13 @@ A name is either an unevaluated atom or an evaluated list."
 (defun json (x)
   "Standard JSON serialization of [x]"
   (declare (ignorable x))
+  (declare (return-type string))
   (or (js-code "(JSON.stringify(d$$x))") "null"))
 
 (defun json-parse (x)
   "Standard JSON parsing of string [x]"
   (declare (ignorable x))
+  (declare (type string x))
   (js-code "(JSON.parse(d$$x))"))
 
 ;; Class-aware JSON serialization
@@ -3350,6 +3449,7 @@ A name is either an unevaluated atom or an evaluated list."
 (defun json* (x)
   "A json-formatted string representation of object x. No loops, undefined, infinity, NaN allowed.
    Named objects get an extra %class field used to find constructor on parsing."
+  (declare (return-type string))
   (cond
     ((list? x)
      (+ "[" (join (map #'json* x) ",") "]"))
@@ -3374,6 +3474,7 @@ A name is either an unevaluated atom or an evaluated list."
 
 (defun json-parse* (x)
   "Rebuilds an object from a [json*] string [x]"
+  (declare (type string x))
   (labels ((fix (x)
              (cond
                ((list? x)
@@ -3430,6 +3531,8 @@ A name is either an unevaluated atom or an evaluated list."
 
 (defun htm (x)
   "Escapes characters so that the content string x can be displayed correctly as HTML"
+  (declare (type string x))
+  (declare (return-type string))
   (setf x (replace x "&" "&amp;"))
   (setf x (replace x "<" "&lt;"))
   (setf x (replace x ">" "&gt;"))
@@ -3446,6 +3549,7 @@ A name is either an unevaluated atom or an evaluated list."
   "Creates a new DOM element with the specified type passed as a string. \
    If the string contains a dot then the part after the dot is assigned \
    to the element class"
+  (declare (type string type))
   (let ((ix (index "." type)))
     (if (>= ix 0)
         (let ((d ((js-code "document").createElement (slice type 0 ix))))
@@ -3465,26 +3569,33 @@ A name is either an unevaluated atom or an evaluated list."
 (defun set-timeout (f delay)
   "Invokes the specified function f after a delay (in ms). Returns an id usable in clear-timeout."
   (declare (ignorable f delay))
+  (declare (type number delay))
+  (declare (return-type number))
   (js-code "setTimeout(function(){d$$f()}, d$$delay)"))
 
 (defun clear-timeout (id)
   "Disables a specified delayed call if it has not been already executed."
   (declare (ignorable id))
+  (declare (type number id))
   (js-code "clearTimeout(d$$id)"))
 
 (defun set-interval (f interval)
   "Invokes the specified function f every `interval` ms. Returns an id usable in clear-interval"
   (declare (ignorable f interval))
+  (declare (type number interval))
+  (declare (return-type number))
   (js-code "setInterval(function(){d$$f()}, d$$interval)"))
 
 (defun clear-interval (id)
   "Stops a scheduled interval call."
   (declare (ignorable id))
+  (declare (type number id))
   (js-code "clearInterval(d$$id)"))
 
 ;; Line split utility
 (defun maplines (f str)
   "Calls a function for each line in a string"
+  (declare (type string str))
   (do ((i 0)
        (n (length str)))
       ((>= i n))
@@ -3502,12 +3613,16 @@ A name is either an unevaluated atom or an evaluated list."
 (defun to-fixed (x n)
   "Formats a number using the specified number of decimals"
   (declare (ignorable x n))
+  (declare (type number x n))
+  (declare (return-type string))
   (js-code "(d$$x.toFixed(d$$n))"))
 
 ;; Javascript blocking interaction
 (defun prompt (x)
   "Asks the user for a string providing x as a prompt message"
   (declare (ignorable x))
+  (declare (type string x))
+  (declare (return-type string))
   (js-code "prompt(d$$x)"))
 
 (defun alert (x)
@@ -3519,6 +3634,8 @@ A name is either an unevaluated atom or an evaluated list."
 
 (defun yesno (x)
   "Asks the user to reply either yes or no to a question. Returns True if the answer is yes or False otherwise"
+  (declare (type string x))
+  (declare (return-type bool))
   (do ((reply (prompt x)
               (prompt ~"I don't understand...\n{x}\nPlease answer \"yes\" or \"no\" without quotes.")))
       ((or (= reply "yes")
@@ -3903,11 +4020,15 @@ A name is either an unevaluated atom or an evaluated list."
 (defun uri-decode (x)
   "Decode an uri-encoded string [x]"
   (declare (ignorable x))
+  (declare (type string x))
+  (declare (return-type string))
   (js-code "(decodeURIComponent(d$$x))"))
 
 (defun uri-encode (x)
   "Returns uri-encoding of string [x]"
   (declare (ignorable x))
+  (declare (type string x))
+  (declare (return-type string))
   (js-code "(encodeURIComponent(d$$x))"))
 
 ;; Lexical symbol properties support
@@ -4106,6 +4227,8 @@ A name is either an unevaluated atom or an evaluated list."
      x)
    ;; ==> (4 3 2 1)
    ]]"
+  (declare (type list x))
+  (declare (return-type list))
   (if (undefined? condition)
       (x.sort (lambda (a b) (if (< a b) -1 1)))
       (x.sort (lambda (a b) (if (funcall condition a b) -1 1)))))
@@ -4204,3 +4327,49 @@ A name is either an unevaluated atom or an evaluated list."
                           ',name)))))
         (setf newm.documentation oldm.documentation)
         newm))
+
+;; Compile-time type checking
+
+(defun lextype (x)
+  (let ((p (aref (js-code "lexvar").props (+ "!" x.name))))
+    (and p p.type)))
+
+(defun typeof (expr)
+  (cond
+    ((number? expr) ':number)
+    ((string? expr) ':string)
+    ((bool? expr) ':bool)
+    ((= 'undefined expr) ':undefined)
+    ((= 'null expr) ':null)
+    ((symbol? expr) (lextype expr))
+    ((and (list? expr)
+          (symbol? (first expr)))
+     (let ((f (or (lexical-function (first expr))
+                  (symbol-function (first expr)))))
+       (and f f.fti (aref f.fti ""))))))
+
+(defun typecheck (form func)
+  (do ((i 1)
+       (j 0)
+       (args func.arglist))
+    ((or (>= j (length args)) (>= i (length form))))
+    (if (find (aref args j) '(&key &optional &rest))
+        (incf j)
+        (let* ((argname (if (list? (aref args j))
+                            (first (aref args j))
+                            (aref args j)))
+               (argtype (aref func.fti argname.name))
+               (vtype (typeof (aref form i))))
+          (when (and vtype argtype
+                     (/= vtype argtype))
+            (warning ~"Type mismatch for parameter {argname} \
+                       ('{argtype}' expected, '{vtype}' passed) in {(str-value form)}."))
+          (incf i)
+          (incf j)))))
+
+(setf #'static-check-args
+      (let ((ccheck #'static-check-args))
+        (lambda (form func)
+          (funcall ccheck form func)
+          (when func.fti
+            (typecheck form func)))))

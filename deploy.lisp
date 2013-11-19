@@ -63,7 +63,7 @@ reverse engineering point of view.
       ;; Strip comments
       (setf s (replace s "//.*" ""))
       ;; Code metainformation removal
-      (setf s (replace s "f\\.usedglobs=\\[[^\\]]*\\];f\\.outcalls=\\[[^\\]]*\\];f\\.arglist=lisp_literals\\[[^\\]]*\\];" ""))
+      (setf s (replace s "f\\.usedglobs=\\[[^\\]]*\\];f\\.outcalls=\\[[^\\]]*\\];f\\.arglist=lisp_literals\\[[^\\]]*\\];f\\.fti=lisp_literals\\[[^\\]]*\\];" ""))
       ;; Name shortening
       (setf s (replace s "([a-zA-Z0-9_]|\\$[0-9]+_)+\\$\\$[a-zA-Z0-9_$]*" #'newname))
       ;; Lisp literals renaming
@@ -183,7 +183,7 @@ reverse engineering point of view.
          (setf ix (length *repo*))
          (push x *repo*)
          (let ((ii (replace (+ "" x) "\r" "")))
-           (setf ii (replace ii "f.usedglobs=\\[[^\\]]*\\];f.outcalls=\\[[^\\]]*\\];f.arglist=[^;]*;" ""))
+           (setf ii (replace ii "f.usedglobs=\\[[^\\]]*\\];f.outcalls=\\[[^\\]]*\\];f.arglist=[^;]*;f.fti=[^;]*;" ""))
            (incf *repcode* ~"r{ix}={ii};"))
          (when x.usedglobs
            (dolist (y x.usedglobs)

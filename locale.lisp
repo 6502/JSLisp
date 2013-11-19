@@ -7,11 +7,11 @@
 
 (defun str-date (d)
   (if d
-      (+ (rpad (d.getFullYear) 4 "0")
+      (+ (rpad (+ "" (d.getFullYear)) 4 "0")
          "-"
-         (rpad (1+ (d.getMonth)) 2 "0")
+         (rpad (+ "" (1+ (d.getMonth))) 2 "0")
          "-"
-         (rpad (d.getDate) 2 "0"))
+         (rpad (+ "" (d.getDate)) 2 "0"))
       ""))
 
 (export parse-date str-date)
