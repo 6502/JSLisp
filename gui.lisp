@@ -591,46 +591,39 @@
 
 (defun text-area (caption)
   "Creates a multiline input field with specified [caption]"
-  (let ((input (create-element "textarea"))
-        (label (label caption))
-        (container (create-element "div")))
-    (set-style container
-               position "absolute")
-    (set-style input
-               %/fontSize 110
-               fontWeight "bold"
-               position "absolute"
-               px/left 0
-               px/top 16
-               border "none"
-               px/padding 4
-               px/margin 0
-               resize "none"
-               backgroundColor "#EEEEEE")
-    ;; Textarea HTML specs is badly broken and there is
-    ;; no way to specify using style that the textarea
-    ;; should take all space of the container because
-    ;; using of bottom:0 and right:0 should not work.
-    ;; Works in a reasonable way in chrome/safari, but
-    ;; this is indeed a "bug" of chrome/safari.
-    ;; Workaround is adding a resize callback that will
-    ;; be called if present after resizing a div in
-    ;; dom layout managers.
-    ;; There is indeed an "onresize" event, but works only
-    ;; on the window object and not on other elements
-    ;; (except in IE, where it works on any element).
-    (setf (aref container "data-resize")
-          (lambda ()
-            (set-style input
-                       px/width (- container.offsetWidth 8)
-                       px/height (- container.offsetHeight 16 8))))
-    (append-child container label)
-    (append-child container input)
+  ;; Textarea HTML specs is badly broken and there is
+  ;; no way to specify top/left/right/bottom in absolute
+  ;; coordinates (works in WebKit, but only because of a bug).
+  ;; Solution here is to wrap the textarea in another
+  ;; div (that has no problem with abs positioning) and setting
+  ;; width 100% and height 100% to use up all the space.
+  (let** ((container (set-style (create-element "div")
+                                position "absolute"))
+          (label (append-child container (label caption)))
+          (txcont (set-style (append-child container (create-element "div"))
+                             position "absolute"
+                             px/left 0
+                             px/top 16
+                             px/right 8
+                             px/bottom 8))
+          (input (set-style (append-child txcont (create-element "textarea"))
+                            %/fontSize 110
+                            fontWeight "bold"
+                            position "absolute"
+                            px/left 0
+                            px/top 0
+                            %/width 100
+                            %/height 100
+                            border "none"
+                            px/padding 4
+                            px/margin 0
+                            resize "none"
+                            backgroundColor "#EEEEEE")))
     (setf container.% #'text-area)
     (setf container.node input)
     container))
 
-(def-accessor #'text-area text widget.lastChild.value)
+(def-accessor #'text-area text widget.node.value)
 (def-accessor #'text-area caption widget.firstChild.textContent)
 
 (defun select (caption values)
