@@ -158,6 +158,7 @@
    ;; ==> (3 6 (100 99))
    ]]"
   (declare (ignorable x))
+  (declare (type (or list string) x))
   (declare (return-type number))
   (js-code "d$$x.length"))
 
@@ -622,6 +623,7 @@
    ;; ==> false
    ]]"
   (declare (ignorable x))
+  (declare (type (or list string) x))
   (js-code "(d$$x.slice(1))"))
 
 (defmacro splice (x &optional start size)
@@ -4348,6 +4350,12 @@ A name is either an unevaluated atom or an evaluated list."
                   (symbol-function (first expr)))))
        (and f f.fti (aref f.fti ""))))))
 
+(defun type-match (v t)
+  (if (and (list? t)
+           (= (first t) 'or))
+      (any (st (rest t)) (type-match v st))
+      (= v t)))
+
 (defun typecheck (form func)
   (do ((i 1)
        (j 0)
@@ -4361,7 +4369,7 @@ A name is either an unevaluated atom or an evaluated list."
                (argtype (aref func.fti argname.name))
                (vtype (typeof (aref form i))))
           (when (and vtype argtype
-                     (/= vtype argtype))
+                     (not (type-match vtype argtype)))
             (warning ~"Type mismatch for parameter {argname} \
                        ('{argtype}' expected, '{vtype}' passed) in {(str-value form)}."))
           (incf i)
