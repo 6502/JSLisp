@@ -3,7 +3,7 @@
 (import * from graphics)
 
 (defun main ()
-  (let** ((w (window 0 0 680 370 title: "Test window" close: false))
+  (let** ((w (window 0 0 680 470 title: "Test window" close: false))
           (title (add-widget w (select "mr/ms" '("Mr." "Ms."))))
           (first-name (add-widget w (input "first name")))
           (last-name (add-widget w (input "last name")))
@@ -20,6 +20,7 @@
           (monthly-charge (add-widget w (radio "charge" "$12 monthly")))
           (single-charge (add-widget w (radio "charge" "$10 once (one week access)")))
           (billing (add-widget w (group "Billing")))
+          (note (add-widget w (text-area "Notes")))
           (ok (add-widget w (button "OK" (lambda ()
                                            (display ~"name: {(text title)} {(text first-name)} {(text last-name)}")
                                            (display ~"birthdate: {(text birthdate)}")
@@ -33,6 +34,7 @@
                                            (display ~"yearly-charge: {(checked yearly-charge)}")
                                            (display ~"monthly-charge: {(checked monthly-charge)}")
                                            (display ~"single-charge: {(checked single-charge)}")
+                                           (display ~"note: {(json (text note))}")
                                            (hide-window w)))))
           (cancel (add-widget w (button "Cancel" (lambda () (hide-window w))))))
     (set-layout w (V spacing: 8 border: 16
@@ -61,7 +63,8 @@
                                    (dom yearly-charge)
                                    (dom monthly-charge)
                                    (dom single-charge)))))
-                     :filler:
+                     size: undefined
+                     (dom note)
                      size: 30
                      (H :filler: size: 80 (dom ok) (dom cancel) :filler:)))
     (show-window w center: true)
@@ -77,6 +80,7 @@
     (setf (text age) "45")
     (setf (checked newsletter) true)
     (setf (checked spam) true)
-    (setf (checked yearly-charge) true)))
+    (setf (checked yearly-charge) true)
+    (setf (text note) "What a wonderful dialog...")))
 
 (main)
