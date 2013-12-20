@@ -188,13 +188,13 @@
 (test (symbol-macro 'foo)
       "undefined")
 
-(test (set-symbol-macro 'foo (lambda () 42))
+(test (set-symbol-macro 'foo (lambda (x) (declare (ignorable x)) 42))
       "#CODE")
 
 (test (symbol-macro 'foo)
       "#CODE")
 
-(test (foo)
+(test (foo 12)
       "42")
 
 (test (funcall #'foo 6)
