@@ -483,7 +483,7 @@
                     (js-compile (append (list 'lambda
                                               (list (js-code "d$$var$43_list[0]")))
                                         body))
-                    ";for(var i=0,n=list.length;i<n;i++){f(list[i])}})("
+                    ";for(var i=0,n=list.length;i<n;i++){tock();f(list[i])}})("
                     (js-compile (js-code "d$$var$43_list[1]"))
                     "))")))
 
@@ -505,7 +505,7 @@
                                         body))
                     ";if(typeof n !== 'number'){"
                       "f$$error('not a number in dotimes');"
-                    "}for(var i=0;i<n;i++){f(i)}})("
+                    "}for(var i=0;i<n;i++){tock();f(i)}})("
                     (js-compile (js-code "d$$var$43_count[1]"))
                     "))")))
 
@@ -529,7 +529,7 @@
                                               (list (js-code "d$$index$43_var$43_list[0]")
                                                     (js-code "d$$index$43_var$43_list[1]")))
                                         body))
-                    ";var n=L.length;for(var i=0;i<n;i++){f(i,L[i])}})("
+                    ";var n=L.length;for(var i=0;i<n;i++){tock();f(i,L[i])}})("
                     (js-compile (js-code "d$$index$43_var$43_list[2]"))
                     "))")))
 
@@ -3717,7 +3717,7 @@ A name is either an unevaluated atom or an evaluated list."
       (true
        `(js-code ,(+ "((function(){"
                      tagdecl
-                     ";for(;;){try{switch($tag$){case null:"
+                     ";for(;;){tock();try{switch($tag$){case null:"
                      (js-compile `(progn ,@(first fragments)))
                      ";"
                      (let ((cases ""))

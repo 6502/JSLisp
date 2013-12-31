@@ -39,8 +39,23 @@ d$$$42_used_globals$42_ = {};
 d$$$42_debug$42_ = false;
 d$$$42_function_context$42_ = [];
 d$$$42_function_type_info$42_ = [];
-
+d$$$42_timeout$42_ = null;
+d$$$42_code_timeout$42_ = 20000;
 d$$node_js = false;
+
+var watchdog = setInterval(function(){
+    d$$$42_timeout$42_ = (new Date).getTime() + d$$$42_code_timeout$42_;
+}, 100);
+
+var ck = 0;
+
+function tock() {
+    if (d$$$42_timeout$42_ &&
+        !(++ck & 4095) &&
+        (new Date).getTime() > d$$$42_timeout$42_) {
+        throw "Execution timeout";
+    }
+}
 
 var glob;
 
@@ -1147,7 +1162,7 @@ defmacro("do",
                      res += "var osd" + spe[i] + "=d" + spe[i] + ";";
                      res += "d" + spe[i] + "=sd" + spe[i] + ";";
                  }
-                 res += "for(;;){";
+                 res += "for(;;){tock();";
                  res += "if(" + f$$js_compile(test[0]) + "){";
                  if (spe.length)
                  {
@@ -2251,4 +2266,5 @@ if (d$$node_js)
             f$$load(f$$get_file(fname), fname);
         }
     }
+    clearInterval(watchdog);
 }
