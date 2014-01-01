@@ -3562,7 +3562,9 @@ A name is either an unevaluated atom or an evaluated list."
   "Appends the DOM element [child] before specifed [reference] child \
    element of the [parent] DOM element. When [reference] is not specified \
    the [child] element is appended as last (frontmost) children."
-  `((. ,parent insertBefore) ,child (or ,reference null)))
+  (if reference
+      `((. ,parent insertBefore) ,child (or ,reference null))
+      `((. ,parent appendChild) ,child)))
 (defmacro remove-child (parent child)
   "Removes the DOM element [child] from the list of children of [parent] DOM element"
   `((. ,parent removeChild) ,child))
