@@ -502,6 +502,12 @@
 
 (def-accessor #'label caption widget.textContent)
 
+(defun focus (widget)
+  "Sets the focus to DOM node of [widget] after 10ms.
+   Delaying is necessary because setting the focus in the handler \
+   of an event (e.g. a button click) is not going to work."
+  (set-timeout (lambda () ((node widget).focus)) 10))
+
 (defun input (caption &key (autofocus false) (autoselect true))
   "Creates an input field with specified [caption]"
   (let ((input (create-element "input"))
@@ -529,7 +535,7 @@
           (input.setSelectionRange 0 (length input.value))))
     (setf container.% #'input)
     (setf container.node input)
-    (setf input.autofocus autofocus)
+    (when autofocus (focus input))
     container))
 
 (def-accessor #'input caption widget.firstChild.textContent)
@@ -1701,12 +1707,6 @@
                px/left (first pos)
                px/top (second pos))
     (set-style menu opacity 1.0)))
-
-(defun focus (widget)
-  "Sets the focus to DOM node of [widget] after 10ms.
-   Delaying is necessary because setting the focus in the handler \
-   of an event (e.g. a button click) is not going to work."
-  (set-timeout (lambda () ((node widget).focus)) 10))
 
 (export set-style
         screen-width screen-height
