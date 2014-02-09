@@ -168,19 +168,18 @@
 
 (defun autofill (target src fn)
   (let ((auto (= (text target) (funcall fn (text src)))))
-    (setf src.onkeydown
-          (lambda (event)
-            (declare (ignorable event))
-            (if (and auto
-                     (= (text target) (funcall fn (text src))))
-                (set-timeout (lambda () (setf (text target) (funcall fn (text src)))) 10)
-                (setf auto false))
-            true))))
+    (set-handler src onkeydown
+      (if (and auto
+               (= (text target) (funcall fn (text src))))
+          (set-timeout (lambda () (setf (text target) (funcall fn (text src)))) 10)
+          (setf auto false))
+      true)))
 
 (defun button-edit (b hv-node cback)
-  (let** ((w (window 0 0 300 230 title: "Button properties"))
+  (let** ((w (window 0 0 500 430 title: "Button properties"))
           (name (add-widget w (input "name" autofocus: true)))
           (caption (add-widget w (input "caption")))
+          (code (add-widget w (text-area "code")))
           (default-button (add-widget w (checkbox "Default (Enter)")))
           (cancel-button (add-widget w (checkbox "Cancel (ESC)")))
           (editnode (add-widget w (button "Layout" #'layout)))
@@ -193,6 +192,7 @@
             (setf (caption b) (text caption))
             (setf b.default (checked default-button))
             (setf b.cancel (checked cancel-button))
+            (setf b.data-code (text code))
             (hide-window w)
             (funcall cback)))
     (autofill caption name (lambda (x)
@@ -200,10 +200,19 @@
                                ((= x "ok") "OK")
                                ((= x "") "")
                                (true (+ (uppercase (first x)) (rest x))))))
+    (autofill code name (lambda (x)
+                          (cond
+                            ((= x "") "")
+                            ((= x "cancel") "(lambda () (hide-window w))")
+                            ((= x "ok") "(lambda ()
+                                           ; ... ok ...
+                                           (hide-window w))")
+                            (true ~"(lambda () (baloon \"{x}!\"))"))))
     (setf (text caption) (caption b))
     (setf (text name) (or b.data-name ""))
     (setf (checked default-button) b.default)
     (setf (checked cancel-button) b.cancel)
+    (setf (text code) (or b.data-code ""))
     (unless hv-node (setf editnode.disabled "disabled"))
     (set-layout w (V border: 8 spacing: 8
                      size: 40
@@ -211,7 +220,8 @@
                      (dom caption)
                      size: 30
                      (H (dom default-button) (dom cancel-button))
-                     :filler:
+                     size: undefined
+                     (dom code)
                      size: 30
                      (H :filler: size: 80
                         (dom editnode) (dom ok) (dom cancel)
@@ -220,11 +230,12 @@
 
 (defun button-code (b section)
   (if (= section "let")
-      ~"(button {(str-value (caption b))} \
-        (lambda () (baloon {(str-value b.data-name)}))\
-        {(if b.cancel \" cancel: true\" \"\")}\
-        {(if b.default \" default: true\" \"\")}\
-        )"
+      (let ((code (or b.data-code ~"(lambda () (baloon \"{b.data-name}\"))")))
+        ~"(button {(str-value (caption b))} \
+          {code}\
+          {(if b.cancel \" cancel: true\" \"\")}\
+          {(if b.default \" default: true\" \"\")}\
+          )")
       undefined))
 
 (defun input-edit (b hv-node cback)
@@ -587,6 +598,7 @@
                                         (incf layout (if (= L.algorithm :V:) " (V" " (H"))
                                         (if L.border (incf layout ~" border: {L.border}"))
                                         (if L.spacing (incf layout ~" spacing: {L.spacing}"))
+                                        (incf layout "\n")
                                         (dolist (e L.elements)
                                           (when e.min
                                             (if (= e.min e.max)
@@ -608,10 +620,11 @@
                                           (when (and (/= e.min e.max) (/= e.weight current-weight))
                                             (incf layout ~" weight: {e.weight}")
                                             (setf current-weight e.weight))
+                                          (incf layout "\n")
                                           (visit e.element.element))
                                         (incf layout ")"))
                                       (if box.firstChild.data-spacer
-                                          (incf layout " :filler:")
+                                          (incf layout " :filler:\n")
                                           (let* ((x box.firstChild)
                                                  (builder (or (and box.data-node.codegen
                                                                    (box.data-node.codegen box.firstChild "let"))
