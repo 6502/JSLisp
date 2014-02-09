@@ -67,44 +67,7 @@
                         (setf pure false)))))
             (visit (third expr))
             (when pure
-              (setf layout (third expr))))))
-
-      (display ~"window = {(str-value window)}")
-      (dolist (w widgets)
-        (display ~"widget {(str-value w)}"))
-      (display ~"layout {(str-value layout)}")
-      (display ~"placed widgets {(keys placed-widgets)}"))))
-
-(parse-let** '(let** ((w (window 0 0 370 200 title: "Layout node"))
-                      (min (add-widget w (input "minimum size" autofocus: true)))
-                      (max (add-widget w (input "maximum size")))
-                      (class (add-widget w (input "class")))
-                      (weight (add-widget w (input "weight")))
-                      (ok (add-widget w (button "OK" #'ok)))
-                      (cancel (add-widget w (button "Cancel" #'cancel)))
-                      (#'cancel () (hide-window w))
-                      (#'ok ()
-                        (setf n.min (if (text min) (atoi (text min)) 0))
-                        (setf n.max (if (text max) (atoi (text max)) infinity))
-                        (setf n.class (or (atoi (text class)) 1))
-                        (setf n.weight (or (atoi (text weight)) 100))
-                        (hide-window w)
-                        (funcall cback)))
-                (set-layout w (V border: 8 spacing: 8
-                                 size: 40
-                                 (H (dom min) (dom max))
-                                 (H (dom class) (dom weight))
-                                 :filler:
-                                 size: 30
-                                 (H :filler:
-                                    size: 80
-                                    (dom ok) (dom cancel)
-                                    :filler:)))
-                (setf (text min) (or n.min ""))
-                (setf (text max) (if (infinity? n.max) "" n.max))
-                (setf (text class) n.class)
-                (setf (text weight) n.weight)
-                (show-window w modal: true center: true)))
+              (setf layout (third expr)))))))))
 
 (defun edit-hv-node (n cback)
   (let** ((w (window 0 0 370 200 title: "Layout node"))
@@ -231,7 +194,7 @@
 (defun button-code (b section)
   (if (= section "let")
       (let ((code (or b.data-code ~"(lambda () (baloon \"{b.data-name}\"))")))
-        ~"(button {(str-value (caption b))} \
+        ~"(button {(json (caption b))} \
           {code}\
           {(if b.cancel \" cancel: true\" \"\")}\
           {(if b.default \" default: true\" \"\")}\
@@ -277,7 +240,7 @@
 
 (defun input-code (b section)
   (if (= section "let")
-      ~"(input {(str-value (caption b))}\
+      ~"(input {(json (caption b))}\
         {(if b.autofocus \" autofocus: true\" \"\")}\
         {(if b.autoselect \" autoselect: true\" \"\")}\
         )"
@@ -314,7 +277,7 @@
 
 (defun checkbox-code (b section)
   (if (= section "let")
-      ~"(checkbox {(str-value (caption b))})"
+      ~"(checkbox {(json (caption b))})"
       undefined))
 
 (defun html-edit (b hv-node cback)
@@ -382,7 +345,7 @@
 
 (defun textarea-code (b section)
   (if (= section "let")
-      ~"(text-area {(str-value (caption b))})"
+      ~"(text-area {(json (caption b))})"
       undefined))
 
 (defun color-edit (b hv-node cback)
@@ -416,7 +379,7 @@
 
 (defun color-code (b section)
   (if (= section "let")
-      ~"(css-color-input {(str-value (caption b))})"
+      ~"(css-color-input {(json (caption b))})"
       undefined))
 
 (defun date-edit (b hv-node cback)
@@ -450,7 +413,7 @@
 
 (defun date-code (b section)
   (if (= section "let")
-      ~"(date-input {(str-value (caption b))})"
+      ~"(date-input {(json (caption b))})"
       undefined))
 
 (defun radio-edit (b hv-node cback)
@@ -487,7 +450,7 @@
 
 (defun radio-code (b section)
   (if (= section "let")
-      ~"(radio {(str-value (node b).name)} {(str-value (caption b))})"
+      ~"(radio {(json (node b).name)} {(json (caption b))})"
       undefined))
 
 (defun select-edit (b hv-node cback)
@@ -532,7 +495,7 @@
 (defun select-code (b section)
   (if (= section "let")
       (let ((data (map (get textContent) (node b).children)))
-        ~"(select {(str-value (caption b))} '{(str-value data)})")
+        ~"(select {(json (caption b))} '({(join (map #'json data) \" \")}))")
       undefined))
 
 (defun edit-window-properties (window-properties)
@@ -576,78 +539,75 @@
     (show-window w center: true)))
 
 (defun build-code (area window-properties)
-  (let** ((w (window 0 0 0.75 0.75 title: "gui code"))
-          (code (add-widget w (text-area "code")))
-          (text (let ((result "")
-                      (layout ""))
-                  (labels ((visit (box)
-                                  (unless result
-                                    (let ((left (or window-properties.left "0"))
-                                          (top (or window-properties.top "0"))
-                                          (width (or window-properties.width box.offsetWidth))
-                                          (height (or window-properties.height box.offsetHeight))
-                                          (title window-properties.title))
-                                      (incf result ~"(let** ((w (window {left} {top} {width} {height} title: \"{title}\"))
-                                                     ")))
-                                  (if box.firstChild.data-layout
-                                      (let ((L box.firstChild.data-layout)
-                                            (current-min undefined)
-                                            (current-max undefined)
-                                            (current-class 1)
-                                            (current-weight 100))
-                                        (incf layout (if (= L.algorithm :V:) " (V" " (H"))
-                                        (if L.border (incf layout ~" border: {L.border}"))
-                                        (if L.spacing (incf layout ~" spacing: {L.spacing}"))
-                                        (incf layout "\n")
-                                        (dolist (e L.elements)
-                                          (when e.min
-                                            (if (= e.min e.max)
-                                                (when (or (/= e.min current-min) (/= e.max current-max))
-                                                  (setf current-min e.min)
-                                                  (setf current-max e.max)
-                                                  (incf layout ~" size: {e.min}"))
-                                                (when (/= e.min current-min)
-                                                  (incf layout ~" min: {e.min}")
-                                                  (setf current-min e.min))))
-                                          (when (and (/= e.max infinity)
-                                                     (/= e.max e.min)
-                                                     (/= e.max current-max))
-                                            (incf layout ~" max: {e.max}")
-                                            (setf current-max e.max))
-                                          (when (and (/= e.min e.max) (/= e.class current-class))
-                                            (incf layout ~" class: {e.class}")
-                                            (setf current-class e.class))
-                                          (when (and (/= e.min e.max) (/= e.weight current-weight))
-                                            (incf layout ~" weight: {e.weight}")
-                                            (setf current-weight e.weight))
-                                          (incf layout "\n")
-                                          (visit e.element.element))
-                                        (incf layout ")"))
-                                      (if box.firstChild.data-spacer
-                                          (incf layout " :filler:\n")
-                                          (let* ((x box.firstChild)
-                                                 (builder (or (and box.data-node.codegen
-                                                                   (box.data-node.codegen box.firstChild "let"))
-                                                              "<todo>")))
-                                            (incf result ~"        ({x.data-name} (add-widget w {builder}))
-                                                           ")
-                                            (incf layout ~" (dom {x.data-name})"))))))
-                    (dolist (box area.children)
-                      (when box.data-node
-                        (visit box))))
-                  (setf result (slice result 0 (1- (length result))))
-                  (incf result ~")
-                                 (set-layout w{layout})
-                                 (show-window w")
-                  (when window-properties.center (incf result " center: true"))
-                  (when window-properties.modal (incf result " modal: true"))
-                  (incf result "))")
-                  result)))
-    (set-layout w (V border: 8 spacing: 8 (dom code)))
-    (setf (text code) text)
-    (show-window w center: true modal: true)))
+  (let ((result "")
+        (layout ""))
+    (labels ((visit (box)
+                    (unless result
+                      (let ((left (or window-properties.left "0"))
+                            (top (or window-properties.top "0"))
+                            (width (or window-properties.width box.offsetWidth))
+                            (height (or window-properties.height box.offsetHeight))
+                            (title window-properties.title))
+                        (incf result ~"(let** ((w (window {left} {top} {width} {height} title: \"{title}\"))
+                                       ")))
+                    (if box.firstChild.data-layout
+                        (let ((L box.firstChild.data-layout)
+                              (current-min undefined)
+                              (current-max undefined)
+                              (current-class 1)
+                              (current-weight 100))
+                          (incf layout (if (= L.algorithm :V:) " (V" " (H"))
+                          (if L.border (incf layout ~" border: {L.border}"))
+                          (if L.spacing (incf layout ~" spacing: {L.spacing}"))
+                          (incf layout "\n")
+                          (dolist (e L.elements)
+                            (when e.min
+                              (if (= e.min e.max)
+                                  (when (or (/= e.min current-min) (/= e.max current-max))
+                                    (setf current-min e.min)
+                                    (setf current-max e.max)
+                                    (incf layout ~" size: {e.min}"))
+                                  (when (/= e.min current-min)
+                                    (incf layout ~" min: {e.min}")
+                                    (setf current-min e.min))))
+                            (when (and (/= e.max infinity)
+                                       (/= e.max e.min)
+                                       (/= e.max current-max))
+                              (incf layout ~" max: {e.max}")
+                              (setf current-max e.max))
+                            (when (and (/= e.min e.max) (/= e.class current-class))
+                              (incf layout ~" class: {e.class}")
+                              (setf current-class e.class))
+                            (when (and (/= e.min e.max) (/= e.weight current-weight))
+                              (incf layout ~" weight: {e.weight}")
+                              (setf current-weight e.weight))
+                            (incf layout "\n")
+                            (visit e.element.element))
+                          (incf layout ")"))
+                        (if box.firstChild.data-spacer
+                            (incf layout " :filler:\n")
+                            (let* ((x box.firstChild)
+                                   (builder (or (and box.data-node.codegen
+                                                     (box.data-node.codegen box.firstChild "let"))
+                                                "<todo>")))
+                              (incf result ~"        ({x.data-name} (add-widget w {builder}))
+                                             ")
+                              (incf layout ~" (dom {x.data-name})"))))))
+      (dolist (box area.children)
+        (when box.data-node
+          (visit box))))
+    (setf result (slice result 0 (1- (length result))))
+    (incf result ~")
+                   (set-layout w{layout})
+                   (show-window w")
+    (when window-properties.center (incf result " center: true"))
+    (when window-properties.modal (incf result " modal: true"))
+    (incf result "))")
+    (setf result (replace result "\\n *([)]+)" "$1\n"))
+    (setf result (replace result "\\n[ \\n]*\\n" "\n"))
+    result))
 
-(defun editor ()
+(defun gui-editor (code-cback)
   (let** ((w (window 0 0 0.75 0.75 title: "GUI editor"))
           (area (set-style (create-element "div")
                            overflow "auto"
@@ -677,9 +637,11 @@
                                   position "absolute"
                                   background-color "#EEE"
                                   overflow "auto"))
-          (build-code (add-widget w (button "build code"
+          (build-code (add-widget w (button "Build code"
                                             (lambda ()
-                                              (build-code area window-properties)))))
+                                              (funcall code-cback
+                                                       (build-code area window-properties))
+                                              (hide-window w)))))
           (current null)
           (#'set-current (x)
             (when current
@@ -1049,7 +1011,4 @@
     (set-layout w (V (dom hs)))
     (show-window w center: true)))
 
-(defun main ()
-  (editor))
-
-(main)
+(export gui-editor)

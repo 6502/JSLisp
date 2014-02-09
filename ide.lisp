@@ -6,6 +6,7 @@
 (import ilisp)
 (import * from rpc-client)
 (import (hash) from crypto)
+(import * from guieditor)
 
 (defvar *ilisp*)
 
@@ -695,6 +696,12 @@
              (zoom)
              (when (and zoom zrun)
                ((sources.current).ilisp-exec zrun)))
+            ((and event.ctrlKey (= event.which #.(char-code "G")))
+             (when (> (sources.current-index) 0)
+               (gui-editor (lambda (code)
+                             (let (((r0 r1) ((sources.current).insert-text code)))
+                               ((sources.current).set-pos r0 0 r1 0)
+                               ((sources.current).indent-selection))))))
             ((and event.ctrlKey (= event.which #.(char-code "O"))
                   mode.styles)
              (customize-styles mode.styles
