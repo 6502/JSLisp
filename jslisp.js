@@ -1712,7 +1712,7 @@ defun("parse-symbol",
               throw new String("Value expected");
           return f$$intern(res);
       },
-      [f$$intern("src"), f$$intern("start")],[],["$$intern", "$$parse_stopping"]);
+      [f$$intern("src"), f$$intern("&optional"), f$$intern("start")],[],["$$intern", "$$parse_stopping"]);
 
 d$$$42_hash_readers$42_ = { "'": function(src)
                             {
