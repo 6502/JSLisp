@@ -92,4 +92,26 @@
       (declare (ignorable event))
       ,@body)))
 
-(export css set-style class set-class class-add class-remove on)
+(defmacro template (x)
+  (do ((content (if node-js (get-file x) (http-get x)))
+       (i 0)
+       (code (list)))
+    ((>= i (length content))
+     (if (= (length code) 0)
+         ""
+         `(+ ,@code)))
+    (let ((j (index "{{" content i)))
+      (if (= j -1)
+          (progn
+            (push (slice content i) code)
+            (setf i (length content)))
+          (let ((k (index "}}" content j)))
+            (push (slice content i j) code)
+            (when (= k -1)
+              (error "Invalid template content"))
+            (push (read (+ "(progn "
+                           (slice content (+ j 2) k)
+                           ")")) code)
+            (setf i (+ k 2)))))))
+
+(export css set-style class set-class class-add class-remove on template)
