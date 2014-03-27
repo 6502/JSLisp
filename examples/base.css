@@ -1,0 +1,68 @@
+.label {
+  font-size: 80%;
+  font-family: sans-serif;
+  font-weight: bold;
+  color: #AAA;
+  position: relative;
+  top: 2px;
+  left: 2px;
+}
+
+.form {
+  padding: 20px;
+  background-color: #DDD;
+  border-radius: 10px;
+  box-shadow: 2px 2px 2px rgba(0,0,0,0.25);
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: 50px;
+  display: inline-block;
+}
+
+input {
+  padding: 4px;
+  font-size: 120%;
+  font-family: monospace;
+  font-weight: bold;
+  color: #000;
+}
+
+input:focus {
+  background-color: #FFC;
+}
+
+input[type=button] {
+  padding: 4px;
+  border-radius: 4px;
+  background-color: #CCF;
+  border: none;
+  color: #000;
+  text-shadow: 1px 1px 0px #FFF;
+  font-size: 120%;
+  min-width: 80px;
+  font-family: sans-serif;
+  font-weight: bold;
+  box-shadow: 2px 2px 1px rgba(0,0,0,0.25);
+}
+
+input[type=button]:active {
+  box-shadow: none;
+  position: relative;
+  top: 2px;
+  left: 2px;
+}
+
+.btnrow {
+  margin-top: 4px;
+  text-align: center;
+}
+
+.error-message {
+  display: none;
+  padding: 4px;
+  background-color: #F00;
+  color: #FFF;
+  text-shadow: 1px 1px 0px #000;
+  font-family: sans-serif;
+  font-weight: bold;
+}
