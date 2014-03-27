@@ -114,4 +114,24 @@
                            ")")) code)
             (setf i (+ k 2)))))))
 
-(export css set-style class set-class class-add class-remove on template)
+(defmacro base-css (name)
+  `(let ((css (append-child document.head (create-element "style"))))
+     (setf css.type "text/css")
+     (setf css.textContent (template ,name))))
+
+(defun focus (x)
+  (set-timeout (lambda () (x.focus)) 10))
+
+(defun hide (x)
+  (set-style x display "none"))
+
+(defun show (x &key text html delay)
+  (set-style x display "inherit")
+  (unless (undefined? html)
+    (setf x.innerHTML html))
+  (unless (undefined? text)
+    (setf x.textContent text))
+  (unless (undefined? delay)
+    (set-timeout (lambda () (hide x)) delay)))
+
+(export css set-style class set-class class-add class-remove on template base-css focus show hide)
