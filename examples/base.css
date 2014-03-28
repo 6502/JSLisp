@@ -9,6 +9,7 @@
 }
 
 .form {
+  text-align: left;
   padding: 20px;
   background-color: #DDD;
   border-radius: 10px;
@@ -65,4 +66,14 @@ input[type=button]:active {
   text-shadow: 1px 1px 0px #000;
   font-family: sans-serif;
   font-weight: bold;
+}
+
+table {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+td.ttt {
+  padding: 8px;
+  border: solid 1px #000;
 }

@@ -3,6 +3,14 @@
 (defun main ()
   (base-css "examples/base.css")
   (let** ((view (document.body.appendChild (create-element "div")))
+          (board (make-array (list 3 3) "-"))
+          (color 0)
+          (#'new-game ()
+            (setf board (make-array (list 3 3) "-"))
+            (setf color 0)
+            (main-view))
+          (#'logo (r c)
+            ~"<img id=\"c{r}{c}\" src=\"img/{(aref board r c)}.png\">")
           (#'login-view ()
             (setf view.innerHTML (template "examples/login.html"))
             (focus ##user)
@@ -15,12 +23,15 @@
                     (show ##errmsg text: "Invalid user/password" delay: 2000)))))
           (#'main-view ()
             (setf view.innerHTML (template "examples/main.html"))
-            (on ##wq mouseover
-              (setf ##message.innerText "This is a white queen"))
-            (on ##bn mouseover
-              (setf ##message.innerText "This is a black knight"))
-            (on ##logout click
-              (login-view))))
+            (dotimes (i 3)
+              (dotimes (j 3)
+                (let ((cell (document.getElementById ~"c{i}{j}")))
+                  (on cell mousedown
+                    (setf (aref board i j) (aref "ox" color))
+                    (setf color (- 1 color))
+                    (main-view)))))
+            (on ##logout click (login-view))
+            (on ##new click (new-game))))
     (login-view)))
 
 (main)
