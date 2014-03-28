@@ -1,7 +1,11 @@
 (setf (hash-reader "#")
       (lambda (src)
         (next-char src)
-        `(document.getElementById ,(symbol-name (parse-symbol src)))))
+        `(document.getElementById
+           ,(if (or (<= "a" (current-char src) "z")
+                    (<= "a" (current-char src) "z"))
+                (symbol-name (parse-symbol src))
+                (read src)))))
 
 (defmacro set-style (element &rest properties)
   "Allows settings multiple style properties for a DOM node, example:[[
@@ -134,4 +138,19 @@
   (unless (undefined? delay)
     (set-timeout (lambda () (hide x)) delay)))
 
-(export css set-style class set-class class-add class-remove on template base-css focus show hide)
+(defvar *code-snippet-id* -1)
+(if node-js
+    (incf *deploy-prefix* "csnip=[];"))
+
+(defmacro button (text &rest body)
+  (incf *code-snippet-id*)
+  `(progn
+     (setf (js-code ,(+ "csnip[" *code-snippet-id* "]"))
+           (lambda () ,@body))
+     ,(+ "<input type=button value="
+         (json text)
+         " onclick=\"csnip["
+         *code-snippet-id*
+         "]()\">")))
+
+(export css set-style class set-class class-add class-remove on template base-css focus show hide button)

@@ -9,7 +9,7 @@
       <input id="password" placeholder="password" type="password">
     </div>
     <div class="btnrow">
-      <input id="ok" type=button value="Login">
+      {{(button "Login" (check-password))}}
       <div class="error-message" id="errmsg"></div>
     </div>
   </div>

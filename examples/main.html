@@ -1,19 +1,19 @@
 <table>
   <tr>
-    <td class="ttt">{{(logo 0 0)}}</td>
-    <td class="ttt">{{(logo 0 1)}}</td>
-    <td class="ttt">{{(logo 0 2)}}</td>
+    <td class="ttt"><img id="c00" src="{{(logo 0 0)}}"></td>
+    <td class="ttt"><img id="c01" src="{{(logo 0 1)}}"></td>
+    <td class="ttt"><img id="c02" src="{{(logo 0 2)}}"></td>
   </tr>
   <tr>
-    <td class="ttt">{{(logo 1 0)}}</td>
-    <td class="ttt">{{(logo 1 1)}}</td>
-    <td class="ttt">{{(logo 1 2)}}</td>
+    <td class="ttt"><img id="c10" src="{{(logo 1 0)}}"></td>
+    <td class="ttt"><img id="c11" src="{{(logo 1 1)}}"></td>
+    <td class="ttt"><img id="c12" src="{{(logo 1 2)}}"></td>
   </tr>
   <tr>
-    <td class="ttt">{{(logo 2 0)}}</td>
-    <td class="ttt">{{(logo 2 1)}}</td>
-    <td class="ttt">{{(logo 2 2)}}</td>
+    <td class="ttt"><img id="c20" src="{{(logo 2 0)}}"></td>
+    <td class="ttt"><img id="c21" src="{{(logo 2 1)}}"></td>
+    <td class="ttt"><img id="c22" src="{{(logo 2 2)}}"></td>
   </tr>
 </table>
-<input type=button value="New" id="new">
-<input type=button value="Logout" id="logout">
+{{(button "New" (new-game))}}
+{{(button "Logout" (login-view))}}
