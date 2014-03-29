@@ -99,29 +99,50 @@
 (defmacro template (x)
   (do ((content (if node-js (get-file x) (http-get x)))
        (i 0)
+       (c '#.(gensym))
        (code (list)))
     ((>= i (length content))
      (if (= (length code) 0)
          ""
-         `(+ ,@code)))
+         `(let ((,c ""))
+            ,@code
+            ,c)))
     (let ((j (index "{{" content i)))
       (if (= j -1)
           (progn
-            (push (slice content i) code)
+            (push `(incf ,c ,(slice content i)) code)
             (setf i (length content)))
           (let ((k (index "}}" content j)))
-            (push (slice content i j) code)
+            (push `(incf ,c ,(slice content i j)) code)
             (when (= k -1)
               (error "Invalid template content"))
-            (push (read (+ "(progn "
-                           (slice content (+ j 2) k)
-                           ")")) code)
+            (push `(incf ,c ,(read (+ "(progn "
+                                      (slice content (+ j 2) k)
+                                      ")"))) code)
             (setf i (+ k 2)))))))
 
 (defmacro base-css (name)
   `(let ((css (append-child document.head (create-element "style"))))
      (setf css.type "text/css")
      (setf css.textContent (template ,name))))
+
+(defmacro main-view (name)
+  `(let ((main (append-child document.body (create-element "div"))))
+     (setf main.innerHTML (template ,name))))
+
+(defvar cached-subviews #())
+
+(defmacro set-view (tag name)
+  (let ((tt '#.(gensym)))
+    `(progn
+       (unless (aref cached-subviews ,name)
+         (let ((,tt (create-element "div")))
+           (setf (. ,tt innerHTML) (template ,name))
+           (setf (aref cached-subviews ,name) (map (lambda (x) x) (. ,tt children)))))
+       (let ((,tt ,tag))
+         (setf (. ,tt innerHTML) "")
+         (dolist (x (aref cached-subviews ,name))
+           (append-child ,tt x))))))
 
 (defun focus (x)
   (set-timeout (lambda () (x.focus)) 10))
@@ -142,15 +163,18 @@
 (if node-js
     (incf *deploy-prefix* "csnip=[];"))
 
-(defmacro button (text &rest body)
+(defmacro code (&rest body)
   (incf *code-snippet-id*)
   `(progn
      (setf (js-code ,(+ "csnip[" *code-snippet-id* "]"))
            (lambda () ,@body))
-     ,(+ "<input type=button value="
-         (json text)
-         " onclick=\"csnip["
-         *code-snippet-id*
-         "]()\">")))
+     ,~"\"csnip[{*code-snippet-id*}]()\""))
 
-(export css set-style class set-class class-add class-remove on template base-css focus show hide button)
+(defmacro button (text &rest body)
+  `(+ "<input type=button value="
+      ,(json text)
+      " onclick="
+      (code ,@body) ">"))
+
+(export css set-style class set-class class-add class-remove on template
+        base-css main-view set-view focus show hide button code)
