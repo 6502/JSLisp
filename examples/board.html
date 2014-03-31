@@ -1,0 +1,20 @@
+<h1>Hello, {{user}}</h1>
+<table>
+  <tr>
+    <td class="ttt"><img id="c0" src="{{(logo 0)}}" onclick={{(code (play 0))}}></td>
+    <td class="ttt"><img id="c1" src="{{(logo 1)}}" onclick={{(code (play 1))}}></td>
+    <td class="ttt"><img id="c2" src="{{(logo 2)}}" onclick={{(code (play 2))}}></td>
+  </tr>
+  <tr>
+    <td class="ttt"><img id="c3" src="{{(logo 3)}}" onclick={{(code (play 3))}}></td>
+    <td class="ttt"><img id="c4" src="{{(logo 4)}}" onclick={{(code (play 4))}}></td>
+    <td class="ttt"><img id="c5" src="{{(logo 5)}}" onclick={{(code (play 5))}}></td>
+  </tr>
+  <tr>
+    <td class="ttt"><img id="c6" src="{{(logo 6)}}" onclick={{(code (play 6))}}></td>
+    <td class="ttt"><img id="c7" src="{{(logo 7)}}" onclick={{(code (play 7))}}></td>
+    <td class="ttt"><img id="c8" src="{{(logo 8)}}" onclick={{(code (play 8))}}></td>
+  </tr>
+</table>
+{{(button "New" (new-game))}}
+{{(button "Logout" (login-view))}}
