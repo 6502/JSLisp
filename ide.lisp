@@ -146,6 +146,8 @@
 (rpc:defun rput-file (user-name session-id filename content authcode))
 (rpc:defun rlist-files (user-name session-id path authcode))
 (rpc:defun rping (user-name session-id authcode))
+(rpc:defun rbuild (user-name session-id source mode authcode))
+(rpc:defun rbuild-check (user-name session-id id authcode))
 (rpc:defun rterminal (user-name session-id authcode))
 (rpc:defun rterminal-send (user-name session-id id x authcode))
 (rpc:defun rterminal-receive (user-name session-id id authcode))
@@ -170,6 +172,16 @@
 
 (defun ping ()
   (rping *user* *session-id* (hash (+ *session-id* *secret* "null"))))
+
+(defun build (source mode)
+  (rbuild *user* *session-id* source mode
+          (hash (+ *session-id* *secret*
+                   (json* (list source mode))))))
+
+(defun build-check (id)
+  (rbuild-check *user* *session-id* id
+                (hash (+ *session-id* *secret*
+                         (json* id)))))
 
 (defun new-terminal ()
   (rterminal *user* *session-id* (hash (+ *session-id* *secret* "null"))))
@@ -434,6 +446,46 @@
                              (true current-path))).focus)))
     w))
 
+(defun deploy (fname)
+  (let** ((w (window 0 0 372 193 title: "deploy"))
+          (main-source (add-widget w (input "main source" autofocus: true)))
+          (target (add-widget w (select "target" '("html" "node-js"))))
+          (output-file (add-widget w (input "output file")))
+          (#'start-build ()
+            (let** ((id (build (text main-source)
+                               (text target)))
+                    (#'check ()
+                      (let ((ans (build-check id)))
+                        (if ans
+                            (if (= (first ans) 0)
+                                (progn
+                                  (baloon "build ok")
+                                  (put-file (text output-file)
+                                            (join (second ans) ""))
+                                  (when (length (third ans))
+                                    (message-box (join (map #'htm (third ans)) "<br/>")
+                                                 title: "build warnings")))
+                                (progn
+                                  (baloon "build error")
+                                  (message-box (join (map #'htm (third ans)) "<br/>")
+                                               title: "build error")))
+                            (set-timeout #'check 100)))))
+              (set-timeout #'check 100)))
+          (ok (add-widget w (button "OK" (lambda ()
+                                           (start-build)
+                                           (hide-window w)))))
+          (cancel (add-widget w (button "Cancel" (lambda ()
+                                                   (hide-window w))))))
+    (setf (text main-source) fname)
+    (set-layout w (V border: 8 spacing: 8
+                     size: 40
+                     (H (dom main-source) size: 120 (dom target))
+                     (dom output-file)
+                     :filler:
+                     size: 30
+                     (H :filler: size: 80 (dom ok) (dom cancel) :filler:)))
+    (show-window w center: true modal: true)))
+
 (defun terminal ()
   (let** ((w (text-area "terminal"))
           (t (new-terminal))
@@ -682,6 +734,17 @@
              (sources.add "*terminal*" (terminal) true)
              (sources.select 0)
              (sources.prev))
+            ((and event.ctrlKey (= event.which #.(char-code "D")))
+             (when (> (sources.current-index) 0)
+               (if ((sources.current).modified)
+                   (message-box "<h1>Current file not saved.</h1>
+                                 The deployed program will be based on last saved version."
+                                title: "Unsaved changes"
+                                buttons: '("OK" "Cancel")
+                                cback: (lambda (reply)
+                                         (when (= reply "OK")
+                                           (deploy ((sources.current).name)))))
+                   (deploy ((sources.current).name)))))
             ((and event.ctrlKey (= event.which #.(char-code "W")))
              (when (and (> (sources.current-index) 0)
                         (put-file ((sources.current).name)

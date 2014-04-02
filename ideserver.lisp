@@ -38,7 +38,48 @@
 
 (defvar *processes* #())
 (defvar *process-id* 0)
-(defobject process (proc user-name output exit-code))
+(defobject process (proc user-name output err exit-code))
+
+(rpc:defun rbuild (user-name session-id source mode authcode)
+  (auth (check-authorization user-name session-id authcode
+                             (json* (list source mode)))
+        "terminal")
+  (let* ((proc ((node:require "child_process").spawn
+                "node"
+                (list "jslisp.js"
+                      (if (= mode "html")
+                          "deploy-html.lisp"
+                          "deploy.lisp")
+                      source)
+                #((stdio "pipe"))))
+         (output (list))
+         (err (list))
+         (p (new-process proc user-name output err null))
+         (id (incf *process-id*)))
+    (proc.stdout.on "data" (lambda (data)
+                             (push (data.toString "utf-8") output)))
+    (proc.stderr.on "data" (lambda (data)
+                             (push (data.toString "utf-8") err)))
+    (proc.on "exit" (lambda (code)
+                      (display ~"Ended build {id} ({user-name}) --> \
+                                 {(length output)}/{(length err)}/{code}")
+                      (setf p.exit-code code)))
+    (setf (aref *processes* id) p)
+    (display ~"Started build {id} ({user-name})")
+    id))
+
+(rpc:defun rbuild-check (user-name session-id id authcode)
+  (auth (check-authorization user-name session-id authcode
+                             (json* id))
+        "terminal")
+    (when (and (aref *processes* id)
+               (= user-name (aref *processes* id).user-name))
+      (let ((p (aref *processes* id)))
+        (if (null? p.exit-code)
+            null
+            (progn
+              (remove-key *processes* id)
+              (list p.exit-code p.output p.err))))))
 
 (rpc:defun rterminal (user-name session-id authcode)
   (auth (check-authorization user-name session-id authcode "null")
@@ -48,7 +89,7 @@
                 (list "-q" "-f" "/dev/null")
                 #((stdio "pipe"))))
          (output (list))
-         (p (new-process proc user-name output null))
+         (p (new-process proc user-name output null null))
          (id (incf *process-id*)))
     (proc.stdout.on "data" (lambda (data)
                              (push (data.toString "utf-8") output)))
