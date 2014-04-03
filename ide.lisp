@@ -142,8 +142,8 @@
 (defvar *session-id*)
 
 (rpc:defun login (user-name))
-(rpc:defun rget-file (user-name session-id filename authcode))
-(rpc:defun rput-file (user-name session-id filename content authcode))
+(rpc:defun rload-file (user-name session-id filename authcode))
+(rpc:defun rsave-file (user-name session-id filename content authcode))
 (rpc:defun rlist-files (user-name session-id path authcode))
 (rpc:defun rping (user-name session-id authcode))
 (rpc:defun rbuild (user-name session-id source mode authcode))
@@ -157,13 +157,13 @@
 (rpc:defun rremove-user (user-name session-id user authcode))
 (rpc:defun rlist-users (user-name session-id authcode))
 
-(defun get-file (name)
-  (rget-file *user* *session-id* name
-             (hash (+ *session-id* *secret* (json* name)))))
+(defun load-file (name)
+  (rload-file *user* *session-id* name
+              (hash (+ *session-id* *secret* (json* name)))))
 
-(defun put-file (name content)
-  (when (rput-file *user* *session-id* name content
-                   (hash (+ *session-id* *secret* (json* (list name content)))))
+(defun save-file (name content)
+  (when (rsave-file *user* *session-id* name content
+                    (hash (+ *session-id* *secret* (json* (list name content)))))
     (baloon ~"{(htm name)} saved")))
 
 (defun list-files (path)
@@ -406,8 +406,8 @@
                           (setf base ""))
                         (setf (text current-path) (+ base (slice (first filelist) 0 i)))
                         ((node current-path).setSelectionRange
-                          (+ (length base) (length name))
-                          (+ (length base) i)))))))))
+                         (+ (length base) (length name))
+                         (+ (length base) i)))))))))
           (#'enter ()
             (funcall cback (text current-path)))
           (layout (V border: 8 spacing: 8
@@ -446,6 +446,8 @@
                              (true current-path))).focus)))
     w))
 
+(defvar *deploy-parms* #())
+
 (defun deploy (fname)
   (let** ((w (window 0 0 372 193 title: "deploy"))
           (main-source (add-widget w (input "main source" autofocus: true)))
@@ -460,8 +462,8 @@
                             (if (= (first ans) 0)
                                 (progn
                                   (baloon "build ok")
-                                  (put-file (text output-file)
-                                            (join (second ans) ""))
+                                  (save-file (text output-file)
+                                             (join (second ans) ""))
                                   (when (length (third ans))
                                     (message-box (join (map #'htm (third ans)) "<br/>")
                                                  title: "build warnings")))
@@ -472,11 +474,25 @@
                             (set-timeout #'check 100)))))
               (set-timeout #'check 100)))
           (ok (add-widget w (button "OK" (lambda ()
+                                           (unless (aref *deploy-parms* fname)
+                                             (setf (aref *deploy-parms* fname)
+                                                   #((target "html")
+                                                     (output-file ""))))
+                                           (setf (aref *deploy-parms* fname).target
+                                                 (text target))
+                                           (setf (aref *deploy-parms* fname).output-file
+                                                 (text output-file))
                                            (start-build)
                                            (hide-window w)))))
           (cancel (add-widget w (button "Cancel" (lambda ()
                                                    (hide-window w))))))
+    (unless (aref *deploy-parms* fname)
+      (setf (aref *deploy-parms* fname)
+            #((target "html")
+              (output-file ""))))
     (setf (text main-source) fname)
+    (setf (text target) (aref *deploy-parms* fname).target)
+    (setf (text output-file) (aref *deploy-parms* fname).output-file)
     (set-layout w (V border: 8 spacing: 8
                      size: 40
                      (H (dom main-source) size: 120 (dom target))
@@ -634,7 +650,7 @@
                     (append-child doc btn))))))
           (#'view-source ((file c0 c1))
             (declare (ignorable c1))
-            (let ((content (get-file file)))
+            (let ((content (load-file file)))
               (let ((editor (src-tab file content))
                     (line (1- (length (split (slice content 0 c0) "\n")))))
                 (editor.set-pos (max 0 (- line 10)) 0
@@ -653,9 +669,9 @@
           (#'doc-lookup (name)
             (*ilisp*.send "quiet-lisp"
                           ~"(let ((f (intern {(json name)} undefined true)))
-                              (when f
-                                (let ((f (or (symbol-function f) (symbol-macro f))))
-                                  (if f (list (documentation f) f.location)))))"
+                            (when f
+                            (let ((f (or (symbol-function f) (symbol-macro f))))
+                            (if f (list (documentation f) f.location)))))"
                           #'show-doc))
           (#'zoom ()
             (setf zoom (not zoom))
@@ -682,7 +698,7 @@
       "+"
       (file-browser
         (lambda (f)
-          (let ((editor (src-tab f (or (get-file f) ""))))
+          (let ((editor (src-tab f (or (load-file f) ""))))
             (sources.add f editor true)
             (setf editor.remove?
                   (lambda ()
@@ -747,8 +763,8 @@
                    (deploy ((sources.current).name)))))
             ((and event.ctrlKey (= event.which #.(char-code "W")))
              (when (and (> (sources.current-index) 0)
-                        (put-file ((sources.current).name)
-                                  ((sources.current).buffer)))
+                        (save-file ((sources.current).name)
+                                   ((sources.current).buffer)))
                ((sources.current).clear-modified)))
             ((and event.ctrlKey (= event.which #.(char-code "Q")))
              (when (> (sources.current-index) 0)
@@ -788,6 +804,13 @@
                                  (lambda ()
                                    (when (sources.current).refresh
                                      ((sources.current).refresh)))))
+            ((= event.which 112)
+             (let** ((w (window 0 0 596 522 title: "Help"))
+                     (help (add-widget w (set-style (create-element "div")
+                                                    position "absolute"))))
+               (setf help.innerHTML '#.(get-file "idehelp.html"))
+               (set-layout w (dom help))
+               (show-window w center: true)))
             (true (setf stop false)))
           (when stop
             (event.stopPropagation)

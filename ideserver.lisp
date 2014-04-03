@@ -14,13 +14,13 @@
   (unless (authorized proplist tokens)
     (error "Authorization required")))
 
-(rpc:defun rget-file (user-name session-id filename authcode)
+(rpc:defun rload-file (user-name session-id filename authcode)
   (auth (check-authorization user-name session-id authcode
                              (json* filename))
         "read")
   (try (get-file filename) null))
 
-(rpc:defun rput-file (user-name session-id filename content authcode)
+(rpc:defun rsave-file (user-name session-id filename content authcode)
   (auth (check-authorization user-name session-id authcode
                              (json* (list filename content)))
         "write")
@@ -72,14 +72,14 @@
   (auth (check-authorization user-name session-id authcode
                              (json* id))
         "terminal")
-    (when (and (aref *processes* id)
-               (= user-name (aref *processes* id).user-name))
-      (let ((p (aref *processes* id)))
-        (if (null? p.exit-code)
-            null
-            (progn
-              (remove-key *processes* id)
-              (list p.exit-code p.output p.err))))))
+  (when (and (aref *processes* id)
+             (= user-name (aref *processes* id).user-name))
+    (let ((p (aref *processes* id)))
+      (if (null? p.exit-code)
+          null
+          (progn
+            (remove-key *processes* id)
+            (list p.exit-code p.output p.err))))))
 
 (rpc:defun rterminal (user-name session-id authcode)
   (auth (check-authorization user-name session-id authcode "null")
@@ -106,11 +106,11 @@
   (auth (check-authorization user-name session-id authcode
                              (json* (list id x)))
         "terminal")
-    (when (and (aref *processes* id)
-               (= user-name (aref *processes* id).user-name))
-      (let ((p (aref *processes* id)))
-        (when (null? p.exit-code)
-          (p.proc.stdin.write x)))))
+  (when (and (aref *processes* id)
+             (= user-name (aref *processes* id).user-name))
+    (let ((p (aref *processes* id)))
+      (when (null? p.exit-code)
+        (p.proc.stdin.write x)))))
 
 (rpc:defun rterminal-receive (user-name session-id id authcode)
   (auth (check-authorization user-name session-id authcode
