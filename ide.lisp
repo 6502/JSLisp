@@ -805,7 +805,7 @@
                                    (when (sources.current).refresh
                                      ((sources.current).refresh)))))
             ((= event.which 112)
-             (let** ((w (window 0 0 596 522 title: "Help"))
+             (let** ((w (window 0 0 596 740 title: "Help"))
                      (help (add-widget w (set-style (create-element "div")
                                                     position "absolute"))))
                (setf help.innerHTML '#.(get-file "idehelp.html"))
