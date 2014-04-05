@@ -1708,6 +1708,33 @@
                px/top (second pos))
     (set-style menu opacity 1.0)))
 
+(defvar *special-keys* #((9 "Tab")
+                         (13 "Enter")
+                         (8 "Backspace")
+                         (27 "Esc")
+                         (33 "PgUp")
+                         (34 "PgDn")
+                         (35 "End")
+                         (36 "Home")
+                         (37 "Left")
+                         (38 "Up")
+                         (39 "Right")
+                         (40 "Down")
+                         (46 "Del")))
+
+(defun key-name (event)
+  (+ (if event.ctrlKey "ctrl-" "")
+     (if event.shiftKey "shift-" "")
+     (if (or event.altKey event.metaKey) "alt-" "")
+     (cond
+      ((aref *special-keys* event.which)
+       (aref *special-keys* event.which))
+      ((or (<= 65 event.which 90)
+           (<= 48 event.which 57))
+       (char event.which))
+      ((<= 112 event.which 123) (+ "F" (- event.which 111)))
+      (true (+ "#" event.which)))))
+
 (export set-style
         screen-width screen-height
 
@@ -1717,6 +1744,7 @@
         tracking dragging
         dom dom-replace
         window
+        key-name
 
         show-window hide-window with-window
         add-widget set-layout node focus

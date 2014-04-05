@@ -580,6 +580,23 @@
     (set-timeout #'update 100)
     w))
 
+(defvar *keybindings* #(("alt-Z" "ilisp-clear")
+                        ("alt-R" "ilisp-reset")
+                        ("alt-Enter" "run")
+                        ("alt-I" "eval-expr")
+                        ("ctrl-T" "terminal")
+                        ("ctrl-D" "deploy")
+                        ("ctrl-W" "save")
+                        ("ctrl-Q" "close")
+                        ("ctrl-K" "expr-run")
+                        ("ctrl-G" "gui-builder")
+                        ("ctrl-O" "mode-options")
+                        ("ctrl-Left" "prev")
+                        ("ctrl-Right" "next")
+                        ("ctrl-Enter" "eval-current")
+                        ("alt-Esc" "edit-zoom")
+                        ("F1" "help")))
+
 (defun main ()
   ;; Block ctrl-R at toplevel
   (set-handler document.body onkeydown
@@ -733,85 +750,80 @@
     (document.body.addEventListener
       "keydown"
       (lambda (event)
-        (let ((stop true))
-          (cond
-            ((and (or event.altKey event.metaKey) (= event.which #.(char-code "Z")))
-             (*ilisp*.clear))
-            ((and (or event.altKey event.metaKey) (= event.which #.(char-code "R")))
-             (*ilisp*.reset))
-            ((and (or event.altKey event.metaKey) (= event.which 13))
-             (zoom)
-             ((sources.current).ilisp-exec ((sources.current).buffer)))
-            ((and (or event.altKey event.metaKey) (= event.which #.(char-code "I")))
-             (let ((expr (prompt "Expression")))
-               (when (strip expr)
-                 ((sources.current).ilisp-exec expr))))
-            ((and event.ctrlKey (= event.which #.(char-code "T")))
-             (sources.add "*terminal*" (terminal) true)
-             (sources.select 0)
-             (sources.prev))
-            ((and event.ctrlKey (= event.which #.(char-code "D")))
-             (when (> (sources.current-index) 0)
-               (if ((sources.current).modified)
-                   (message-box "<h1>Current file not saved.</h1>
-                                 The deployed program will be based on last saved version."
-                                title: "Unsaved changes"
-                                buttons: '("OK" "Cancel")
-                                cback: (lambda (reply)
-                                         (when (= reply "OK")
-                                           (deploy ((sources.current).name)))))
-                   (deploy ((sources.current).name)))))
-            ((and event.ctrlKey (= event.which #.(char-code "W")))
-             (when (and (> (sources.current-index) 0)
-                        (save-file ((sources.current).name)
-                                   ((sources.current).buffer)))
-               ((sources.current).clear-modified)))
-            ((and event.ctrlKey (= event.which #.(char-code "Q")))
-             (when (> (sources.current-index) 0)
-               (sources.remove (sources.current-index))))
-            ((and event.ctrlKey (= event.which #.(char-code "K")))
-             (when ((sources.current).selection)
-               (setf zrun ((sources.current).selection)))
-             (zoom)
-             (when (and zoom zrun)
-               ((sources.current).ilisp-exec zrun)))
-            ((and event.ctrlKey (= event.which #.(char-code "G")))
-             (when (> (sources.current-index) 0)
-               (gui-editor (lambda (code)
-                             (let (((r0 r1) ((sources.current).insert-text code)))
-                               ((sources.current).set-pos r0 0 r1 0)
-                               ((sources.current).indent-selection))))))
-            ((and event.ctrlKey (= event.which #.(char-code "O"))
-                  mode.styles)
-             (customize-styles mode.styles
-                               (lambda (res)
-                                 (when (and res
-                                            (sources.current).refresh)
-                                   ((sources.current).refresh)))))
-            ((= event.which 27)
-             (vs.partition splitv)
-             (setf splitv (- (+ 80 100) splitv))
-             (setf stop false))
-            ((and event.ctrlKey (= event.which 39))
-             (sources.next))
-            ((and event.ctrlKey (= event.which 37))
-             (sources.prev))
-            ((and event.ctrlKey (= event.which 13))
-             (when event.shiftKey
-               (zoom))
-             ((sources.current).ilisp-exec)
-             (mode.inspect-ilisp *ilisp*
-                                 (lambda ()
-                                   (when (sources.current).refresh
-                                     ((sources.current).refresh)))))
-            ((= event.which 112)
-             (let** ((w (window 0 0 596 740 title: "Help"))
-                     (help (add-widget w (set-style (create-element "div")
-                                                    position "absolute"))))
-               (setf help.innerHTML '#.(get-file "idehelp.html"))
-               (set-layout w (dom help))
-               (show-window w center: true)))
-            (true (setf stop false)))
+        (let ((stop true)
+              (cmd (aref *keybindings* (key-name event))))
+          (case cmd
+                ("ilisp-clear" (*ilisp*.clear))
+                ("ilisp-reset" (*ilisp*.reset))
+                ("run"
+                  (zoom)
+                  ((sources.current).ilisp-exec ((sources.current).buffer)))
+                ("eval-expr"
+                  (let ((expr (prompt "Expression")))
+                    (when (strip expr)
+                      ((sources.current).ilisp-exec expr))))
+                ("terminal"
+                  (sources.add "*terminal*" (terminal) true)
+                  (sources.select 0)
+                  (sources.prev))
+                ("deploy"
+                  (when (> (sources.current-index) 0)
+                    (if ((sources.current).modified)
+                        (message-box "<h1>Current file not saved.</h1>
+                                      The deployed program will be based on last saved version."
+                                     title: "Unsaved changes"
+                                     buttons: '("OK" "Cancel")
+                                     cback: (lambda (reply)
+                                              (when (= reply "OK")
+                                                (deploy ((sources.current).name)))))
+                        (deploy ((sources.current).name)))))
+                ("save"
+                  (when (and (> (sources.current-index) 0)
+                             (save-file ((sources.current).name)
+                                        ((sources.current).buffer)))
+                    ((sources.current).clear-modified)))
+                ("close"
+                  (when (> (sources.current-index) 0)
+                    (sources.remove (sources.current-index))))
+                ("expr-run"
+                  (when ((sources.current).selection)
+                    (setf zrun ((sources.current).selection)))
+                  (zoom)
+                  (when (and zoom zrun)
+                    ((sources.current).ilisp-exec zrun)))
+                ("gui-builder"
+                  (when (> (sources.current-index) 0)
+                    (gui-editor (lambda (code)
+                                  (let (((r0 r1) ((sources.current).insert-text code)))
+                                    ((sources.current).set-pos r0 0 r1 0)
+                                    ((sources.current).indent-selection))))))
+                ("mode-options"
+                  (when mode.styles
+                    (customize-styles mode.styles
+                                      (lambda (res)
+                                        (when (and res
+                                                   (sources.current).refresh)
+                                          ((sources.current).refresh))))))
+                ("edit-zoom"
+                  (vs.partition splitv)
+                  (setf splitv (- (+ 80 100) splitv)))
+                ("next" (sources.next))
+                ("prev" (sources.prev))
+                ("eval-current"
+                  ((sources.current).ilisp-exec)
+                  (mode.inspect-ilisp *ilisp*
+                                      (lambda ()
+                                        (when (sources.current).refresh
+                                          ((sources.current).refresh)))))
+                ("help"
+                  (let** ((w (window 0 0 596 740 title: "Help"))
+                          (help (add-widget w (set-style (create-element "div")
+                                                         position "absolute"))))
+                    (setf help.innerHTML '#.(get-file "idehelp.html"))
+                    (set-layout w (dom help))
+                    (show-window w center: true)))
+                (otherwise
+                 (setf stop false)))
           (when stop
             (event.stopPropagation)
             (event.preventDefault))))
