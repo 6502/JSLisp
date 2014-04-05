@@ -175,6 +175,90 @@
                      (H :filler: size: 80 (dom ok) (dom cancel) :filler:)))
     (show-window w center: true modal: true)))
 
+(defun key-name (event)
+  (+ ""
+     (if event.ctrlKey "ctrl-" "")
+     (if event.shiftKey "shift-" "")
+     (if (or event.altKey event.metaKey) "alt-" "")
+     (cond
+       ((<= 65 event.which 90) (char event.which))
+       ((= event.which 9) "Tab")
+       ((= event.which 13) "Enter")
+       ((= event.which 8) "Backspace")
+       ((= event.which 27) "Esc")
+       (true event.which))))
+
+(defun must-propagate (event)
+  (and (or event.metaKey event.altKey event.ctrlKey)
+       (or (= event.which #.(char-code "C"))
+           (= event.which #.(char-code "X"))
+           (= event.which #.(char-code "V")))))
+
+(defun regular-key (event)
+  (and (>= event.which 31)
+       (not event.metaKey)
+       (not event.ctrlKey)
+       (not event.altKey)))
+
+(defvar *keybindings* #(("ctrl-C" "copy")
+                        ("alt-C" "copy")
+                        ("ctrl-X" "cut")
+                        ("alt-X" "cut")
+                        ("ctrl-V" "paste")
+                        ("alt-V" "paste")
+                        ("ctrl-L" "goto-line")
+                        ("Tab" "indent")
+                        ("alt-191" "autocomplete")
+                        ("ctrl-48" "goto-0")
+                        ("ctrl-49" "goto-1")
+                        ("ctrl-50" "goto-2")
+                        ("ctrl-51" "goto-3")
+                        ("ctrl-52" "goto-4")
+                        ("ctrl-53" "goto-5")
+                        ("ctrl-54" "goto-6")
+                        ("ctrl-55" "goto-7")
+                        ("ctrl-56" "goto-8")
+                        ("ctrl-57" "goto-9")
+                        ("ctrl-alt-48" "def-0")
+                        ("ctrl-alt-49" "def-1")
+                        ("ctrl-alt-50" "def-2")
+                        ("ctrl-alt-51" "def-3")
+                        ("ctrl-alt-52" "def-4")
+                        ("ctrl-alt-53" "def-5")
+                        ("ctrl-alt-54" "def-6")
+                        ("ctrl-alt-55" "def-7")
+                        ("ctrl-alt-56" "def-8")
+                        ("ctrl-alt-57" "def-9")
+                        ("ctrl-R" "find-replace")
+                        ("33" "page-up")
+                        ("shift-33" "page-up")
+                        ("34" "page-down")
+                        ("shift-34" "page-down")
+                        ("35" "line-end")
+                        ("shift-35" "line-end")
+                        ("ctrl-35" "text-end")
+                        ("ctrl-shift-35" "text-end")
+                        ("36" "line-begin")
+                        ("shift-36" "line-begin")
+                        ("ctrl-36" "text-begin")
+                        ("ctrl-shift-36" "text-begin")
+                        ("37" "left")
+                        ("shift-37" "left")
+                        ("38" "up")
+                        ("shift-38" "up")
+                        ("39" "right")
+                        ("shift-39" "right")
+                        ("40" "down")
+                        ("shift-40" "down")
+                        ("46" "delete")
+                        ("Backspace" "backspace")
+                        ("Enter" "enter")
+                        ("Esc" "esc")
+                        ("ctrl-S" "isearch")
+                        ("ctrl-Z" "undo")
+                        ("ctrl-Y" "redo")
+                        ("ctrl-W" "nothing")))
+
 (defun editor (name content &optional (mode nullmode))
   (macrolet ((mutate (redo undo)
                      `(progn
@@ -223,7 +307,6 @@
             (modified-level 0)
             (wordlist (list))
             (from-autocomplete false)
-            (fps false)
             (goto-targets #())
             (draw-cache (list (list) (list)))
             (#'set-goto-target (char)
@@ -232,6 +315,8 @@
                     (list row col s-row s-col
                           left top)))
             (#'goto (char)
+              (setf ireplace-mode null)
+              (setf ifind-mode false)
               (let ((x (aref goto-targets char)))
                 (when x
                   (baloon ~"Position {char}")
@@ -329,8 +414,7 @@
               (let ((cr top)
                     (ctx (screen.getContext "2d"))
                     (info "")
-                    (changed (if (modified) "*" ""))
-                    (start-time (clock)))
+                    (changed (if (modified) "*" "")))
                 (when (null? cw)
                   (font ctx #())
                   (setf cw (/ (ctx.measureText "XXXXXXXXXX").width 10)))
@@ -418,21 +502,7 @@
                       (setf ctx.fillStyle "#FF0000")
                       (ctx.fillRect (* cw (- col left)) (* ch (- cr top))
                                     2 *line*))
-                    (incf cr)))
-                (when fps
-                  (setf ctx.font "bold 32px Arial")
-                  (setf ctx.fillStyle "#FFFFFF")
-                  (setf ctx.textBaseline "top")
-                  (let ((msg (+ "rendering = "
-                                (- (clock) start-time)
-                                "ms")))
-                    (setf ctx.shadowColor "#000000")
-                    (setf ctx.shadowBlur 8)
-                    (setf ctx.shadowOffsetX 0)
-                    (setf ctx.shadowOffsetY 0)
-                    (ctx.fillText msg
-                                  (- screen.width 10 (ctx.measureText msg).width)
-                                  10)))))
+                    (incf cr)))))
             (#'words ()
               (let* ((nonword (regexp (or mode.nonword "[^a-zA-Z_]")))
                      (before (split (join (map (get text) (slice lines 0 (1+ row))) "\n")
@@ -740,144 +810,116 @@
                      (setf top (max 0 (min (+ top delta) (- (length lines) screen-lines)))))
                    (update))
       (set-handler hinput onkeydown
-                   (let ((block true))
-                     (case event.which
-                           (#.(char-code "F")
-                              (if event.ctrlKey
-                                  (setf fps (not fps))
-                                  (setf block false)))
-                           (#.(char-code "C")
-                              (when (or event.ctrlKey event.altKey event.metaKey)
-                                (clipboard-copy))
-                              (setf block false))
-                           (#.(char-code "X")
-                              (when (or event.ctrlKey event.altKey event.metaKey)
-                                (clipboard-cut))
-                              (setf block false))
-                           (#.(char-code "V")
-                              (when (or event.ctrlKey event.altKey event.metaKey)
-                                (clipboard-paste))
-                              (setf block false))
-                           (#.(char-code "L")
-                              (if event.ctrlKey
-                                  (goto-line (lambda (L)
-                                               (when (and L (<= 1 L (1+ (length lines))))
-                                                 (setf row (1- L))
-                                                 (setf col 0)
-                                                 (setf s-row (1- L))
-                                                 (setf s-col 0)
-                                                 (fix))
-                                               (focus frame)))
-                                  (setf block false)))
-                           (9
-                             (indent-selection))
-                           (191
-                             (if (or event.altKey event.metaKey)
-                                 (when (and (= row s-row) (>= s-col col))
-                                   (let ((line (aref lines row).text)
-                                         (nonword (regexp (or mode.nonword "[^a-zA-Z]")))
-                                         (i col)
-                                         (words (if (length wordlist)
-                                                    wordlist
-                                                    (setf wordlist (words)))))
-                                     (do () ((or (= i 0) (nonword.exec (aref line (1- i)))))
-                                       (decf i))
-                                     (when (and (< i col) (length words))
-                                       (let* ((prefix (slice line i col))
-                                              (cw (+ prefix (selection)))
-                                              (matching (filter (lambda (x)
-                                                                  (= (slice x 0 (length prefix)) prefix))
-                                                                (slice words 1)))
-                                              (ci (index cw matching)))
-                                         (when (length matching)
-                                           (setf ci (% (1+ ci) (length matching)))
-                                           (setf line (+ (slice line 0 col)
-                                                         (slice (aref matching ci) (- col i))
-                                                         (slice line s-col)))
-                                           (change-line row col line)
-                                           (setf s-col (+ i (length (aref matching ci))))
-                                           (setf wordlist words)
-                                           (setf block false)
-                                           (event.stopPropagation)
-                                           (event.preventDefault)
-                                           (setf from-autocomplete true)
-                                           (fix))))))
-                                 (setf block false)))
-                           #.(progn
-                               (defun handle-goto (char)
-                                 `(,(char-code char)
-                                    (if event.ctrlKey
-                                        (if (or event.altKey event.metaKey)
-                                            (set-goto-target ,char)
-                                            (progn
-                                              (setf ireplace-mode null)
-                                              (setf ifind-mode false)
-                                              (goto ,char)))
-                                        (setf block false))))
-                               (handle-goto "0"))
-                           #.(handle-goto "1")
-                           #.(handle-goto "2")
-                           #.(handle-goto "3")
-                           #.(handle-goto "4")
-                           #.(handle-goto "5")
-                           #.(handle-goto "6")
-                           #.(handle-goto "7")
-                           #.(handle-goto "8")
-                           #.(handle-goto "9")
-                           (#.(char-code "R")
-                              (if event.ctrlKey
-                                  (progn
-                                    (setf ifind-mode false)
-                                    (setf ireplace-mode null)
-                                    (search-replace-dialog
-                                      #'search-replace
-                                      last-search
-                                      last-replace
-                                      last-regexp))
-                                  (setf block false)))
-                           (33
+                   (let ((block true)
+                         (cmd (aref *keybindings* (key-name event))))
+                     (case cmd
+                           ("copy" (clipboard-copy))
+                           ("cut" (clipboard-cut))
+                           ("paste" (clipboard-paste))
+                           ("goto-line" (goto-line (lambda (L)
+                                                     (when (and L (<= 1 L (1+ (length lines))))
+                                                       (setf row (1- L))
+                                                       (setf col 0)
+                                                       (setf s-row (1- L))
+                                                       (setf s-col 0)
+                                                       (fix))
+                                                     (focus frame))))
+                           ("indent" (indent-selection))
+                           ("autocomplete"
+                             (when (and (= row s-row) (>= s-col col))
+                               (let ((line (aref lines row).text)
+                                     (nonword (regexp (or mode.nonword "[^a-zA-Z]")))
+                                     (i col)
+                                     (words (if (length wordlist)
+                                                wordlist
+                                                (setf wordlist (words)))))
+                                 (do () ((or (= i 0) (nonword.exec (aref line (1- i)))))
+                                   (decf i))
+                                 (when (and (< i col) (length words))
+                                   (let* ((prefix (slice line i col))
+                                          (cw (+ prefix (selection)))
+                                          (matching (filter (lambda (x)
+                                                              (= (slice x 0 (length prefix)) prefix))
+                                                            (slice words 1)))
+                                          (ci (index cw matching)))
+                                     (when (length matching)
+                                       (setf ci (% (1+ ci) (length matching)))
+                                       (setf line (+ (slice line 0 col)
+                                                     (slice (aref matching ci) (- col i))
+                                                     (slice line s-col)))
+                                       (change-line row col line)
+                                       (setf s-col (+ i (length (aref matching ci))))
+                                       (setf wordlist words)
+                                       (setf block false)
+                                       (setf from-autocomplete true)
+                                       (fix)))))))
+                           ("def-0" (set-goto-target "0"))
+                           ("def-1" (set-goto-target "1"))
+                           ("def-2" (set-goto-target "2"))
+                           ("def-3" (set-goto-target "3"))
+                           ("def-4" (set-goto-target "4"))
+                           ("def-5" (set-goto-target "5"))
+                           ("def-6" (set-goto-target "6"))
+                           ("def-7" (set-goto-target "7"))
+                           ("def-8" (set-goto-target "8"))
+                           ("def-9" (set-goto-target "9"))
+                           ("goto-0" (goto "0"))
+                           ("goto-1" (goto "1"))
+                           ("goto-2" (goto "2"))
+                           ("goto-3" (goto "3"))
+                           ("goto-4" (goto "4"))
+                           ("goto-5" (goto "5"))
+                           ("goto-6" (goto "6"))
+                           ("goto-7" (goto "7"))
+                           ("goto-8" (goto "8"))
+                           ("goto-9" (goto "9"))
+                           ("find-replace"
+                             (setf ifind-mode false)
+                             (setf ireplace-mode null)
+                             (search-replace-dialog
+                               #'search-replace
+                               last-search
+                               last-replace
+                               last-regexp))
+                           ("page-up"
                              (let ((delta (floor (/ screen.offsetHeight ch))))
                                (decf top delta)
                                (decf row delta)))
-                           (34
+                           ("page-down"
                              (let ((delta (floor (/ screen.offsetHeight ch))))
                                (incf top delta)
                                (incf row delta)))
-                           (35
-                             (when event.ctrlKey
-                               (setf row (1- (length lines))))
-                             (setf col (length (aref lines row).text)))
-                           (36
-                             (when event.ctrlKey
-                               (setf row 0))
-                             (setf col 0))
-                           (37
+                           ("line-end" (setf col (length (aref lines row).text)))
+                           ("text-end" (setf row (1- (length lines))) (setf col (length (aref lines row).text)))
+                           ("line-begin" (setf col 0))
+                           ("text-begin" (setf row 0) (setf col 0))
+                           ("left"
                              (if (> col 0)
                                  (decf col)
                                  (when (> row 0)
                                    (decf row)
                                    (setf col (length (aref lines row).text)))))
-                           (39
+                           ("right"
                              (if (< col (length (aref lines row).text))
                                  (incf col)
                                  (when (< row (1- (length lines)))
                                    (incf row)
                                    (setf col 0))))
-                           (40
+                           ("down"
                              (if (< row (1- (length lines)))
                                  (progn
                                    (incf row)
                                    (when (> col (length (aref lines row).text))
                                      (setf col (length (aref lines row).text))))
                                  (setf col (length (aref lines row).text))))
-                           (38
+                           ("up"
                              (if (> row 0)
                                  (progn
                                    (decf row)
                                    (when (> col (length (aref lines row).text))
                                      (setf col (length (aref lines row).text))))
                                  (setf col 0)))
-                           (46
+                           ("delete"
                              (when (and (= row s-row) (= col s-col))
                                (if (< s-col (length (aref lines row).text))
                                    (incf s-col)
@@ -885,7 +927,7 @@
                                      (incf s-row)
                                      (setf s-col 0))))
                              (delete-selection))
-                           (8
+                           ("backspace"
                              (if ifind-mode
                                  (progn
                                    (when (> (length ifind-text) 0)
@@ -898,9 +940,6 @@
                                      (pop ifind-stack)
                                      (setf s-row row)
                                      (setf s-col (+ col (length ifind-text))))
-                                   (event.preventDefault)
-                                   (event.stopPropagation)
-                                   (setf block false)
                                    (fix))
                                  (if (and (= row s-row) (= col s-col))
                                      (if (> col 0)
@@ -932,7 +971,7 @@
                                                  (touch (1- rr))
                                                  (touch rr))))))
                                      (delete-selection))))
-                           (13
+                           ("enter"
                              (if ifind-mode
                                  (setf ifind-mode false)
                                  (progn
@@ -964,70 +1003,56 @@
                                          (setf col c)
                                          (setf s-row row)
                                          (setf s-col col)))))))
-                           (27
-                             (if ifind-mode
-                                 (progn
-                                   (setf ifind-mode false)
-                                   (setf row (first (first ifind-stack)))
-                                   (setf col (second (first ifind-stack)))
-                                   (setf top (third (first ifind-stack)))
-                                   (setf left (fourth (first ifind-stack)))
-                                   (fix))
-                                 (setf block false)))
-                           (#.(char-code "S")
-                              (when event.ctrlKey
-                                (setf ireplace-mode null)
-                                (if ifind-mode
-                                    (progn
-                                      (when (= ifind-text "")
-                                        (setf ifind-text ifind-last-text))
-                                      (let ((f (ifind ifind-text lines row (+ col (length ifind-text)))))
-                                        (when f
-                                          (push (list row col top left) ifind-stack)
-                                          (setf row (first f))
-                                          (setf col (second f))
-                                          (setf s-row row)
-                                          (setf s-col (+ col (length ifind-text))))))
-                                    (progn
-                                      (setf ifind-mode true)
-                                      (setf ifind-text "")
-                                      (setf ifind-stack (list (list row col top left)))))
-                                (event.stopPropagation)
-                                (event.preventDefault)
-                                (fix))
-                              (setf block false))
-                           (#.(char-code "Z")
-                              (when event.ctrlKey
-                                (setf ireplace-mode null)
-                                (setf ifind-mode false)
-                                (undo)
-                                (event.stopPropagation)
-                                (event.preventDefault)
-                                (fix))
-                              (setf block false))
-                           (#.(char-code "Y")
-                              (when event.ctrlKey
-                                (setf ireplace-mode null)
-                                (setf ifind-mode false)
-                                (redo)
-                                (event.stopPropagation)
-                                (event.preventDefault)
-                                (fix))
-                              (setf block false))
-                           (#.(char-code "W")
-                              (unless event.ctrlKey
-                                (setf block false)))
+                           ("esc"
+                             (when ifind-mode
+                               (setf ifind-mode false)
+                               (setf row (first (first ifind-stack)))
+                               (setf col (second (first ifind-stack)))
+                               (setf top (third (first ifind-stack)))
+                               (setf left (fourth (first ifind-stack)))
+                               (fix)))
+                           ("isearch"
+                              (setf ireplace-mode null)
+                              (if ifind-mode
+                                  (progn
+                                    (when (= ifind-text "")
+                                      (setf ifind-text ifind-last-text))
+                                    (let ((f (ifind ifind-text lines row (+ col (length ifind-text)))))
+                                      (when f
+                                        (push (list row col top left) ifind-stack)
+                                        (setf row (first f))
+                                        (setf col (second f))
+                                        (setf s-row row)
+                                        (setf s-col (+ col (length ifind-text))))))
+                                  (progn
+                                    (setf ifind-mode true)
+                                    (setf ifind-text "")
+                                    (setf ifind-stack (list (list row col top left)))))
+                              (fix))
+                           ("undo"
+                             (setf ireplace-mode null)
+                             (setf ifind-mode false)
+                             (undo)
+                             (fix))
+                           ("redo"
+                             (setf ireplace-mode null)
+                             (setf ifind-mode false)
+                             (redo)
+                             (fix))
+                           ("nothing")
                            (otherwise
                              (setf block false)))
                      (if block
                          (progn
-                           (setf ifind-mode false)
-                           (setf ireplace-mode null)
-                           (event.preventDefault)
-                           (event.stopPropagation)
+                           (unless (find cmd '("isearch" "backspace"))
+                             (setf ifind-mode false)
+                             (setf ireplace-mode null))
+                           (unless (must-propagate event)
+                             (event.preventDefault)
+                             (event.stopPropagation))
                            (if event.shiftKey
                                (setf from-autocomplete false)
-                               (progn
+                               (unless ifind-mode
                                  (setf s-row row)
                                  (setf s-col col)))
                            (fix)
@@ -1040,10 +1065,7 @@
                    (setf focused false)
                    (update))
       (set-handler hinput onkeypress
-                   (when (and (> event.which 31)
-                              (not event.ctrlKey)
-                              (not event.altKey)
-                              (not event.metaKey))
+                   (when (regular-key event)
                      ;; Stop regular typing only (ctrl-cxv needs propagating)
                      (event.preventDefault)
                      (event.stopPropagation))
@@ -1063,10 +1085,7 @@
                      (ireplace-mode
                        (when (find event.charCode '#.(map #'char-code "ynYN!"))
                          (search-replace-next (uppercase (char event.charCode)))))
-                     ((and (> event.which 31)
-                           (not event.ctrlKey)
-                           (not event.metaKey)
-                           (not event.altKey))
+                     ((regular-key event)
                       (when (or (/= row s-row) (/= col s-col))
                         (if from-autocomplete
                             (progn
