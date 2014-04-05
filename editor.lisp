@@ -931,12 +931,12 @@
                              (if ifind-mode
                                  (progn
                                    (when (> (length ifind-text) 0)
-                                     (setf ifind-text (slice ifind-text 0 -1))
-                                     (setf ifind-last-text ifind-text)
                                      (setf row (first (last ifind-stack)))
                                      (setf col (second (last ifind-stack)))
                                      (setf top (third (last ifind-stack)))
                                      (setf left (fourth (last ifind-stack)))
+                                     (setf ifind-text (fifth (last ifind-stack)))
+                                     (setf ifind-last-text ifind-text)
                                      (pop ifind-stack)
                                      (setf s-row row)
                                      (setf s-col (+ col (length ifind-text))))
@@ -1019,7 +1019,7 @@
                                       (setf ifind-text ifind-last-text))
                                     (let ((f (ifind ifind-text lines row (+ col (length ifind-text)))))
                                       (when f
-                                        (push (list row col top left) ifind-stack)
+                                        (push (list row col top left ifind-text) ifind-stack)
                                         (setf row (first f))
                                         (setf col (second f))
                                         (setf s-row row)
@@ -1027,7 +1027,7 @@
                                   (progn
                                     (setf ifind-mode true)
                                     (setf ifind-text "")
-                                    (setf ifind-stack (list (list row col top left)))))
+                                    (setf ifind-stack (list (list row col top left ifind-text)))))
                               (fix))
                            ("undo"
                              (setf ireplace-mode null)
@@ -1074,7 +1074,7 @@
                        (let* ((tx (+ ifind-text (char event.which)))
                               (f (ifind tx lines row col)))
                          (when f
-                           (push (list row col top left) ifind-stack)
+                           (push (list row col top left ifind-text) ifind-stack)
                            (setf row (first f))
                            (setf col (second f))
                            (setf ifind-text tx)
