@@ -1,0 +1,79 @@
+<h2>How to specify key bindings</h2>
+<p>
+  Each key binding requires a line with the key combination and a command separated by spaces.
+</p>
+<h3>Key combination syntax</h3>
+<p>
+  The key combination can be preceded by zero or more prefixes:
+</p>
+<ul>
+  <li><tt style="background-color:#DDD;">ctrl-</tt></li>
+  <li><tt style="background-color:#DDD;">shift-</tt></li>
+  <li><tt style="background-color:#DDD;">alt-</tt></li>
+</ul>
+<p>
+  Note that in case of multiple prefixes the order must be respected.
+</p>
+<p>
+  After prefix part (that may be empty) there is the key name.
+  A few special keys have a specific name:
+  <tt style="background-color:#DDD;">Left</tt>,
+  <tt style="background-color:#DDD;">Right</tt>,
+  <tt style="background-color:#DDD;">Up</tt>,
+  <tt style="background-color:#DDD;">Down</tt>
+  <tt style="background-color:#DDD;">PgUp</tt>,
+  <tt style="background-color:#DDD;">PgDn</tt>,
+  <tt style="background-color:#DDD;">Home</tt>,
+  <tt style="background-color:#DDD;">End</tt>,
+  <tt style="background-color:#DDD;">Space</tt>,
+  <tt style="background-color:#DDD;">Backspace</tt>,
+  <tt style="background-color:#DDD;">Del</tt>,
+  <tt style="background-color:#DDD;">Tab</tt>,
+  <tt style="background-color:#DDD;">Esc</tt>,
+  <tt style="background-color:#DDD;">Enter</tt>,
+  <tt style="background-color:#DDD;">F1</tt>,
+  <tt style="background-color:#DDD;">F2</tt>,
+  <tt style="background-color:#DDD;">F3</tt>, ...,
+  <tt style="background-color:#DDD;">F12</tt>.
+</p>
+<p>
+  In addition to those special keys any uppercase character or digit can
+  be used to represent the correspondig key.
+</p>
+<p>
+  To create a mapping that involves a key that is not listed otherwise
+  it is also possible to use for example <tt style="background-color:#DDD;">#197</tt>
+  to specify the key for which <tt style="background-color:#DDD;">event.which</tt>
+  has value 197 in the processing of <tt style="background-color:#DDD;">onkeydown</tt>
+  Javascript event.
+</p>
+<p>
+  For example are valid key combinations:
+</p>
+<ul>
+  <li><tt style="background-color:#DDD;">ctrl-Left</tt></li>
+  <li><tt style="background-color:#DDD;">alt-W</tt></li>
+  <li><tt style="background-color:#DDD;">ctrl-alt-2</tt></li>
+  <li><tt style="background-color:#DDD;">F11</tt></li>
+  <li><tt style="background-color:#DDD;">alt-#197</tt></li>
+</ul>
+<p>
+  While instead are invalid:
+</p>
+<ul>
+  <li><tt style="background-color:#DDD;">shift-ctrl-Left</tt> (modifiers order must be preserved)</li>
+  <li><tt style="background-color:#DDD;">ctrl-$</tt> (only A-Z and 0-9 can be used)</li>
+</ul>
+<h3>Command syntax</h3>
+<p>
+  The command associated to a key combination is a single word (optionally containing hypens).
+  Which commands are acceptable depends on the section (IDE or EDITOR).
+</p>
+<h3>IDE commands</h3>
+<ul>
+  {{IDE-COMMANDS}}
+</ul>
+<h3>EDITOR commands</h3>
+<ul>
+  {{EDITOR-COMMANDS}}
+</ul>
