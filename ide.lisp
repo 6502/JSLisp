@@ -8,22 +8,22 @@
 (import (hash) from crypto)
 (import * from guieditor)
 
-(defvar *ide-commands* #(("ilisp-clear"  "Clears inferior lisp window")
-                         ("ilisp-reset"  "Resets inferior lisp")
-                         ("run"          "Evaluates current file in zoomed inferior lisp")
-                         ("eval-expr"    "Evaluates an expression in inferior lisp")
-                         ("terminal"     "Opens a terminal window")
-                         ("deploy"       "Opens build/deploy dialog")
-                         ("save"         "Saves current file")
-                         ("close"        "Closes current file")
-                         ("expr-run"     "Evaluates (last) selected text in zoomed inferior lisp")
-                         ("gui-builder"  "Opens gui builder tool")
-                         ("mode-options" "Syntax highlight options")
-                         ("prev"         "Switch to previous file")
-                         ("next"         "Switch to next file")
-                         ("eval-current" "Evaluates current top-level form in inferior lisp")
-                         ("edit-zoom"    "Shows/hides inferior lisp ad documentation panes")
-                         ("help"         "Shows current key bindings")))
+(defvar *ide-commands* #(("ilisp-clear"   "Clears inferior lisp window")
+                         ("ilisp-reset"   "Resets inferior lisp")
+                         ("run"           "Evaluates current file in zoomed inferior lisp")
+                         ("eval-expr"     "Evaluates an expression in inferior lisp")
+                         ("terminal"      "Opens a terminal window")
+                         ("deploy"        "Opens build/deploy dialog")
+                         ("save"          "Saves current file")
+                         ("close"         "Closes current file")
+                         ("expr-run"      "Evaluates (last) selected text in zoomed inferior lisp")
+                         ("gui-builder"   "Opens gui builder tool")
+                         ("mode-options"  "Syntax highlight options")
+                         ("prev"          "Switch to previous file")
+                         ("next"          "Switch to next file")
+                         ("eval-current"  "Evaluates current top-level form in inferior lisp")
+                         ("edit-zoom"     "Shows/hides inferior lisp ad documentation panes")
+                         ("edit-bindings" "Shows current key bindings")))
 
 (defvar *keybindings* #(("alt-Z" "ilisp-clear")
                         ("alt-R" "ilisp-reset")
@@ -40,7 +40,7 @@
                         ("ctrl-Right" "next")
                         ("ctrl-Enter" "eval-current")
                         ("alt-Esc" "edit-zoom")
-                        ("F1" "help")))
+                        ("F1" "edit-bindings")))
 
 (defvar *ilisp*)
 
@@ -878,12 +878,13 @@
                                       (lambda ()
                                         (when (sources.current).refresh
                                           ((sources.current).refresh)))))
-                ("help"
-                  (let** ((w (window 0 0 596 740 title: "Help"))
+                ("edit-bindings"
+                  (let** ((w (window 0 0 596 740 title: "Key bindings"))
                           (textarea (add-widget w (text-area "current key bindings")))
                           (ok (add-widget w (button "OK" #'ok)))
                           (save (add-widget w (button "Save" #'save)))
                           (restore (add-widget w (button "Restore" #'restore)))
+                          (help (add-widget w (button "Help" #'help)))
                           (#'restore ()
                             (setf (text textarea)
                                   (load-file "default_keybindings.txt")))
@@ -892,7 +893,23 @@
                               (save-file (+ *user* "-keybindings.txt") (text textarea))))
                           (#'ok ()
                             (when (install-keybindings (text textarea))
-                              (hide-window w))))
+                              (hide-window w)))
+                          (#'help ()
+                            (let ((msg #.(get-file "keybindings_help.html")))
+                              (dolist (map (list *ide-commands* editor:*edit-commands*))
+                                (setf msg (replace msg
+                                                   (if (= map *ide-commands*)
+                                                       "{{IDE-COMMANDS}}"
+                                                       "{{EDITOR-COMMANDS}}")
+                                                   (join (map (lambda (k)
+                                                                (+ "<li><tt style=\"background-color:#DDD;\">"
+                                                                   k
+                                                                   "</tt> ("
+                                                                   (aref map k)
+                                                                   ")</li>"))
+                                                              (sort (keys map)))
+                                                         ""))))
+                            (message-box msg title: "How to specify key bindings"))))
                     (setf (text textarea)
                           (+ "# IDE Bindings ############################\n\n"
                              (join (map (lambda (k)
@@ -914,7 +931,7 @@
                     (set-layout w (V border: 8 spacing: 8
                                      (dom textarea)
                                      size: 30
-                                     (H :filler: size: 80 (dom ok) (dom save) (dom restore) :filler:)))
+                                     (H size: 80 (dom ok) (dom save) (dom restore) :filler: size: 80 (dom help))))
                     (show-window w center: true)))
                 (otherwise
                  (setf stop false)))
