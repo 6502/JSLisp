@@ -1709,6 +1709,7 @@
     (set-style menu opacity 1.0)))
 
 (defvar *special-keys* #((9 "Tab")
+                         (32 "Space")
                          (13 "Enter")
                          (8 "Backspace")
                          (27 "Esc")

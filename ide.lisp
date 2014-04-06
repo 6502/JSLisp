@@ -580,6 +580,23 @@
     (set-timeout #'update 100)
     w))
 
+(defvar *ide-commands* #(("ilisp-clear"  "Clears inferior lisp window")
+                         ("ilisp-reset"  "Resets inferior lisp")
+                         ("run"          "Evaluates current file in zoomed inferior lisp")
+                         ("eval-expr"    "Evaluates an expression in inferior lisp")
+                         ("terminal"     "Opens a terminal window")
+                         ("deploy"       "Opens build/deploy dialog")
+                         ("save"         "Saves current file")
+                         ("close"        "Closes current file")
+                         ("expr-run"     "Evaluates (last) selected text in zoomed inferior lisp")
+                         ("gui-builder"  "Opens gui builder tool")
+                         ("mode-options" "Syntax highlight options")
+                         ("prev"         "Switch to previous file")
+                         ("next"         "Switch to next file")
+                         ("eval-current" "Evaluates current top-level form in inferior lisp")
+                         ("edit-zoom"    "Shows/hides inferior lisp ad documentation panes")
+                         ("help"         "Shows current key bindings")))
+
 (defvar *keybindings* #(("alt-Z" "ilisp-clear")
                         ("alt-R" "ilisp-reset")
                         ("alt-Enter" "run")
@@ -817,10 +834,45 @@
                                           ((sources.current).refresh)))))
                 ("help"
                   (let** ((w (window 0 0 596 740 title: "Help"))
-                          (help (add-widget w (set-style (create-element "div")
-                                                         position "absolute"))))
-                    (setf help.innerHTML '#.(get-file "idehelp.html"))
-                    (set-layout w (dom help))
+                          (textarea (add-widget w (text-area "current key bindings")))
+                          (ok (add-widget w (button "OK" #'ok)))
+                          (#'ok ()
+                                (let ((errors (list))
+                                      (newbindings #()))
+                                  (enumerate (i L (split (text textarea) "\n"))
+                                    (setf L (strip L))
+                                    (if ((regexp (+ "^(ctrl-)?(shift-)?(alt-)?([A-Z0-9]|\
+                                                     Enter|Tab|Esc|Left|Right|Up|Down|\
+                                                     PgUp|PgDown|Home|End|Del|Backspace|\
+                                                     F[1-9]|F1[0-2]|#[0-9]+)[ ]+("
+                                                    (join (keys *ide-commands*) "|")
+                                                    ")$")).exec L)
+                                        (let (((k v) (split L (regexp " +"))))
+                                          (if (aref newbindings k)
+                                              (push ~"Line {(1+ i)}: keybinding \"{k}\" already defined" errors)
+                                              (setf (aref newbindings k) v)))
+                                        (push ~"Line {(1+ i)}: \"{L}\" is invalid" errors)))
+                                  (if (length errors)
+                                      (message-box (+ "<ul>"
+                                                      (join (map (lambda (x) ~"<li>{(htm x)}</li>") errors) "")
+                                                      "</ul>")
+                                                   title: "Invalid keybindings")
+                                      (progn
+                                        (setf *keybindings* newbindings)
+                                        (baloon "New keybindings installed")
+                                        (hide-window w))))))
+                    (setf (text textarea)
+                          (join (map (lambda (k)
+                                       (+ k
+                                          (str-repeat " " (- 20 (length k)))
+                                          " "
+                                          (aref *keybindings* k)))
+                                     (sort (keys *keybindings*)))
+                                "\n"))
+                    (set-layout w (V border: 8 spacing: 8
+                                     (dom textarea)
+                                     size: 30
+                                     (H :filler: size: 80 (dom ok) :filler:)))
                     (show-window w center: true)))
                 (otherwise
                  (setf stop false)))
