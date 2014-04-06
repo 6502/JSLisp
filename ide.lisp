@@ -837,38 +837,63 @@
                           (textarea (add-widget w (text-area "current key bindings")))
                           (ok (add-widget w (button "OK" #'ok)))
                           (#'ok ()
-                                (let ((errors (list))
-                                      (newbindings #()))
+                                (let** ((errors (list))
+                                        (new-ide-bindings #())
+                                        (new-editor-bindings #())
+                                        (valid-commands null)
+                                        (newbindings null))
                                   (enumerate (i L (split (text textarea) "\n"))
                                     (setf L (strip L))
-                                    (if ((regexp (+ "^(ctrl-)?(shift-)?(alt-)?([A-Z0-9]|\
-                                                     Enter|Tab|Esc|Left|Right|Up|Down|\
-                                                     PgUp|PgDown|Home|End|Del|Backspace|\
-                                                     F[1-9]|F1[0-2]|#[0-9]+)[ ]+("
-                                                    (join (keys *ide-commands*) "|")
-                                                    ")$")).exec L)
-                                        (let (((k v) (split L (regexp " +"))))
-                                          (if (aref newbindings k)
-                                              (push ~"Line {(1+ i)}: keybinding \"{k}\" already defined" errors)
-                                              (setf (aref newbindings k) v)))
-                                        (push ~"Line {(1+ i)}: \"{L}\" is invalid" errors)))
+                                    (cond
+                                      (((regexp "^# +IDE Bindings #+$").exec L)
+                                       (setf valid-commands *ide-commands*)
+                                       (setf newbindings new-ide-bindings))
+                                      (((regexp "^# +EDITOR Bindings #+$").exec L)
+                                       (setf valid-commands editor:*edit-commands*)
+                                       (setf newbindings new-editor-bindings))
+                                      ((= L ""))
+                                      ((not newbindings)
+                                       (push ~"Line {(1+ i)}: no environment (IDE/EDITOR) specified" errors))
+                                      (true
+                                       (if ((regexp (+ "^(ctrl-)?(shift-)?(alt-)?([A-Z0-9]|\
+                                                        Enter|Tab|Esc|Left|Right|Up|Down|\
+                                                        PgUp|PgDn|Home|End|Del|Backspace|\
+                                                        F[1-9]|F1[0-2]|#[0-9]+)[ ]+("
+                                                       (join (keys valid-commands) "|")
+                                                       ")$")).exec L)
+                                           (let (((k v) (split L (regexp " +"))))
+                                             (if (aref newbindings k)
+                                                 (push ~"Line {(1+ i)}: keybinding \"{k}\" already defined" errors)
+                                                 (setf (aref newbindings k) v)))
+                                           (push ~"Line {(1+ i)}: \"{L}\" is invalid" errors)))))
                                   (if (length errors)
                                       (message-box (+ "<ul>"
                                                       (join (map (lambda (x) ~"<li>{(htm x)}</li>") errors) "")
                                                       "</ul>")
                                                    title: "Invalid keybindings")
                                       (progn
-                                        (setf *keybindings* newbindings)
+                                        (setf *keybindings* new-ide-bindings)
+                                        (setf editor:*keybindings* new-editor-bindings)
                                         (baloon "New keybindings installed")
                                         (hide-window w))))))
                     (setf (text textarea)
-                          (join (map (lambda (k)
-                                       (+ k
-                                          (str-repeat " " (- 20 (length k)))
-                                          " "
-                                          (aref *keybindings* k)))
-                                     (sort (keys *keybindings*)))
-                                "\n"))
+                          (+ "# IDE Bindings ############################\n\n"
+                             (join (map (lambda (k)
+                                          (+ k
+                                             (str-repeat " " (- 20 (length k)))
+                                             " "
+                                             (aref *keybindings* k)))
+                                        (sort (keys *keybindings*)))
+                                   "\n")
+                             "\n\n\n"
+                             "# EDITOR Bindings #########################\n\n"
+                             (join (map (lambda (k)
+                                          (+ k
+                                             (str-repeat " " (- 20 (length k)))
+                                             " "
+                                             (aref editor:*keybindings* k)))
+                                        (sort (keys editor:*keybindings*)))
+                                   "\n")))
                     (set-layout w (V border: 8 spacing: 8
                                      (dom textarea)
                                      size: 30
