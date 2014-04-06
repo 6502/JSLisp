@@ -2,12 +2,12 @@
 
 F1                   help
 alt-Enter            run
-alt-Esc              edit-zoom
 alt-I                eval-expr
 alt-R                ilisp-reset
 alt-Z                ilisp-clear
 ctrl-D               deploy
 ctrl-Enter           eval-current
+ctrl-Esc             edit-zoom
 ctrl-G               gui-builder
 ctrl-K               expr-run
 ctrl-Left            prev
@@ -26,6 +26,8 @@ Down                 down
 End                  line-end
 Enter                enter
 Esc                  esc
+F3                   record-macro
+F4                   play-macro
 Home                 line-begin
 Left                 left
 PgDn                 page-down
@@ -49,6 +51,7 @@ ctrl-8               goto-8
 ctrl-9               goto-9
 ctrl-C               copy
 ctrl-End             text-end
+ctrl-F               isearch
 ctrl-Home            text-begin
 ctrl-L               goto-line
 ctrl-R               find-replace
