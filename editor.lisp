@@ -294,6 +294,8 @@
        (not event.ctrlKey)
        (not event.altKey)))
 
+(defvar *kbmacro* (list))
+
 (defun editor (name content &optional (mode nullmode))
   (macrolet ((mutate (redo undo)
                      `(progn
@@ -342,7 +344,6 @@
             (modified-level 0)
             (wordlist (list))
             (from-autocomplete false)
-            (kbmacro (list))
             (kbrecording false)
             (goto-targets #())
             (draw-cache (list (list) (list)))
@@ -1106,7 +1107,7 @@
               (progn
                 (cond
                   ((= cmd "record-macro")
-                   (setf kbmacro (list))
+                   (setf *kbmacro* (list))
                    (setf kbrecording true)
                    (baloon "Starting keyboard macro recording"))
                   ((= cmd "play-macro")
@@ -1114,7 +1115,7 @@
                        (progn
                          (setf kbrecording false)
                          (baloon "Stop keyboard macro recording"))
-                       (dolist (c kbmacro)
+                       (dolist (c *kbmacro*)
                          (if (= "insert-char" (first c))
                              (insert-char (second c))
                              (progn
@@ -1128,7 +1129,7 @@
                    (exec cmd)
                    (when kbrecording
                      (push (list cmd (or event.shiftKey ifind-mode from-autocomplete))
-                           kbmacro))))
+                           *kbmacro*))))
                 (unless (find cmd '("isearch" "backspace"))
                   (setf ifind-mode false)
                   (setf ireplace-mode null))
@@ -1136,7 +1137,11 @@
                   (event.preventDefault)
                   (event.stopPropagation))
                 (setf from-autocomplete (= cmd "autocomplete"))
-                (unless (or event.shiftKey ifind-mode from-autocomplete (= cmd "paste"))
+                (unless (or event.shiftKey
+                            ifind-mode
+                            from-autocomplete
+                            (= cmd "paste")
+                            (= cmd "play-macro"))
                   (setf s-row row)
                   (setf s-col col))
                 (fix)
@@ -1154,7 +1159,7 @@
         (event.preventDefault)
         (event.stopPropagation))
       (when kbrecording
-        (push (list "insert-char" (char event.keyCode)) kbmacro))
+        (push (list "insert-char" (char event.keyCode)) *kbmacro*))
       (insert-char (char event.keyCode))
       (fix))
     (set-handler screen onmousedown
