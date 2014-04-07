@@ -904,9 +904,9 @@
                                                    (join (map (lambda (k)
                                                                 (+ "<li><tt style=\"background-color:#DDD;\">"
                                                                    k
-                                                                   "</tt> ("
+                                                                   "</tt>: "
                                                                    (aref map k)
-                                                                   ")</li>"))
+                                                                   "</li>"))
                                                               (sort (keys map)))
                                                          ""))))
                             (message-box msg title: "How to specify key bindings"))))
