@@ -755,7 +755,7 @@
                           #'show-doc))
           (#'zoom ()
             (setf zoom (not zoom))
-            (vs.partition (if zoom 0 80))
+            (vs.partition (if zoom 0 (- (+ 80 100) splitv)))
             (hs.partition (if zoom 100 50))
             (if zoom
                 (*ilisp*.focus)
