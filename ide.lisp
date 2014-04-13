@@ -879,7 +879,7 @@
                                         (when (sources.current).refresh
                                           ((sources.current).refresh)))))
                 ("edit-bindings"
-                  (let** ((w (window 0 0 596 740 title: "Key bindings"))
+                  (let** ((w (window 0 0 596 0.9 title: "Key bindings"))
                           (textarea (add-widget w (text-area "current key bindings")))
                           (ok (add-widget w (button "OK" #'ok)))
                           (save (add-widget w (button "Save" #'save)))
