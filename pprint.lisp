@@ -19,7 +19,7 @@
         (indent (list 0)))
     (labels ((newline ()
                (incf result "\n")
-               (dotimes (i (last indent))
+               (repeat (last indent)
                  (incf result " "))
                (incf row)
                (setf col (last indent)))
