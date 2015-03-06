@@ -3,6 +3,12 @@
 (import examples/chess as chess)
 
 (defvar *piece-images* #())
+(defvar *image-urls* (let ((res #()))
+                       (dolist (col "wb")
+                         (dolist (piece "prnbqk")
+                           (setf (aref res (if (= col "b") piece (piece.toUpperCase)))
+                                 (image-data-url ~"examples/img/{col}{piece}.png"))))
+                       res))
 
 (defun canvas-chessboard (square-size &optional position move-callback)
   "Creates a canvas chessboard with given [square-size] and [position] (a 64-chars
@@ -12,7 +18,7 @@ be called with start/end squares (two numbers between 0 and 63)."
   (let ((canvas (create-element "canvas"))
         (k (floor (/ square-size 12)))
         (dragging null)
-        (b 8))
+        (b 2))
     (set-style canvas
                border ~"solid {b}px #806040"
                position "absolute"
@@ -103,93 +109,146 @@ be called with start/end squares (two numbers between 0 and 63)."
                                                (funcall move-callback i (+ (* iy 8) ix)))))))))))))
       canvas)))
 
-(defun chessboard-window (x0 y0 w h title
-                          &optional position move-cback)
-  (let ((w (window x0 y0 w h
-                   title: title)))
-    (labels ((update ()
-               (let* ((client w.client)
-                      (cw client.clientWidth)
-                      (ch client.clientHeight)
-                      (sqsz (floor (/ (min cw ch) 9)))
-                      (board (canvas-chessboard sqsz
-                                                (first w.data)
-                                                move-cback)))
-                 (set-style board
-                            px/left (floor (/ (- cw (* 8 sqsz) 8) 2))
-                            px/top (floor (/ (- ch (* 8 sqsz) 8) 2)))
-                 (when (. client firstChild)
-                   (remove-child client (. client firstChild)))
-                 (append-child client board))))
-      (setf w.resize-cback #'update)
-      (setf w.data (list position #'update))
-      (show-window w)
-      w)))
-
-(defun set-position (window position)
-  (setf (first window.data) position)
-  (funcall (second window.data)))
-
 (defun wmain ()
-  (let ((pnames #())
-        (w null)
-        (board (chess:chessboard)))
-    (setf (aref pnames chess:+WP+) "P")
-    (setf (aref pnames chess:+WR+) "R")
-    (setf (aref pnames chess:+WN+) "N")
-    (setf (aref pnames chess:+WB+) "B")
-    (setf (aref pnames chess:+WQ+) "Q")
-    (setf (aref pnames chess:+WK+) "K")
-    (setf (aref pnames chess:+BP+) "p")
-    (setf (aref pnames chess:+BR+) "r")
-    (setf (aref pnames chess:+BN+) "n")
-    (setf (aref pnames chess:+BB+) "b")
-    (setf (aref pnames chess:+BQ+) "q")
-    (setf (aref pnames chess:+BK+) "k")
-    (setf (aref pnames chess:+EMPTY+) ".")
-    (chess:with-board board (chess:init-board))
-    (labels ((position ()
-                       (chess:with-board board
-                         (let ((res ""))
-                           (dolist (x chess:*sq*)
-                             (incf res (or (aref pnames x) "")))
-                           res))))
-      (setf w (chessboard-window
-               100 100 400 400 "Chessboard"
-               (position)
-               (lambda (from to)
-                 (chess:with-board board
-                   (let ((mm (list))
-                         (x0 (chess:tosq (ash from -3) (logand from 7)))
-                         (x1 (chess:tosq (ash to -3) (logand to 7))))
-                     (chess:move-map (lambda (m)
-                                       (when (and (= (chess:move-x0 m) x0)
-                                                  (= (chess:move-x1 m) x1))
-                                         (push m mm))))
-                     (when (> (length mm) 0)
-                       (chess:play (first mm))
-                       (set-position w (position))
-                       (when true
-                         (set-timeout (lambda ()
-                                        (chess:with-board board
-                                          (chess:computer 1)
-                                          (set-position w (position))))
-                                      0)))))))))
-    w))
+  (chess:init-board)
+  (let** ((pnames (let ((pp #()))
+                    (setf (aref pp chess:+WP+) "P")
+                    (setf (aref pp chess:+WR+) "R")
+                    (setf (aref pp chess:+WN+) "N")
+                    (setf (aref pp chess:+WB+) "B")
+                    (setf (aref pp chess:+WQ+) "Q")
+                    (setf (aref pp chess:+WK+) "K")
+                    (setf (aref pp chess:+BP+) "p")
+                    (setf (aref pp chess:+BR+) "r")
+                    (setf (aref pp chess:+BN+) "n")
+                    (setf (aref pp chess:+BB+) "b")
+                    (setf (aref pp chess:+BQ+) "q")
+                    (setf (aref pp chess:+BK+) "k")
+                    (setf (aref pp chess:+EMPTY+) ".")
+                    pp))
+          (flip false)
+          (board (append-child document.body (create-element "div")))
+          (back (append-child document.body (create-element "div")))
+          (new (append-child document.body (create-element "div")))
+          (dot (append-child document.body (create-element "div")))
+          (#'play (p0 p1)
+            (when flip
+              (setf p0 (- 63 p0))
+              (setf p1 (- 63 p1)))
+            (let* ((L (list))
+                   (x0 (logand p0 7))
+                   (y0 (ash p0 -3))
+                   (x1 (logand p1 7))
+                   (y1 (ash p1 -3))
+                   (i0 (+ 21 (* y0 10) x0))
+                   (i1 (+ 21 (* y1 10) x1)))
+              (chess:move-map (lambda (m)
+                                (when (and (= (chess:move-x0 m) i0)
+                                           (= (chess:move-x1 m) i1))
+                                  (push m L))))
+              (when (= (length L) 1)
+                (chess:play (first L))
+                (repaint)
+                (set-timeout (lambda ()
+                               (chess:computer 0)
+                               (repaint))
+                             100))))
+          (#'back ()
+            (when (> (length chess:*history*) 1)
+              (chess:undo)
+              (chess:undo)
+              (repaint)))
+          (#'new ()
+            (chess:init-board)
+            (setf flip (not flip))
+            (repaint)
+            (when flip
+              (set-timeout (lambda ()
+                             (chess:computer 0)
+                             (repaint))
+                           100)))
+          (#'repaint ()
+            (let** ((sqsize (floor (min (/ (screen-height) 9)
+                                        (/ (screen-width) 12))))
+                    (bc (let ((pos (list)))
+                          (dotimes (i 8)
+                            (dotimes (j 8)
+                              (push (aref pnames (aref chess:*sq* (+ 21 (* i 10) j))) pos)))
+                          (canvas-chessboard sqsize (if flip (reverse pos) pos)
+                                             #'play))))
+              (setf board.innerHTML "")
+              (append-child board bc)
+              (set-style board
+                         position "absolute"
+                         px/left (/ sqsize 2)
+                         px/top (/ (- (screen-height) (* 8 sqsize)) 2))
+              (set-style dot
+                         position "absolute"
+                         px/left (* 8.75 sqsize)
+                         px/width (/ sqsize 4)
+                         px/height (/ sqsize 4)
+                         px/border-radius (/ sqsize 8)
+                         box-shadow "2px 2px 2px rgba(0,0,0,0.5)"
+                         background-color (if (= chess:*color* chess:+WHITE+) "#FFFFFF" "#000000")
+                         px/top (+ (/ (- (screen-height) (* 8 sqsize)) 2)
+                                   (if (/= flip (= chess:*color* chess:+WHITE+))
+                                       (* sqsize (- 7.5 0.125))
+                                       (* sqsize (- 0.5 0.125)))))
+              (set-style back
+                         border "solid 1px #000"
+                         box-shadow "4px 4px 4px rgba(0,0,0,0.25)"
+                         px/border-radius (/ sqsize 8)
+                         px/padding (/ sqsize 8)
+                         background-color "#FFF"
+                         color "#000"
+                         position "absolute"
+                         text-align "center"
+                         px/font-size (/ sqsize 3)
+                         font-weight "bold"
+                         px/right (/ sqsize 2)
+                         px/width (- (screen-width) (* 10 sqsize))
+                         cursor "pointer"
+                         px/top (+ sqsize (/ (- (screen-height) (* 8 sqsize)) 2)))
+              (set-style new
+                         border "solid 1px #000"
+                         box-shadow "4px 4px 4px rgba(0,0,0,0.25)"
+                         px/border-radius (/ sqsize 8)
+                         px/padding (/ sqsize 8)
+                         background-color "#FFF"
+                         color "#000"
+                         position "absolute"
+                         px/right sqsize
+                         text-align "center"
+                         px/font-size (/ sqsize 3)
+                         font-weight "bold"
+                         px/right (/ sqsize 2)
+                         px/width (- (screen-width) (* 10 sqsize))
+                         cursor "pointer"
+                         px/bottom (+ sqsize (/ (- (screen-height) (* 8 sqsize)) 2)))))
+          (cwidth null)
+          (cheight null))
+    (setf back.textContent "Indietro")
+    (setf new.textContent "Nuova partita")
+    (setf back.onclick #'back)
+    (setf new.onclick #'new)
+    (repaint)
+    (set-interval (lambda ()
+                    (when (or (/= (screen-width) cwidth)
+                              (/= (screen-height) cheight))
+                      (setf cwidth (screen-width))
+                      (setf cheight (screen-height))
+                      (repaint)))
+                  100)))
 
 (defun main ()
-  (setf *piece-images*
-        (let ((images #())
-              (count 0))
-          (dolist (col "wb")
-            (dolist (piece "prnbqk")
-              (let ((img (create-element "img"))
-                    (nick (if (= col "b") piece (piece.toUpperCase))))
-                (setf (. img onload)
-                      (lambda ()
-                        (when (= (incf count) 12)
-                          (wmain))))
-                (setf (. img src) ~"examples/img/{col}{piece}.png")
-                (setf (aref images nick) img))))
-          images)))
+  (setf document.body.style.backgroundColor "#778899")
+  (let ((count 0))
+    (dolist (k (keys *image-urls*))
+      (let ((c (create-element "img")))
+        (setf (aref *piece-images* k) c)
+        (setf c.onload (lambda ()
+                         (when (= 12 (incf count))
+                           (wmain))))
+        (setf c.src (aref *image-urls* k))))))
+
 (main)
