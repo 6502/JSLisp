@@ -131,6 +131,13 @@ be called with start/end squares (two numbers between 0 and 63)."
           (back (append-child document.body (create-element "div")))
           (new (append-child document.body (create-element "div")))
           (dot (append-child document.body (create-element "div")))
+          (#'move (m)
+            (chess:play m)
+            (repaint)
+            (set-timeout (lambda ()
+                           (chess:computer 0)
+                           (repaint))
+                         100))
           (#'play (p0 p1)
             (when flip
               (setf p0 (- 63 p0))
@@ -146,13 +153,34 @@ be called with start/end squares (two numbers between 0 and 63)."
                                 (when (and (= (chess:move-x0 m) i0)
                                            (= (chess:move-x1 m) i1))
                                   (push m L))))
-              (when (= (length L) 1)
-                (chess:play (first L))
-                (repaint)
-                (set-timeout (lambda ()
-                               (chess:computer 0)
-                               (repaint))
-                             100))))
+              (if (> (length L) 1)
+                  (let ((shadow (append-child document.body (create-element "div")))
+                        (sqsize (floor (min (/ (screen-height) 9)
+                                            (/ (screen-width) 12)))))
+                    (set-style shadow
+                               position "absolute"
+                               px/left 0
+                               px/top 0
+                               px/right 0
+                               px/bottom 0
+                               text-align "center"
+                               background "rgba(192,192,192,0.75)")
+                    (append-child shadow (set-style (create-element "div")
+                                                    px/height (* sqsize 3)))
+                    (dolist (p (list chess:+QUEEN+
+                                     chess:+ROOK+
+                                     chess:+KNIGHT+
+                                     chess:+BISHOP+))
+                      (let ((piece (append-child shadow (create-element "img"))))
+                        (set-style piece
+                                   px/width (* 2 sqsize)
+                                   px/height (* 2 sqsize))
+                        (setf piece.src (aref *image-urls* (aref pnames (+ chess:*color* p))))
+                        (setf piece.onmousedown
+                              (lambda ()
+                                (remove-child document.body shadow)
+                                (move (chess:move i0 i1 (+ chess:*color* p))))))))
+                  (move (first L)))))
           (#'back ()
             (when (> (length chess:*history*) 1)
               (chess:undo)
