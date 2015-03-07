@@ -148,6 +148,7 @@ be called with start/end squares (two numbers between 0 and 63)."
           (new (append-child document.body (create-element "div")))
           (dot (append-child document.body (create-element "div")))
           (status (append-child document.body (create-element "div")))
+          (about (append-child document.body (create-element "div")))
           (#'move (m)
             (chess:play m)
             (repaint)
@@ -232,11 +233,12 @@ be called with start/end squares (two numbers between 0 and 63)."
                 (setf status.textContent
                       (if (= mc 0)
                           (if (chess:check)
-                              "## MATTO ##"
-                              "== STALLO ==")
+                              "MATTO"
+                              "STALLO")
                           (if (chess:check)
-                              "++ SCACCO ++"
+                              "SCACCO"
                               ""))))
+              (setf about.innerHTML "by Andrea &quot;6502&quot; Griffini")
               (set-style board
                          position "absolute"
                          px/left (/ sqsize 2)
@@ -253,9 +255,19 @@ be called with start/end squares (two numbers between 0 and 63)."
                                    (if (/= flip (= chess:*color* chess:+WHITE+))
                                        (* sqsize (- 7.5 0.125))
                                        (* sqsize (- 0.5 0.125)))))
+              (set-style about
+                         position "absolute"
+                         px/font-size (/ sqsize 4)
+                         font-weight "bold"
+                         color "#aabbcc"
+                         text-align "center"
+                         px/left 0
+                         px/right 0
+                         px/bottom (/ sqsize 8))
               (set-style status
                          px/padding (/ sqsize 8)
-                         color "#000"
+                         color "#FFFFFF"
+                         text-shadow "3px 3px 3px rgba(0,0,0,0.75)"
                          position "absolute"
                          text-align "center"
                          px/font-size (/ sqsize 3)
