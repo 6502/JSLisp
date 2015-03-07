@@ -147,6 +147,7 @@ be called with start/end squares (two numbers between 0 and 63)."
           (back (append-child document.body (create-element "div")))
           (new (append-child document.body (create-element "div")))
           (dot (append-child document.body (create-element "div")))
+          (status (append-child document.body (create-element "div")))
           (#'move (m)
             (chess:play m)
             (repaint)
@@ -226,6 +227,16 @@ be called with start/end squares (two numbers between 0 and 63)."
                                              #'play))))
               (setf board.innerHTML "")
               (append-child board bc)
+              (let ((mc 0))
+                (chess:move-map (lambda (m) (declare (ignorable m)) (incf mc)))
+                (setf status.textContent
+                      (if (= mc 0)
+                          (if (chess:check)
+                              "## MATTO ##"
+                              "== STALLO ==")
+                          (if (chess:check)
+                              "++ SCACCO ++"
+                              ""))))
               (set-style board
                          position "absolute"
                          px/left (/ sqsize 2)
@@ -242,6 +253,17 @@ be called with start/end squares (two numbers between 0 and 63)."
                                    (if (/= flip (= chess:*color* chess:+WHITE+))
                                        (* sqsize (- 7.5 0.125))
                                        (* sqsize (- 0.5 0.125)))))
+              (set-style status
+                         px/padding (/ sqsize 8)
+                         color "#000"
+                         position "absolute"
+                         text-align "center"
+                         px/font-size (/ sqsize 3)
+                         font-weight "bold"
+                         px/right (/ sqsize 2)
+                         px/width (- (screen-width) (* 10 sqsize))
+                         cursor "pointer"
+                         px/top (+ (* sqsize 3.75) (/ (- (screen-height) (* 8 sqsize)) 2)))
               (set-style back
                          border "solid 1px #000"
                          box-shadow "4px 4px 4px rgba(0,0,0,0.25)"
@@ -277,6 +299,7 @@ be called with start/end squares (two numbers between 0 and 63)."
           (cheight null))
     (setf back.textContent "Indietro")
     (setf new.textContent "Nuova partita")
+    (setf status.textContent "")
     (setf back.onmousedown (lambda (event)
                              (event.preventDefault)
                              (event.stopPropagation)
