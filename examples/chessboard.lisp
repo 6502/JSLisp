@@ -17,6 +17,7 @@ user can make a move by dragging a piece on the chessboard and the function will
 be called with start/end squares (two numbers between 0 and 63)."
   (let ((canvas (create-element "canvas"))
         (k (floor (/ square-size 12)))
+        (sq0 null)
         (dragging null)
         (b 2))
     (set-style canvas
@@ -42,7 +43,9 @@ be called with start/end squares (two numbers between 0 and 63)."
                  (image-smoothing true)
                  (dotimes (i 8)
                    (dotimes (j 8)
-                     (fill-style (if (even? (+ i j)) "#FFEECC" "#CCA060"))
+                     (fill-style (if (= (+ (* 8 i) j) sq0)
+                                     "#FF0000"
+                                     (if (even? (+ i j)) "#FFEECC" "#CCA060")))
                      (rect (* j square-size) (* i square-size)
                            square-size square-size)
                      (fill)
@@ -67,46 +70,59 @@ be called with start/end squares (two numbers between 0 and 63)."
                             (iy (floor (/ y square-size))))
                        (when (and (<= 0 ix 7) (<= 0 iy 7))
                          (let ((i (+ (* iy 8) ix)))
-                           (when (/= (aref position i) ".")
-                             (let ((dragged (create-element "canvas"))
-                                   (dx (- (first p) (+ (first bp) b (* square-size ix))))
-                                   (dy (- (second p) (+ (second bp) b (* square-size iy)))))
-                               (setf (. dragged width) square-size)
-                               (setf (. dragged height) square-size)
-                               (with-canvas dragged
-                                 (image-smoothing true)
-                                 (image (aref *piece-images* (aref position i))
-                                        (- k)
-                                        (- k)
-                                        (+ square-size (* 2 k))
-                                        (+ square-size (* 2 k))))
-                               (set-style dragged
-                                          position "absolute"
-                                          px/left (- (first p) dx)
-                                          px/top (- (second p) dy)
-                                          px/width square-size
-                                          px/height square-size)
-                               (append-child (. document body) dragged)
-                               (setf dragging i)
-                               (with-canvas canvas
-                                 (fill-style "#FF0000")
-                                 (rect (* ix square-size) (* iy square-size)
-                                       square-size square-size)
-                                 (fill))
-                               (tracking (lambda (x y)
-                                           (set-style dragged
-                                                      px/left (- x dx)
-                                                      px/top (- y dy)))
-                                         (lambda (x y)
-                                           (setf dragging null)
-                                           (remove-child (. document body) dragged)
-                                           (redraw)
-                                           (let ((ix (floor (+ 0.5 (/ (- x (first bp) b dx) square-size))))
-                                                 (iy (floor (+ 0.5 (/ (- y (second bp) b dy) square-size)))))
-                                             (when (and (<= 0 ix 7)
-                                                        (<= 0 iy 7)
-                                                        (/= i (+ (* iy 8) ix)))
-                                               (funcall move-callback i (+ (* iy 8) ix)))))))))))))
+                           (if (/= (aref position i) ".")
+                               (let ((dragged (create-element "canvas"))
+                                     (dx (- (first p) (+ (first bp) b (* square-size ix))))
+                                     (dy (- (second p) (+ (second bp) b (* square-size iy)))))
+                                 (setf (. dragged width) square-size)
+                                 (setf (. dragged height) square-size)
+                                 (with-canvas dragged
+                                              (image-smoothing true)
+                                              (image (aref *piece-images* (aref position i))
+                                                     (- k)
+                                                     (- k)
+                                                     (+ square-size (* 2 k))
+                                                     (+ square-size (* 2 k))))
+                                 (set-style dragged
+                                            position "absolute"
+                                            px/left (- (first p) dx)
+                                            px/top (- (second p) dy)
+                                            px/width square-size
+                                            px/height square-size)
+                                 (append-child (. document body) dragged)
+                                 (setf dragging i)
+                                 (redraw)
+                                 (tracking (lambda (x y)
+                                             (set-style dragged
+                                                        px/left (- x dx)
+                                                        px/top (- y dy)))
+                                           (lambda (x y)
+                                             (setf dragging null)
+                                             (remove-child (. document body) dragged)
+                                             (redraw)
+                                             (let* ((ix (floor (+ 0.5 (/ (- x (first bp) b dx) square-size))))
+                                                    (iy (floor (+ 0.5 (/ (- y (second bp) b dy) square-size))))
+                                                    (j (+ (* iy 8) ix)))
+                                               (when (and (<= 0 ix 7)
+                                                          (<= 0 iy 7))
+                                                 (if (= i j)
+                                                     (cond
+                                                       ((= sq0 i) (setf sq0 null) (redraw))
+                                                       ((null? sq0) (setf sq0 i) (redraw))
+                                                       (true
+                                                         (setf j sq0)
+                                                         (setf sq0 null)
+                                                         (redraw)
+                                                         (funcall move-callback j i)))
+                                                     (funcall move-callback i j)))))))
+                               (cond
+                                 ((= sq0 i) (setf sq0 null) (redraw))
+                                 ((null? sq0) (setf sq0 i) (redraw))
+                                 (true
+                                   (let ((j sq0))
+                                     (setf sq0 null)
+                                     (redraw)
+                                     (funcall move-callback j i))))))))))
       canvas)))
 
 (defun wmain ()
@@ -153,34 +169,38 @@ be called with start/end squares (two numbers between 0 and 63)."
                                 (when (and (= (chess:move-x0 m) i0)
                                            (= (chess:move-x1 m) i1))
                                   (push m L))))
-              (if (> (length L) 1)
-                  (let ((shadow (append-child document.body (create-element "div")))
-                        (sqsize (floor (min (/ (screen-height) 9)
-                                            (/ (screen-width) 12)))))
-                    (set-style shadow
-                               position "absolute"
-                               px/left 0
-                               px/top 0
-                               px/right 0
-                               px/bottom 0
-                               text-align "center"
-                               background "rgba(192,192,192,0.75)")
-                    (append-child shadow (set-style (create-element "div")
-                                                    px/height (* sqsize 3)))
-                    (dolist (p (list chess:+QUEEN+
-                                     chess:+ROOK+
-                                     chess:+KNIGHT+
-                                     chess:+BISHOP+))
-                      (let ((piece (append-child shadow (create-element "img"))))
-                        (set-style piece
-                                   px/width (* 2 sqsize)
-                                   px/height (* 2 sqsize))
-                        (setf piece.src (aref *image-urls* (aref pnames (+ chess:*color* p))))
-                        (setf piece.onmousedown
-                              (lambda ()
-                                (remove-child document.body shadow)
-                                (move (chess:move i0 i1 (+ chess:*color* p))))))))
-                  (move (first L)))))
+              (cond
+                ((= (length L) 1)
+                 (move (first L)))
+                ((> (length L) 1)
+                 (let ((shadow (append-child document.body (create-element "div")))
+                       (sqsize (floor (min (/ (screen-height) 9)
+                                           (/ (screen-width) 12)))))
+                   (set-style shadow
+                              position "absolute"
+                              px/left 0
+                              px/top 0
+                              px/right 0
+                              px/bottom 0
+                              text-align "center"
+                              background "rgba(192,192,192,0.75)")
+                   (append-child shadow (set-style (create-element "div")
+                                                   px/height (* sqsize 3)))
+                   (dolist (p (list chess:+QUEEN+
+                                    chess:+ROOK+
+                                    chess:+KNIGHT+
+                                    chess:+BISHOP+))
+                     (let ((piece (append-child shadow (create-element "img"))))
+                       (set-style piece
+                                  px/width (* 2 sqsize)
+                                  px/height (* 2 sqsize))
+                       (setf piece.src (aref *image-urls* (aref pnames (+ chess:*color* p))))
+                       (setf piece.onmousedown
+                             (lambda (event)
+                               (event.preventDefault)
+                               (event.stopPropagation)
+                               (remove-child document.body shadow)
+                               (move (chess:move i0 i1 (+ chess:*color* p))))))))))))
           (#'back ()
             (when (> (length chess:*history*) 1)
               (chess:undo)
@@ -257,8 +277,14 @@ be called with start/end squares (two numbers between 0 and 63)."
           (cheight null))
     (setf back.textContent "Indietro")
     (setf new.textContent "Nuova partita")
-    (setf back.onclick #'back)
-    (setf new.onclick #'new)
+    (setf back.onmousedown (lambda (event)
+                             (event.preventDefault)
+                             (event.stopPropagation)
+                             (back)))
+    (setf new.onclick (lambda (event)
+                        (event.preventDefault)
+                        (event.stopPropagation)
+                        (new)))
     (repaint)
     (set-interval (lambda ()
                     (when (or (/= (screen-width) cwidth)
