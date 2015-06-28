@@ -3031,7 +3031,7 @@ A name is either an unevaluated atom or an evaluated list."
   "Returns a list of all keys defined in the specified javascript object [obj]."
   (declare (ignorable obj))
   (declare (return-type list))
-  (js-code "((function(){var res=[];for(var $i in d$$obj)res.push($i);return res})())"))
+  (js-code "Object.keys(d$$obj)"))
 
 (defun remove-key (object key)
   "Removes [key] entry from [object]"
@@ -3164,6 +3164,7 @@ A name is either an unevaluated atom or an evaluated list."
          (deploy-ref (function ,#"new-{name}")
                      ',class)
          (if (and x (= (. x %class) ',class)) true false))
+       (setf (. (function ,(intern ~"{name}?")) 'type-checker) true)
        (defun ,(intern ~"make-{name}") (&key ,@fields)
          ,~"Creates a new instance of {name}"
          (,(intern ~"new-{name}") ,@fieldnames))
