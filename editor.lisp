@@ -1160,7 +1160,7 @@
         (event.stopPropagation))
       (when kbrecording
         (push (list "insert-char" (char event.keyCode)) *kbmacro*))
-      (insert-char (char event.keyCode))
+      (insert-char (char (or event.keyCode event.charCode)))
       (fix))
     (set-handler screen onmousedown
                    (setf ireplace-mode null)
