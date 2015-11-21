@@ -124,11 +124,13 @@ function Namespace()
     this.get = function(name, nouse)
     {
         name = "!" + name;
-        var res = this.vars[name];
+        var res = this.vars[name], fc, i;
         if (res && !nouse) this.props[name].used = true;
-        if (res && this.props[name].fc !== d$$$42_function_context$42_[d$$$42_function_context$42_.length-1]) {
+        if (res && (fc = this.props[name].fc) !== d$$$42_function_context$42_[i = d$$$42_function_context$42_.length-1]) {
             this.props[name].captured = true;
-            d$$$42_function_closure$42_[d$$$42_function_closure$42_.length-1] = true;
+            while (i >= 0 && d$$$42_function_context$42_[i] !== fc) {
+                d$$$42_function_closure$42_[i--] = true;
+            }
         }
         return res;
     }
