@@ -63,7 +63,7 @@ reverse engineering point of view.
       ;; Strip comments
       (setf s (replace s "//.*" ""))
       ;; Code metainformation removal
-      (setf s (replace s "f\\.usedglobs=\\[[^\\]]*\\];f\\.outcalls=\\[[^\\]]*\\];f\\.arglist=lisp_literals\\[[^\\]]*\\];f\\.fti=lisp_literals\\[[^\\]]*\\];" ""))
+      (setf s (replace s "f\\.usedglobs=\\[[^\\]]*\\];f\\.outcalls=\\[[^\\]]*\\];f\\.arglist=lisp_literals\\[[^\\]]*\\];f\\.fti=lisp_literals\\[[^\\]]*\\];f\\.closure=[^;]*;" ""))
       ;; Timeout check removal
       (setf s (replace s "tock\\(\\);" ""))
       ;; Name shortening
@@ -180,6 +180,8 @@ reverse engineering point of view.
                (incf *repcode* ii)))))
        ~"r{ix}"))
     ((callable? x)
+     (when x.closure
+       (warning ~"Deploying closures is not supported (from {*fpath*})"))
      (let ((ix (index x *repo*)))
        (when (= ix -1)
          (setf ix (length *repo*))

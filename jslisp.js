@@ -39,6 +39,7 @@ d$$$42_used_globals$42_ = {};
 d$$$42_debug$42_ = false;
 d$$$42_function_context$42_ = [];
 d$$$42_function_type_info$42_ = [];
+d$$$42_function_closure$42_ = [];
 d$$$42_timeout$42_ = null;
 d$$$42_code_timeout$42_ = 20000;
 d$$node_js = false;
@@ -125,8 +126,10 @@ function Namespace()
         name = "!" + name;
         var res = this.vars[name];
         if (res && !nouse) this.props[name].used = true;
-        if (res && this.props[name].fc !== d$$$42_function_context$42_[d$$$42_function_context$42_.length-1])
+        if (res && this.props[name].fc !== d$$$42_function_context$42_[d$$$42_function_context$42_.length-1]) {
             this.props[name].captured = true;
+            d$$$42_function_closure$42_[d$$$42_function_closure$42_.length-1] = true;
+        }
         return res;
     }
 
@@ -673,6 +676,9 @@ defmacro("lambda",
              // is not declared.
              d$$$42_function_type_info$42_.push({});
 
+             // True if the function is indeed a closure
+             d$$$42_function_closure$42_.push(false);
+
              var current_outgoing_calls = d$$$42_outgoing_calls$42_;
              d$$$42_outgoing_calls$42_ = {};
              var current_used_globals = d$$$42_used_globals$42_;
@@ -778,6 +784,7 @@ defmacro("lambda",
                  var li = lisp_literals.length;
                  lisp_literals[li] = args;
                  lisp_literals[li+1] = d$$$42_function_type_info$42_.pop();
+                 var cl = d$$$42_function_closure$42_.pop();
 
                  // Copy parameter type declarations to fti for compile-time checking
                  for (var i=0; i<args.length; i++) {
@@ -799,7 +806,7 @@ defmacro("lambda",
                         ocnames.substr(1) +
                         "];f.arglist=lisp_literals[" + li +
                         "];f.fti=lisp_literals[" + (li+1) +
-                        "];return f;})())");
+                        "];f.closure=" + cl + ";return f;})())");
                  return [s$$js_code, res];
              }
              finally
