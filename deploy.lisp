@@ -187,7 +187,7 @@ reverse engineering point of view.
          (setf ix (length *repo*))
          (push x *repo*)
          (let ((ii (replace (+ "" x) "\r" "")))
-           (setf ii (replace ii "f.usedglobs=\\[[^\\]]*\\];f.outcalls=\\[[^\\]]*\\];f.arglist=[^;]*;f.fti=[^;]*;" ""))
+           (setf ii (replace ii "f\\.usedglobs=\\[[^\\]]*\\];f\\.outcalls=\\[[^\\]]*\\];f\\.arglist=[^;]*;f\\.fti=[^;]*;f\\.closure=[^;]*;" ""))
            (incf *repcode* ~"r{ix}={ii};"))
          (when x.usedglobs
            (dolist (y x.usedglobs)
