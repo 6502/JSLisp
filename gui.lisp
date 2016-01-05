@@ -1099,6 +1099,7 @@
                           (select (% (+ current (1- (length pages))) (length pages))))))
     (setf tabbed.current-index (lambda () current))
     (setf tabbed.page-index (lambda (p) (index p pages)))
+    (setf tabbed.pages (lambda () pages))
     (setf tabbed."data-resize" #'fix)
     (setf tabbed.% #'tabbed)
     tabbed))
@@ -1582,7 +1583,7 @@
 
 (defvar *baloons* null)
 
-(defun baloon (html &optional (duration 2000))
+(defun baloon (html &optional (duration 2000) (color "rgba(0,0,0,0.75)"))
   "Shows a message in a baloon that will disappear by itself"
   (unless *baloons*
     (setf *baloons* (append-child document.body
@@ -1596,7 +1597,7 @@
                            px/margin 8
                            px/padding 16
                            px/borderRadius 8
-                           backgroundColor "rgba(0,0,0,0.75)"
+                           backgroundColor color
                            color "#FFFFFF"
                            opacity 0
                            fontFamily "monospace"
