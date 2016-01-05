@@ -8,22 +8,25 @@
 (import (hash) from crypto)
 (import * from guieditor)
 
-(defvar *ide-commands* #(("ilisp-clear"   "Clears inferior lisp window")
-                         ("ilisp-reset"   "Resets inferior lisp")
-                         ("run"           "Evaluates current file in zoomed inferior lisp")
-                         ("eval-expr"     "Evaluates an expression in inferior lisp")
-                         ("terminal"      "Opens a terminal window")
-                         ("deploy"        "Opens build/deploy dialog")
-                         ("save"          "Saves current file")
-                         ("close"         "Closes current file")
-                         ("expr-run"      "Evaluates (last) selected text in zoomed inferior lisp")
-                         ("gui-builder"   "Opens gui builder tool")
-                         ("mode-options"  "Syntax highlight options")
-                         ("prev"          "Switch to previous file")
-                         ("next"          "Switch to next file")
-                         ("eval-current"  "Evaluates current top-level form in inferior lisp")
-                         ("edit-zoom"     "Shows/hides inferior lisp ad documentation panes")
-                         ("edit-bindings" "Shows current key bindings")))
+(defvar *ide-commands* #(("ilisp-clear"    "Clears inferior lisp window")
+                         ("ilisp-reset"    "Resets inferior lisp")
+                         ("run"            "Evaluates current file in zoomed inferior lisp")
+                         ("eval-expr"      "Evaluates an expression in inferior lisp")
+                         ("terminal"       "Opens a terminal window")
+                         ("deploy"         "Opens build/deploy dialog")
+                         ("save"           "Saves current file")
+                         ("close"          "Closes current file")
+                         ("expr-run"       "Evaluates (last) selected text in zoomed inferior lisp")
+                         ("gui-builder"    "Opens gui builder tool")
+                         ("mode-options"   "Syntax highlight options")
+                         ("prev"           "Switch to previous file")
+                         ("next"           "Switch to next file")
+                         ("eval-current"   "Evaluates current top-level form in inferior lisp")
+                         ("edit-zoom"      "Shows/hides inferior lisp ad documentation panes")
+                         ("edit-bindings"  "Shows current key bindings")
+                         ("err-stack-up"   "Moves up in the stack trace after an error")
+                         ("err-stack-down" "Moves down in the stack trace after an error")
+                         ("toggle-debug"   "Turns on/off debug mode")))
 
 (defvar *keybindings* #(("alt-Z" "ilisp-clear")
                         ("alt-R" "ilisp-reset")
@@ -38,8 +41,11 @@
                         ("ctrl-O" "mode-options")
                         ("ctrl-Left" "prev")
                         ("ctrl-Right" "next")
+                        ("ctrl-Up" "err-stack-up")
+                        ("ctrl-Down" "err-stack-down")
                         ("ctrl-Enter" "eval-current")
                         ("alt-Esc" "edit-zoom")
+                        ("alt-D" "toggle-debug")
                         ("F1" "edit-bindings")))
 
 (defvar *ilisp*)
@@ -145,20 +151,20 @@
     (show-window w center: true)))
 
 (defun src-tab (name content)
-  (let ((editor (editor name
-                        content
-                        (if (or (= (slice name -5) ".lisp")
-                                (= name "*scratch*"))
-                            mode
-                            undefined)))
-        (basename (let ((i (last-index "." name)))
-                    (if (>= i 0)
-                        (slice name 0 i)
-                        name))))
+  (let** ((editor (editor name
+                          content
+                          (if (or (= (slice name -5) ".lisp")
+                                  (= name "*scratch*"))
+                              mode
+                              undefined)))
+          (basename (let ((i (last-index "." name)))
+                      (if (>= i 0)
+                          (slice name 0 i)
+                          name))))
     (set-style editor
                position "absolute")
     (setf editor.ilisp-exec
-          (lambda (&optional expr)
+          (lambda (&optional expr cback)
             (let ((lines (editor.lines))
                   (row (first (editor.pos)))
                   (txt (or expr (editor.selection))))
@@ -166,26 +172,28 @@
                 (setf txt (mode.toplevel-sexpr lines row)))
               (when (/= txt "")
                 (*ilisp*.send "quiet-lisp" ~"(in-module {(json basename)})")
-                (*ilisp*.send "lisp" txt)))))
+                (*ilisp*.send "lisp" txt cback)))))
     editor))
 
-(defun inferior-lisp ()
+(defun inferior-lisp (&optional default-cback)
   (let** ((container (set-style (create-element "div")
                                 position "absolute"))
           (ilisp (ilisp:new #'reply))
           (#'inspect ()
             (mode.inspect-ilisp ilisp))
           (#'reply (msg)
-            (if (and (string? msg)
-                     (= (slice msg 0 11) "[\"ctxmenu:\""))
-                (let (((x y) (rest (json-parse msg)))
-                      ((x0 y0) (element-pos container)))
-                  (contextmenu (list (+ x x0) (+ y y0))))
-                (progn
-                  (when (= msg "\"ready\"")
-                    (ilisp.send "javascript"
-                                "repl.value=\";; JsLisp Ready.\\n\";")
-                    (inspect)))))
+            (cond
+             ((and (string? msg)
+                   (= (slice msg 0 11) "[\"ctxmenu:\""))
+              (let (((x y) (rest (json-parse msg)))
+                    ((x0 y0) (element-pos container)))
+                (contextmenu (list (+ x x0) (+ y y0)))))
+             ((= msg "\"ready\"")
+              (ilisp.send "javascript"
+                          "repl.value=\";; JsLisp Ready.\\n\";")
+              (inspect))
+             (default-cback
+               (funcall default-cback msg))))
           (#'reset ()
             (ilisp.reset))
           (#'clear ()
@@ -488,7 +496,7 @@
           (#'enter ()
             (funcall cback (text current-path)))
           (layout (V border: 8 spacing: 8
-                     size: 40
+                     size: 50
                      (H size: 120
                         (dom user)
                         (dom password)
@@ -686,7 +694,10 @@
           (last-width 0)
           (last-height 0)
           (sources (tabbed))
-          (ilisp (inferior-lisp))
+          (ilisp (inferior-lisp #'handle-runtime-error))
+          (err-stack-trace (list))
+          (err-stack-level 0)
+          (debug-mode false)
           (doc (set-style (create-element "div")
                           position "absolute"
                           overflow "auto"))
@@ -730,16 +741,19 @@
                     (append-child doc btn))))))
           (#'view-source ((file c0 c1))
             (declare (ignorable c1))
-            (let ((content (load-file file)))
-              (let ((editor (src-tab file content))
-                    (line (1- (length (split (slice content 0 c0) "\n")))))
+            (let ((editor (any (p (sources.pages))
+                               (if (and p p.name (= (p.name) file)) p))))
+              (unless editor
+                (let ((content (load-file file)))
+                  (setf editor (src-tab file content))
+                  (sources.add file editor true)))
+              (let** ((content (editor.buffer))
+                      (line (1- (length (split (slice content 0 c0) "\n")))))
                 (editor.set-pos (max 0 (- line 10)) 0
                                 (max 0 (- line 10)) 0)
                 (set-timeout (lambda () (editor.set-pos line 0 line 0))
                              100)
-                (sources.add file editor true)
-                (sources.select 0)
-                (sources.prev))))
+                (sources.select (sources.page-index editor)))))
           (#'resize ()
             (when (or (/= last-width (screen-width))
                       (/= last-height (screen-height)))
@@ -753,6 +767,16 @@
                             (let ((f (or (symbol-function f) (symbol-macro f))))
                             (if f (list (documentation f) f.location)))))"
                           #'show-doc))
+          (#'handle-runtime-error (x)
+            (when (and x x.error x.stack_trace)
+              (baloon ~"ERROR: {x.error}" 4000 "rgba(255,0,0,0.75)")
+              (setf err-stack-trace x.stack_trace)
+              (setf err-stack-level (1- (length x.stack_trace)))
+              (zoom)
+              (show-error-location)))
+          (#'show-error-location ()
+            (when (<= 0 err-stack-level (length err-stack-trace))
+              (view-source (aref err-stack-trace err-stack-level))))
           (#'zoom ()
             (setf zoom (not zoom))
             (vs.partition (if zoom 0 (- (+ 80 100) splitv)))
@@ -813,14 +837,29 @@
     (document.body.addEventListener
       "keydown"
       (lambda (event)
-        (let ((stop true)
-              (cmd (aref *keybindings* (key-name event))))
+        (let** ((stop true)
+                (cmd (aref *keybindings* (key-name event))))
           (case cmd
                 ("ilisp-clear" (*ilisp*.clear))
                 ("ilisp-reset" (*ilisp*.reset))
+                ("toggle-debug"
+                  (setf debug-mode (not debug-mode))
+                  (baloon (if debug-mode
+                              "Debug mode **ON**"
+                              "Debug mode **OFF**")))
                 ("run"
                   (zoom)
-                  ((sources.current).ilisp-exec ((sources.current).buffer)))
+                  (*ilisp*.send "quiet-lisp" ~"(setf :*debug* {debug-mode})")
+                  ((sources.current).ilisp-exec
+                   (make-source ((sources.current).buffer) ((sources.current).name))))
+                ("err-stack-up"
+                  (when (> err-stack-level 0)
+                    (decf err-stack-level)
+                    (show-error-location)))
+                ("err-stack-down"
+                  (when (< err-stack-level (1- (length err-stack-trace)))
+                    (incf err-stack-level)
+                    (show-error-location)))
                 ("eval-expr"
                   (let ((expr (prompt "Expression")))
                     (when (strip expr)

@@ -1283,68 +1283,26 @@ d$$$42_error_location$42_ = null;
 
 var global_unwinding_trace = [];
 var d$$$42_stack_trace$42_ = [];
-var d$$$42_coverage$42_ = null;
-var d$$$42_breakpoints$42_ = [];
-var d$$$42_step$42_ = false;
 
-var debug_screenLeft = 400;
-var debug_screenTop = 200;
-var debug_screenWidth = 600;
-var debug_screenHeight = 400;
-
-function debug()
+function erl(x, f)
 {
-    for(;;)
-    {
-        var cmd = window.showModalDialog("debug.html", [window, d$$$42_stack_trace$42_],
-                                         "dialogleft=" + debug_screenLeft + ";" +
-                                         "dialogwidth=" + debug_screenWidth + ";" +
-                                         "dialogtop=" + debug_screenTop + ";" +
-                                         "dialogheight=" + debug_screenHeight + ";");
-        if (cmd == "cont")
-        {
-            d$$$42_step$42_ = false;
-            return;
-        }
-        if (cmd == "step")
-        {
-            d$$$42_step$42_ = true;
-            return;
-        }
-        if (cmd.slice(0, 5) == "eval ")
-        {
-            f$$toplevel_eval(f$$read(cmd.slice(6)));
-        }
-    }
-}
-
-function erl(x, f, local_js_eval)
-{
-    if (d$$$42_coverage$42_)
-        d$$$42_coverage$42_[x] = (d$$$42_coverage$42_[x]|0)+1;
     d$$$42_stack_trace$42_.push(x);
     try
     {
-        for (var i=0; i<d$$$42_breakpoints$42_.length; i++)
-            if (d$$$42_breakpoints$42_[i][0] == x[0] &&
-                d$$$42_breakpoints$42_[i][1] == x[1] &&
-                d$$$42_breakpoints$42_[i][2] == x[2])
-                d$$$42_step$42_ = true;
-        if (d$$$42_step$42_)
-        {
-            d$$$42_step$42_ = false;
-            debug();
-        }
         try
         {
             return f();
         }
         catch(err)
         {
-            if (!err || !err.gotag)
-                debug();
-            else
-                throw err;
+            if (up && !err._seen) {
+                up({id: id,
+                    req: -1,
+                    reply: {error: err+"",
+                            stack_trace: d$$$42_stack_trace$42_.slice()}});
+                err._seen = true;
+            }
+            throw err;
         }
     }
     finally
@@ -1354,8 +1312,6 @@ function erl(x, f, local_js_eval)
 }
 
 d$$$42_declarations$42_ = [];
-
-d$$$42_sourcemap$42_ = null;
 
 defun("js-compile",
       "[[(js-compile x)]]\n" +
@@ -1438,24 +1394,14 @@ defun("js-compile",
                   };
                   if (x.location)
                   {
-                      if (d$$$42_sourcemap$42_)
+                      if (d$$$42_debug$42_)
                       {
                           wrapper = function(r) {
-                              var i = d$$$42_sourcemap$42_.length;
-                              d$$$42_sourcemap$42_[i] = x.location;
-                              return " /*{" + i + "*/ " + r + " /*}*/ ";
-                          };
-                      }
-                      else if (d$$$42_debug$42_)
-                      {
-                          wrapper = function(r) {
-                              if (d$$$42_coverage$42_)
-                                  d$$$42_coverage$42_[x.location] = 0;
                               return ("erl(" +
                                       stringify(x.location) +
                                       ",function(){return(" +
                                       r +
-                                      ")},function(x){return eval(x)})");
+                                      ")})");
                           };
                       }
                   }
@@ -1698,13 +1644,16 @@ defun("parse-delimited-list",
       ["$$skip_spaces", "$$read"]);
 
 defun("make-source",
-      "[[(make-source x)]]\n" +
-      "Creates a character source that will produce the content of the specified string [x].",
-      function(s)
+      "[[(make-source x &optional location)]]\n" +
+      "Creates a character source that will produce the content of the specified string [x]." +
+      " If the optional [location] is provided, debug traceback information will be added to " +
+      " each form parsed from this character source (traceback information is used when " +
+      " forms are compiled while `*debug*` is true).",
+      function(s, location)
       {
-          return ({"s":s.replace(/\r/g,""), i:0});
+          return ({"s":s.replace(/\r/g,""), i:0, location:location});
       },
-      [s$$x]);
+      [s$$x, f$$intern("&optional"), f$$intern("location")],[],[]);
 
 defun("parse-symbol",
       "[[(parse-symbol src &optional (start \"\"))]]\n" +

@@ -161,7 +161,10 @@ window.onmessage = function(event)
 {
     if (event.data.type === "lisp" || event.data.type === "quiet-lisp" )
     {
-        var src = f$$make_source(event.data.text);
+        var src = event.data.text;
+        if (typeof src === "string") {
+            src = f$$make_source(src);
+        }
         var result = [];
         f$$skip_spaces(src);
         while (src.s[src.i] != undefined)
