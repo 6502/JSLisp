@@ -1,10 +1,10 @@
 (load (http-get "fsg.lisp"))
 
 (defvar *turtle* (create-element "img"))
-(setf (. *turtle* src) "turtle.png")
-(setf (. *turtle* style position) "absolute")
-(setf (. *turtle* style WebkitTransformOrigin) "21px 16px")
-(append-child (. document body) *turtle*)
+(setf *turtle*.src "turtle.png")
+(setf *turtle*.style.position "absolute")
+(setf *turtle*.style.WebkitTransformOrigin "21px 16px")
+(append-child document.body *turtle*)
 
 (defvar *target-x* 200)
 (defvar *target-y* 200)
@@ -47,7 +47,7 @@
                                 (incf *turtle-x* (* k dx)))))))
                   (if moved
                       (progn
-                        (setf (. *turtle* style WebkitTransform)
+                        (setf *turtle*.style.WebkitTransform
                               ~"translatex({(- *turtle-x* 21)}px) translatey({(- *turtle-y* 16)}px) rotate({*turtle-angle*}deg)")
                         (when *turtle-pen*
                           (begin-path)

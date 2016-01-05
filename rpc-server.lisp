@@ -157,7 +157,7 @@
 (defobject http-request (parms))
 
 (defun rpc-handler (request response)
-  (let ((url (. request url))
+  (let ((url request.url)
         (parsed-req null))
     (when (find "?" url)
       (let ((i (index "?" url)))

@@ -1,11 +1,11 @@
 (defun start-server (address port handler)
   (let* ((http (js-code "require('http')"))
-         (server (funcall (. http createServer) handler)))
-    (funcall (. server listen) port address)))
+         (server (http.createServer handler)))
+    (server.listen port address)))
 
 (defun reply (response content-type msg)
-  (funcall (. response writeHead) 200 #((Content-type content-type)))
-  (funcall (. response end) msg))
+  (response.writeHead 200 #((Content-type content-type)))
+  (response.end msg))
 
 (defobject channel (name
                     (n0 0)
@@ -53,7 +53,7 @@
         (push response channel.listeners))))
 
 (defun handler (request response)
-  (let ((url (. request url))
+  (let ((url request.url)
         (parms "")
         (data ""))
     (when (find "?" url)

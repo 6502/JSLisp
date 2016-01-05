@@ -26,7 +26,7 @@
                MozTransition "all 0.5s ease-in-out"
                transition "all 0.5s ease-in-out")
     (append-child slide content)
-    (append-child (. document body) slide)
+    (append-child document.body slide)
     (set-handler slide oncontextmenu
                  (event.preventDefault)
                  (event.stopPropagation))
@@ -48,7 +48,7 @@
                  opacity 0.0
                  MozTransform (if (= dir 1) *out* *in*)
                  WebkitTransform (if (= dir 1) *out* *in*))
-      (set-timeout (lambda () (remove-child (. document body) old))
+      (set-timeout (lambda () (remove-child document.body old))
                    1000))
     (setf *current-slide* null))
   (when x
@@ -267,7 +267,7 @@
     (show-slide (aref *sequence* *index*).div -1)))
 
 (defun start ()
-  (setf (. document body style overflow) "hidden")
+  (setf document.body.style.overflow "hidden")
   (setf *background* (create-element "div"))
   (set-style *background*
              position "absolute"
@@ -276,7 +276,7 @@
              px/right 0
              px/bottom 0
              background "#FFFFF0")
-  (append-child (. document body) *background*)
+  (append-child document.body *background*)
   (setf *width* *background*.offsetWidth)
   (setf *height* *background*.offsetHeight))
 

@@ -5,13 +5,13 @@
   (labels ((str (value n)
              (let ((res ~"0000{value}"))
                (slice res (- (length res) n)))))
-    (let ((YYYY (str (funcall (. x getFullYear)) 4))
-          (MM (str (1+ (funcall (. x getMonth))) 2))
-          (DD (str (funcall (. x getDate)) 2))
-          (hh (str (funcall (. x getHours)) 2))
-          (mm (str (funcall (. x getMinutes)) 2))
-          (ss (str (funcall (. x getSeconds)) 2))
-          (mss (str (funcall (. x getMilliseconds)) 3)))
+    (let ((YYYY (str (x.getFullYear) 4))
+          (MM (str (1+ (x.getMonth)) 2))
+          (DD (str (x.getDate) 2))
+          (hh (str (x.getHours) 2))
+          (mm (str (x.getMinutes) 2))
+          (ss (str (x.getSeconds) 2))
+          (mss (str (x.getMilliseconds) 3)))
       ~"{YYYY}-{MM}-{DD} {hh}:{mm}:{ss}.{mss}")))
 
 (defvar *log* (list))
@@ -35,7 +35,7 @@
                px/fontSize 16
                fontWeight "bold"
                px/padding 1)
-    (setf (. x textContent) msg)
+    (setf x.textContent msg)
     (append-child *logwindow*.data x)))
 
 (defun write (msg &key (severity 0))
@@ -57,8 +57,8 @@
                           (lambda ()
                             (setf *log* (list))
                             (do ()
-                                ((not (. scroll firstChild)))
-                              (remove-child scroll (. scroll firstChild))))))
+                                ((not scroll.firstChild))
+                              (remove-child scroll scroll.firstChild)))))
            (layout (V spacing: 8 border: 8
                       (dom scroll)
                       size: 30
@@ -80,10 +80,10 @@
               (set-coords layout 0 0 (- x1 x0) (- y1 y0))))
       (setf *logwindow*.close-cback
             (lambda ()
-              (setf *x0* (. *logwindow*.frame offsetLeft))
-              (setf *y0* (. *logwindow*.frame offsetTop))
-              (setf *width* (. *logwindow*.frame offsetWidth))
-              (setf *height* (. *logwindow*.frame offsetHeight))
+              (setf *x0* *logwindow*.frame.offsetLeft)
+              (setf *y0* *logwindow*.frame.offsetTop)
+              (setf *width* *logwindow*.frame.offsetWidth)
+              (setf *height* *logwindow*.frame.offsetHeight)
               (setf *logwindow* null)))
       (show-window *logwindow*))))
 

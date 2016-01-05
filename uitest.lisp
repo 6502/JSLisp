@@ -1,17 +1,17 @@
 (load (http-get "ui.lisp"))
 
 (defvar *debug* (create-element "div"))
-(setf (. *debug* style position) "absolute")
-(setf (. *debug* style top) "20px")
-(setf (. *debug* style right) "20px")
-(setf (. *debug* style padding) "20px")
-(setf (. *debug* style border) "solid 1px #000000")
-(setf (. *debug* style backgroundColor) "#FFFF00")
+(setf *debug*.style.position "absolute")
+(setf *debug*.style.top "20px")
+(setf *debug*.style.right "20px")
+(setf *debug*.style.padding "20px")
+(setf *debug*.style.border "solid 1px #000000")
+(setf *debug*.style.backgroundColor "#FFFF00")
 
 (defun debug (x)
-  (setf (. *debug* innerHTML) x))
+  (setf *debug*.innerHTML x))
 
-(append-child (. document body) *debug*)
+(append-child document.body *debug*)
 
 (set-interval (lambda (&rest args)
                 (let ((res "<pre>"))

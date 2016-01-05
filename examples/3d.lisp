@@ -198,8 +198,8 @@
                          px/height (- y1 y0))
               (redraw)))
       (set-handler canvas onmousedown
-                   (funcall (. event preventDefault))
-                   (funcall (. event stopPropagation))
+                   (event.preventDefault)
+                   (event.stopPropagation)
                    (let ((x0 (first (event-pos event)))
                          (y0 (second (event-pos event)))
                          (cx (first (element-pos canvas)))

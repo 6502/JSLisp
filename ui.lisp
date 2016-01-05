@@ -189,12 +189,12 @@
 
 (defobj rect x y w h)
 (defmethod draw (o ctx) (rect? o)
-  (funcall (. ctx beginPath))
-  (funcall (. ctx moveTo) o.x o.y)
-  (funcall (. ctx lineTo) (+ o.w o.x) o.y)
-  (funcall (. ctx lineTo) (+ o.w o.x) (+ o.h o.y))
-  (funcall (. ctx lineTo) o.x (+ o.h o.y))
-  (funcall (. ctx closePath)))
+  (ctx.beginPath)
+  (ctx.moveTo o.x o.y)
+  (ctx.lineTo (+ o.w o.x) o.y)
+  (ctx.lineTo (+ o.w o.x) (+ o.h o.y))
+  (ctx.lineTo o.x (+ o.h o.y))
+  (ctx.closePath))
 (defmethod fix-bbox (o m bb) (rect? o)
   (let ((p0 (xform o.x o.y m))
         (p1 (xform (+ o.x o.w) o.y m))
@@ -205,7 +205,7 @@
 
 (defobj arc x y r a0 a1 ccw)
 (defmethod draw (o ctx) (arc? o)
-  (funcall (. ctx arc) o.x o.y o.r o.a0 o.a1 o.ccw))
+  (ctx.arc o.x o.y o.r o.a0 o.a1 o.ccw))
 (defmethod fix-bbox (o m bb) (arc? o)
   (dotimes (i 20)
     (let ((t (+ o.a0 (/ (* (- o.a1 o.a0) i) 20))))
@@ -216,34 +216,34 @@
 
 (defobj move-to x y)
 (defmethod draw (o ctx) (move-to? o)
-  (funcall (. ctx moveTo) o.x o.y))
+  (ctx.moveTo o.x o.y))
 (defmethod fix-bbox (o m bb) (move-to? o)
   (bbadj (xform o.x o.y m) bb))
 
 (defobj line-to x y)
 (defmethod draw (o ctx) (line-to? o)
-  (funcall (. ctx lineTo) o.x o.y))
+  (ctx.lineTo o.x o.y))
 (defmethod fix-bbox (o m bb) (line-to? o)
   (bbadj (xform o.x o.y m) bb))
 
 (defobj begin-path)
 (defmethod draw (o ctx) (begin-path? o)
-  (funcall (. ctx beginPath)))
+  (ctx.beginPath))
 
 (defobj close-path)
 (defmethod draw (o ctx) (close-path? o)
-  (funcall (. ctx closePath)))
+  (ctx.closePath))
 
 (defobj fill color)
 (defmethod draw (o ctx) (fill? o)
-  (setf (. ctx fillStyle) o.color)
-  (funcall (. ctx fill)))
+  (setf ctx.fillStyle o.color)
+  (ctx. fill))
 
 (defobj stroke color width)
 (defmethod draw (o ctx) (stroke? o)
-  (setf (. ctx strokeStyle) o.color)
-  (setf (. ctx lineWidth) o.width)
-  (funcall (. ctx stroke)))
+  (setf ctx.strokeStyle o.color)
+  (setf ctx.lineWidth o.width)
+  (ctx.stroke))
 (defmethod fix-bbox (o m bb) (stroke? o)
   (let ((w (* (sqrt (+ (* [m 0] [m 0]) (* [m 1] [m 1]))) o.width)))
     (when (< (fifth bb) w)
@@ -251,12 +251,12 @@
 
 (defobj image img x y)
 (defmethod draw (o ctx) (image? o)
-  (funcall (. ctx drawImage) o.img
-           (- o.x (/ (. o.img width) 2))
-           (- o.y (/ (. o.img height) 2))))
+  (ctx.drawImage o.img
+                 (- o.x (/ (. o.img width) 2))
+                 (- o.y (/ (. o.img height) 2))))
 (defmethod fix-bbox (o m bb) (image? o)
-  (let ((w (/ (. o.img width) 2))
-        (h (/ (. o.img height) 2)))
+  (let ((w (/ o.img.width 2))
+        (h (/ o.img.height 2)))
     (let ((p0 (xform (- o.x w) (- o.y h) m))
           (p1 (xform (+ o.x w) (- o.y h) m))
           (p2 (xform (+ o.x w) (+ o.y h) m))
@@ -269,9 +269,9 @@
 
 (defun load-image (sprite src x y)
   (let ((img (create-element "img")))
-    (setf (. img onload)
+    (setf img.onload
           (lambda (&rest args) (add-graphics sprite (image img x y))))
-    (setf (. img src) src)))
+    (setf img.src src)))
 
 ;;;;;;;;;;;;;;
 
@@ -307,15 +307,15 @@ Returns null for an empty sprite or (dx dy canvas) with delta being the translat
             (iy1 (+ (floor (fourth bb)) 2)))
         (let ((w (- ix1 ix0))
               (h (- iy1 iy0)))
-          (setf (. canvas width) w)
-          (setf (. canvas height) h)
-          (setf (. canvas style width) (+ w "px"))
-          (setf (. canvas style height) (+ h "px"))
-          (setf (. canvas style position) "absolute")
-          (setf (. canvas style left) (+ ix0 "px"))
-          (setf (. canvas style top) (+ iy0 "px"))
-          (let ((ctx (funcall (. canvas getContext) "2d")))
-            (funcall (. ctx setTransform)
+          (setf canvas.width w)
+          (setf canvas.height h)
+          (setf canvas.style.width (+ w "px"))
+          (setf canvas.style.height (+ h "px"))
+          (setf canvas.style.position "absolute")
+          (setf canvas.style.left (+ ix0 "px"))
+          (setf canvas.style.top (+ iy0 "px"))
+          (let ((ctx (canvas.getContext "2d")))
+            (funcall ctx.setTransform
                      [m 0] [m 1]
                      [m 2] [m 3]
                      (- [m 4] ix0) (- [m 5] iy0))
@@ -340,23 +340,23 @@ Returns null for an empty sprite or (dx dy canvas) with delta being the translat
           ;; No cache or matrix change is not a translation; canvas must be (re)computed
           (unless sprite.canvas
             (setf sprite.canvas (create-element "canvas"))
-            (append-child (. document body) sprite.canvas)
+            (append-child document.body sprite.canvas)
             (setf *zdirty* true))
           (setf sprite.cache (render sprite m sprite.canvas))
           (unless sprite.cache
-            (remove-child (. document body) sprite.canvas)
+            (remove-child document.body sprite.canvas)
             (setf sprite.canvas null)))
         (when sprite.canvas
           (setf (first sprite.cache) m)
-          (setf (. sprite.canvas style left)
+          (setf sprite.canvas.style.left
                 (+ [m 4] (second sprite.cache) "px"))
-          (setf (. sprite.canvas style top)
+          (setf sprite.canvas.style.top
                 (+ [m 5] (third sprite.cache) "px"))))))
   (when *zdirty*
     (setf *zdirty* false)
-    (let ((body (. document body)))
+    (let ((body document.body))
       (labels ((visit (sprite)
-                 (when sprite.canvas
+                   (when sprite.canvas
                    (append-child body sprite.canvas))
                  (map #'visit sprite.children)))
         (visit *root*)))))
@@ -365,14 +365,14 @@ Returns null for an empty sprite or (dx dy canvas) with delta being the translat
 
 ;; Input "glass" (covers everything intercepting and dispatching mouse events)
 (defvar *glass* (create-element "div"))
-(setf (. *glass* style position) "absolute")
-(setf (. *glass* style left) "0px")
-(setf (. *glass* style right) "0px")
-(setf (. *glass* style top) "0px")
-(setf (. *glass* style bottom) "0px")
-;(setf (. *glass* style backgroundColor) "rgba(255,0,0,0.25)")
-(setf (. *glass* style zIndex) 100)
-(append-child (. document body) *glass*)
+(setf *glass*.style.position "absolute")
+(setf *glass*.style.left "0px")
+(setf *glass*.style.right "0px")
+(setf *glass*.style.top "0px")
+(setf *glass*.style.bottom "0px")
+;(setf *glass*.style.backgroundColor "rgba(255,0,0,0.25)")
+(setf *glass*.style.zIndex 100)
+(append-child document.body *glass*)
 
 ;; Currently active tracker or null
 (defvar *tracking* null)
@@ -390,34 +390,34 @@ Returns null for an empty sprite or (dx dy canvas) with delta being the translat
   (labels ((check (s)
              (map #'check (reverse s.children))
              (when (and s.hit s.canvas)
-               (let ((sx (. s.canvas offsetLeft))
-                     (sy (. s.canvas offsetTop))
-                     (sw (. s.canvas width))
-                     (sh (. s.canvas height)))
+               (let ((sx s.canvas.offsetLeft)
+                     (sy s.canvas.offsetTop)
+                     (sw s.canvas.width)
+                     (sh s.canvas.height))
                  (when (and (<= sx x (+ sx sw -1))
                             (<= sy y (+ sy sh -1)))
-                   (let* ((ctx (funcall (. s.canvas getContext) "2d"))
-                          (idata (funcall (. ctx getImageData) (- x sx) (- y sy) 1 1)))
-                     (when (/= 0 [(. idata data) 3])
+                   (let* ((ctx (s.canvas.getContext "2d"))
+                          (idata (ctx.getImageData (- x sx) (- y sy) 1 1)))
+                     (when (/= 0 [idata.data 3])
                        (setf *tracking* s.hit)
                        (funcall *tracking* x y 0)
                        (return-from mouse-down))))))))
     (check *root*)))
 
-(setf (. *glass* onmousedown)
+(setf *glass*.onmousedown
       (lambda (event)
-        (funcall (. event preventDefault))
-        (mouse-down (. event clientX) (. event clientY))))
+        (event.preventDefault)
+        (mouse-down event.clientX event.clientY)))
 
-(setf (. *glass* onmouseup)
+(setf *glass*.onmouseup
       (lambda (event)
-        (funcall (. event preventDefault))
-        (mouse-up (. event clientX) (. event clientY))))
+        (event.preventDefault)
+        (mouse-up event.clientX event.clientY)))
 
-(setf (. *glass* onmousemove)
+(setf *glass*.onmousemove
       (lambda (event)
-        (funcall (. event preventDefault))
-        (mouse-move (. event clientX) (. event clientY))))
+        (event.preventDefault)
+        (mouse-move event.clientX event.clientY)))
 
 ;;;;;;;;;;;;;;
 
@@ -434,4 +434,3 @@ Returns null for an empty sprite or (dx dy canvas) with delta being the translat
         (setf yy y)))))
 
 (set-interval #'update 10)
-

@@ -25,7 +25,7 @@
 
 (setf (reader "[")
       (lambda (src)
-        (funcall src 1)
+        (next-char src)
         `(aref ,@(parse-delimited-list src "]"))))
 
 (defun matmul (a &rest others)
