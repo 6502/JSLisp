@@ -70,8 +70,6 @@
 window.onerror = function(m)
 {
     f$$display("** RUNTIME ERROR **: " + m);
-    f$$stack_trace((m && m.location) || global_unwinding_trace);
-    global_unwinding_trace = [];
     f$$display(";; Ready\n");
 };
 

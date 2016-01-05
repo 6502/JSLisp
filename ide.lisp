@@ -749,10 +749,7 @@
                   (sources.add file editor true)))
               (let** ((content (editor.buffer))
                       (line (1- (length (split (slice content 0 c0) "\n")))))
-                (editor.set-pos (max 0 (- line 10)) 0
-                                (max 0 (- line 10)) 0)
-                (set-timeout (lambda () (editor.set-pos line 0 line 0))
-                             100)
+                (editor.set-pos line 0 line 0)
                 (sources.select (sources.page-index editor)))))
           (#'resize ()
             (when (or (/= last-width (screen-width))
@@ -770,8 +767,11 @@
           (#'handle-runtime-error (x)
             (when (and x x.error x.stack_trace)
               (baloon ~"ERROR: {x.error}" 4000 "rgba(255,0,0,0.75)")
-              (setf err-stack-trace x.stack_trace)
-              (setf err-stack-level (1- (length x.stack_trace)))
+              (setf err-stack-trace (map (lambda (s)
+                                           (let (((file from to) (split s ":")))
+                                             (list file (atoi from) (atoi to))))
+                                         x.stack_trace))
+              (setf err-stack-level 0)
               (zoom)
               (show-error-location)))
           (#'show-error-location ()
@@ -852,11 +852,11 @@
                   (*ilisp*.send "quiet-lisp" ~"(setf :*debug* {debug-mode})")
                   ((sources.current).ilisp-exec
                    (make-source ((sources.current).buffer) ((sources.current).name))))
-                ("err-stack-up"
+                ("err-stack-down"
                   (when (> err-stack-level 0)
                     (decf err-stack-level)
                     (show-error-location)))
-                ("err-stack-down"
+                ("err-stack-up"
                   (when (< err-stack-level (1- (length err-stack-trace)))
                     (incf err-stack-level)
                     (show-error-location)))

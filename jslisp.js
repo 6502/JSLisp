@@ -1281,33 +1281,24 @@ if (typeof window !== "undefined")
 
 d$$$42_error_location$42_ = null;
 
-var global_unwinding_trace = [];
-var d$$$42_stack_trace$42_ = [];
-
 function erl(x, f)
 {
-    d$$$42_stack_trace$42_.push(x);
-    try
-    {
-        try
-        {
-            return f();
-        }
-        catch(err)
-        {
-            if (up && !err._seen) {
+    try {
+        return f();
+    } catch(err) {
+        if (err instanceof Error) {
+            err = {error: err+"",
+                   stack_trace: []};
+            setTimeout(function(){
                 up({id: id,
                     req: -1,
-                    reply: {error: err+"",
-                            stack_trace: d$$$42_stack_trace$42_.slice()}});
-                err._seen = true;
-            }
-            throw err;
+                    reply: err});
+            }, 0);
         }
-    }
-    finally
-    {
-        d$$$42_stack_trace$42_.pop();
+        if (err.stack_trace) {
+            err.stack_trace.push(x);
+        }
+        throw err;
     }
 }
 
@@ -1398,7 +1389,7 @@ defun("js-compile",
                       {
                           wrapper = function(r) {
                               return ("erl(" +
-                                      stringify(x.location) +
+                                      "\"" + x.location.join(":") + "\"" +
                                       ",function(){return(" +
                                       r +
                                       ")})");
