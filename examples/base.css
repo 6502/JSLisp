@@ -44,6 +44,8 @@ input[type=button] {
   font-family: sans-serif;
   font-weight: bold;
   box-shadow: 2px 2px 1px rgba(0,0,0,0.25);
+  margin-left: 8px;
+  margin-right: 8px;
 }
 
 input[type=button]:active {
