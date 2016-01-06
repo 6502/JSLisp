@@ -829,8 +829,12 @@
 (test (let ((f (list)))
         (dotimes (i 10)
           (push (lambda () i) f))
+        (dotimes (i 7 10)
+          (push (lambda () i) f))
+        (dotimes (i 7 0 -2)
+          (push (lambda () i) f))
         (map #'funcall f))
-      "(0 1 2 3 4 5 6 7 8 9)")
+      "(0 1 2 3 4 5 6 7 8 9 7 8 9 7 5 3 1)")
 
 (test (let ((x0 100)
             (x 150)

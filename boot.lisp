@@ -489,25 +489,44 @@
 
 ;; Dotimes macro
 (defmacro dotimes (var+count &rest body)
-  "Evaluates [body] forms after binding [var] to 0, 1, ... [(1- count)].
-   [var] receives a new fresh binding for each iteration. See also {{dolist}} \
-   and {{enumerate}}.[[\
+  "Evaluates [body] forms after binding [var] to 0, 1, ... [(1- count)] or
+    [start], [(1+ start)], ... [(1- stop)] when two arguments are present after `var` or
+    [start], [(+ start step)], [(+ start (* 2 step))] ... when three are present.
+    [var] receives a new fresh binding for each iteration. See also {{dolist}}\
+    and {{enumerate}}.[[\
    (let ((res (list)))
      (dotimes (i 10)
        (push (lambda () i) res))
+     (dotimes (i 7 0 -2)
+       (push (lambda () i) res))
      (map #'funcall res))
-   ;; ==> (0 1 2 3 4 5 6 7 8 9)
+   ;; ==> (0 1 2 3 4 5 6 7 8 9 7 5 3 1)
    ]]"
   (declare (ignorable var+count))
-  (list 'js-code (+ "((function(n){var f="
-                    (js-compile (append (list 'lambda
-                                              (list (js-code "d$$var$43_count[0]")))
-                                        body))
-                    ";if(typeof n !== 'number'){"
-                      "f$$error('not a number in dotimes');"
-                    "}for(var i=0;i<n;i++){tock();f(i)}})("
-                    (js-compile (js-code "d$$var$43_count[1]"))
-                    "))")))
+  (if (< (length var+count) 4)
+      (list 'js-code (+ "((function(i0,i1){var f="
+                        (js-compile (append (list 'lambda
+                                                  (list (js-code "d$$var$43_count[0]")))
+                                            body))
+                        ";for(var i=i0;i<i1;i++){tock();f(i)}})("
+                        (if (= (length var+count) 3)
+                            (+ (js-compile (js-code "d$$var$43_count[1]"))
+                               ","
+                               (js-compile (js-code "d$$var$43_count[2]")))
+                            (+ "0," (js-compile (js-code "d$$var$43_count[1]"))))
+                        "))"))
+      (list 'js-code (+ "((function(i0,i1,s){var f="
+                        (js-compile (append (list 'lambda
+                                                  (list (js-code "d$$var$43_count[0]")))
+                                            body))
+                        ";if(s>0){for(var i=i0;i<i1;i+=s){tock();f(i)}}"
+                        "else{for(var i=i0;i>i1;i+=s){tock();f(i)}}})("
+                        (+ (js-compile (js-code "d$$var$43_count[1]"))
+                           ","
+                           (js-compile (js-code "d$$var$43_count[2]"))
+                           ","
+                           (js-compile (js-code "d$$var$43_count[3]")))
+                        "))"))))
 
 ;; Enumeration macro
 (defmacro enumerate (index+var+list &rest body)
