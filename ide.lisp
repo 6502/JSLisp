@@ -669,10 +669,11 @@
     w))
 
 (defun main ()
-  ;; Block ctrl-R at toplevel
+  ;; Block ctrl-R and ctrl-W at toplevel
   (set-handler document.body onkeydown
     (if (and event.ctrlKey
-             (= event.which #.(char-code "R")))
+             (or (= event.which #.(char-code "R"))
+                 (= event.which #.(char-code "W"))))
         (progn
           (event.stopPropagation)
           (event.preventDefault)
