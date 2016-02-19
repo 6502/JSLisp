@@ -3873,9 +3873,9 @@ A name is either an unevaluated atom or an evaluated list."
     `(progn
        ,@(if (symbol-function name)
              (list)
-             `((defun ,name ,args
-                 (declare (ignorable ,@args))
-                 (error ,~"No matching method [{name}]"))))
+             `((setf (function ,name) (lambda ,args
+                                        (declare (ignorable ,@args))
+                                        (error ,~"No matching method [{name}]")))))
        (setf #',of #',name)
        (setf #',name
              (lambda ,args
