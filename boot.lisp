@@ -4374,15 +4374,37 @@ A name is either an unevaluated atom or an evaluated list."
     ((symbol? expr) (lextype expr))
     ((and (list? expr)
           (symbol? (first expr)))
-     (let ((f (or (lexical-function (first expr))
-                  (symbol-function (first expr)))))
-       (and f f.fti (aref f.fti ""))))))
+     (cond
+       ((= (first expr) 'progn)
+        (typeof (last expr)))
+       ((= (first expr) 'setq)
+        (typeof (third expr)))
+       ((= (first expr) 'if)
+        (list 'or (typeof (third expr)) (typeof (fourth expr))))
+       ((= (first expr) 'lambda)
+        ':function)
+       ((= (first expr) 'quote)
+        (cond
+          ((string? (second expr)) ':string)
+          ((number? (second expr)) ':number)
+          ((bool? (second expr)) ':bool)
+          ((undefined? (second expr)) ':undefined)
+          ((symbol? (second expr)) ':symbol)
+          ((list? (second expr)) ':list)
+          ((null? (second expr)) ':null)))
+       (true
+         (let ((f (or (lexical-function (first expr))
+                      (symbol-function (first expr)))))
+           (and f f.fti (aref f.fti ""))))))))
 
 (defun type-match (v t)
-  (if (and (list? t)
-           (= (first t) 'or))
-      (any (st (rest t)) (type-match v st))
-      (= v t)))
+  (cond
+    ((and (list? t) (= (first t) 'or))
+     (any (st (rest t)) (type-match v st)))
+    ((and (list? v) (= (first v) 'or))
+     (all (sv (rest v)) (or (not sv) (type-match sv t))))
+    (true
+      (= v t))))
 
 (defun typecheck (form func)
   (do ((i 1)
@@ -4399,7 +4421,7 @@ A name is either an unevaluated atom or an evaluated list."
           (when (and vtype argtype
                      (not (type-match vtype argtype)))
             (warning ~"Type mismatch for parameter {argname} \
-                       ('{argtype}' expected, '{vtype}' passed) in {(str-value form)}."))
+                       ({(str-value argtype)} expected, {(str-value vtype)} passed) in {(str-value form)}."))
           (incf i)
           (incf j)))))
 
