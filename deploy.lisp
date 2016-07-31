@@ -90,6 +90,8 @@ reverse engineering point of view.
       ;; Remove unneeded quotes in object field ids
       (setf s (replace s "{\"([a-zA-Z_$][a-zA-Z_$0-9]*)\":" "{$1:"))
       (setf s (replace s ",\"([a-zA-Z_$][a-zA-Z_$0-9]*)\":" ",$1:"))
+      ;; Fix return(undefined,undefined,undefined,42)
+      (setf s (replace s "return\\((undefined,)+" "return("))
       ;; Add used literals definitions
       (let ((ldef ""))
         (dolist (key (keys rlits))
