@@ -3142,6 +3142,7 @@ A name is either an unevaluated atom or an evaluated list."
        (defun ,(intern ~"new-{name}") (&optional ,@fields)
          ,~"Creates a new instance of {name}"
          (declare (ignorable ,@fields))
+         (declare (return-type (object ,name)))
          ;; Next line is a NOP but needed for deploy machinery
          (deploy-ref (function ,#"{name}-constructor")
                      ',class)
@@ -4406,24 +4407,39 @@ A name is either an unevaluated atom or an evaluated list."
     (true
       (= v t))))
 
+(defun . (obj &rest fields)
+  (dolist (f fields)
+    (setf obj (aref obj f)))
+  obj)
+
 (defun typecheck (form func)
-  (do ((i 1)
-       (j 0)
-       (args func.arglist))
-    ((or (>= j (length args)) (>= i (length form))))
-    (if (find (aref args j) '(&key &optional &rest))
-        (incf j)
-        (let* ((argname (if (list? (aref args j))
-                            (first (aref args j))
-                            (aref args j)))
-               (argtype (aref func.fti argname.name))
-               (vtype (typeof (aref form i))))
-          (when (and vtype argtype
-                     (not (type-match vtype argtype)))
-            (warning ~"Type mismatch for parameter {argname} \
-                       ({(str-value argtype)} expected, {(str-value vtype)} passed) in {(str-value form)}."))
-          (incf i)
-          (incf j)))))
+  (if (= (first form) '.)
+      (let ((obj (typeof (second form))))
+        (when (and (list? obj)
+                   (= (first obj) 'object))
+          (let ((descr (aref *constructors* (symbol-full-name (second obj)))))
+            (when (and (list? descr)
+                       (list? (first descr))
+                       (symbol? (third form))
+                       (not (find (symbol-name (third form)) (first descr))))
+              (warning ~"Field '{(symbol-name (third form))}' is not part of objects of type '{(second obj)}'")))))
+      (do ((i 1)
+           (j 0)
+           (args func.arglist))
+        ((or (>= j (length args)) (>= i (length form))))
+        (if (find (aref args j) '(&key &optional &rest))
+            (incf j)
+            (let* ((argname (if (list? (aref args j))
+                                (first (aref args j))
+                                (aref args j)))
+                   (argtype (aref func.fti argname.name))
+                   (vtype (typeof (aref form i))))
+              (when (and vtype argtype
+                         (not (type-match vtype argtype)))
+                (warning ~"Type mismatch for parameter {argname} \
+                           ({(str-value argtype)} expected, {(str-value vtype)} passed) in {(str-value form)}."))
+              (incf i)
+              (incf j))))))
 
 (setf #'static-check-args
       (let ((ccheck #'static-check-args))
