@@ -2,8 +2,7 @@
 (import * from layout)
 
 (setf *font* "\"Droid Sans Mono\",\"Courier New\",\"Courier\",monospace")
-(setf *fontsz* 18)
-(setf *line* 21)
+(setf *fontsz* 16)
 
 (defvar *edit-commands* #(("copy" "Clipboard copy (works only when bound to OS default)")
                           ("cut" "Clipboard cut (works only when bound to OS default)")
@@ -320,7 +319,16 @@
                                position "absolute"))
             (lines (list))
             (cw null)
-            (ch *line*)
+            (ch (let ((d (create-element "div"))
+                      (r null))
+                  (set-style d
+                             fontFamily *font*
+                             fontSize (+ *fontsz* "px"))
+                  (setf d.textContent "gj")
+                  (document.body.appendChild d)
+                  (setf r (d.getBoundingClientRect))
+                  (document.body.removeChild d)
+                  (- r.bottom r.top)))
             (top 0)
             (left 0)
             (row 0)
@@ -476,13 +484,13 @@
                                              "})]"))
                               (let ((m (mode.parmatch lines row col)))
                                 (when m
-                                  (let ((y0 (* (- (first m) top) *line*))
+                                  (let ((y0 (* (- (first m) top) ch))
                                         (x0 (* (- (second m) left) cw))
-                                        (y1 (* (- row top) *line*))
+                                        (y1 (* (- row top) ch))
                                         (x1 (* (- col left 1) cw)))
                                     (setf ctx.fillStyle "rgba(255,0,0,0.25)")
-                                    (ctx.fillRect x0 y0 (+ cw 2) (+ *line* 2))
-                                    (ctx.fillRect x1 y1 (+ cw 2) (+ *line* 2))
+                                    (ctx.fillRect x0 y0 (+ cw 2) (+ ch 2))
+                                    (ctx.fillRect x1 y1 (+ cw 2) (+ ch 2))
                                     (setf info (+ "Match: \""
                                                   (slice (aref lines (first m)).text
                                                          (second m)
@@ -540,7 +548,7 @@
                     (when (and focused (= cr row))
                       (setf ctx.fillStyle "#FF0000")
                       (ctx.fillRect (* cw (- col left)) (* ch (- cr top))
-                                    2 *line*))
+                                    2 ch))
                     (incf cr)))))
             (#'words ()
               (let* ((nonword (regexp (or mode.nonword "[^a-zA-Z_]")))
