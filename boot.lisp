@@ -4402,10 +4402,10 @@ A name is either an unevaluated atom or an evaluated list."
 
 (defun type-match (v t)
   (cond
-    ((and (list? t) (= (first t) 'or))
-     (any (st (rest t)) (type-match v st)))
     ((and (list? v) (= (first v) 'or))
      (all (sv (rest v)) (or (not sv) (type-match sv t))))
+    ((and (list? t) (= (first t) 'or))
+     (any (st (rest t)) (type-match v st)))
     (true
       (= v t))))
 
