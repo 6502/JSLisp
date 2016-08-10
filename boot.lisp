@@ -3142,7 +3142,7 @@ A name is either an unevaluated atom or an evaluated list."
        (defun ,(intern ~"new-{name}") (&optional ,@fields)
          ,~"Creates a new instance of {name}"
          (declare (ignorable ,@fields))
-         (declare (return-type (object ,name)))
+         (declare (return-type ,name))
          ;; Next line is a NOP but needed for deploy machinery
          (deploy-ref (function ,#"{name}-constructor")
                      ',class)
@@ -4062,11 +4062,6 @@ A name is either an unevaluated atom or an evaluated list."
   (declare (return-type string))
   (js-code "(encodeURIComponent(d$$x))"))
 
-;; Lexical symbol properties support
-(defun lexical-property (x name)
-  (declare (ignorable x name))
-  (js-code "(lexvar.props[d$$x.name][d$$name])"))
-
 ;; Conditions
 
 (defvar *condition-handlers* (js-object (* (list))))
@@ -4361,9 +4356,16 @@ A name is either an unevaluated atom or an evaluated list."
 
 ;; Compile-time type checking
 
+(defun lexvar (x)
+  (aref (js-code "lexvar").props (+ "!" x.name)))
+
 (defun lextype (x)
   (let ((p (aref (js-code "lexvar").props (+ "!" x.name))))
     (and p p.type)))
+
+(defun set-lextype (x value)
+  (let ((p (aref (js-code "lexvar").props (+ "!" x.name))))
+    (setf p.type value)))
 
 (defun typeof (expr)
   (cond
@@ -4415,14 +4417,13 @@ A name is either an unevaluated atom or an evaluated list."
 (defun typecheck (form func)
   (if (= (first form) '.)
       (let ((obj (typeof (second form))))
-        (when (and (list? obj)
-                   (= (first obj) 'object))
-          (let ((descr (aref *constructors* (symbol-full-name (second obj)))))
+        (when (symbol? obj)
+          (let ((descr (aref *constructors* (symbol-full-name obj))))
             (when (and (list? descr)
                        (list? (first descr))
                        (symbol? (third form))
                        (not (find (symbol-name (third form)) (first descr))))
-              (warning ~"Field '{(symbol-name (third form))}' is not part of objects of type '{(second obj)}'")))))
+              (warning ~"Field '{(symbol-name (third form))}' is not part of objects of type '{obj}'")))))
       (do ((i 1)
            (j 0)
            (args func.arglist))
@@ -4447,3 +4448,30 @@ A name is either an unevaluated atom or an evaluated list."
           (funcall ccheck form func)
           (when func.fti
             (typecheck form func)))))
+
+(defmacro locally (clauses &rest body)
+  (let ((ot (list)))
+    (dolist (x clauses)
+      (unless (and (list? x) (= (first x) 'type))
+        (error "Syntax is (locally ((type <type> ...) ...) <expr1> ...)"))
+      (dolist (v (slice x 2))
+        (push (list v (lextype v)) ot)
+        (setf (lextype v) (aref x 1))))
+    (let ((res (js-compile `(progn ,@body))))
+      (dolist ((v t) ot)
+        (setf (lextype v) t))
+      `(js-code ,res))))
+
+(setf (symbol-macro 'if)
+      (let ((oif (symbol-macro 'if)))
+        (lambda (test when-true &optional when-false)
+          (when (and (list? test)
+                     (= (length test) 2)
+                     (symbol? (first test))
+                     (symbol? (second test))
+                     (lexvar (second test))
+                     (= (last (symbol-name (first test))) "?"))
+            (setf when-true
+                  `(locally ((type ,(intern (slice (symbol-full-name (first test)) 0 -1)) ,(second test)))
+                     ,when-true)))
+          (funcall oif test when-true when-false))))
