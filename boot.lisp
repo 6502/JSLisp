@@ -103,13 +103,7 @@
           (list 'unless (list 'symbol-function (list 'quote name))
                 (list 'set-symbol-function
                       (list 'quote name)
-                      (list 'lambda args
-                            (list 'declare (append (list 'ignorable) args))))
-                ;; Sets the arglist for this function so static check
-                ;; can be performed also on recursive functions
-                (list 'set-arglist
-                      (list 'symbol-function (list 'quote name))
-                      (list 'quote args)))
+                      (list 'lambda args '(declare (ignorable *)))))
           (list 'set-symbol-function
                 (list 'quote name)
                 (append (list 'lambda args) body))
@@ -1416,7 +1410,7 @@
 
 (defun gensym-prefix (prefix)
   "Returns a new uninterned unique symbol using the specified [prefix]"
-  (make-symbol (+ "G#" prefix "/"
+  (make-symbol (+ "G#" prefix "-"
                   (setq *gensym-count* (+ 1 *gensym-count*)))))
 
 (defun gensym-noprefix ()
@@ -2328,14 +2322,44 @@ The resulting list length is equal to the first input sequence."
   "Returns [true] if symbol [s] is a special (dynamic) variable."
   `(js-code ,(+ "(!!specials[(" (js-compile s) ").name])")))
 
+;; argument type declaration
+
+(setf (symbol-macro 'lambda)
+      (let* ((oldcf (symbol-macro 'lambda))
+             (olddoc (documentation oldcf))
+             (f (lambda (args &rest body)
+                  (let* ((doc (if (and (> (length body) 1)
+                                       (string? (first body)))
+                                  (splice body 0 1)
+                                  (list)))
+                         (decls (list)))
+                    (dotimes (i (length args))
+                      (let* ((fn (symbol-name (aref args i)))
+                             (ix (index "/" fn)))
+                        (when (and (> ix 0) (< ix (1- (length fn))))
+                          (let ((ns (intern (slice fn 0 ix)))
+                                (nt (intern (slice fn (1+ ix)))))
+                            (push `(type ,nt ,ns) decls)
+                            (setf (aref args i) ns)))))
+                    (apply oldcf `(,args
+                                   ,@doc
+                                   ,@(if (length decls)
+                                         `((declare ,@decls))
+                                         (list))
+                                   ,@body))))))
+        (setf (documentation f) olddoc)
+        (setf (arglist f) (arglist oldcf))
+        f))
+
 ;; &optional
 
 (setf (symbol-macro 'lambda)
       (let* ((oldcf (symbol-macro 'lambda))
              (olddoc (documentation oldcf))
              (f (lambda (args &rest body)
-                  (let* ((doc (if (string? (first body))
-                                  (js-code "d$$body.slice(0,1)")
+                  (let* ((doc (if (and (> (length body) 1)
+                                       (string? (first body)))
+                                  (splice body 0 1)
                                   (list)))
                          (i (index '&optional args)))
                     (if (= i -1)
@@ -2383,33 +2407,36 @@ The resulting list length is equal to the first input sequence."
                               (ix '#.(gensym-prefix "ix")))
                           (unless (= -1 (index '&rest args))
                             (error "&key and &rest are incompatible"))
-                          (apply oldcf `((,@(slice args 0 i) &rest ,rest)
-                                         (let ((,nrest (length ,rest))
-                                               ,@(map (lambda (x)
-                                                        (if (list? x)
-                                                            `(,(first x) ',undefined)
-                                                            `(,x undefined)))
-                                                   (slice args (1+ i))))
-                                           (do ((,ix 0 (+ ,ix 2)))
-                                               ((>= ,ix ,nrest)
-                                                  (when (> ,ix ,nrest)
-                                                    (error "Invalid number of parameters")))
-                                             (cond
-                                               ,@(append
-                                                  (map (lambda (x)
-                                                         `((= (aref ,rest ,ix)
-                                                              ,(intern (+ (symbol-name (if (list? x) (first x) x)) ":")))
-                                                           (setf ,(if (list? x) (first x) x) (aref ,rest (1+ ,ix)))))
-                                                       (slice args (1+ i)))
-                                                  `((true (error "Invalid parameters"))))))
-                                           ,@(let ((res (list)))
-                                               (dolist (x (slice args (1+ i)))
-                                                 (when (list? x)
-                                                   (push `(when (undefined? ,(first x))
-                                                            (setf ,(first x) ,(second x)))
-                                                         res)))
-                                               res)
-                                           ,@body)))))))))
+                          (let ((res (apply oldcf `((,@(slice args 0 i) &rest ,rest)
+                                                    (let ((,nrest (length ,rest))
+                                                          ,@(map (lambda (x)
+                                                                   (if (list? x)
+                                                                       `(,(first x) ',undefined)
+                                                                       `(,x undefined)))
+                                                                 (slice args (1+ i))))
+                                                      (do ((,ix 0 (+ ,ix 2)))
+                                                          ((>= ,ix ,nrest)
+                                                           (when (> ,ix ,nrest)
+                                                             (error "Invalid number of parameters")))
+                                                        (cond
+                                                         ,@(append
+                                                            (map (lambda (x)
+                                                                   `((= (aref ,rest ,ix)
+                                                                        ,(intern (+ (symbol-name (if (list? x) (first x) x)) ":")))
+                                                                     (setf ,(if (list? x) (first x) x) (aref ,rest (1+ ,ix)))))
+                                                                 (slice args (1+ i)))
+                                                            `((true (error "Invalid parameters"))))))
+                                                      ,@(let ((res (list)))
+                                                          (dolist (x (slice args (1+ i)))
+                                                            (when (list? x)
+                                                              (push `(when (undefined? ,(first x))
+                                                                       (setf ,(first x) ,(second x)))
+                                                                    res)))
+                                                          res)
+                                                      ,@body)))))
+                            `(let ((res ,res))
+                               (setf (arglist res) ',args)
+                               res))))))))
         (setf (documentation f) oldcomm)
         (setf (arglist f) (arglist oldcf))
         f))
@@ -2420,8 +2447,9 @@ The resulting list length is equal to the first input sequence."
       (let* ((oldcf (symbol-macro 'lambda))
              (olddoc (documentation oldcf))
              (f (lambda (args &rest body)
-                  (let* ((doc (if (string? (first body))
-                                  (js-code "d$$body.slice(0,1)")
+                  (let* ((doc (if (and (> (length body) 1)
+                                       (string? (first body)))
+                                  (splice body 0 1)
                                   (list)))
                          (dslist (list))
                          (oargs (slice args)))
@@ -3798,7 +3826,7 @@ A name is either an unevaluated atom or an evaluated list."
           (lambda (name args &rest body)
             (let ((doc (if (and (> (length body) 1)
                                 (string? (first body)))
-                           (js-code "d$$body.splice(0,1)")
+                           (splice body 0 1)
                            (list))))
               (apply om `(,name ,args ,@doc (block ,name ,@body)))))))
   (setf (documentation (symbol-macro 'defun) odoc))
@@ -3811,7 +3839,7 @@ A name is either an unevaluated atom or an evaluated list."
         (lambda (args &rest body)
           (let ((doc (if (and (> (length body) 1)
                               (string? (first body)))
-                         (js-code "d$$body.splice(0,1)")
+                         (splice body 0 1)
                          (list))))
             (apply om `(,args
                         ,@doc

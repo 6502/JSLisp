@@ -146,6 +146,8 @@ function Namespace()
     this.begin = function()
     {
         this.stack.push(false);
+        this.stack.push(["", this.vars[""], this.props[""]]);
+        this.props[""] = {};
         this.current_frame += 1;
     };
 
@@ -155,7 +157,11 @@ function Namespace()
             throw new String("Internal error: Stack underflow in Namespace.end()");
         for (var x=this.stack.pop(); x; x=this.stack.pop())
         {
-            if (warn_unused && !this.props[x[0]].used && !this.props[x[0]].ignorable)
+            if (warn_unused &&
+                x[0] !== "" &&
+                !this.props[""].ignorable &&
+                !this.props[x[0]].used &&
+                !this.props[x[0]].ignorable)
                 f$$warning("Local name " +
                            f$$demangle(x[0].substr(1)) +
                            " defined but not used");
@@ -1355,10 +1361,14 @@ defun("js-compile",
                   if (f$$list$63_(decl)) {
                       var d = decl[0];
                       if (d === s$$ignorable) {
-                          for (var i=1; i<decl.length; i++)
-                          {
-                              var p = lexvar.props["!" + decl[i].name];
-                              if (p) p.ignorable = true;
+                          if (decl.length === 2 && decl[1].name === "$$$42_") {
+                              lexvar.props[""].ignorable = true;
+                          } else {
+                              for (var i=1; i<decl.length; i++)
+                              {
+                                  var p = lexvar.props["!" + decl[i].name];
+                                  if (p) p.ignorable = true;
+                              }
                           }
                       } else if (d === s$$type) {
                           for (var i=2; i<decl.length; i++) {
