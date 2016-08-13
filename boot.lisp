@@ -158,7 +158,7 @@
 
 ;; Simple versions of a few operators needed for bootstrap, they will be redefined
 (defun = (a b) (declare (ignorable a b)) (js-code "(d$$a===d$$b)"))
-(defun /= (a b) (declare (ignorable a b)) (js-code "(d$$a/=d$$b)"))
+(defun /= (a b) (declare (ignorable a b)) (js-code "(d$$a!=d$$b)"))
 (defun < (a b) (declare (ignorable a b)) (js-code "(d$$a<d$$b)"))
 (defun > (a b) (declare (ignorable a b)) (js-code "(d$$a>d$$b)"))
 (defun - (a b) (declare (ignorable a b)) (js-code "(d$$a-d$$b)"))
@@ -598,6 +598,7 @@
    ]]"
   (declare (ignorable value list))
   (declare (type list list))
+  (declare (return-type number))
   (js-code "d$$list.push(d$$value)"))
 
 (defmacro push (x L)
@@ -637,6 +638,7 @@
    ]]"
   (declare (ignorable x))
   (declare (type (or list string) x))
+  (declare (return-type (or list string)))
   (js-code "(d$$x.slice(1))"))
 
 (defmacro splice (x &optional start size)
@@ -850,7 +852,9 @@
    macro is present then function call code is generated.
    [defmacro/f] allows defining both the function and the macro \
    version providing only the macro (the function body will contain \
-   a macro invocation). Variadic functions are NOT suported.[[\
+   a macro invocation). Variadic functions are NOT suported. \
+   Note that docstring and (declare ...) forms will be placed \
+   only in the function and not in the macro.[[\
    (deftuple rgb (r g b))
    ;; ==> rgb
 
@@ -866,14 +870,20 @@
    ;; ==> \"(d$$x[0])\"
    ]]"
   (setq name (module-symbol name))
-  `(progn
-     (defmacro ,name ,args
-       ,@body)
-     (defun ,name ,args
-       (,name ,@(js-code "d$$args.filter(function(x){return x!=s$$$38_optional})")))
-     (set-documentation (symbol-function ',name)
-                        (documentation (symbol-macro ',name)))
-     ',name))
+  (let ((doc (if (and (> (length body) 1)
+                      (string? (aref body 0)))
+                 (splice body 0 1)
+                 (list))))
+    (do () ((or (not (list? (aref body 0)))
+                (/= (aref body 0 0) 'declare)))
+      (push (aref (splice body 0 1) 0) doc))
+    `(progn
+       (defmacro ,name ,args
+         ,@body)
+       (defun ,name ,args
+         ,@doc
+         (,name ,@(js-code "d$$args.filter(function(x){return x!=s$$$38_optional})")))
+       ',name)))
 
 ;; List utilities
 (defmacro/f slice (x &optional start end)
