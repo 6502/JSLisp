@@ -928,6 +928,8 @@
      (= x (reverse x)))
    ;; ==> false
    ]]"
+  (declare (type list list)
+           (return-type list))
   `(js-code ,(+ "(" (js-compile list) ".slice().reverse())")))
 
 (defmacro/f nreverse (list)
@@ -940,6 +942,8 @@
      (list x (nreverse x)))
    ;; ==> ((4 3 2 1 0) #1)
    ]]"
+  (declare (type list list)
+           (return-type list))
   `(js-code ,(+ "(" (js-compile list) ".reverse())")))
 
 (defmacro defnth-accessor (name i)
@@ -956,6 +960,7 @@
          "  (aref x " i "))\n"
          ";; ==> " (+ 1 i) "\n"
          "]]")
+     (declare (type (or string list) x))
      (list 'aref x ,i)))
 
 (defnth-accessor first   0)
@@ -971,11 +976,14 @@
 
 (defun list= (a b)
   "True iff lists [a] and [b] have the same elements"
+  (declare (type list a b)
+           (return-type bool))
   (if (= (length a) (length b))
       (do ((n (length a))
            (i 0 (+ i 1)))
         ((or (= i n) (not (= (aref a i) (aref b i))))
-         (= i n)))))
+         (= i n)))
+      false))
 
 ;; String splitting and joining
 (defmacro/f split (x separator)
@@ -1019,6 +1027,8 @@
    (split \"07/07/1966\" (regexp \"([-/.])\"))
    ;; ==> (\"07\" \"/\" \"07\" \"/\" \"1966\")
    ]]"
+  (declare (type string x)
+           (return-type list))
   `(js-code ,(+ "("
                 (js-compile x)
                 ".split("
@@ -1042,6 +1052,9 @@
    (join (split \"Andrea\" \"\") \"\")
    ;; ==> \"Andrea\"
    ]]"
+  (declare (type list x)
+           (type string separator)
+           (return-type string))
   `(js-code ,(+ "("
                 (js-compile x)
                 ".join("
@@ -1464,11 +1477,7 @@
                   (= i n))
              (setq current (aref args i)))))
      (set-documentation (symbol-function ',name)
-                        (documentation (symbol-macro ',name)))
-     ;; Trick... fixes macro documentation here
-     (set-documentation (symbol-macro ',name)
-                        (+ (documentation (symbol-macro ',name))
-                           " Evaluation is short-circuiting."))))
+                        (documentation (symbol-macro ',name)))))
 
 (defrelop <  "Strictly less than comparison.
               The test is true if arguments are in a strictly increasing chain \
@@ -1846,6 +1855,7 @@
       (list (pop a) (pop a) a))
    ;; ==> (9 8 (0 1 2 3 4 5 6 7))
    ]]"
+  (declare (type list x))
   `(js-code ,(+ "(" (js-compile x) ".pop())")))
 
 (defmacro/f empty (x)
@@ -1854,6 +1864,7 @@
 
 (defun last (x)
   "Last element of list/string [x]."
+  (declare (type (or list string) x))
   (aref x (1- (length x))))
 
 (defmacro last (x)
@@ -1869,6 +1880,7 @@
    function [f] to pairs of elements in the sequence [seq]. For an empty
    sequence the return value is the result of calling the function
    without parameters"
+  (declare (type (or list string) seq))
   (if (= 0 (length seq))
       (funcall f)
       (let ((res (first seq)))
@@ -1954,11 +1966,32 @@
    (index NaN (list 1 2 NaN 3 4))
    ;; ==> -1
    ]]"
-  (declare (ignorable x L))
-  (declare (return-type number))
-  (if start
-      (js-code "d$$L.indexOf(d$$x,d$$start)")
-      (js-code "d$$L.indexOf(d$$x)")))
+  (declare (ignorable x L)
+           (type (or string list) L)
+           (type number start)
+           (return-type number))
+  (js-code "d$$L.indexOf(d$$x,d$$start||0)"))
+
+(defmacro index (x L &optional start)
+  (setf L (symbol-macro-expand L))
+  (cond
+   ((or (symbol? L)
+        (string? L)
+        (and (list? L)
+             (= (length L) 2)
+             (= (first L) 'quote)))
+    `(js-code ,(+ "(" (js-compile L)
+                  ").indexOf("
+                  (js-compile x)
+                  (if (undefined? start)
+                      ")"
+                      (+ ",("
+                         (js-compile start)
+                         ")||0)")))))
+   ((undefined? start)
+    `(funcall #'index ,x ,L))
+   (true
+    `(funcall #'index ,x ,L ,start))))
 
 (defun last-index (x L)
   "Returns the last index position in which [x] \
@@ -1977,8 +2010,9 @@
    (last-index NaN (list 1 2 NaN 3 4))
    ;; ==> -1
    ]]"
-  (declare (ignorable x L))
-  (declare (return-type number))
+  (declare (ignorable x L)
+           (type (or list string) L)
+           (return-type number))
   (js-code "d$$L.lastIndexOf(d$$x)"))
 
 (defun find (x L)
@@ -1996,7 +2030,8 @@
    (find NaN (list 1 2 NaN 3 4))
    ;; ==> false
    ]]"
-  (declare (return-type bool))
+  (declare (type (or list string) x)
+           (return-type bool))
   (/= -1 (index x L)))
 
 (defun map (f &rest lists)
@@ -2332,7 +2367,7 @@ The resulting list length is equal to the first input sequence."
   "Returns [true] if symbol [s] is a special (dynamic) variable."
   `(js-code ,(+ "(!!specials[(" (js-compile s) ").name])")))
 
-;; argument type declaration
+;; argument type declaration shortcut
 
 (setf (symbol-macro 'lambda)
       (let* ((oldcf (symbol-macro 'lambda))
