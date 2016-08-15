@@ -261,68 +261,69 @@
              ((i j) (apply #'ij rp)))
         (setf lastpos (list i j))))
     (set-handler document onkeydown
-      (when (and lastpos
-                 (list? lastpos)
-                 (= 2 (length lastpos))
-                 (<= 0 (first lastpos) 7)
-                 (<= 0 (second lastpos) 7))
-        (let** (((i j) lastpos)
-                (ix (+ (* 8 i) (- 7 j)))
-                (pcodes '#.(map #'char-code "EPRNBQK")))
-          (cond
-            ((= event.which #.(char-code "Z"))
-             (set-position "........\
-                            ........\
-                            ........\
-                            ........\
-                            ........\
-                            ........\
-                            ........\
-                            ........"))
-            ((= event.which #.(char-code "S"))
-             (set-position "rnbqkbnr\
-                            pppppppp\
-                            ........\
-                            ........\
-                            ........\
-                            ........\
-                            PPPPPPPP\
-                            RNBQKBNR"))
-            ((= event.which #.(char-code "A"))
-             (setf autoplay (not autoplay)))
-            ((= event.which #.(char-code "F"))
-             (flip))
-            ((= event.which #.(char-code "2"))
-             (3d<=>2d))
-            ((= event.which #.(char-code " "))
-             (setf color (- 1 color)))
-            ((= event.which #.(char-code "C"))
-             (setf coords (not coords))
-             (repaint))
-            ((= event.which 13)
-             (let ((fen (join (map (lambda (x) (aref "1PRNBQKprnbqk" x)) pos) "")))
-               (setf fen (join (map (lambda (i) (slice fen (* i 8) (* (1+ i) 8))) (range 8)) "/"))
-               (setf fen (replace fen "1+" #'length))
-               (when (null? logwindow)
-                 (let** ((w (window 0 0 675 449 title: "Log window"))
-                         (log (add-widget w (text-area "log")))
-                         (Clear (add-widget w (button "Clear" (lambda () (setf (text log) ""))))))
-                   (set-layout w (V border: 8 spacing: 8
-                                    weight: 289
-                                    (dom log) size: 30
-                                    (H spacing: 8
-                                       :filler:
-                                       size: 80
-                                       (dom Clear)
-                                       :filler:)))
-                   (show-window w center: true)
-                   (setf w.add (lambda (text)
-                                 (setf (text log) (+ (text log) text "\n"))))
-                   (setf logwindow w)))
-               (show-window logwindow)
-               (logwindow.add fen)))
-            ((find event.which pcodes)
-             (let ((code (index event.which pcodes)))
+      (let ((pcodes '#.(map #'char-code "EPRNBQK")))
+        (cond
+          ((= event.which #.(char-code "Z"))
+           (set-position "........\
+                          ........\
+                          ........\
+                          ........\
+                          ........\
+                          ........\
+                          ........\
+                          ........"))
+          ((= event.which #.(char-code "S"))
+           (set-position "rnbqkbnr\
+                          pppppppp\
+                          ........\
+                          ........\
+                          ........\
+                          ........\
+                          PPPPPPPP\
+                          RNBQKBNR"))
+          ((= event.which #.(char-code "A"))
+           (setf autoplay (not autoplay)))
+          ((= event.which #.(char-code "F"))
+           (flip))
+          ((or (= event.which #.(char-code "2"))
+               (= event.which #.(char-code "3")))
+           (3d<=>2d))
+          ((= event.which #.(char-code " "))
+           (setf color (- 1 color)))
+          ((= event.which #.(char-code "C"))
+           (setf coords (not coords))
+           (repaint))
+          ((= event.which 13)
+           (let ((fen (join (map (lambda (x) (aref "1PRNBQKprnbqk" x)) pos) "")))
+             (setf fen (join (map (lambda (i) (slice fen (* i 8) (* (1+ i) 8))) (range 8)) "/"))
+             (setf fen (replace fen "1+" #'length))
+             (when (null? logwindow)
+               (let** ((w (window 0 0 675 449 title: "Log window"))
+                       (log (add-widget w (text-area "log")))
+                       (Clear (add-widget w (button "Clear" (lambda () (setf (text log) ""))))))
+                 (set-layout w (V border: 8 spacing: 8
+                                  weight: 289
+                                  (dom log) size: 30
+                                  (H spacing: 8
+                                     :filler:
+                                     size: 80
+                                     (dom Clear)
+                                     :filler:)))
+                 (show-window w center: true)
+                 (setf w.add (lambda (text)
+                               (setf (text log) (+ (text log) text "\n"))))
+                 (setf logwindow w)))
+             (show-window logwindow)
+             (logwindow.add fen)))
+          ((find event.which pcodes)
+           (when (and lastpos
+                      (list? lastpos)
+                      (= 2 (length lastpos))
+                      (<= 0 (first lastpos) 7)
+                      (<= 0 (second lastpos) 7))
+             (let** (((i j) lastpos)
+                     (ix (+ (* 8 i) (- 7 j)))
+                     (code (index event.which pcodes)))
                (when (and (> code 0) (/= color 0))
                  (incf code 6))
                (setf (aref pos ix) code)
@@ -374,7 +375,9 @@
                                  (setf (aref pos (+ (* 8 i) (- 7 j))) (1+ ix))
                                  (if autoplay
                                      (funcall move-cback i j ii jj)
-                                     (progn
+                                     (when (and (or (/= ii i) (/= jj j))
+                                                (<= 0 ii 7)
+                                                (<= 0 jj 7))
                                        (setf (aref pos (+ (* 8 ii) (- 7 jj)))
                                              (aref pos (+ (* 8 i) (- 7 j))))
                                        (setf (aref pos (+ (* 8 i) (- 7 j))) ".")))
