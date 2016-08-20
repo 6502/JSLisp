@@ -22,6 +22,7 @@
                                    PPPPPPPP\
                                    RNBQKBNR")
                         move-cback
+                        fen-cback
                         arrow-cback)
   (let** ((view (create-element "canvas"))
           (s 0.0)
@@ -41,6 +42,21 @@
             (enumerate (i c p)
               (setf (aref pos i) (1+ (index c "PRNBQKprnbqk"))))
             (repaint))
+          (#'fen ()
+            (let ((fen (join (map (lambda (x) (aref "1PRNBQKprnbqk" x)) pos) "")))
+              (setf fen (join (map (lambda (i) (slice fen (* i 8) (* (1+ i) 8))) (range 8)) "/"))
+              (setf fen (replace fen "1+" #'length))
+              (setf fen (+ fen " " (aref "wb" color) " "
+                           (let ((cf (+ (if (= (aref pos 60) 6)
+                                            (+ (if (= (aref pos 56) 2) "K" "")
+                                               (if (= (aref pos 63) 2) "Q" ""))
+                                            "")
+                                        (if (= (aref pos 4) 12)
+                                            (+ (if (= (aref pos 0) 8) "k" "")
+                                               (if (= (aref pos 7) 8) "q" ""))
+                                            ""))))
+                             (or cf "-"))))
+              (+ fen " - 0")))
           (images (let ((count 0))
                     (map (lambda (n)
                            (let ((img (create-element "img")))
@@ -251,6 +267,7 @@
                 (setf ctx.fillStyle "rgba(255,255,255,0.5)")
                 (ctx.fillText "2D/3D" (* h 2) h)
                 (ctx.fillText "flip" (* h 5) h)
+                (ctx.fillText (if autoplay "(auto)" "") (* h 9) h)
                 (ctx.fillText "by Andrea \"6502\" Griffini"
                               (/ view.width 2)
                               (- view.height h)))))
@@ -282,7 +299,11 @@
                           PPPPPPPP\
                           RNBQKBNR"))
           ((= event.which #.(char-code "A"))
-           (setf autoplay (not autoplay)))
+           (setf autoplay (not autoplay))
+           (when (and autoplay fen-cback)
+             (try (funcall fen-cback (fen))
+                  (setf autoplay false)))
+           (repaint))
           ((= event.which #.(char-code "F"))
            (flip))
           ((or (= event.which #.(char-code "2"))
@@ -294,27 +315,24 @@
            (setf coords (not coords))
            (repaint))
           ((= event.which 13)
-           (let ((fen (join (map (lambda (x) (aref "1PRNBQKprnbqk" x)) pos) "")))
-             (setf fen (join (map (lambda (i) (slice fen (* i 8) (* (1+ i) 8))) (range 8)) "/"))
-             (setf fen (replace fen "1+" #'length))
-             (when (null? logwindow)
-               (let** ((w (window 0 0 675 449 title: "Log window"))
-                       (log (add-widget w (text-area "log")))
-                       (Clear (add-widget w (button "Clear" (lambda () (setf (text log) ""))))))
-                 (set-layout w (V border: 8 spacing: 8
-                                  weight: 289
+           (when (null? logwindow)
+             (let** ((w (window 0 0 675 449 title: "Log window"))
+                     (log (add-widget w (text-area "log")))
+                     (Clear (add-widget w (button "Clear" (lambda () (setf (text log) ""))))))
+               (set-layout w (V border: 8 spacing: 8
+                                weight: 289
                                   (dom log) size: 30
-                                  (H spacing: 8
-                                     :filler:
-                                     size: 80
-                                     (dom Clear)
-                                     :filler:)))
-                 (show-window w center: true)
-                 (setf w.add (lambda (text)
-                               (setf (text log) (+ (text log) text "\n"))))
-                 (setf logwindow w)))
-             (show-window logwindow)
-             (logwindow.add fen)))
+                                (H spacing: 8
+                                   :filler:
+                                   size: 80
+                                   (dom Clear)
+                                   :filler:)))
+               (show-window w center: true)
+               (setf w.add (lambda (text)
+                             (setf (text log) (+ (text log) text "\n"))))
+               (setf logwindow w)))
+           (show-window logwindow)
+           (logwindow.add (fen)))
           ((find event.which pcodes)
            (when (and lastpos
                       (list? lastpos)
@@ -373,6 +391,7 @@
                                  (when arrow-cback
                                    (funcall arrow-cback arrows))
                                  (setf (aref pos (+ (* 8 i) (- 7 j))) (1+ ix))
+                                 (setf color (if (< ix 6) 1 0))
                                  (if autoplay
                                      (funcall move-cback i j ii jj)
                                      (when (and (or (/= ii i) (/= jj j))
@@ -380,7 +399,7 @@
                                                 (<= 0 jj 7))
                                        (setf (aref pos (+ (* 8 ii) (- 7 jj)))
                                              (aref pos (+ (* 8 i) (- 7 j))))
-                                       (setf (aref pos (+ (* 8 i) (- 7 j))) ".")))
+                                       (setf (aref pos (+ (* 8 i) (- 7 j))) 0)))
                                  (repaint)))
                              "move")))))
           ((not (animation))
@@ -404,6 +423,7 @@
              margin "0px")
   (let** ((board (chess:chessboard))
           (view (chessboard move-cback: #'move-cback
+                            fen-cback: #'fen
                             arrow-cback: #'arrow-cback))
           (pnames #((#.chess:+WP+    "P")
                     (#.chess:+WR+    "R")
@@ -423,6 +443,10 @@
                                             (or (aref pnames x) ""))
                                           chess:*sq*)
                                      "")))
+          (#'fen (fen)
+            (chess:with-board board
+                              (chess:init-board fen)))
+
           (#'move-cback (i j ii jj)
             (chess:with-board board
                               (let ((mm (list))

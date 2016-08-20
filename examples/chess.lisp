@@ -118,87 +118,6 @@
               `(aref *sq* ,x)
               `(aref *sq* ,@x)))))
 
-(defun init-board (&optional (fen "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"))
-  "Setup chessboard from the standard FEN representation"
-  (let ((sq (list -xx- -xx- -xx- -xx- -xx- -xx- -xx- -xx- -xx- -xx-
-                  -xx- -xx- -xx- -xx- -xx- -xx- -xx- -xx- -xx- -xx-
-                  -xx- ---- ---- ---- ---- ---- ---- ---- ---- -xx-
-                  -xx- ---- ---- ---- ---- ---- ---- ---- ---- -xx-
-                  -xx- ---- ---- ---- ---- ---- ---- ---- ---- -xx-
-                  -xx- ---- ---- ---- ---- ---- ---- ---- ---- -xx-
-                  -xx- ---- ---- ---- ---- ---- ---- ---- ---- -xx-
-                  -xx- ---- ---- ---- ---- ---- ---- ---- ---- -xx-
-                  -xx- ---- ---- ---- ---- ---- ---- ---- ---- -xx-
-                  -xx- ---- ---- ---- ---- ---- ---- ---- ---- -xx-
-                  -xx- -xx- -xx- -xx- -xx- -xx- -xx- -xx- -xx- -xx-
-                  -xx- -xx- -xx- -xx- -xx- -xx- -xx- -xx- -xx- -xx-))
-        (i 0)
-        (color +WHITE+)
-        (flags 0)
-        (epsq 0)
-        (mat 0))
-    (do ((y 0)
-         (x 0))
-        ((and (= y 7) (= x 8)))
-      (let ((c (aref fen (1- (incf i)))))
-        (cond
-          ((<= "1" c "8")
-           (incf x (js-code "parseInt(d$$c)"))
-           (unless (<= x 8) (error "Invalid FEN string")))
-          ((find c "prnbqkPRNBQK")
-           (unless (< x 8) (error "Invalid FEN string"))
-           (let ((p (aref '#.(list +BP+ +BR+ +BN+ +BB+ +BQ+ +BK+
-                                   +WP+ +WR+ +WN+ +WB+ +WQ+ +WK+)
-                          (index c "prnbqkPRNBQK"))))
-             (setf (aref sq (tosq y x)) p)
-             (incf mat (aref *material-value* p)))
-           (incf x))
-          ((= c "/")
-           (unless (= x 8) (error "Invalid FEN string"))
-           (setf x 0)
-           (incf y))
-          (true (error "Invalid FEN string")))))
-    (do () ((or (>= i (length fen))
-                (/= (aref fen i) " ")))
-      (incf i))
-    (cond
-      ((= (aref fen i) "w")
-       (setf color +WHITE+))
-      ((= (aref fen i) "b")
-       (setf color +BLACK+))
-      (true (error "Invalid FEN string")))
-    (incf i)
-    (do () ((or (>= i (length fen))
-                (/= (aref fen i) " ")))
-      (incf i))
-    (do () ((or (>= i (length fen))
-                (= (aref fen i) " ")))
-      (if (find (aref fen i) "QKqk-")
-          (setf flags (logior flags
-                              (aref (list +WQF+ +WKF+ +BQF+ +BKF+ 0)
-                                    (index (aref fen i) "QKqk-"))))
-          (error "Invalid FEN string"))
-      (incf i))
-    (do () ((or (>= i (length fen))
-                (/= (aref fen i) " ")))
-      (incf i))
-    (cond
-      ((= (aref fen i) "-")
-       (setf epsq 0)
-       (incf i))
-      ((and (<= "a" (aref fen i) "h")
-            (= (aref fen (1+ i)) (if (= color +WHITE+) 6 3)))
-       (setf epsq (tosq (if (= color +WHITE+) 2 5)
-                        (index (aref fen i) "abcdefgh")))
-       (incf i))
-      (true (error "Invalid FEN string")))
-    (setf *sq* sq)
-    (setf *color* color)
-    (setf *flags* flags)
-    (setf *ep-square* epsq)
-    (setf *history* (list))
-    (setf *material* mat)))
-
 (defvar *pnames* #((#.+WP+ "P")
                    (#.+WR+ "R")
                    (#.+WN+ "N")
@@ -228,7 +147,6 @@
         (setf res (+ res " *")))
       (setf res (+ res "\n")))
     (+ res "\n")))
-
 
 (defmacro move (x0 x1 &optional np)
   (if np
@@ -348,6 +266,95 @@
                                                (list))))))
                       (step 1 (if (find d +ROOK-DIR+) 'r 'b))))
                   +QUEEN-DIR+))))
+
+(defun init-board (&optional (fen "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"))
+  "Setup chessboard from the standard FEN representation"
+  (let ((sq (list -xx- -xx- -xx- -xx- -xx- -xx- -xx- -xx- -xx- -xx-
+                  -xx- -xx- -xx- -xx- -xx- -xx- -xx- -xx- -xx- -xx-
+                  -xx- ---- ---- ---- ---- ---- ---- ---- ---- -xx-
+                  -xx- ---- ---- ---- ---- ---- ---- ---- ---- -xx-
+                  -xx- ---- ---- ---- ---- ---- ---- ---- ---- -xx-
+                  -xx- ---- ---- ---- ---- ---- ---- ---- ---- -xx-
+                  -xx- ---- ---- ---- ---- ---- ---- ---- ---- -xx-
+                  -xx- ---- ---- ---- ---- ---- ---- ---- ---- -xx-
+                  -xx- ---- ---- ---- ---- ---- ---- ---- ---- -xx-
+                  -xx- ---- ---- ---- ---- ---- ---- ---- ---- -xx-
+                  -xx- -xx- -xx- -xx- -xx- -xx- -xx- -xx- -xx- -xx-
+                  -xx- -xx- -xx- -xx- -xx- -xx- -xx- -xx- -xx- -xx-))
+        (i 0)
+        (color +WHITE+)
+        (flags 0)
+        (epsq 0)
+        (mat 0)
+        (wkc 0)
+        (bkc 0))
+    (do ((y 0)
+         (x 0))
+        ((and (= y 7) (= x 8)))
+      (let ((c (aref fen (1- (incf i)))))
+        (cond
+          ((<= "1" c "8")
+           (incf x (- c  0))
+           (unless (<= x 8) (error "Invalid FEN string")))
+          ((find c "prnbqkPRNBQK")
+           (when (= c "K") (incf wkc))
+           (when (= c "k") (incf bkc))
+           (unless (< x 8) (error "Invalid FEN string"))
+           (let ((p (aref '#.(list +BP+ +BR+ +BN+ +BB+ +BQ+ +BK+
+                                   +WP+ +WR+ +WN+ +WB+ +WQ+ +WK+)
+                          (index c "prnbqkPRNBQK"))))
+             (setf (aref sq (tosq y x)) p)
+             (incf mat (aref *material-value* p)))
+           (incf x))
+          ((= c "/")
+           (unless (= x 8) (error "Invalid FEN string"))
+           (setf x 0)
+           (incf y))
+          (true (error "Invalid FEN string")))))
+    (do () ((or (>= i (length fen))
+                (/= (aref fen i) " ")))
+      (incf i))
+    (cond
+      ((= (aref fen i) "w")
+       (setf color +WHITE+))
+      ((= (aref fen i) "b")
+       (setf color +BLACK+))
+      (true (error "Invalid FEN string")))
+    (incf i)
+    (do () ((or (>= i (length fen))
+                (/= (aref fen i) " ")))
+      (incf i))
+    (do () ((or (>= i (length fen))
+                (= (aref fen i) " ")))
+      (if (find (aref fen i) "QKqk-")
+          (setf flags (logior flags
+                              (aref (list +WQF+ +WKF+ +BQF+ +BKF+ 0)
+                                    (index (aref fen i) "QKqk-"))))
+          (error "Invalid FEN string"))
+      (incf i))
+    (do () ((or (>= i (length fen))
+                (/= (aref fen i) " ")))
+      (incf i))
+    (cond
+      ((= (aref fen i) "-")
+       (setf epsq 0)
+       (incf i))
+      ((and (<= "a" (aref fen i) "h")
+            (= (aref fen (1+ i)) (if (= color +WHITE+) 6 3)))
+       (setf epsq (tosq (if (= color +WHITE+) 5 2)
+                        (index (aref fen i) "abcdefgh")))
+       (incf i))
+      (true (error "Invalid FEN string")))
+    (unless (= wkc bkc 1)
+      (error "Invalid FEN string"))
+    (setf *sq* sq)
+    (setf *color* color)
+    (setf *flags* flags)
+    (setf *ep-square* epsq)
+    (setf *history* (list))
+    (setf *material* mat)
+    (when (attacks (index (if (= color +WHITE+) +BK+ +WK+) sq) color)
+      (error "Invalid FEN string"))))
 
 (defun check ()
   "True if player is currently under check"
