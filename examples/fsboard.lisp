@@ -38,9 +38,10 @@
           (arrows (list))
           (pos (make-array 64 0))
           (color 0)
-          (#'set-position (p)
+          (#'set-position (p col)
             (enumerate (i c p)
               (setf (aref pos i) (1+ (index c "PRNBQKprnbqk"))))
+            (setf color col)
             (repaint))
           (#'fen ()
             (let ((fen (join (map (lambda (x) (aref "1PRNBQKprnbqk" x)) pos) "")))
@@ -116,7 +117,7 @@
                     (width view.offsetWidth)
                     (height view.offsetHeight))
               (camera eye (v 0 0 0) up
-                      (* 1.2 (min width height)))))
+                      (* 1.2 (min (* width (/ 8 9)) height)))))
           (#'revp (xs ys)
             ;; eye.y + t*(p.y - eye.y) = 0
             ;; t = (eye.y - p.y) / eye.y
@@ -179,6 +180,12 @@
                           (if (even? (+ i j))
                               "#CCAA88"
                               "#FFEEDD"))))
+              (let ((i (if color 0 7))
+                    (j -1))
+                (xzcircle (* 100 (- i 3.5)) (* 100 (- j 3.5)) 27
+                          "#886644")
+                (xzcircle (* 100 (- i 3.5)) (* 100 (- j 3.5)) 24
+                          (if color "#CCAA88" "#FFEEDD")))
               (dolist ((i0 j0 i1 j1) arrows)
                 (if (and (= i0 i1) (= j0 j1))
                     (xzcircle (* 100 (- i0 3.5)) (* 100 (- j0 3.5))
@@ -281,6 +288,8 @@
       (let ((pcodes '#.(map #'char-code "EPRNBQK")))
         (cond
           ((= event.which #.(char-code "Z"))
+           (setf autoplay 0)
+           (splice arrows)
            (set-position "........\
                           ........\
                           ........\
@@ -288,8 +297,10 @@
                           ........\
                           ........\
                           ........\
-                          ........"))
+                          ........" 0))
           ((= event.which #.(char-code "S"))
+           (setf autoplay 0)
+           (splice arrows)
            (set-position "rnbqkbnr\
                           pppppppp\
                           ........\
@@ -297,7 +308,7 @@
                           ........\
                           ........\
                           PPPPPPPP\
-                          RNBQKBNR"))
+                          RNBQKBNR" 0))
           ((= event.which #.(char-code "A"))
            (setf autoplay (not autoplay))
            (when (and autoplay fen-cback)
@@ -310,7 +321,9 @@
                (= event.which #.(char-code "3")))
            (3d<=>2d))
           ((= event.which #.(char-code " "))
-           (setf color (- 1 color)))
+           (setf color (- 1 color))
+           (setf autoplay 0)
+           (repaint))
           ((= event.which #.(char-code "C"))
            (setf coords (not coords))
            (repaint))
@@ -345,6 +358,7 @@
                (when (and (> code 0) (/= color 0))
                  (incf code 6))
                (setf (aref pos ix) code)
+               (setf autoplay 0)
                (repaint)))))))
     (set-handler view onmousedown
       (event.preventDefault)
@@ -391,12 +405,12 @@
                                  (when arrow-cback
                                    (funcall arrow-cback arrows))
                                  (setf (aref pos (+ (* 8 i) (- 7 j))) (1+ ix))
-                                 (setf color (if (< ix 6) 1 0))
                                  (if autoplay
                                      (funcall move-cback i j ii jj)
                                      (when (and (or (/= ii i) (/= jj j))
                                                 (<= 0 ii 7)
                                                 (<= 0 jj 7))
+                                       (setf color (if (< ix 6) 1 0))
                                        (setf (aref pos (+ (* 8 ii) (- 7 jj)))
                                              (aref pos (+ (* 8 i) (- 7 j))))
                                        (setf (aref pos (+ (* 8 i) (- 7 j))) 0)))
@@ -412,7 +426,7 @@
     (setf view.pos pos)
     (setf view.set-position #'set-position)
     (setf view.arrows arrows)
-    (set-position position)
+    (set-position position color)
     view))
 
 (defun main ()
@@ -442,7 +456,8 @@
             (view.set-position (join (map (lambda (x)
                                             (or (aref pnames x) ""))
                                           chess:*sq*)
-                                     "")))
+                                     "")
+                               (if (= chess:*color* chess:+WHITE+) 0 1)))
           (#'fen (fen)
             (chess:with-board board
                               (chess:init-board fen)))
