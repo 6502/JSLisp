@@ -4000,10 +4000,37 @@ A name is either an unevaluated atom or an evaluated list."
                (block ,name
                  (if ,test
                      (progn ,@body)
-                     (,of ,@args)))))
+                     ,(cond
+                        ((find '&optional args)
+                         (let ((i (index '&optional args)))
+                           `(,of ,(append (slice args 0 i)
+                                          (map (lambda (a)
+                                                 (if (symbol? a)
+                                                     a
+                                                     (first a)))
+                                               (slice args (1+ i)))))))
+                        ((find '&rest args)
+                         (let ((i (index '&rest args)))
+                           `(apply (function ,of)
+                                   ,(if (= i 0)
+                                        (last args)
+                                        `(append (list ,@(slice args 0 i))
+                                                 ,(last args))))))
+                        ((find '&key args)
+                         (let* ((i (index '&key args))
+                                (al (slice args 0 i)))
+                           (dolist (x (slice args (1+ i)))
+                             (let ((s (if (symbol? x)
+                                          x
+                                          (first x))))
+                               (push (intern (+ (symbol-name s) ":")) al)
+                               (push s al)))
+                           `(,of ,@al)))
+                        (true
+                          `(,of ,@args)))))))
        (list ',name ',test))))
 
-;; Compile-time argument checking
+;; Compile-time static call check
 
 (defun static-check-args (form func)
   (let* ((args func.arglist)
