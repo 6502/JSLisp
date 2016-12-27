@@ -1427,7 +1427,7 @@
   "Creates a new uninterned symbol"
   (declare (ignorable name))
   (declare (type string name))
-  (js-code "(new Symbol(f$$mangle(d$$name)))"))
+  (js-code "(new JSLSymbol(f$$mangle(d$$name)))"))
 
 (defvar *gensym-count* 0)
 

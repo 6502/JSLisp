@@ -98,15 +98,15 @@ function stringify(x)
     return JSON.stringify(x).substr(0); // Opera bug
 }
 
-function Symbol(name, interned)
+function JSLSymbol(name, interned)
 {
     this.name = name;
     if (!interned) this.interned = interned;
 }
 
-Symbol.prototype.interned = true;
+JSLSymbol.prototype.interned = true;
 
-Symbol.prototype.toString = function () {
+JSLSymbol.prototype.toString = function () {
     var ix = this.name.indexOf("$$");
     var mod = f$$demangle("$$" + this.name.substr(0, ix)) + ":";
     if (mod === ":" || mod === d$$$42_current_module$42_ + ":")
@@ -236,7 +236,7 @@ glob["f$$intern"] = f$$intern = function(name, module, lookup_only)
         if ((typeof module === "undefined") && (x = glob["s" + mangled]))
             return x;
         if (lookup_only) return null;
-        x = glob["s" + mname] = new Symbol(mname, true);
+        x = glob["s" + mname] = new JSLSymbol(mname, true);
         eval("s" + mname + " = glob['s" + mname + "']");
         if (name[name.length-1] === ':')
         {
@@ -407,7 +407,7 @@ defun("list?", "[[(list? x)]]\nReturns true if and only if [x] is a list",
       function(x) { return (x && x.constructor === Array)  ? true : false; }, [s$$x], [], []);
 
 defun("symbol?", "[[(symbol? x)]]\nReturns true if and only if [x] is a symbol",
-      function(x) { return (x && x.constructor === Symbol) ? true : false; }, [s$$x], [], []);
+      function(x) { return (x && x.constructor === JSLSymbol) ? true : false; }, [s$$x], [], []);
 
 defun("js-eval",
       "[[(js-eval x)]]\n" +

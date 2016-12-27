@@ -104,8 +104,8 @@ reverse engineering point of view.
 
 (defvar *repcode* "lisp_literals=[];\
                    d$$$42_exception$42_=null;\
-                   Symbol=function(n){this.name=n};\
-                   s=function(n){return new Symbol(n)};\
+                   JSLSymbol=function(n){this.name=n};\
+                   s=function(n){return new JSLSymbol(n)};\
                    a=function(x,L){x.push.apply(x,L)};")
 
 (defvar *globs* #())
