@@ -3357,6 +3357,14 @@ A name is either an unevaluated atom or an evaluated list."
        ,~"Creates an instance of tuple [{name}]"
        (list ',#"new-{name}" ,@fields))))
 
+;; ES2015 Proxy support
+(defmacro proxy (target handler)
+  `(js-code ,(+ "new Proxy("
+                (js-compile target)
+                ","
+                (js-compile handler)
+                ")")))
+
 ;; Case conversion
 (defun uppercase (x)
   "Returns the string [x] converted to uppercase"

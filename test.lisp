@@ -842,6 +842,15 @@
         (or (<= x0 x x1) (<= x1 x x0)))
       "true")
 
+(test (let ((x (proxy #() #((get (lambda (target name proxy)
+                                   (declare (ignorable target name proxy))
+                                   42))
+                            (set (lambda (target name value proxy)
+                                   (declare (ignorable target name proxy))
+                                   value))))))
+        (list x.y x.z (setf x.z 99) x.z))
+      "(42 42 99 42)")
+
 (display (+ test-passed "/" test-total
             " tests passed in "
             (- (clock) test-start) "ms"))
