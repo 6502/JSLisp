@@ -31,7 +31,7 @@
       (let ((nctx #((code (list))
                     (labels 0)
                     (parent ctx))))
-        (push `(args ,(second x)) nctx.code)
+        (push `(args ,(reverse (second x))) nctx.code)
         (dolist (y (slice x 2))
           (compile y nctx))
         (push `(ret) nctx.code)
