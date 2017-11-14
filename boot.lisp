@@ -3365,6 +3365,10 @@ A name is either an unevaluated atom or an evaluated list."
                 (js-compile handler)
                 ")")))
 
+;; Bare object support
+(defmacro bare-object (prototype)
+  `(js-code ,~"Object.create({(js-compile prototype)})"))
+
 ;; Case conversion
 (defun uppercase (x)
   "Returns the string [x] converted to uppercase"
