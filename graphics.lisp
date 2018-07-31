@@ -139,7 +139,7 @@
          ,@body))))
 
 (defun image-data-url (filename)
-  (+ "data:image/png;base64,"
+  (+ "data:image/" (slice filename (1+ (last-index "." filename))) ";base64,"
      (base64-encode (if node-js
                         (get-file filename undefined)
                         (http-get filename null null true)))))
