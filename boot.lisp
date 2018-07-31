@@ -697,7 +697,7 @@
 
 (defun insert (x i y)
   "Inserts element [y] into list [x] at index [i].
-   Al elements with an index greater than [i] (if present) will \
+   All elements with an index greater than or equal to [i] (if present) will \
    be moved forward by one cell. If the index [i] is negative then \
    it's assumed as counting from the end of the list (so [-1] is \
    the same as [(1- (length x))]. The function returns the inserted \
@@ -722,6 +722,16 @@
   (declare (type list x))
   (declare (type number i))
   (js-code "(d$$x.splice(d$$i,0,d$$y),d$$y)"))
+
+(defun extend (x &rest others)
+  "Appends the elements of all [others] lists to the list [x] and returns [x].[[
+   (let ((x (range 3)))
+     (list x (extend x (range 2) (range 5)))
+     ;; ==> ((0 1 2 0 1 0 1 2 3 4) #1)
+   ]]"
+  (declare (type list x))
+  (declare (ignorable others))
+  (js-code "(d$$others.forEach(y=>d$$x.push(...y)),d$$x)"))
 
 ;; Indexing
 (defmacro aref (x &rest indexes)

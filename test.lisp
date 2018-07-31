@@ -372,6 +372,10 @@
               (list 6))
       "(1 2 3 4 5 6)")
 
+(test (let ((x (range 2)))
+        (list x (extend x (range 3) (range 4))))
+      "((0 1 0 1 2 0 1 2 3) #1)")
+
 (test (apply #'+ (list 1 2 3))
       "6")
 
