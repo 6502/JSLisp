@@ -4233,11 +4233,18 @@ A name is either an unevaluated atom or an evaluated list."
 (defvar *condition-handlers* (js-object (* (list))))
 
 (defmacro defcondition (name args)
+  "Defines a condition named [name] that will contain the specified data fields;
+   in addition to them the condition object will also contain the field [.restarts]
+   that will be itself an object containing all supported restart points.
+   See also {{signal}} and {{handler-case}}."
   `(progn
      (setf (aref *condition-handlers* ',name) (list))
      (defobject ,name (,@args restarts))))
 
 (defmacro handler-case (expr &rest handlers)
+  "Evaluates an expression with one or more condition handlers. In case of a
+   signaled condition the specific handler will be passed the condition object
+   that contains also supported restarts. See {{signal}} for a full example."
   `(progn
      ,@(map (lambda (h)
               `(push (lambda ,@(rest h))
@@ -4249,6 +4256,35 @@ A name is either an unevaluated atom or an evaluated list."
               handlers))))
 
 (defmacro signal (condition data &rest restarts)
+ "Signals a condition, allowing handlers up the calling stack to handle
+  it by either calling a restart point or by directly returning a value.
+  The returned value will be the value of the [signal] form.
+  In case no handler is found an exception is thrown instead.[[\
+  (defcondition division-by-zero (num))
+  ;; ==> division-by-zero
+
+  (defun foo (num den)
+    (if (= den 0)
+        (signal division-by-zero (num)
+          (use-value (x) x)
+          (use-denominator (x) (/ num x)))
+          (/ num den)))
+  ;; ==> foo
+
+  (foo 6 2)
+  ;; ==> 3
+
+  (foo 6 0)
+  ** RUNTIME ERROR **: Uncaught Unhandled condition division-by-zero
+
+  (handler-case
+    (foo 42 0)
+    (division-by-zero (c)
+      (if (= c.num 42)
+          (c.restarts.use-denominator 3)
+          (interactive-handler c))))
+  ;; ==> 14
+  ]]"
   (unless (aref *condition-handlers* condition)
     (error "Not a valid condition"))
   `(let ((condition (,#"new-{condition}"
@@ -4270,7 +4306,7 @@ A name is either an unevaluated atom or an evaluated list."
           (keys (keys x.restarts))
           (n 0))
       (dolist (k (rest x.%class))
-        (unless (= k 'restarts)
+        (unless (= k "restarts")
           (incf msg ~"    {k} = {(str-value (aref x k))}\n")))
       (incf msg "\n")
       (when (> (length (keys x.restarts)) 0)
