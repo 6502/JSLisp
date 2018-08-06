@@ -4244,7 +4244,9 @@ A name is either an unevaluated atom or an evaluated list."
 (defmacro handler-case (expr &rest handlers)
   "Evaluates an expression with one or more condition handlers. In case of a
    signaled condition the specific handler will be passed the condition object
-   that contains also supported restarts. See {{signal}} for a full example."
+   that contains also supported restarts.
+   If [*] is used instead of the condition name then all conditions are handled.
+   See {{signal}} for a full example."
   `(progn
      ,@(map (lambda (h)
               `(push (lambda ,@(rest h))
