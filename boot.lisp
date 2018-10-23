@@ -2040,7 +2040,7 @@
    (find NaN (list 1 2 NaN 3 4))
    ;; ==> false
    ]]"
-  (declare (type (or list string) x)
+  (declare (type (or list string) L)
            (return-type bool))
   (/= -1 (index x L)))
 
