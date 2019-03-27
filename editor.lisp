@@ -3,6 +3,8 @@
 
 (setf *font* "\"Droid Sans Mono\",\"Courier New\",\"Courier\",monospace")
 (setf *fontsz* 16)
+(setf *vshift* 4)
+(setf *vextra* 2)
 
 (defvar *edit-commands* #(("copy" "Clipboard copy (works only when bound to OS default)")
                           ("cut" "Clipboard cut (works only when bound to OS default)")
@@ -162,7 +164,7 @@
             (when (> s.from xx)
               (let ((part (slice text xx s.from)))
                 (font ctx #())
-                (ctx.fillText part (+ tx x) 0)
+                (ctx.fillText part (+ tx x) *vshift*)
                 (incf x (ctx.measureText part).width)
                 (setf xx s.from)))
             (when (< (+ tx x) w)
@@ -173,7 +175,7 @@
                     (setf ctx.fillStyle s.style.background)
                     (ctx.fillRect (+ tx x) 0 pw h))
                   (setf ctx.fillStyle (or s.style.color "#000000"))
-                  (ctx.fillText part (+ tx x) 0)
+                  (ctx.fillText part (+ tx x) *vshift*)
                   (when s.style.underline
                     (setf ctx.fillStyle s.style.underline)
                     (ctx.fillRect (+ tx x) (+ 0 (1- h)) pw 1))
@@ -183,7 +185,7 @@
             (when (> (length text) xx)
               (let ((part (slice text xx)))
                 (font ctx #())
-                (ctx.fillText part (+ tx x) 0)
+                (ctx.fillText part (+ tx x) *vshift*)
                 (incf x (ctx.measureText part).width)))))))
     (let ((key (first (splice (first cache) ix 1)))
           (canvas (first (splice (second cache) ix 1))))
@@ -324,11 +326,11 @@
                   (set-style d
                              fontFamily *font*
                              fontSize (+ *fontsz* "px"))
-                  (setf d.textContent "gj")
+                  (setf d.textContent "Ñgj")
                   (document.body.appendChild d)
                   (setf r (d.getBoundingClientRect))
                   (document.body.removeChild d)
-                  (- r.bottom r.top)))
+                  (+ *vextra* (- r.bottom r.top))))
             (top 0)
             (left 0)
             (row 0)
