@@ -71,16 +71,19 @@
   (error ~"Unknown request {req.%class}"))
 
 (defun process (url parsed-req response)
+  (setq url (uri-decode url))
   (let ((content (try (cond
                         ((= url "/process")
                          (json* (process-request parsed-req)))
                         (((regexp "^/process-as\\.[a-z0-9]+$").exec url)
                          (process-request parsed-req))
-                        (true (try (get-file (+ "." url) null)
-                                   (progn
-                                     (response.writeHead 404)
-                                     (response.end "File not found")
-                                     (return-from process)))))
+                        (true
+                         (try (get-file (+ "." url) null)
+                              (progn
+                                (display ~"ERROR: {*exception*}")
+                                (response.writeHead 404)
+                                (response.end "File not found")
+                                (return-from process)))))
                       (progn
                         (display ~"ERROR: {*exception*}")
                         (response.writeHead 500)
