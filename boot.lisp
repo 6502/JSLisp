@@ -4684,3 +4684,36 @@ A name is either an unevaluated atom or an evaluated list."
                   `(locally ((type ,(intern (slice (symbol-full-name (first test)) 0 -1)) ,(second test)))
                      ,when-true)))
           (funcall oif test when-true when-false))))
+
+;; More regular var, function and macro definitions
+(defmacro def (name &rest body)
+ "[[\
+  (def <name> <value>)
+  (def (<name> <arg1> <arg2> ... <argN>) <body...>)]]
+  Defines or redefines a variable or a function by expanding either to \
+  {{setq}} or to {{defun}}.[[\
+  (def (square x) (* x x))
+  ;; ==> square
+
+  (square 12)
+  ;; ==> 144
+
+  (def x 42)
+  ;; ==> x
+
+  x
+  ;; => 42
+  ]]"
+  (if (list? name)
+      `(defun ,(first name) ,(rest name) ,@body)
+      `(setq ,name (progn ,@body))))
+
+(defmacro mdef (name &rest body)
+ "[[\
+  (mdef <name> <expansion>)
+  (mdef (<name> <arg1> <arg2> ... <argN>) <body...>)]]
+  Defines or redefines a symbol-macro or a macro by expanding either to \
+  {{define-symbol-macro}} or to {{defmacro}}."
+  (if (list? name)
+      `(defmacro ,(first name) ,(rest name) ,@body)
+      `(define-symbol-macro ,name (progn ,@body))))
