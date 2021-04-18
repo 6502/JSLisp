@@ -115,6 +115,7 @@ alt-r ............... reset inferior lisp
 alt-z ............... clean inferior lisp window
 ctrl-r .............. search/replace dialog
 alt-i ............... ask and evaluate expression in inferior lisp
+alt-/ ............... autocomplete current word (repeated cycles options)
 
 (*)  For security reasons these are the only keys that allow a browser
      to do cut/copy/paste using the system clipboad.
