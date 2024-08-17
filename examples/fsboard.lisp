@@ -57,7 +57,7 @@
                                                (if (= (aref pos 7) 8) "q" ""))
                                             ""))))
                              (or cf "-"))))
-              (+ fen " - 0")))
+              (+ fen " - 0 1")))
           (images (let ((count 0))
                     (map (lambda (n)
                            (let ((img (create-element "img")))
